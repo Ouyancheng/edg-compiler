@@ -438,7 +438,7 @@ typedef struct a_storage_stack_state {
 		*destructions;
 			/* Destructions to perform when this state is
 			   popped. */
-  INLINE auto alloc_seq() const -> an_alloc_seq_number
+  EXPAND auto alloc_seq() const -> an_alloc_seq_number
     { return this->alloc_seq_number; }
   inline void set_alloc_seq(an_alloc_seq_number  num)
     { this->alloc_seq_number = num; }

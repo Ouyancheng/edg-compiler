@@ -6682,7 +6682,7 @@ extern a_symbol_header_ptr find_il_symbol_header(a_const_char *identifier,
 #define symbol_for(entry)  ((a_symbol_ptr)(entry)->source_corresp.assoc_info)
 
 template<typename a_Type>
-INLINE a_symbol_ptr symbol_for_or_null(const a_Type *entry)
+EXPAND a_symbol_ptr symbol_for_or_null(const a_Type *entry)
 /*
 Return the symbol associated with an IL entry, or NULL if the IL entry is NULL.
 */

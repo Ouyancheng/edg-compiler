@@ -464,7 +464,7 @@ using Value_for_ptr = Remove_ref<decltype(*dummy_val<a_Ptr>())>;
 #pragma diag_suppress 540
 #endif /* ifdef __EDG__ */
 template<typename an_Object>
-an_Object&& fwd(Remove_ref<an_Object>&  arg) noexcept
+INLINE an_Object&& fwd(Remove_ref<an_Object>&  arg) noexcept
 /*
 This function should only be applied to "forwarding references".  It is used
 to forward parameters.  For example:
@@ -484,7 +484,7 @@ pass through the lvalue.
 
 
 template<typename a_Ptr>
-Value_for_ptr<a_Ptr>&& move_from(a_Ptr  p_object)
+INLINE Value_for_ptr<a_Ptr>&& move_from(a_Ptr  p_object)
 /*
 Return *p_object as an xvalue, so that it can be moved from.
 */
@@ -494,8 +494,8 @@ Return *p_object as an xvalue, so that it can be moved from.
 
 
 template<typename a_Ptr, typename ...an_Arg_pack>
-void construct(a_Ptr          p_object,
-               an_Arg_pack&&  ...args)
+INLINE void construct(a_Ptr          p_object,
+                      an_Arg_pack&&  ...args)
 /*
 Construct *p_object with the given arguments.
 */
@@ -521,7 +521,7 @@ elision).
 
 
 template<typename a_Ptr>
-void destroy(a_Ptr  p_object)
+INLINE void destroy(a_Ptr  p_object)
 /*
 Destroy the given object.
 */
@@ -632,7 +632,7 @@ accessible "next" pointer fields) contains a cycle.
 
 
 template<typename an_Object_type, typename an_Array>
-inline void copy_construct_element(an_Array             &dest_array,
+INLINE void copy_construct_element(an_Array             &dest_array,
                                    const an_Object_type &elem,
                                    size_t               num_copies)
 /*
@@ -649,7 +649,7 @@ block to use this interface.
 
 
 template<typename, typename an_Array>
-inline void copy_construct_element(an_Array &dest_array,
+INLINE void copy_construct_element(an_Array &dest_array,
                                    char     elem,
                                    size_t   num_copies)
 /*
@@ -664,7 +664,7 @@ block to use this interface.
 
 
 template<typename an_Object_type, typename an_Array_A, typename an_Array_B>
-inline Enable_if<!Is_trivially_copyable<an_Object_type>::value, void>
+INLINE Enable_if<!Is_trivially_copyable<an_Object_type>::value, void>
 copy_construct_elements(an_Array_A       &dest_array,
                         const an_Array_B &src_array,
                         size_t           num_to_copy)
@@ -683,7 +683,7 @@ as contiguous memory blocks to use this interface.
 
 
 template<typename an_Object_type, typename an_Array_A, typename an_Array_B>
-inline Enable_if<Is_trivially_copyable<an_Object_type>::value, void>
+INLINE Enable_if<Is_trivially_copyable<an_Object_type>::value, void>
 copy_construct_elements(an_Array_A       &dest_array,
                         const an_Array_B &src_array,
                         size_t           num_to_copy)
@@ -703,7 +703,7 @@ as contiguous memory blocks to use this interface.
 
 template<typename an_Object_type, typename an_Array,
          template<typename> class Allocator>
-inline an_Object_type* new_copy_of_elements(
+INLINE an_Object_type* new_copy_of_elements(
                                          const an_Array            &src_array,
                                          size_t                    num_to_copy,
                                          Allocator<an_Object_type> a)
@@ -724,7 +724,7 @@ memory blocks to use this interface.
 
 
 template<template<typename> class Allocator>
-inline char* new_copy_of_string(a_const_char    *src_str,
+INLINE char* new_copy_of_string(a_const_char    *src_str,
                                 Allocator<char> a)
 /*
 Copy the given null-terminated string to a new dynamically-allocated array
@@ -738,7 +738,7 @@ allocated via the given allocator.  Return the newly-allocated string.
 
 
 template<typename an_Object_type, typename an_Array>
-inline Enable_if<!Is_trivially_destructible<an_Object_type>::value, void>
+INLINE Enable_if<!Is_trivially_destructible<an_Object_type>::value, void>
 destroy_elements(an_Array &array,
                  size_t   num_to_destroy)
 /*
@@ -756,7 +756,7 @@ memory block to use this interface.
 
 
 template<typename an_Object_type, typename an_Array>
-inline Enable_if<Is_trivially_destructible<an_Object_type>::value, void>
+INLINE Enable_if<Is_trivially_destructible<an_Object_type>::value, void>
 destroy_elements(ARG_UNUSED an_Array &array,
                  ARG_UNUSED size_t   num_to_destroy)
 /*
@@ -772,7 +772,7 @@ memory block to use this interface.
 
 
 template<typename an_Object_type, typename an_Array_A, typename an_Array_B>
-inline Enable_if<!Is_trivially_copyable<an_Object_type>::value, void>
+INLINE Enable_if<!Is_trivially_copyable<an_Object_type>::value, void>
 move_elements(an_Array_A &dest_array,
               an_Array_B &src_array,
               size_t     num_to_move)
@@ -801,7 +801,7 @@ as contiguous memory blocks to use this interface.
 
 
 template<typename an_Object_type, typename an_Array_A, typename an_Array_B>
-inline Enable_if<Is_trivially_copyable<an_Object_type>::value, void>
+INLINE Enable_if<Is_trivially_copyable<an_Object_type>::value, void>
 move_elements(an_Array_A &dest_array,
               an_Array_B &src_array,
               size_t     num_to_move)
@@ -861,7 +861,7 @@ struct Is_trivially_destructible_edg_impl<Ptr_with_flag<a_Ptr>> :
 }  /* detail */
 
 template<typename a_Ptr>
-inline Ptr_with_flag<a_Ptr> ptr_with_flag(a_Ptr      ptr,
+INLINE Ptr_with_flag<a_Ptr> ptr_with_flag(a_Ptr      ptr,
                                           a_boolean  flag)
 /*
 Return a Ptr_with_flag initialized with the given values.
@@ -887,28 +887,31 @@ struct Allocation {
 };  /* Allocation */
 
 
+/*
+A general allocator for front end memory.
+*/
 template<typename an_Elem>
 struct FE_allocator {
-  /* A general allocator for front end memory. */
   typedef an_Elem an_elem;
   typedef Allocation<an_elem> an_allocation;
   typedef FE_allocator<an_elem> an_allocator;
   typedef FE_allocator<an_elem> a_deallocator;
-  inline static auto alloc(size_t n) -> an_allocation;
-  inline static auto replace_alloc(an_allocation  a,
+  INLINE static auto alloc(size_t n) -> an_allocation;
+  INLINE static auto replace_alloc(an_allocation  a,
                                    size_t         new_capacity,
                                    size_t         n_to_move)
                      -> an_allocation;
-  static auto move_alloc(ARG_UNUSED an_allocator  &src,
-                         an_allocation            src_alloc,
-                         ARG_UNUSED size_t        n_to_move) -> an_allocation
+  INLINE static auto move_alloc(ARG_UNUSED an_allocator  &src,
+                                an_allocation            src_alloc,
+                                ARG_UNUSED size_t        n_to_move)
+                     -> an_allocation
     { return src_alloc; }
-  inline static void dealloc(an_allocation allocation);
+  INLINE static void dealloc(an_allocation allocation);
 };  /* FE_allocator */
 
 
 template<typename an_Elem>
-inline auto FE_allocator<an_Elem>::alloc(size_t n) -> an_allocation
+auto FE_allocator<an_Elem>::alloc(size_t n) -> an_allocation
 /*
 Allocate at least n elements of type an_Elem and return the resulting
 allocation (which reflects the actual number of allocated elements).
@@ -920,9 +923,9 @@ allocation (which reflects the actual number of allocated elements).
 
 
 template<typename an_Elem>
-inline auto FE_allocator<an_Elem>::replace_alloc(an_allocation a,
-                                                 size_t        new_capacity,
-                                                 size_t        n_to_move)
+auto FE_allocator<an_Elem>::replace_alloc(an_allocation a,
+                                          size_t        new_capacity,
+                                          size_t        n_to_move)
             -> an_allocation
 /*
 Replace the given allocation -- which was allocated by the same allocator -- by
@@ -940,7 +943,7 @@ new allocation.
 
 
 template<typename an_Elem>
-inline void FE_allocator<an_Elem>::dealloc(an_allocation a)
+void FE_allocator<an_Elem>::dealloc(an_allocation a)
 /*
 Release the given allocation -- which was allocated by the same allocator.
 The caller is responsible for ensuring the allocation contains no live
@@ -953,7 +956,7 @@ objects.
 
 
 template<typename an_Object, typename ...an_Arg_pack>
-inline an_Object *new_fe(an_Arg_pack&& ...args)
+INLINE an_Object *new_fe(an_Arg_pack&& ...args)
 /*
 Allocate in front-end memory and construct an object of type an_Object with
 the constructor arguments specified by args.  Return a pointer to the object.
@@ -966,7 +969,7 @@ the constructor arguments specified by args.  Return a pointer to the object.
 
 
 template<typename an_Object>
-inline void delete_fe(an_Object **p)
+INLINE void delete_fe(an_Object **p)
 /*
 Destroy and delete an object of type an_Object that was allocated in front end
 memory.  The value of *p will be set to NULL.
@@ -988,35 +991,37 @@ struct General_allocator {
   typedef Allocation<an_elem> an_allocation;
   typedef General_allocator<an_elem> an_allocator;
   typedef General_allocator<an_elem> a_deallocator;
-  inline static auto alloc(size_t n) -> an_allocation;
-  inline static auto replace_alloc(an_allocation  a,
+  INLINE static auto alloc(size_t n) -> an_allocation;
+  INLINE static auto replace_alloc(an_allocation  a,
                                    size_t         new_capacity,
                                    size_t         n_to_move)
                      -> an_allocation;
-  static auto move_alloc(ARG_UNUSED an_allocator  &src,
-                         an_allocation            src_alloc,
-                         ARG_UNUSED size_t        n_to_move) -> an_allocation
+  INLINE static auto move_alloc(ARG_UNUSED an_allocator  &src,
+                                an_allocation            src_alloc,
+                                ARG_UNUSED size_t        n_to_move)
+                     -> an_allocation
     { return src_alloc; }
-  inline static void dealloc(an_allocation allocation);
+  INLINE static void dealloc(an_allocation allocation);
 };  /* General_allocator */
 
 
 template<typename an_Elem>
-inline auto General_allocator<an_Elem>::alloc(size_t n) -> an_allocation
+auto General_allocator<an_Elem>::alloc(size_t n) -> an_allocation
 /*
 Allocate at least n elements of type an_Elem and return the resulting
 allocation (which reflects the actual number of allocated elements).
 */
 {
-  return an_allocation{ (an_elem*)alloc_general(n*sizeof(an_elem)), n };
+  sizeof_t n_bytes = n * sizeof(an_elem);
+
+  return an_allocation{(an_elem*)alloc_general(n_bytes), n_bytes};
 }  /* General_allocator::alloc */
 
 
 template<typename an_Elem>
-inline auto General_allocator<an_Elem>::replace_alloc(
-                                                    an_allocation a,
-                                                    size_t        new_capacity,
-                                                    size_t        n_to_move)
+auto General_allocator<an_Elem>::replace_alloc(an_allocation a,
+                                               size_t        new_capacity,
+                                               size_t        n_to_move)
             -> an_allocation
 /*
 Replace the given allocation -- which was allocated by the same allocator -- by
@@ -1034,7 +1039,7 @@ new allocation.
 
 
 template<typename an_Elem>
-inline void General_allocator<an_Elem>::dealloc(an_allocation a)
+INLINE void General_allocator<an_Elem>::dealloc(an_allocation a)
 /*
 Release the given allocation -- which was allocated by the same allocator.
 The caller is responsible for ensuring the allocation contains no live
@@ -1047,7 +1052,7 @@ objects.
 
 
 template<typename an_Object, typename ...an_Arg_pack>
-inline an_Object *new_general(an_Arg_pack&& ...args)
+INLINE an_Object *new_general(an_Arg_pack&& ...args)
 /*
 Allocate in general memory and construct an object of type an_Object with
 the constructor arguments specified by args.  Return a pointer to the object.
@@ -1060,7 +1065,7 @@ the constructor arguments specified by args.  Return a pointer to the object.
 
 
 template<typename an_Object>
-inline void delete_general(an_Object **p)
+INLINE void delete_general(an_Object **p)
 /*
 Destroy and delete an object of type an_Object that was allocated in
 general memory.  The value of *p will be set to NULL.
@@ -1081,7 +1086,7 @@ struct IL_allocator {
   typedef an_Elem an_elem;
   typedef Allocation<an_elem> an_allocation;
   typedef IL_allocator<an_elem> an_allocator;
-  inline static auto alloc(size_t n) -> an_allocation;
+  INLINE static auto alloc(size_t n) -> an_allocation;
 };  /* IL_allocator */
 
 
@@ -1089,18 +1094,20 @@ struct IL_allocator {
 extern char *alloc_il(sizeof_t size);
 
 template<typename an_Elem>
-inline auto IL_allocator<an_Elem>::alloc(size_t n) -> an_allocation
+auto IL_allocator<an_Elem>::alloc(size_t n) -> an_allocation
 /*
 Allocate at least n elements of type an_Elem and return the resulting
 allocation (which reflects the actual number of allocated elements).
 */
 {
-  return an_allocation{ (an_elem*)alloc_il(n*sizeof(an_elem)), n };
+  sizeof_t n_bytes = n * sizeof(an_elem);
+
+  return an_allocation{(an_elem*)alloc_il(n_bytes), n_bytes};
 }  /* IL_allocator::alloc */
 
 
 template<typename an_Object, typename ...an_Arg_pack>
-inline an_Object *new_il(an_Arg_pack&& ...args)
+INLINE an_Object *new_il(an_Arg_pack&& ...args)
 /*
 Allocate in IL memory and construct an object of type an_Object with the
 constructor arguments specified by args.  Return a pointer to the object.
@@ -1155,17 +1162,17 @@ struct Buffered_allocator {
   ~Buffered_allocator()
     {}
 
-  inline auto alloc(size_t n) -> an_allocation;
-  inline auto replace_alloc(an_allocation  a,
+  INLINE auto alloc(size_t n) -> an_allocation;
+  INLINE auto replace_alloc(an_allocation  a,
                             size_t         new_capacity,
                             size_t         n_to_move) -> an_allocation;
-  inline auto move_alloc(an_allocator  &src,
+  INLINE auto move_alloc(an_allocator  &src,
                          an_allocation src_alloc,
                          size_t        n_to_move) -> an_allocation;
-  inline void dealloc(an_allocation allocation);
+  INLINE void dealloc(an_allocation allocation);
 private:
-  inline auto local_alloc(size_t n) -> an_allocation;
-  inline auto fallback_alloc(size_t n) -> an_allocation;
+  INLINE auto local_alloc(size_t n) -> an_allocation;
+  INLINE auto fallback_alloc(size_t n) -> an_allocation;
   a_fallback_allocator
                 fallback_allocator;
                         /* The fallback allocator used when the local buffer is
@@ -1192,7 +1199,7 @@ private:
 template<unsigned a_Capacity,
          template<typename> class a_Fallback_allocator,
          typename an_Elem>
-inline auto
+auto
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::local_alloc(
                                                                    size_t n) ->
                                                                   an_allocation
@@ -1214,7 +1221,7 @@ number of allocated elements).
 template<unsigned a_Capacity,
          template<typename> class a_Fallback_allocator,
          typename an_Elem>
-inline auto
+auto
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::fallback_alloc(
                                                                    size_t n) ->
                                                                   an_allocation
@@ -1236,7 +1243,7 @@ elements).
 template<unsigned a_Capacity,
          template<typename> class a_Fallback_allocator,
          typename an_Elem>
-inline auto
+auto
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::alloc(
                                                                    size_t n) ->
                                                                   an_allocation
@@ -1256,7 +1263,7 @@ allocation (which reflects the actual number of allocated elements).
 template<unsigned a_Capacity,
          template<typename> class a_Fallback_allocator,
          typename an_Elem>
-inline auto
+auto
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::replace_alloc(
                                                    an_allocation  a,
                                                    size_t         new_capacity,
@@ -1299,7 +1306,7 @@ new allocation.
 template<unsigned a_Capacity,
          template<typename> class a_Fallback_allocator,
          typename an_Elem>
-inline auto
+auto
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::move_alloc(
                                                     an_allocator  &src,
                                                     an_allocation src_alloc,
@@ -1342,7 +1349,7 @@ initialized and should therefore be moved to the new allocator.
 template<unsigned a_Capacity,
          template<typename> class a_Fallback_allocator,
          typename an_Elem>
-inline void
+void
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::dealloc(
                                                               an_allocation  a)
 /*
@@ -1422,64 +1429,64 @@ struct Dyn_array: private Allocator<an_Elem> {
   /* A dynamically growable array-like class type. */
   typedef an_Elem an_elem;
   typedef Allocator<an_Elem> an_allocator;
-  inline Dyn_array(size_t             cap = 0,
+  INLINE Dyn_array(size_t             cap = 0,
                    const an_allocator &a = an_allocator());
-  inline Dyn_array(size_t             cap,
+  INLINE Dyn_array(size_t             cap,
                    const an_elem      &v,
                    const an_allocator &a = an_allocator());
-  inline Dyn_array(const Dyn_array&);
-  inline Dyn_array(Dyn_array&&);
-  inline ~Dyn_array();
-  inline auto operator=(const Dyn_array&) -> Dyn_array&;
-  inline auto operator=(Dyn_array&&) -> Dyn_array&;
-  inline auto operator[](size_t i) -> an_elem&;
-  inline auto operator[](size_t i) const -> const an_elem&;
-  inline auto is_empty() const -> a_boolean
+  INLINE Dyn_array(const Dyn_array&);
+  INLINE Dyn_array(Dyn_array&&);
+  INLINE ~Dyn_array();
+  INLINE auto operator=(const Dyn_array&) -> Dyn_array&;
+  INLINE auto operator=(Dyn_array&&) -> Dyn_array&;
+  INLINE auto operator[](size_t i) -> an_elem&;
+  INLINE auto operator[](size_t i) const -> const an_elem&;
+  INLINE auto is_empty() const -> a_boolean
     { return this->n_elems == 0; }
-  inline auto length() const -> size_t
+  INLINE auto length() const -> size_t
     { return this->n_elems; }
-  inline auto capacity() const -> size_t
+  INLINE auto capacity() const -> size_t
     { return this->n_allocated; }
-  inline auto front_elem() -> an_elem&
+  INLINE auto front_elem() -> an_elem&
     { return (*this)[0]; }
-  inline auto front_elem() const -> const an_elem&
+  INLINE auto front_elem() const -> const an_elem&
     { return (*this)[0]; }
-  inline auto back_elem() -> an_elem&
+  INLINE auto back_elem() -> an_elem&
     { return (*this)[this->n_elems-1]; }
-  inline auto back_elem() const -> const an_elem&
+  INLINE auto back_elem() const -> const an_elem&
     { return (*this)[this->n_elems-1]; }
   template<template<typename> class Elem_allocator>
   inline an_elem*
   to_allocated_storage(Elem_allocator<an_elem>  allocator) const;
-  inline void push_back(const an_elem  &value);
-  inline void push_back(an_elem  &&value);
+  INLINE void push_back(const an_elem  &value);
+  INLINE void push_back(an_elem  &&value);
   template<typename ...an_Arg_pack>
-  inline void emplace_back(an_Arg_pack&& ...args);
-  inline void pop_back()
+  INLINE void emplace_back(an_Arg_pack&& ...args);
+  INLINE void pop_back()
     { destroy(&((*this)[this->n_elems-1])); --this->n_elems; }
-  inline void insert(size_t i, const an_elem  &value);
-  inline void insert(size_t i, an_elem  &&value);
+  INLINE void insert(size_t i, const an_elem  &value);
+  INLINE void insert(size_t i, an_elem  &&value);
   template<typename an_Input_iterator>
   inline void insert(size_t            i,
                      an_Input_iterator begin,
                      size_t            len);
   inline void insert_many(size_t i, size_t num_copies, const an_elem &value);
-  inline void remove(size_t i);
-  inline void remove_many(size_t i, size_t num_elements);
+  INLINE void remove(size_t i);
+  INLINE void remove_many(size_t i, size_t num_elements);
   template<typename a_Predicate>
-  inline void remove_if(a_Predicate predicate_fn);
-  inline void clear();
-  void resize(size_t new_n, const an_elem  &value);
-  inline void reserve(size_t);
+  INLINE void remove_if(a_Predicate predicate_fn);
+  INLINE void clear();
+  INLINE void resize(size_t new_n, const an_elem  &value);
+  INLINE void reserve(size_t);
   /* Interfaces to allow range-based for loop. */
   /*lint -e{1535}*/
-  inline auto begin() -> an_elem*
+  INLINE auto begin() -> an_elem*
     { return this->elems; }
-  inline auto begin() const -> const an_elem*
+  INLINE auto begin() const -> const an_elem*
     { return this->elems; }
-  inline auto end() -> an_elem*
+  INLINE auto end() -> an_elem*
     { return this->elems+this->n_elems; }
-  inline auto end() const -> const an_elem*
+  INLINE auto end() const -> const an_elem*
     { return this->elems+this->n_elems; }
 private:
   typedef typename an_allocator::an_allocation an_allocation;
@@ -1507,8 +1514,8 @@ using Small_dyn_array = Dyn_array<an_Elem, Delegate_buffered_allocator<
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline Dyn_array<an_Elem, Allocator>::Dyn_array(size_t             cap,
-                                                const an_allocator &a)
+Dyn_array<an_Elem, Allocator>::Dyn_array(size_t             cap,
+                                         const an_allocator &a)
 /*
 Initialize a Dyn_array with a minimum of cap elements whose allocation is
 managed by the given allocator.
@@ -1525,9 +1532,9 @@ managed by the given allocator.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline Dyn_array<an_Elem, Allocator>::Dyn_array(size_t             cap,
-                                                const an_elem      &v,
-                                                const an_allocator &a)
+Dyn_array<an_Elem, Allocator>::Dyn_array(size_t             cap,
+                                         const an_elem      &v,
+                                         const an_allocator &a)
 /*
 Initialize a Dyn_array with a minimum of cap elements whose allocation is
 managed by the given allocator.  Initialize the first cap elements to v.
@@ -1548,7 +1555,7 @@ managed by the given allocator.  Initialize the first cap elements to v.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline Dyn_array<an_Elem, Allocator>::Dyn_array(const Dyn_array &src)
+Dyn_array<an_Elem, Allocator>::Dyn_array(const Dyn_array &src)
 /*
 Copy constructor.
 */
@@ -1572,7 +1579,7 @@ Copy constructor.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline Dyn_array<an_Elem, Allocator>::Dyn_array(Dyn_array &&src)
+Dyn_array<an_Elem, Allocator>::Dyn_array(Dyn_array &&src)
 /*
 Move constructor.
 */
@@ -1593,7 +1600,7 @@ Move constructor.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline Dyn_array<an_Elem, Allocator>::~Dyn_array()
+Dyn_array<an_Elem, Allocator>::~Dyn_array()
 /*
 Destructor.
 */
@@ -1606,7 +1613,7 @@ Destructor.
 
 /*lint -e{1529}*/
 template<typename an_Elem, template<typename> class Allocator>
-inline auto Dyn_array<an_Elem, Allocator>::operator=(const Dyn_array &b)
+auto Dyn_array<an_Elem, Allocator>::operator=(const Dyn_array &b)
             -> Dyn_array&
 /*
 Copy assignment operator.
@@ -1640,7 +1647,7 @@ Copy assignment operator.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline auto Dyn_array<an_Elem, Allocator>::operator=(Dyn_array &&b)
+auto Dyn_array<an_Elem, Allocator>::operator=(Dyn_array &&b)
             -> Dyn_array&
 /*
 Move assignment operator.
@@ -1655,7 +1662,7 @@ Move assignment operator.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline auto Dyn_array<an_Elem, Allocator>::operator[](size_t i) -> an_elem&
+auto Dyn_array<an_Elem, Allocator>::operator[](size_t i) -> an_elem&
 /*
 Subscript operator to access the element at the given index.
 */
@@ -1668,7 +1675,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline auto Dyn_array<an_Elem, Allocator>::operator[](size_t i) const ->
+auto Dyn_array<an_Elem, Allocator>::operator[](size_t i) const ->
                                                                  const an_elem&
 /*
 Subscript operator to access a const version of the element at the given index.
@@ -1696,7 +1703,7 @@ Given an allocator, allocate and return a new array of the contained elements.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::push_back(const an_elem &value)
+void Dyn_array<an_Elem, Allocator>::push_back(const an_elem &value)
 /*
 Copy the given value into the position after the currently-last element.
 Allocate new storage if needed.
@@ -1713,7 +1720,7 @@ Allocate new storage if needed.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::push_back(an_elem &&value)
+void Dyn_array<an_Elem, Allocator>::push_back(an_elem &&value)
 /*
 Move the given value into the position after the currently-last element.
 Allocate new storage if needed.
@@ -1731,7 +1738,7 @@ Allocate new storage if needed.
 
 template<typename an_Elem, template<typename> class Allocator>
 template<typename ...an_Arg_pack>
-inline void Dyn_array<an_Elem, Allocator>::emplace_back(an_Arg_pack&& ...args)
+void Dyn_array<an_Elem, Allocator>::emplace_back(an_Arg_pack&& ...args)
 /*
 Construct in-place a new value after the currently-last element.  The given
 arguments will be forwarded to the constructor.
@@ -1748,8 +1755,8 @@ arguments will be forwarded to the constructor.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::insert(size_t        i,
-                                                  const an_elem &value)
+void Dyn_array<an_Elem, Allocator>::insert(size_t        i,
+                                           const an_elem &value)
 /*
 Copy-insert the given value at the given index.  All subsequent values (if any)
 are first moved one position up.
@@ -1775,8 +1782,8 @@ are first moved one position up.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::insert(size_t  i,
-                                                  an_elem &&value)
+void Dyn_array<an_Elem, Allocator>::insert(size_t  i,
+                                           an_elem &&value)
 /*
 Move-insert the given value at the given index.  All subsequent values (if any)
 are first moved one position up.
@@ -1803,9 +1810,9 @@ are first moved one position up.
 
 template<typename an_Elem, template<typename> class Allocator>
 template<typename an_Input_iterator>
-inline void Dyn_array<an_Elem, Allocator>::insert(size_t            i,
-                                                  an_Input_iterator start,
-                                                  size_t            len)
+void Dyn_array<an_Elem, Allocator>::insert(size_t            i,
+                                           an_Input_iterator start,
+                                           size_t            len)
 /*
 Copy-insert len number of values copying sequentially from the given iterator
 into the array beginning at the given index i.  All existing values from index
@@ -1836,10 +1843,9 @@ i through the end of the array are first moved len positions back.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::insert_many(
-                                                      size_t        i,
-                                                      size_t        num_copies,
-                                                      const an_elem &value)
+void Dyn_array<an_Elem, Allocator>::insert_many(size_t        i,
+                                                size_t        num_copies,
+                                                const an_elem &value)
 /*
 Copy-insert the given number of copies of the value starting at the given
 index.  All subsequent values (if any) are first moved by the number of copies
@@ -1867,7 +1873,7 @@ back.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::remove(size_t  i)
+void Dyn_array<an_Elem, Allocator>::remove(size_t  i)
 /*
 Destroy the entry at the given index.  All subsequent values (if any) are moved
 one position down.
@@ -1888,8 +1894,8 @@ one position down.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::remove_many(size_t i,
-                                                       size_t num_elements)
+void Dyn_array<an_Elem, Allocator>::remove_many(size_t i,
+                                                size_t num_elements)
 /*
 Remove the given number of elements starting at the given index.  All
 subsequent values (if any) are first moved by the number of copies back.
@@ -1916,7 +1922,7 @@ subsequent values (if any) are first moved by the number of copies back.
 
 template<typename an_Elem, template<typename> class Allocator>
 template<typename a_Predicate>
-inline void Dyn_array<an_Elem, Allocator>::remove_if(a_Predicate predicate_fn)
+void Dyn_array<an_Elem, Allocator>::remove_if(a_Predicate predicate_fn)
 /*
 Given a predicate function that accepts a value of an_Elem type and returns a
 boolean, apply the predicate function to all elements and remove any elements
@@ -1940,7 +1946,7 @@ where the function returns TRUE.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline void Dyn_array<an_Elem, Allocator>::clear()
+void Dyn_array<an_Elem, Allocator>::clear()
 /*
 Remove all the elements in the array.
 */
@@ -2018,28 +2024,28 @@ struct Owning_ptr: private Deallocator<an_Object> {
   /* A smart pointer managing an object it owns. */
   typedef an_Object an_object;
   typedef Deallocator<an_Object> a_deallocator;
-  inline Owning_ptr()
+  INLINE Owning_ptr()
     : a_deallocator(), ptr(NULL) {}
-  inline Owning_ptr(an_object *p, const a_deallocator &d = a_deallocator())
+  INLINE Owning_ptr(an_object *p, const a_deallocator &d = a_deallocator())
     : a_deallocator(d), ptr(p) {}
-  inline Owning_ptr(a_nullptr, const a_deallocator &d = a_deallocator())
+  INLINE Owning_ptr(a_nullptr, const a_deallocator &d = a_deallocator())
     : a_deallocator(d), ptr(NULL) {}
-  inline Owning_ptr(const Owning_ptr&) = delete;
-  inline Owning_ptr(Owning_ptr&& src)
+  INLINE Owning_ptr(const Owning_ptr&) = delete;
+  INLINE Owning_ptr(Owning_ptr&& src)
     : a_deallocator(move_from(&src)), ptr(src.ptr) { src.ptr = NULL; }
-  inline ~Owning_ptr();
-  inline auto operator=(const Owning_ptr&) -> Owning_ptr& = delete;
-  inline auto operator=(Owning_ptr&& src) -> Owning_ptr&;
-  inline auto operator=(a_nullptr) -> Owning_ptr&;
-  inline auto operator->() const -> an_object*
+  INLINE ~Owning_ptr();
+  INLINE auto operator=(const Owning_ptr&) -> Owning_ptr& = delete;
+  INLINE auto operator=(Owning_ptr&& src) -> Owning_ptr&;
+  INLINE auto operator=(a_nullptr) -> Owning_ptr&;
+  INLINE auto operator->() const -> an_object*
     { return this->ptr; }
-  inline auto operator*() const -> an_object&
+  INLINE auto operator*() const -> an_object&
     { return *this->ptr; }
-  inline auto raw() -> an_object*
+  INLINE auto raw() -> an_object*
     { return this->ptr; }
-  inline auto raw() const -> an_object*
+  INLINE auto raw() const -> an_object*
     { return this->ptr; }
-  inline auto release() -> an_object*;
+  INLINE auto release() -> an_object*;
 private:
   typedef typename a_deallocator::an_allocation an_allocation;
   an_object	*ptr;	/* Pointer to the owned object. */
@@ -2047,7 +2053,7 @@ private:
 
 
 template<typename an_Object, template<typename> class Deallocator>
-inline Owning_ptr<an_Object, Deallocator>::~Owning_ptr()
+Owning_ptr<an_Object, Deallocator>::~Owning_ptr()
 /*
 Destroy and deallocate the pointed-to object, if any.
 */
@@ -2056,13 +2062,13 @@ Destroy and deallocate the pointed-to object, if any.
 
   if (p != NULL) {
     destroy(p);
-    this->dealloc(an_allocation{ p, 1 });
+    this->dealloc(an_allocation{p, sizeof(an_Object)});
   }  /* if */
 }  /* Owning_ptr::~Owning_ptr */
 
 
 template<typename an_Object, template<typename> class Deallocator>
-inline auto Owning_ptr<an_Object, Deallocator>::operator=(Owning_ptr &&src)
+auto Owning_ptr<an_Object, Deallocator>::operator=(Owning_ptr &&src)
                                                 -> Owning_ptr&
 /*
 Move src to *this, then return *this.
@@ -2077,7 +2083,7 @@ Move src to *this, then return *this.
 
 
 template<typename an_Object, template<typename> class Deallocator>
-inline auto Owning_ptr<an_Object, Deallocator>::operator=(a_nullptr)
+auto Owning_ptr<an_Object, Deallocator>::operator=(a_nullptr)
                                                 -> Owning_ptr&
 /*
 Destroy and deallocate the pointed-to object, if any.  Then, set the owning
@@ -2096,7 +2102,7 @@ pointer to a null value.  Return *this.
 
 
 template<typename an_Object, template<typename> class Deallocator>
-inline auto Owning_ptr<an_Object, Deallocator>::release() -> an_object*
+auto Owning_ptr<an_Object, Deallocator>::release() -> an_object*
 /*
 Release the owned pointer from management and return it.  The caller takes
 responsibility for memory management of the returned pointer.
@@ -2112,7 +2118,7 @@ responsibility for memory management of the returned pointer.
 template<typename an_Object,
          template<typename> class Deallocator_A,
          template<typename> class Deallocator_B>
-inline a_boolean operator==(const Owning_ptr<an_Object, Deallocator_A> &ptr_a,
+INLINE a_boolean operator==(const Owning_ptr<an_Object, Deallocator_A> &ptr_a,
                             const Owning_ptr<an_Object, Deallocator_B> &ptr_b)
 /*
 Return TRUE if the given pointer values are equal; otherwise, return FALSE.
@@ -2125,7 +2131,7 @@ Return TRUE if the given pointer values are equal; otherwise, return FALSE.
 template<typename an_Object,
          template<typename> class Deallocator_A,
          template<typename> class Deallocator_B>
-inline a_boolean operator!=(const Owning_ptr<an_Object, Deallocator_A> &ptr_a,
+INLINE a_boolean operator!=(const Owning_ptr<an_Object, Deallocator_A> &ptr_a,
                             const Owning_ptr<an_Object, Deallocator_B> &ptr_b)
 /*
 Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
@@ -2136,7 +2142,7 @@ Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
 
 
 template<typename an_Object, template<typename> class Deallocator>
-inline a_boolean operator==(a_nullptr                                ptr_a,
+INLINE a_boolean operator==(a_nullptr                                ptr_a,
                             const Owning_ptr<an_Object, Deallocator> &ptr_b)
 /*
 Return TRUE if ptr_b is a null pointer; otherwise, return FALSE.
@@ -2147,7 +2153,7 @@ Return TRUE if ptr_b is a null pointer; otherwise, return FALSE.
 
 
 template<typename an_Object, template<typename> class Deallocator>
-inline a_boolean operator!=(a_nullptr                                ptr_a,
+INLINE a_boolean operator!=(a_nullptr                                ptr_a,
                             const Owning_ptr<an_Object, Deallocator> &ptr_b)
 /*
 Return TRUE if ptr_b is not a null pointer; otherwise, return FALSE.
@@ -2158,7 +2164,7 @@ Return TRUE if ptr_b is not a null pointer; otherwise, return FALSE.
 
 
 template<typename an_Object, template<typename> class Deallocator>
-inline a_boolean operator==(const Owning_ptr<an_Object, Deallocator> &ptr_a,
+INLINE a_boolean operator==(const Owning_ptr<an_Object, Deallocator> &ptr_a,
                             a_nullptr                                ptr_b)
 /*
 Return TRUE if ptr_a is a null pointer; otherwise, return FALSE.
@@ -2169,7 +2175,7 @@ Return TRUE if ptr_a is a null pointer; otherwise, return FALSE.
 
 
 template<typename an_Object, template<typename> class Deallocator>
-inline a_boolean operator!=(const Owning_ptr<an_Object, Deallocator> &ptr_a,
+INLINE a_boolean operator!=(const Owning_ptr<an_Object, Deallocator> &ptr_a,
                             a_nullptr                                ptr_b)
 /*
 Return TRUE if ptr_a is not a null pointer; otherwise, return FALSE.
@@ -2180,7 +2186,7 @@ Return TRUE if ptr_a is not a null pointer; otherwise, return FALSE.
 
 
 template<typename an_Object, typename ...an_Arg_pack>
-inline Owning_ptr<an_Object> owning_ptr(an_Arg_pack&& ...args)
+INLINE Owning_ptr<an_Object> owning_ptr(an_Arg_pack&& ...args)
 /*
 Convenience function to create an owning pointer to an object allocated in
 front-end memory.
@@ -2212,7 +2218,7 @@ This macro is used to avoid compiler warnings when copying into a bitfield.
 
 
 template<typename an_Object>
-inline an_Object min_val(const an_Object &x,
+INLINE an_Object min_val(const an_Object &x,
                          const an_Object &y)
 /*
 Return the smaller of the given values.  If the values are equal, return the
@@ -2224,7 +2230,7 @@ first one.
 
 
 template<typename an_Object>
-inline an_Object max_val(const an_Object &x,
+INLINE an_Object max_val(const an_Object &x,
                          const an_Object &y)
 /*
 Return the larger of the given values.  If the values are equal, return the
@@ -2236,7 +2242,7 @@ first one.
 
 
 template<typename an_Object>
-inline an_Object& min_ref(an_Object &x,
+INLINE an_Object& min_ref(an_Object &x,
                           an_Object &y)
 /*
 Return a reference to the smaller of the given referenced values.  If the
@@ -2248,7 +2254,7 @@ values are equal, return the first one.
 
 
 template<typename an_Object>
-inline an_Object& max_ref(an_Object &x,
+INLINE an_Object& max_ref(an_Object &x,
                           an_Object &y)
 /*
 Return a reference to the larger of the given referenced values.  If the
@@ -2260,7 +2266,7 @@ values are equal, return the first one.
 
 
 template<typename an_Integer>
-inline int floor_log2(an_Integer n)
+INLINE int floor_log2(an_Integer n)
 /*
 Return floor(log2(n)), assuming n > 0.
 */
@@ -2272,7 +2278,7 @@ Return floor(log2(n)), assuming n > 0.
 }  /* floor_log2 */
 
 
-inline unsigned next_pow2(uint64_t n)
+INLINE unsigned next_pow2(uint64_t n)
 /*
 Return the next power of two that is greater than or equal to n.
 */
@@ -2310,7 +2316,7 @@ instruction when targeting x86-64 with SSE4 extensions (option -msse4).
 
 
 template<typename a_Ptr, typename a_Comparison>
-inline void sort_args(a_Comparison cmp,
+INLINE void sort_args(a_Comparison cmp,
                       a_Ptr        p_a,
                       a_Ptr        p_b)
 /*
@@ -2750,7 +2756,7 @@ and no more than 248 (it must fit in a byte).
 
 
 template<typename an_Object>
-inline an_Object* align_to_cache_line(an_Object *p)
+INLINE an_Object* align_to_cache_line(an_Object *p)
 /*
 Return p minimally advanced to be aligned to a cache line.
 */
@@ -3181,7 +3187,7 @@ is FALSE.
 }  /* namespace pdqsort_impl */
 
 template<typename a_Ptr, typename a_Comparison>
-inline void sort(a_Ptr        begin,
+INLINE void sort(a_Ptr        begin,
                  a_Ptr        end,
                  a_Comparison cmp)
 /*
@@ -3198,7 +3204,7 @@ the elements of the sequence.
 
 
 template<typename a_Sequence, typename a_Comparison>
-inline void sort(a_Sequence    *p_seq,
+INLINE void sort(a_Sequence    *p_seq,
                  a_Comparison  cmp)
 /*
 Sort the elements of the given sequence.
@@ -3374,7 +3380,7 @@ found.
 
 
 template<typename T>
-inline ptrdiff_t array_lower_bound(T         *t_start,
+INLINE ptrdiff_t array_lower_bound(T         *t_start,
                                    size_t    num_elements,
                                    const T   &value)
 /*
@@ -3391,7 +3397,7 @@ index of said element or -1 if no such element is found.
 
 
 template<typename T, typename a_Value_Fn>
-inline ptrdiff_t bin_search(size_t     num_elements,
+INLINE ptrdiff_t bin_search(size_t     num_elements,
                             const T    &value,
                             a_Value_Fn value_fn)
 /*
@@ -3418,7 +3424,7 @@ or -1 if no such element is found.
 
 
 template<typename T>
-inline ptrdiff_t array_bin_search(T       *t_start,
+INLINE ptrdiff_t array_bin_search(T       *t_start,
                                   size_t  num_elements,
                                   const T &value)
 /*
@@ -3505,7 +3511,7 @@ struct Padded_string {
 }  /* detail */
 
 template<typename a_Type>
-inline detail::Hex_view<a_Type> hex_view_of(a_Type value)
+INLINE detail::Hex_view<a_Type> hex_view_of(a_Type value)
 /*
 */
 {
@@ -3513,7 +3519,7 @@ inline detail::Hex_view<a_Type> hex_view_of(a_Type value)
 }  /* hex_view_of */
 
 
-inline detail::an_octal_view octal_view_of(unsigned long long value)
+INLINE detail::an_octal_view octal_view_of(unsigned long long value)
 /*
 */
 {
@@ -3522,7 +3528,7 @@ inline detail::an_octal_view octal_view_of(unsigned long long value)
 
 
 template<typename a_Value_type>
-inline detail::Padded_string<a_Value_type>
+INLINE detail::Padded_string<a_Value_type>
 left_pad(size_t             width,
          char               padding_char,
          const a_Value_type &value)
@@ -3539,7 +3545,7 @@ appropriate size.
 
 
 template<typename a_Value_type>
-inline detail::Padded_string<a_Value_type>
+INLINE detail::Padded_string<a_Value_type>
 right_pad(size_t             width,
           char               padding_char,
           const a_Value_type &value)
@@ -3556,7 +3562,7 @@ appropriate size.
 
 
 template<typename an_Integral_type>
-inline constexpr
+INLINE constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint32_t) &&
           Is_signed_helper<an_Integral_type>::value, int32_t>
 max_integral_value()
@@ -3569,7 +3575,7 @@ Return the maximum value of a 32-bit signed integer.
 
 
 template<typename an_Integral_type>
-inline constexpr
+INLINE constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint64_t) &&
           Is_signed_helper<an_Integral_type>::value, int64_t>
 max_integral_value()
@@ -3583,7 +3589,7 @@ Return the maximum value of a 64-bit signed integer.
 #if HOST_HAS_INT128_EXTENSIONS
 
 template<typename an_Integral_type>
-inline constexpr
+INLINE constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(__int128_t) &&
           Is_signed_helper<an_Integral_type>::value, __int128_t>
 max_integral_value()
@@ -3597,7 +3603,7 @@ Return the maximum value of a 128-bit signed integer.
 #endif /* HOST_HAS_INT128_EXTENSIONS */
 
 template<typename an_Integral_type>
-inline constexpr
+INLINE constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint32_t) &&
           !Is_signed_helper<an_Integral_type>::value, uint32_t>
 max_integral_value()
@@ -3612,7 +3618,7 @@ Return the maximum value of a 32-bit unsigned integer.
 
 
 template<typename an_Integral_type>
-inline constexpr
+INLINE constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(uint64_t) &&
           !Is_signed_helper<an_Integral_type>::value, uint64_t>
 max_integral_value()
@@ -3626,7 +3632,7 @@ Return the maximum value of a 64-bit unsigned integer.
 #if HOST_HAS_INT128_EXTENSIONS
 
 template<typename an_Integral_type>
-inline constexpr
+INLINE constexpr
 Enable_if<sizeof(an_Integral_type) == sizeof(__uint128_t) &&
           !Is_signed_helper<an_Integral_type>::value, __uint128_t>
 max_integral_value()
@@ -3673,7 +3679,7 @@ unsigned numbering system with the given base.
 
 
 template<typename an_Integral_type>
-inline size_t max_integral_digits()
+INLINE size_t max_integral_digits()
 /*
 Compute the maximum number of digits a given unsigned integral type can hold.
 Note this function does not count the negative sign as a digit (i.e., 3 and -3
@@ -3690,7 +3696,7 @@ are both considered 1 digit).
 namespace detail {
 
 template<typename ...a_Format_arg>
-inline int snprintf_impl(char         *dest_buff,
+INLINE int snprintf_impl(char         *dest_buff,
                          size_t       dest_buff_size,
                          a_const_char *format_str,
                          a_Format_arg ...args)
@@ -3738,7 +3744,7 @@ struct String_formatter;
 
 
 template<typename a_Dyn_array, typename ...a_Format_arg>
-inline void append_using_c_formatting(a_const_char *formatting_str,
+INLINE void append_using_c_formatting(a_const_char *formatting_str,
                                       a_Dyn_array  &underlying_array,
                                       size_t       size_hint,
                                       a_Format_arg ...args)
@@ -3769,7 +3775,7 @@ snprintf_impl).
 
 
 template<typename a_Dyn_array, size_t a_Size>
-inline void append_string_literal(a_Dyn_array  &underlying_array,
+INLINE void append_string_literal(a_Dyn_array  &underlying_array,
                                   a_const_char (&text)[a_Size])
 /*
 Append the given string literal text into the underlying array.  The given text
@@ -3789,10 +3795,10 @@ A string formatter for char* (C-string) values.
 */
 template<>
 struct String_formatter<char*> {
-  static inline size_t size_hint_of(char *value)
+  static INLINE size_t size_hint_of(char *value)
     { return strlen(value); }
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array &underlying_array,
+  static INLINE void append_into(a_Dyn_array &underlying_array,
                                  char        *chars,
                                  size_t      size_hint);
 };  /* String_formatter */
@@ -3817,10 +3823,10 @@ A string formatter for a_const_char* (C-string) values.
 */
 template<>
 struct String_formatter<a_const_char*> {
-  static inline size_t size_hint_of(a_const_char *value)
+  static INLINE size_t size_hint_of(a_const_char *value)
     { return strlen(value); }
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array  &underlying_array,
+  static INLINE void append_into(a_Dyn_array  &underlying_array,
                                  a_const_char *chars,
                                  size_t       size_hint);
 };  /* String_formatter */
@@ -3845,11 +3851,11 @@ A string formatter for Allocated_string values.
 */
 template<template<typename> class Allocator>
 struct String_formatter<Allocated_string<Allocator>> {
-  static inline size_t size_hint_of(const Allocated_string<Allocator> &str)
+  static INLINE size_t size_hint_of(const Allocated_string<Allocator> &str)
     { return str.length(); }
 
   template<typename a_Dyn_array>
-  static inline void
+  static INLINE void
   append_into(a_Dyn_array                       &underlying_array,
               const Allocated_string<Allocator> &str,
               size_t                            size_hint);
@@ -3877,10 +3883,10 @@ A string formatter for a_string_view values.
 */
 template<>
 struct String_formatter<a_string_view> {
-  static inline size_t size_hint_of(a_string_view value)
+  static INLINE size_t size_hint_of(a_string_view value)
     { return value.length(); }
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array   &underlying_array,
+  static INLINE void append_into(a_Dyn_array   &underlying_array,
                                  a_string_view value,
                                  size_t        size_hint);
 };  /* String_formatter */
@@ -3906,10 +3912,10 @@ A string formatter for Padded_string values.
 */
 template<typename a_Value_type>
 struct String_formatter<Padded_string<a_Value_type>> {
-  static inline size_t size_hint_of(const Padded_string<a_Value_type> &value)
+  static INLINE size_t size_hint_of(const Padded_string<a_Value_type> &value)
     { return value.width; }
   template<typename a_Dyn_array>
-  static inline void append_into(
+  static INLINE void append_into(
                            a_Dyn_array                       &underlying_array,
                            const Padded_string<a_Value_type> &value,
                            size_t                            size_hint);
@@ -3962,10 +3968,10 @@ A string formatter for Hex_view<double> values.
 */
 template<>
 struct String_formatter<Hex_view<double>> {
-  static inline size_t size_hint_of(ARG_UNUSED Hex_view<double> value)
+  static INLINE size_t size_hint_of(ARG_UNUSED Hex_view<double> value)
     { return 49; }
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array      &underlying_array,
+  static INLINE void append_into(a_Dyn_array      &underlying_array,
                                  Hex_view<double> value,
                                  size_t           size_hint);
 };  /* String_formatter */
@@ -3991,10 +3997,10 @@ A string formatter for Hex_view<long double> values.
 */
 template<>
 struct String_formatter<Hex_view<long double>> {
-  static inline size_t size_hint_of(ARG_UNUSED Hex_view<long double> value)
+  static INLINE size_t size_hint_of(ARG_UNUSED Hex_view<long double> value)
     { return 49; }
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array           &underlying_array,
+  static INLINE void append_into(a_Dyn_array           &underlying_array,
                                  Hex_view<long double> value,
                                  size_t                size_hint);
 };  /* String_formatter */
@@ -4020,10 +4026,10 @@ A string formatter for an_octal_view values.
 */
 template<>
 struct String_formatter<an_octal_view> {
-  static inline size_t size_hint_of(an_octal_view value)
+  static INLINE size_t size_hint_of(an_octal_view value)
     { return integral_digits(value.value, 8); }
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array   &underlying_array,
+  static INLINE void append_into(a_Dyn_array   &underlying_array,
                                  an_octal_view value,
                                  size_t        size_hint);
 };  /* String_formatter */
@@ -4049,10 +4055,10 @@ A string formatter for void* values.
 */
 template<>
 struct String_formatter<void*> {
-  static inline size_t size_hint_of(ARG_UNUSED void *value)
+  static INLINE size_t size_hint_of(ARG_UNUSED void *value)
     { return 30; }
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array &underlying_array,
+  static INLINE void append_into(a_Dyn_array &underlying_array,
                                  void        *value,
                                  size_t      size_hint);
 };  /* String_formatter */
@@ -4077,10 +4083,10 @@ formatted with the given base.
 */
 template<typename an_Integral_type, int a_Base>
 struct Unsigned_int_formatter {
-  static inline size_t size_hint_of(an_Integral_type value)
+  static INLINE size_t size_hint_of(an_Integral_type value)
     { return integral_digits(value, a_Base); }
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array      &underlying_array,
+  static INLINE void append_into(a_Dyn_array      &underlying_array,
                                  an_Integral_type value,
                                  size_t           size_hint);
 };  /* Unsigned_int_formatter */
@@ -4119,9 +4125,9 @@ formatted with the given base.
 */
 template<typename an_Integral_type, int a_Base>
 struct Signed_int_formatter {
-  static inline size_t size_hint_of(an_Integral_type value);
+  static INLINE size_t size_hint_of(an_Integral_type value);
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array      &underlying_array,
+  static INLINE void append_into(a_Dyn_array      &underlying_array,
                                  an_Integral_type value,
                                  size_t           size_hint);
 };  /* Signed_int_formatter */
@@ -4184,9 +4190,9 @@ A string formatter for double values.
 */
 template<>
 struct String_formatter<double> {
-  static inline size_t size_hint_of(double value);
+  static INLINE size_t size_hint_of(double value);
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array &underlying_array,
+  static INLINE void append_into(a_Dyn_array &underlying_array,
                                  double      value,
                                  size_t      size_hint);
 };  /* String_formatter */
@@ -4241,10 +4247,10 @@ template<typename an_Integral_type>
 struct Hex_unsigned_int_formatter {
   using Base_ty = Unsigned_int_formatter<an_Integral_type, 16>;
 
-  static inline size_t size_hint_of(Hex_view<an_Integral_type> value)
+  static INLINE size_t size_hint_of(Hex_view<an_Integral_type> value)
     { return Base_ty::size_hint_of(value.value); }
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array                &underlying_array,
+  static INLINE void append_into(a_Dyn_array                &underlying_array,
                                  Hex_view<an_Integral_type> value,
                                  size_t                     size_hint)
     { Base_ty::append_into(underlying_array, value.value, size_hint); }
@@ -4324,8 +4330,8 @@ given arguments.
 
 
 template<typename a_Reserve_fn, typename... a_Text_convertible_type>
-void append_with_custom_reserve(a_Reserve_fn               reserve_func,
-                                a_Text_convertible_type... args)
+INLINE void append_with_custom_reserve(a_Reserve_fn               reserve_func,
+                                       a_Text_convertible_type... args)
 /*
 The "reserve_func" should be a function that takes a character count estimate
 and returns a pointer to a Dyn_array.  Said Dyn_array should be returned with
@@ -4398,38 +4404,38 @@ struct Allocated_string {
   typedef Allocator<char> an_allocator;
 
   template<typename... a_Text_convertible_type>
-  inline Allocated_string(const an_allocator         &a,
+  INLINE Allocated_string(const an_allocator         &a,
                           a_Text_convertible_type... args);
   template<typename... a_Text_convertible_type>
-  inline Allocated_string(a_Text_convertible_type... args)
+  INLINE Allocated_string(a_Text_convertible_type... args)
     : Allocated_string(an_allocator{}, args...)
     { }
 
-  a_const_char *as_temp_characters() const
+  INLINE a_const_char *as_temp_characters() const
     { return this->backing_array.begin(); }
   template<template<typename> class Char_allocator>
   inline char* to_allocated_storage(Char_allocator<char>  allocator) const;
 
-  inline void write_to_buffer(char *buffer, size_t buffer_len) const;
+  INLINE void write_to_buffer(char *buffer, size_t buffer_len) const;
 
-  inline auto operator[](size_t i) -> char&
+  INLINE auto operator[](size_t i) -> char&
     { return this->backing_array[i]; }
-  inline auto operator[](size_t i) const -> const char&
+  INLINE auto operator[](size_t i) const -> const char&
     { return this->backing_array[i]; }
 
-  size_t length() const
+  INLINE size_t length() const
     { return this->backing_array.length() - 1; }
-  a_boolean is_empty() const
+  INLINE a_boolean is_empty() const
     { return this->length() == 0; }
 
-  inline void truncate_to(size_t new_length);
+  INLINE void truncate_to(size_t new_length);
 
   template<typename... a_Text_convertible_type>
-  inline void insert(size_t position, a_Text_convertible_type... args);
+  INLINE void insert(size_t position, a_Text_convertible_type... args);
   template<typename... a_Text_convertible_type>
-  inline void append(a_Text_convertible_type... args);
+  INLINE void append(a_Text_convertible_type... args);
   template<typename... a_Text_convertible_type>
-  inline void reset_to(a_Text_convertible_type... args);
+  INLINE void reset_to(a_Text_convertible_type... args);
 private:
   Dyn_array<char, Allocator>
                 backing_array;
@@ -4440,9 +4446,8 @@ private:
 
 template<template<typename> class Allocator>
 template<typename... a_Text_convertible_type>
-inline Allocated_string<Allocator>::Allocated_string(
-                                               const an_allocator         &a,
-                                               a_Text_convertible_type... args)
+Allocated_string<Allocator>::Allocated_string(const an_allocator         &a,
+                                              a_Text_convertible_type... args)
 /*
 Construct a new string using the given allocator.  The passed arguments are
 appended in the fashion described in detail::append_with_custom_reserve.
@@ -4596,7 +4601,7 @@ the fashion described in detail::append_with_custom_reserve.
 
 template<template<typename> class Allocator_a,
          template<typename> class Allocator_b>
-inline a_boolean operator==(const Allocated_string<Allocator_a> &str1,
+INLINE a_boolean operator==(const Allocated_string<Allocator_a> &str1,
                             const Allocated_string<Allocator_b> &str2)
 /*
 Return TRUE if the string represented by str1 is the same as the string
@@ -4620,7 +4625,7 @@ same.
 
 template<template<typename> class Allocator_a,
          template<typename> class Allocator_b>
-inline a_boolean operator!=(const Allocated_string<Allocator_a> &str1,
+INLINE a_boolean operator!=(const Allocated_string<Allocator_a> &str1,
                             const Allocated_string<Allocator_b> &str2)
 /*
 Return TRUE if the string represented by str1 is not the same as the string
@@ -4633,7 +4638,7 @@ same.
 
 
 template<template<typename> class Allocator>
-inline a_boolean operator==(const Allocated_string<Allocator> &str1,
+INLINE a_boolean operator==(const Allocated_string<Allocator> &str1,
                             a_const_char                      *str2)
 /*
 Return TRUE if the string represented by str1 is the same as the string
@@ -4656,7 +4661,7 @@ same.
 
 
 template<template<typename> class Allocator>
-inline a_boolean operator!=(const Allocated_string<Allocator> &str1,
+INLINE a_boolean operator!=(const Allocated_string<Allocator> &str1,
                             a_const_char                      *str2)
 /*
 Return TRUE if the string represented by str1 is not the same as the string
@@ -4669,7 +4674,7 @@ same.
 
 
 template<template<typename> class Allocator>
-inline a_boolean operator==(a_const_char                      *str1,
+INLINE a_boolean operator==(a_const_char                      *str1,
                             const Allocated_string<Allocator> &str2)
 /*
 Return TRUE if the string represented by str1 is the same as the string
@@ -4682,7 +4687,7 @@ same.
 
 
 template<template<typename> class Allocator>
-inline a_boolean operator!=(a_const_char                      *str1,
+INLINE a_boolean operator!=(a_const_char                      *str1,
                             const Allocated_string<Allocator> &str2)
 /*
 Return TRUE if the string represented by str1 is not the same as the string
@@ -4768,7 +4773,7 @@ Ptr_map does not currently provide an interface to traverse all the elements
 in the map.
 */
 
-inline uintptr_t hash_ptr(void  *ptr)
+INLINE uintptr_t hash_ptr(void  *ptr)
 /*
 Return a hash value for the given pointer value.
 */
@@ -4804,7 +4809,7 @@ Return a hash value for the given pointer value.
 
 
 template<typename an_Integral_type>
-inline Enable_if<(uintptr_t)((an_Integral_type)1), uintptr_t>
+INLINE Enable_if<(uintptr_t)((an_Integral_type)1), uintptr_t>
 hash_ptr(an_Integral_type i)
 /*
 Generic version of hash_ptr for integers.
@@ -4829,33 +4834,33 @@ struct Ptr_map_entry {
   typedef a_Ptr_key a_key;
   typedef a_Value a_value;
   typedef Ptr_map_entry<a_Ptr_key, a_Value> an_entry;
-  Ptr_map_entry()
+  INLINE Ptr_map_entry()
     : stored_key()
     {}
-  Ptr_map_entry(const a_key &init_key, const a_value &init_value)
+  INLINE Ptr_map_entry(const a_key &init_key, const a_value &init_value)
     : stored_key(init_key), stored_value(init_value)
     {}
-  Ptr_map_entry(a_key &&init_key, const a_value &init_value)
+  INLINE Ptr_map_entry(a_key &&init_key, const a_value &init_value)
     : stored_key(move_from(&init_key)), stored_value(init_value)
     {}
-  Ptr_map_entry(const an_entry &other) = delete;
-  inline Ptr_map_entry(an_entry &&other);
-  inline ~Ptr_map_entry();
+  INLINE Ptr_map_entry(const an_entry &other) = delete;
+  INLINE Ptr_map_entry(an_entry &&other);
+  INLINE ~Ptr_map_entry();
 
-  inline a_boolean has_value() const
+  INLINE a_boolean has_value() const
     { return this->stored_key != a_key(); }
 
-  inline a_key &key()
+  INLINE a_key &key()
     { return this->stored_key; }
-  inline const a_key &key() const
+  INLINE const a_key &key() const
     { return this->stored_key; }
-  inline a_value &value()
+  INLINE a_value &value()
     { check_assertion(this->has_value()); return this->stored_value; }
-  inline const a_value &value() const
+  INLINE const a_value &value() const
     { check_assertion(this->has_value()); return this->stored_value; }
 
   auto operator=(const an_entry &other) -> an_entry& = delete;
-  inline auto operator=(an_entry &&other) -> an_entry&;
+  INLINE auto operator=(an_entry &&other) -> an_entry&;
 private:
   a_key         stored_key;
                         /* The pointer value mapped by this entry.  (A "key" in
@@ -4928,46 +4933,46 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   typedef a_Value a_value;
   typedef Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> an_allocator;
   typedef Ptr_map_entry<a_key, a_value> an_entry;
-  inline Ptr_map(unsigned int       mask_width,
+  INLINE Ptr_map(unsigned int       mask_width,
                  const an_allocator &a = an_allocator());
-  inline ~Ptr_map();
-  inline auto get_with_hash(const a_key &key,
+  INLINE ~Ptr_map();
+  INLINE auto get_with_hash(const a_key &key,
                             uintptr_t   hash) const -> a_value;
-  inline auto get(const a_key &key) const -> a_value
+  INLINE auto get(const a_key &key) const -> a_value
     { return this->get_with_hash(key, hash_ptr(key)); }
-  inline void map_with_hash(const a_key   &key,
+  INLINE void map_with_hash(const a_key   &key,
                             const a_value &value,
                             uintptr_t     hash);
-  inline void map_with_hash(a_key         &&key,
+  INLINE void map_with_hash(a_key         &&key,
                             const a_value &value,
                             uintptr_t     hash);
-  inline void map(const a_key &key, const a_value &value)
+  INLINE void map(const a_key &key, const a_value &value)
     { this->map_with_hash(key, value, hash_ptr(key)); }
-  inline void map(a_key &&key, const a_value &value)
+  INLINE void map(a_key &&key, const a_value &value)
     { this->map_with_hash(key, value, hash_ptr(key)); }
-  inline void replace_with_hash(const a_key    &key,
+  INLINE void replace_with_hash(const a_key    &key,
                                 const a_value  &value,
                                 uintptr_t      hash);
-  inline void replace(const a_key &key, const a_value  &value)
+  INLINE void replace(const a_key &key, const a_value  &value)
     { this->replace_with_hash(key, value, hash_ptr(key)); }
-  inline auto map_or_replace_with_hash(const a_key    &key,
+  INLINE auto map_or_replace_with_hash(const a_key    &key,
                                        const a_value  &value,
                                        uintptr_t      hash)
               -> a_value;
-  inline auto map_or_replace(const a_key   &key,
+  INLINE auto map_or_replace(const a_key   &key,
                              const a_value &value) -> a_value
     { return this->map_or_replace_with_hash(key, value, hash_ptr(key)); }
   inline void unmap(const a_key &key);
   inline void clear();
-  inline auto number_of_elements() const -> size_t
+  INLINE auto number_of_elements() const -> size_t
     { return this->n_elements; }
 #if DEBUG
   void db_ptrs() const;
 #endif /* DEBUG */
-  inline an_entry const *begin() const
+  INLINE an_entry const *begin() const
     /*lint -e{1535}*/
     { return table; }
-  inline an_entry const *end() const
+  INLINE an_entry const *end() const
     /*lint -e{1535}*/
     { return &table[hash_mask+1]; }
 private:
@@ -4980,27 +4985,26 @@ private:
 			   grows. */
   size_t	n_elements;
 			/* The number of elements stored in the table. */
-  inline a_boolean has_value_at(size_t idx) const
+  INLINE a_boolean has_value_at(size_t idx) const
     { return this->table[idx].has_value(); }
-  inline void make_space_for_colliding_key(size_t      idx,
+  INLINE void make_space_for_colliding_key(size_t      idx,
                                            const a_key &new_key);
-  inline void construct_entry_at(size_t        idx,
+  INLINE void construct_entry_at(size_t        idx,
                                  const a_key   &new_key,
                                  const a_value &new_value);
-  inline void construct_entry_at(size_t        idx,
+  INLINE void construct_entry_at(size_t        idx,
                                  a_key         &&new_key,
                                  const a_value &new_value);
-  inline void create_table(size_t n_slots);
-  inline void expand_table();
-  inline void check_deleted_slot(size_t  idx0);
+  INLINE void create_table(size_t n_slots);
+  INLINE void expand_table();
+  INLINE void check_deleted_slot(size_t  idx0);
 };  /* Ptr_map */
 
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline Ptr_map<a_Ptr_key, a_Value, Allocator>::Ptr_map(
-                                                 unsigned int       mask_width,
-                                                 const an_allocator &a)
+Ptr_map<a_Ptr_key, a_Value, Allocator>::Ptr_map(unsigned int       mask_width,
+                                                const an_allocator &a)
 /*
 Initialize the given pointer map with a capacity for 1<<mask_width slots.
 */
@@ -5015,7 +5019,7 @@ Initialize the given pointer map with a capacity for 1<<mask_width slots.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline Ptr_map<a_Ptr_key, a_Value, Allocator>::~Ptr_map()
+Ptr_map<a_Ptr_key, a_Value, Allocator>::~Ptr_map()
 /*
 Release the storage for the map.
 */
@@ -5026,14 +5030,14 @@ Release the storage for the map.
   for (size_t k = 0; k<n_slots; ++k) {
     destroy(&table[k]);
   }  /* for */
-  this->dealloc(an_allocation{ this->table, n_slots });
+  this->dealloc(an_allocation{this->table, n_slots * sizeof(an_entry)});
   this->table = NULL;
 }  /* Ptr_map::~Ptr_map */
 
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::get_with_hash(
+auto Ptr_map<a_Ptr_key, a_Value, Allocator>::get_with_hash(
                                                         const a_key &key,
                                                         uintptr_t   hash) const
                                                     -> a_value
@@ -5090,7 +5094,7 @@ removed from a Ptr_map instance.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_with_hash(
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_with_hash(
                                                         const a_key    &key,
                                                         const a_value  &value,
                                                         uintptr_t      hash)
@@ -5116,7 +5120,7 @@ value of that key.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_with_hash(
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_with_hash(
                                                         a_key          &&key,
                                                         const a_value  &value,
                                                         uintptr_t      hash)
@@ -5142,7 +5146,7 @@ value of that key.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::replace_with_hash(
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::replace_with_hash(
                                                         const a_key    &key,
                                                         const a_value  &value,
                                                         uintptr_t      hash)
@@ -5174,7 +5178,7 @@ the precomputed hash of that key.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::map_or_replace_with_hash(
+auto Ptr_map<a_Ptr_key, a_Value, Allocator>::map_or_replace_with_hash(
                                                         const a_key    &key,
                                                         const a_value  &value,
                                                         uintptr_t      hash)
@@ -5220,7 +5224,7 @@ precomputed hash of that key.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::unmap(const a_key &key)
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::unmap(const a_key &key)
 /*
 Remove the given key from the table (it must exist).
 */
@@ -5249,7 +5253,7 @@ Remove the given key from the table (it must exist).
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::clear()
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::clear()
 /*
 Remove all entries in the Ptr_map.
 */
@@ -5481,18 +5485,18 @@ struct Ptr_multi_map {
   typedef Allocator<a_multi_value> a_value_allocator;
   typedef Allocator<Ptr_map_entry<a_Ptr_key, a_multi_value*>> a_map_allocator;
 
-  inline Ptr_multi_map(unsigned int            mask_width,
+  INLINE Ptr_multi_map(unsigned int            mask_width,
                        const a_map_allocator   &ma = a_map_allocator(),
                        const a_value_allocator &va = a_value_allocator());
-  inline ~Ptr_multi_map();
+  INLINE ~Ptr_multi_map();
 
-  inline auto get(a_Ptr_key key) -> a_multi_value*;
-  inline auto get_or_alloc(a_Ptr_key key) -> a_multi_value*;
-  inline auto take(a_Ptr_key key) -> a_multi_value;
-  inline void remove(a_Ptr_key key);
-  inline void clear();
+  INLINE auto get(a_Ptr_key key) -> a_multi_value*;
+  INLINE auto get_or_alloc(a_Ptr_key key) -> a_multi_value*;
+  INLINE auto take(a_Ptr_key key) -> a_multi_value;
+  INLINE void remove(a_Ptr_key key);
+  INLINE void clear();
 private:
-  inline void dealloc(a_multi_value *values);
+  INLINE void dealloc(a_multi_value *values);
   Ptr_map<a_Ptr_key, a_multi_value*, Allocator>
                 backing_map;
                         /* A table that maps pointer keys to multi-value
@@ -5658,7 +5662,7 @@ struct a_path_handle {
 };
 
 
-inline a_boolean operator==(const a_path_handle path1,
+INLINE a_boolean operator==(const a_path_handle path1,
                             const a_path_handle path2)
 /*
 Return TRUE if the path contained by path1 is the same as the path contained by
@@ -5676,7 +5680,7 @@ the same.
 }  /* operator== */
 
 
-inline a_boolean operator!=(const a_path_handle path1,
+INLINE a_boolean operator!=(const a_path_handle path1,
                             const a_path_handle path2)
 /*
 Return TRUE if the path contained by path1 is not the same as the path
@@ -5689,7 +5693,7 @@ considered the same.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-inline uintptr_t hash_ptr(a_string_view str)
+INLINE uintptr_t hash_ptr(a_string_view str)
 /*
 Compute a hash for the given string view.  The hash must be appropriate for
 Ptr_map.
@@ -5705,7 +5709,7 @@ Ptr_map.
 
 
 template<template<typename> class Allocator>
-inline uintptr_t hash_ptr(const Allocated_string<Allocator> &str)
+INLINE uintptr_t hash_ptr(const Allocated_string<Allocator> &str)
 /*
 Compute a hash for the given string.  The hash must be appropriate for Ptr_map.
 */
@@ -5717,7 +5721,7 @@ Compute a hash for the given string.  The hash must be appropriate for Ptr_map.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-inline uintptr_t hash_ptr(const a_path_handle path)
+INLINE uintptr_t hash_ptr(const a_path_handle path)
 /*
 Compute a hash for the given path.  The hash must be appropriate for Ptr_map.
 */
@@ -5739,15 +5743,15 @@ template<typename a_Ptr, template<typename> class Allocator = FE_allocator>
 struct Ptr_set {
   typedef Ptr_map<a_Ptr, a_boolean, Allocator> a_map_type;
   typedef typename a_map_type::an_allocator an_allocator;
-  inline Ptr_set(unsigned int       mask_width,
+  INLINE Ptr_set(unsigned int       mask_width,
                  const an_allocator &a = an_allocator())
     : underlying_map(mask_width, a)
     {}
-  inline a_boolean contains(a_Ptr key) const
+  INLINE a_boolean contains(a_Ptr key) const
     { return this->underlying_map.get(key); }
-  inline void add(a_Ptr key)
+  INLINE void add(a_Ptr key)
     { this->underlying_map.map(key, TRUE); }
-  inline void remove(a_Ptr key)
+  INLINE void remove(a_Ptr key)
     { this->underlying_map.unmap(key); }
 private:
   a_map_type    underlying_map;
@@ -5975,7 +5979,7 @@ struct Seq_comparator<an_Elem_a*, an_Elem_b*, Allocator>:
 
 
 template<typename a_Linked_list_type, typename a_Predicate>
-inline unsigned count_list_elements(a_Linked_list_type list_head,
+INLINE unsigned count_list_elements(a_Linked_list_type list_head,
                                     a_Predicate        predicate)
 /*
 Given the head of a linked list and a predicate, traverse the list and return
@@ -5994,7 +5998,7 @@ the number of elements in the list where the predicate returns TRUE.
 
 
 template<typename a_Linked_list_type>
-inline unsigned count_list_elements(a_Linked_list_type list_head)
+INLINE unsigned count_list_elements(a_Linked_list_type list_head)
 /*
 Given the head of a linked list, traverse the list and return the number of
 elements in the list.
@@ -6053,7 +6057,7 @@ otherwise, use linked_list_to_ptr_array.
 
 
 template<typename an_Integral_type>
-inline a_boolean checked_addition(an_Integral_type *output,
+INLINE a_boolean checked_addition(an_Integral_type *output,
                                   uint64_t         a,
                                   uint64_t         b)
 /*
@@ -6080,7 +6084,7 @@ been set and overflow did not occur; otherwise, return FALSE.
 
 
 template<typename an_Integral_type>
-inline a_boolean checked_multiplication(an_Integral_type *output,
+INLINE a_boolean checked_multiplication(an_Integral_type *output,
                                         uint64_t         a,
                                         uint64_t         b)
 /*
@@ -6129,7 +6133,7 @@ a big endian byte order.
 
 
 template<typename an_Integral_type>
-inline an_Integral_type bit_rotate_left(an_Integral_type value,
+INLINE an_Integral_type bit_rotate_left(an_Integral_type value,
                                         unsigned         num_bits)
 /*
 Perform the given number of left bit rotations on the given value returning the
@@ -6143,7 +6147,7 @@ result.
 
 
 template<typename an_Integral_type>
-inline an_Integral_type bit_rotate_right(an_Integral_type value,
+INLINE an_Integral_type bit_rotate_right(an_Integral_type value,
                                          unsigned         num_bits)
 /*
 Perform the given number of right bit rotations on the given value returning

@@ -9996,11 +9996,6 @@ file.
 #else /* !defined(USE_FLOAT128_FOR_HOST_FP_VALUE) */
   comment_undefined_macro_name(USE_FLOAT128_FOR_HOST_FP_VALUE);
 #endif /* defined(USE_FLOAT128_FOR_HOST_FP_VALUE) */
-#if defined(USE_FORCED_INLINE)
-  define_numeric_valued_macro(USE_FORCED_INLINE);
-#else /* !defined(USE_FORCED_INLINE) */
-  comment_undefined_macro_name(USE_FORCED_INLINE);
-#endif /* defined(USE_FORCED_INLINE) */
 #if defined(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE)
   define_numeric_valued_macro(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE);
 #else /* !defined(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE) */
@@ -10021,6 +10016,16 @@ file.
 #else /* !defined(USE_INIT_SECTION_IN_GENERATED_C) */
   comment_undefined_macro_name(USE_INIT_SECTION_IN_GENERATED_C);
 #endif /* defined(USE_INIT_SECTION_IN_GENERATED_C) */
+#if defined(USE_INLINE_EXPANSION)
+  define_numeric_valued_macro(USE_INLINE_EXPANSION);
+#else /* !defined(USE_INLINE_EXPANSION) */
+  comment_undefined_macro_name(USE_INLINE_EXPANSION);
+#endif /* defined(USE_INLINE_EXPANSION) */
+#if defined(USE_INLINING_HINTS)
+  define_numeric_valued_macro(USE_INLINING_HINTS);
+#else /* !defined(USE_INLINING_HINTS) */
+  comment_undefined_macro_name(USE_INLINING_HINTS);
+#endif /* defined(USE_INLINING_HINTS) */
 #if defined(USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES)
   define_numeric_valued_macro(
                            USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES);
