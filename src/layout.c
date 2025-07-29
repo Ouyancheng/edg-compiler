@@ -1668,9 +1668,12 @@ the given base class contains no flexible array.
   lob->curr_base_extent = max_val(lob->curr_base_extent, next_byte-1);
   lob->curr_extent = max_val(lob->curr_extent, next_byte-1);
 #if IA64_ABI
-  lob->min_final_class_size = max_val(
-                                 bcp->offset + skip_typerefs(bcp->type)->size,
-                                 lob->min_final_class_size);
+  if (!bcp->type->variant.class_struct_union.any_virtual_base_classes) {
+    /* If there are no virtual bases, the base class should fall within the
+       derived class as one contiguous block of size bcp->type->size. */
+    lob->min_final_class_size = max_val(bcp->offset + bcp->type->size,
+                                        lob->min_final_class_size);
+  }  /* if */
 #endif /* IA64_ABI */
 }  /* update_curr_base_extent */
 
