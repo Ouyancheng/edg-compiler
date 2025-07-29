@@ -159,7 +159,6 @@ Return TRUE if the given arg_operand is instantiation-dependent.
 }  /* arg_operand_is_instantiation_dependent */
 
 
-static
 a_boolean arg_list_is_instantiation_dependent(an_arg_list_elem_ptr  alep)
 /*
 Return TRUE if the given list of argument elements contains an instantiation-
@@ -170,10 +169,17 @@ dependent operand.
 
   if (is_template_dependent_context()) {
     for (; alep != NULL; alep = next_elem(alep)) {
-      an_operand  *opnd = operand_of_arg_list_elem(alep);
-      if (operand_is_instantiation_dependent(opnd)) {
-        result = TRUE;
-        break;
+      if (is_expression_component(alep)) {
+        an_operand  *opnd = operand_of_arg_list_elem(alep);
+        if (operand_is_instantiation_dependent(opnd)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      } else if (is_braced_init_component(alep)) {
+        if (arg_list_is_instantiation_dependent(alep->variant.braced.list)) {
+          result = TRUE;
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
@@ -23027,6 +23033,14 @@ Deduce the array size and update the new type accordingly.
     } else {
       nps->braced_init_list = scan_paren_expr_list_as_braced_list(nps, dps);
     }  /* if */
+    if (arg_list_is_instantiation_dependent(nps->braced_init_list)) {
+      /* Don't attempt deduction, since the initializer could contain a pack
+         expansion.  E.g.,
+            template<int ... Ns> int *v = new int[]{Ns...};
+         Deduction would impose a length of one (e.g., rendered by the C++-
+         generating back end), which is not generally correct. */
+      goto done;
+    }  /* if */
     icp = nps->braced_init_list->variant.braced.list;
     if (icp == NULL) {
       /* An empty initializer list.  Treat as if it were "new T[0]{}" */
@@ -23058,6 +23072,7 @@ Deduce the array size and update the new type accordingly.
       set_type_size(nps->unqual_new_type);
     }  /* if */
   }  /* if */
+done:;
 }  /* deduce_new_array_size */
 
 

@@ -940,6 +940,9 @@ extern a_boolean operand_is_instantiation_dependent(an_operand_ptr operand);
 extern a_boolean arg_operand_is_instantiation_dependent(
                                                an_arg_operand_ptr arg_operand);
 
+extern a_boolean arg_list_is_instantiation_dependent(
+                                                   an_arg_list_elem_ptr  alep);
+
 extern a_boolean arg_operand_involves_error_entity(
                                                an_arg_operand_ptr arg_operand);
 

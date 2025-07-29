@@ -1,5 +1,25 @@
 Version 6.8
 
+7/28/25  [EDGcpfe/28361]
+C++-generating back end: new-expression with variadic braced initializer
+
+Consider (in C++20 mode, or in C++11 mode after the changes for
+EDGcpfe/25685,EDGcpfe/27368):
+
+  template<int ... Ns> int *v = new int[]{Ns...};
+
+The IL representing the new-expression in the generic definition of v
+previously erroneously included a length of one for the allocated array.  As
+a result, the C++-generating back end rendered the example as:
+
+  template< int ...Ns> int *v = new int [1]{Ns...};
+
+which is not equivalent (and will fail to instantiate if more than one
+template argument is supplied for v).  This is now fixed: The array type
+in the generic representation of the new-expression no longer includes a
+specified bound.
+
+
 7/28/25  [EDGcpfe/25685,EDGcpfe/27368]
 Deducing array size in new-expressions
 
