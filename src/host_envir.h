@@ -1440,10 +1440,11 @@ back end does not understand.
 /*
 Flag that is TRUE to indicate that backing expressions should be kept for
 non-type template arguments.  Except for C++-generating back end
-configurations, where they are required, such backing expressions are not
-kept because a given template instance can be referred to many times using
-different expressions that fold to the same constant value, and only one of
-those could be kept in the template argument.
+configurations, where they are required, such backing expressions are
+typically not kept because a given template instance can be referred to
+many times using different expressions that fold to the same constant
+value, and only one of those can be kept in the template argument for that
+instance.
 */
 #ifdef KEEP_TEMPLATE_ARG_THAT_CAUSES_TEMPLATE_INSTANTIATION
 /* In earlier versions of the front end, this option had a more limited

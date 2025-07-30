@@ -1362,17 +1362,18 @@ below.
 #else /* !(DO_IL_LOWERING && !RECORD_BACKING_EXPRS_WITH_IL_LOWERING) */
 #if !BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG || \
     TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-/* In non-IL-lowering configurations, backing expressions are normally kept
-   for all non-preprocessing constants, including non-type template
-   arguments.  Although the latter are required for the C++-generating back
-   end, they can be explicitly suppressed in other configurations. */
+/* In non-IL-lowering configurations that do not incorporate the
+   C++-generating back end, backing expressions are normally kept for all
+   non-preprocessing constants except for non-type template arguments,
+   which are only kept within template definitions. */
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
   (!curr_expr_kind_is(ek_pp) &&                                   \
    (depth_template_declaration_scope != NO_SCOPE_DEPTH ||         \
     !curr_expr_kind_is(ek_template_arg)))
 #else /* !(!BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG || ...) */
-/* When BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG is TRUE, all non-preprocessing
-   contexts allow backing expressions to be recorded. */
+/* When BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG is TRUE (which is required for
+   the C++-generating back end), all non-preprocessing contexts allow
+   backing expressions to be recorded. */
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
   (!curr_expr_kind_is(ek_pp))
 #endif /* !BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG || ... */
