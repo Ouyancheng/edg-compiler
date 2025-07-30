@@ -7563,7 +7563,7 @@ entire string.
     if (single_elem) {
       /* Initializing a single element of an array from a byte in the
          expansion of a #embed directive. */
-      check_assertion(constant_is(constant, ck_string) &&
+      check_assertion(ipdp != NULL && constant_is(constant, ck_string) &&
                       constant->variant.string.embed_expansion);
       write_unsigned_num(
                (unsigned char)constant->variant.string.value[ipdp->curr_elem]);
