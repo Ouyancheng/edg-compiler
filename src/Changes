@@ -1,5 +1,36 @@
 Version 6.8
 
+7/30/25  [EDGcpfe/28362]
+Abort in matches_template_decl_requires_clause with nested class template
+
+Consider:
+
+  template<typename> struct S {
+    template<typename> struct N;
+  };
+  template<typename T> template<typename U> struct S<T>::N<U*> {};
+  template<> template<typename W> struct S<int>::N<W*> {};
+
+This previously triggered an internal error in templates.c (function
+matches_template_decl_requires_clause).  That is now fixed.
+
+
+7/30/25  [EDGcpfe/26641,EDGcpfe/27432]
+Variable template partial specializations using requires-clauses
+
+Consider, in C++20 mode:
+
+  template<typename> int v;
+  template<typename T> int v<T*>;                // (1)
+  template<typename T> requires true int v<T*>;  // Previously an error.
+
+Previously, the front end mistakenly treated the last partial specialization
+declaration as a redeclaration of the partial specialization (1).  That
+resulted in a spurious error about the requires-clause being incompatible.
+Now it is correctly treated as a distinct partial specialization since the
+requires-clause is distinct.
+
+
 7/29/25  [EDGcpfe/27947]
 C++-generating back end: backing expressions for non-type template arguments
 
