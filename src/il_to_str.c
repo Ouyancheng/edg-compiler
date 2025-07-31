@@ -20,6 +20,7 @@ il_to_str.c -- Produce an external string-form representation for various
 #if BACK_END_IS_CP_GEN_BE
 #include "cp_gen_be.h"
 #endif /* BACK_END_IS_CP_GEN_BE */
+#include "il_walk.h"
 
 #ifdef PCH_PRAGMA_GUARD
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -4862,6 +4863,12 @@ parentheses are not needed.
     case abk_temporary:
       /* Temporary with a constant value. */
       con = constant->variant.address.variant.constant;
+      if (gen_output && constant_is_recursive(con)) {
+        /* Avoid runaway recursion. */
+        special_address_kind = constant->variant.address.kind;
+        check_assertion(!octl->gen_compilable_code);
+        con = NULL;
+      }  /* if */
       type = con->type;
       break;
     case abk_uuidof:
@@ -4913,24 +4920,29 @@ parentheses are not needed.
     } else if (con != NULL) {
       /* Constant case. */
       form_constant(con, /*need_parens=*/FALSE, octl);
-    } else if (special_address_kind == (an_address_base_kind)abk_uuidof) {
+    } else if (special_address_kind == abk_uuidof) {
       /* Microsoft __uuidof. */
       form_uuidof_reference(constant, octl);
-    } else if (special_address_kind == (an_address_base_kind)abk_typeid
+    } else if (special_address_kind == abk_typeid
 #if MICROSOFT_EXTENSIONS_ALLOWED
-               || constant->variant.address.kind == 
-                                          (an_address_base_kind)abk_cli_typeid
+               || constant->variant.address.kind == abk_cli_typeid
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-               ) {
+                                                                  ) {
       form_typeid_reference(constant, octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (special_address_kind == (an_address_base_kind)abk_cli_array) {
+    } else if (special_address_kind == abk_cli_array) {
       /* A C++/CLI array constant, used only in custom attribute argument
          expressions, is represented with an enk_gcnew expression node
          in constant->expr.  That expression is emitted by form_constant,
          so this code path should not be hit. */
       unexpected_condition();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (special_address_kind == abk_temporary) {
+      /* We get here when taking the address of a self-referencing
+         temporary. */
+      octl->output_str("<", octl);
+      octl->output_str(error_text(ec_self_referencing_temporary_object), octl);
+      octl->output_str(">", octl);
     } else {
       unexpected_condition();
     }  /* if */
