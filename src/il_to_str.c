@@ -6818,6 +6818,20 @@ precedence confusion.  Do the output in the way described by octl.
                                                                       &ovflo),
                     octl);
         output_partial_token_str("'", octl);
+#if GNU_VECTOR_TYPES_ALLOWED
+      } else if (type_is(con_type, tk_mfp8)) {
+        /* Currently, the only constant value of type __mfp8 generated in the
+           IL is "zero", which can be rendered as "__mfp8()". */
+        an_integer_value  zero;
+        set_integer_value(&zero, (a_host_large_integer)0);
+        if (cmp_integer_values(&constant->variant.integer_value,
+                               /*op_1_signed=*/FALSE,
+                               &zero, /*op_2_signed=*/FALSE) == 0) {
+          octl->output_str("__mfp8()", octl);
+        } else {
+          unexpected_condition();
+        }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       } else {
         /* A normal integer constant. */
         form_integer_constant(constant, cast_already_put_out,

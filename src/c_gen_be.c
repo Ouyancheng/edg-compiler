@@ -7989,13 +7989,18 @@ block with state information for the processing.
         /* Initialize to zero. */
 #if GNU_VECTOR_TYPES_ALLOWED
         if (is_vector_type(type)) {
+          a_type        *vtp = skip_typerefs(type),
+                        *etp = skip_typerefs(vtp->variant.vector.element_type);
+          a_boolean     mfp8_case = type_is(etp, tk_mfp8);
           a_targ_size_t i;
           write_tok_ch('{');
           for (i = num_vector_elements(type); i > 0; i--) {
-            write_tok_ch('0');
+            write_tok_str(mfp8_case ? "__mfp8()" : "0");
             if (i != 1) write_tok_ch(',');
           }  /* for */
           write_tok_ch('}');
+        } else if (type_is(skip_typerefs(type), tk_mfp8)) {
+          write_tok_str("__mfp8()");
         } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* Do not insert code here. */

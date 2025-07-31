@@ -3543,7 +3543,12 @@ enum a_constant_repr_kind : a_byte {
   ck_error,             /* Error. */
   ck_integer,           /* Integers. */
                         /* char and enum types are handled as integers: see
-                           the integer variant of a_type. */
+                           the integer variant of a_type.  Addresses formed
+			   by casting an integer constant to a pointer type
+			   are also represented by ck_integer, and so are
+			   nullptr_t constants (value zero, of tk_nullptr
+			   type).  Also used to represent values of the ARM
+			   __mfp8 (see tk_mfp8) type. */
 #if FIXED_POINT_ALLOWED
   ck_fixed_point,       /* Fixed-point types. */
 #endif /* FIXED_POINT_ALLOWED */

@@ -2431,6 +2431,23 @@ for any diagnostics issued.
           conv_integer_to_ptr_to_member(constant, new_constant,
                                         is_implicit_cast);
           break;
+#if GNU_VECTOR_TYPES_ALLOWED
+        case tk_mfp8:
+          /* Converting an integer to the ARM opaque __mfp8 type.  Currently,
+             this is only used to create zero-initialization constants, but we
+             permit folding any value that will fit in eight bits. */
+          { an_integer_value  mask;
+            set_constant_kind(new_constant, ck_integer);
+            new_constant->variant.integer_value =
+                                              constant->variant.integer_value;
+            make_integer_value_mask(&mask, 8);
+            and_integer_values(&new_constant->variant.integer_value, &mask);
+            if (cmp_integer_constants(new_constant, constant) != 0) {
+              *did_not_fold = TRUE;
+            }  /* if */
+          }
+          break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         default:
           unexpected_condition_str(
                              "type_change_constant_full: integer to bad type");

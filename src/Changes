@@ -1,5 +1,19 @@
 Version 6.8
 
+7/31/25  [EDGcpfe/28368]
+Abort on lowering of __mfp8 initialization
+
+Consider, in a configuration supporting ARM vector extensions:
+
+  typedef __attribute__((neon_vector_type(16))) __mfp8 WV;
+  __mfp8 wght;
+  WV wv = {wght};
+
+This previously triggered an internal error when attempting to lower the IL
+for this example (lowering caused the invocation of type_change_constant_full,
+where the internal error occurred).  That is now fixed.
+
+
 7/30/25  [EDGcpfe/28362]
 Abort in matches_template_decl_requires_clause with nested class template
 
