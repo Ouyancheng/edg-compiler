@@ -50649,46 +50649,8 @@ for the converted result in *constant (which must be in the file scope
 memory region).  Do various error checks.
 */
 {
-  a_boolean need_backing_expr;
-
   db_enter(3, "prep_nontype_template_argument_initializer");
   check_assertion(constant != NULL && in_file_scope(constant));
-  /* In general, backing expressions for template arguments are of limited
-     use in the C++-generating back end: references to a given template
-     instance can be written using a variety of expressions that all
-     evaluate to the same constant value, and only the first such
-     expression can be recorded in the IL for that instance; furthermore,
-     that expression may refer to names that are inaccessible or out of
-     scope at the point of subsequent references.  The two exceptions are
-     inside template declarations, because they are needed for name
-     mangling (at least in the IA-64 ABI), and when a given template
-     argument causes another template to be instantiated, because just
-     using the folded constant would likely omit the reference that caused
-     that instantiation.  (See the definition of
-     curr_expr_kind_is_one_in_which_const_exprs_are_recorded() for
-     restrictions on the latter case.)  Note that this mechanism has
-     limitations: as noted above, only one version of a template argument
-     is saved, so subsequent references to the template with different
-     argument expressions that fold to the same constant value will not be
-     saved, even if they cause template instantiations of their own.
-     Nevertheless, we unconditionally record backing expressions for
-     non-type template arguments and mark the ones that should be used in
-     the C++-generating back end output as "needed_in_cp_gen_be" (which
-     will be cleared after the first reference to prevent subsequent
-     use of the backing expression). */
-  need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH ||
-                       operand->caused_template_instantiation);
-  if (!need_backing_expr &&
-      ((is_expression_operand(operand) &&
-        is_variable_node(operand->variant.expression)) ||
-       (is_constant_operand(operand) &&
-        operand->variant.constant.expr != NULL &&
-        operand->variant.constant.expr->kind == enk_temp_init))) {
-    /* We also need to preserve an expression designating a variable or
-       explicit temporary so the template argument can be determined to
-       refer to it rather than to the folded constant. */
-    need_backing_expr = TRUE;
-  }  /* if */
   if (ms_version_is(<1310) &&
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_expression_operand(operand) &&
@@ -50721,15 +50683,37 @@ memory region).  Do various error checks.
       make_template_param_constant_from_operand(operand, constant,
                                                 (a_type_ptr)NULL);
     } else {
-      an_expr_node_ptr  expr = NULL;
+      an_expr_node_ptr       *epp = NULL;
+      a_memory_region_number region = curr_il_region_number;
+      if (is_expression_operand(operand)) {
+        epp = &operand->variant.expression;
+      } else if (is_constant_operand(operand) &&
+                 operand->variant.constant.expr != NULL) {
+        epp = &operand->variant.constant.expr;
+      }  /* if */
+      if (epp != NULL && region != FILE_SCOPE_REGION_NUMBER &&
+          in_file_scope(*epp)) {
+        /* Ensure that the entire expression tree resides in a single
+           memory region. */
+        if (expr_has_reference_to_local_entity(*epp)) {
+          /* Copy the expression tree into the current memory region. */
+          *epp = copy_expr_tree(*epp, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
+        } else {
+          /* Ensure that any allocations by extract_constant_from_operand
+             go into the file scope. */
+          curr_il_region_number = FILE_SCOPE_REGION_NUMBER;
+        }  /* if */
+      }  /* if */
       extract_constant_from_operand(operand, constant);
+      curr_il_region_number = region;
       if (constant_addresses_local_var(constant)) {
         expr_pos_error(ec_constant_addresses_local_variable,
                        &operand->position);
         make_error_operand(operand);
         extract_constant_from_operand(operand, constant);
       } else {
-        a_scope_ptr scope_for_local_ref = innermost_function_scope;
+        a_scope_ptr            scope_for_local_ref = innermost_function_scope;
+        an_expr_node_ptr       expr = constant->expr;
         if (scope_for_local_ref == NULL &&
             scope_stack_top().kind == sck_function_access) {
           a_scope_depth orig_depth = scope_stack_top().orig_access_depth;
@@ -50741,7 +50725,6 @@ memory region).  Do various error checks.
             }  /* if */
           }  /* if */
         }  /* if */
-        expr = constant->expr;
         do_fs_constant_fixup(constant);
         if (expr != NULL && !in_file_scope(expr) &&
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -50772,7 +50755,7 @@ memory region).  Do various error checks.
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   if (constant->expr != NULL) {
-    constant->expr->needed_in_cp_gen_be = need_backing_expr;
+    constant->expr->needed_in_cp_gen_be = TRUE;
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if DEBUG
