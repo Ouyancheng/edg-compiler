@@ -25468,9 +25468,9 @@ been seen or vice versa.
 
 a_boolean mixed_regions_in_expr_tree(an_expr_node_ptr expr)
 /*
-Return FALSE if all the nodes in the tree rooted in expr are allocated in
-the file-scope memory region or all are allocated in a local memory region;
-otherwise, return TRUE.
+Return TRUE if the tree rooted in expr contains both nodes allocated in the
+file-scope memory region and nodes that are allocated in a local memory
+region or designate a block-scope variable; otherwise, return FALSE.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
