@@ -12481,28 +12481,27 @@ command line -D options.
                                           /*cannot_be_redefined=*/TRUE,
                                           /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-#if !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
-  /* Restrict __has_include_next to only those compilers that implement it. */
-  if (clang_mode || gnu_version_is(>=40902))
-#endif /* !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
-  /* Do not insert code here. */
-  {
+  if (clang_mode || gnu_version_is(>=40902)) {
     /* __has_include_next is supported by some compilers (but is not part of
        the C++ standard). */
     has_include_next_symbol = enter_predef_macro(
                                             (char *)NULL, "__has_include_next",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
+    has_attribute_symbol = enter_predef_macro_full(
+                                             (char *)NULL, "__has_attribute",
+                                             /*cannot_be_redefined=*/TRUE,
+                                             /*ref_suppresses_pch_file=*/FALSE,
+                                             /*function_like=*/TRUE);
   }  /* if */
-#if !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
-  /* Restrict the feature-test operators to clang mode only. */
-  if (clang_mode)
-#endif /* !DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
-  /* Do not insert code here. */
-  {
-    /* Feature-test macros for clang mode and, optionally, in all modes.
-       Like the preceding macros, they are entered with a NULL replacement
-       text and expanded appropriately in invocation. */
+  if (clang_mode || gnu_version_is(>=100000)) {
+    has_builtin_symbol = enter_predef_macro_full(
+                                             (char *)NULL, "__has_builtin",
+                                             /*cannot_be_redefined=*/TRUE,
+                                             /*ref_suppresses_pch_file=*/FALSE,
+                                             /*function_like=*/TRUE);
+  }  /* if */
+  if (clang_mode || gnu_version_is(>=140000)) {
     has_feature_symbol = enter_predef_macro_full(
                                              (char *)NULL, "__has_feature",
                                              /*cannot_be_redefined=*/TRUE,
@@ -12513,23 +12512,6 @@ command line -D options.
                                              /*cannot_be_redefined=*/TRUE,
                                              /*ref_suppresses_pch_file=*/FALSE,
                                              /*function_like=*/TRUE);
-    has_attribute_symbol = enter_predef_macro_full(
-                                             (char *)NULL, "__has_attribute",
-                                             /*cannot_be_redefined=*/TRUE,
-                                             /*ref_suppresses_pch_file=*/FALSE,
-                                             /*function_like=*/TRUE);
-    has_builtin_symbol = enter_predef_macro_full(
-                                             (char *)NULL, "__has_builtin",
-                                             /*cannot_be_redefined=*/TRUE,
-                                             /*ref_suppresses_pch_file=*/FALSE,
-                                             /*function_like=*/TRUE);
-    /* __is_identifier expects exactly one token that either is or is not an
-       identifier, so normal macro argument processing is not appropriate and
-       it is defined as object-like. */
-    is_identifier_symbol = enter_predef_macro(
-                                            (char *)NULL, "__is_identifier",
-                                            /*cannot_be_redefined=*/TRUE,
-                                            /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
   if (clang_mode) {
     /* __has_warning expects exactly one token, a string literal;
@@ -12541,6 +12523,13 @@ command line -D options.
                                             /*ref_suppresses_pch_file=*/FALSE);
     building_module_symbol = enter_predef_macro(
                                             (char *)NULL, "__building_module",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
+    /* __is_identifier expects exactly one token that either is or is not an
+       identifier, so normal macro argument processing is not appropriate and
+       it is defined as object-like. */
+    is_identifier_symbol = enter_predef_macro(
+                                            (char *)NULL, "__is_identifier",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */

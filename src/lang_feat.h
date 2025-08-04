@@ -2474,14 +2474,6 @@ for most C and C++ compilers, but some pre-C11 C compilers may not support it.
 #define __EDG_func__ (a_const_char*)__func__
 #endif /* !FUNC_AVAILABLE */
 
-/*
-Flag that is TRUE if the clang-style feature-test macro operators like
-__has_feature should be enabled in all modes.
-*/
-#ifndef DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES
-#define DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES TRUE
-#endif /* DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES */
-
 EXTERN_THREAD uint32_t
 		std_version;
 			/* A number of the form YYYYmm indicating the version

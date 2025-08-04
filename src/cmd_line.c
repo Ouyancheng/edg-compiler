@@ -7491,13 +7491,6 @@ file.
 #else /* !defined(DEFAULT_WCHAR_T_IS_KEYWORD) */
   comment_undefined_macro_name(DEFAULT_WCHAR_T_IS_KEYWORD);
 #endif /* defined(DEFAULT_WCHAR_T_IS_KEYWORD) */
-#if defined(DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES)
-  define_numeric_valued_macro(
-                             DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES);
-#else /* !defined(DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES) */
-  comment_undefined_macro_name(
-                             DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES);
-#endif /* defined(DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES) */
 #if defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED)
   define_numeric_valued_macro(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED);
 #else /* !defined(DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED) */

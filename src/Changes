@@ -1,5 +1,32 @@
 Version 6.8
 
+8/4/25   [EDGcpfe/28215]
+Microsoft/GNU compatibility: Availability of various clang feature-test macros
+
+Clang has introduced a number of non-standard feature-test macros (see the
+Changes entry for EDGcpfe/14767 et al.).  The use of these feature-test macros
+in headers shared across platforms led to the change described in the Changes
+entry (namely the introduction of the
+DEFINE_FEATURE_TEST_MACRO_OPERATORS_IN_ALL_MODES configuration macro), but
+enabling those feature-test macros in improper modes (especially Microsoft
+emulation mode) had defeated the logic in the header files, resulting in
+spurious errors.
+
+That macro has now been removed and the front end now better emulates the
+versions in which these non-standard feature-test macros now appear.
+Specifically, here are the affected feature-test macros and the GNU version
+in which they appear:
+
+  __has_include_next: gnu_version >= 50000
+  __has_attribute: gnu_version >= 50000
+  __has_builtin: gnu_version >= 100000
+  __has_feature: gnu_version >= 140000
+  __has_extension: gnu_version >= 140000
+
+All are available in C and C++ modes.  None are currently available in
+Microsoft emulation modes.
+
+
 7/31/25  [EDGcpfe/28368]
 Abort on lowering of __mfp8 initialization
 
@@ -1007,13 +1034,6 @@ constant.  In configurations in which
 PRESERVE_EMBED_DIRECTIVE_WHEN_OPTIMIZED is FALSE, the constant will be put
 out as the comma-separated list of values of the bytes comprising the
 string value.
-
-
-6/2/25   [EDGcpfe/28215]
-Microsoft compatibility: __builtin_offset not available in C mode
-
-The __builtin_offset builtin is no longer available in C mode when emulating
-Microsoft (it remains available in C++ modes).
 
 
 5/29/25  [EDGcpfe/27230,EDGcpfe/28189]
