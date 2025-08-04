@@ -1,6 +1,6 @@
 Version 6.8
 
-8/4/25   [EDGcpfe/28215]
+8/4/25   [EDGcpfe/27269,EDGcpfe/28215]
 Microsoft/GNU compatibility: Availability of various clang feature-test macros
 
 Clang has introduced a number of non-standard feature-test macros (see the
