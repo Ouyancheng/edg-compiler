@@ -1956,6 +1956,8 @@ extern a_boolean is_invariant_expr(
 
 extern a_boolean expr_has_reference_to_local_entity(an_expr_node_ptr expr);
 
+extern a_boolean mixed_regions_in_expr_tree(an_expr_node_ptr expr);
+
 extern a_boolean expr_has_reference_to_routine_scope_variable(
                                                         an_expr_node_ptr expr);
 

@@ -6706,6 +6706,9 @@ copy_constant_full should be called to start a copy.
                          (options & CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR) != 0;
   a_boolean      force_copy = (constexpr_master_copy ||
                                old_constant->part_of_constexpr_master_expr);
+  a_boolean      copy_backing_expr =
+                         (options & (CE_COPYING_FOR_LOCAL_EXPR_NODE_REF |
+                                     CE_ALWAYS_COPY_BACKING_EXPRESSIONS)) != 0;
   a_constant_ptr local_con = local_constant();
   an_expr_copy_options_set
                  options_unshared;
@@ -6971,6 +6974,10 @@ copy_constant_full should be called to start a copy.
     /* Constants created in making the master copy of a constexpr evaluation
        expression are marked as such. */
     new_constant->part_of_constexpr_master_expr = TRUE;
+  }  /* if */
+  if (copy_backing_expr && new_constant->expr != NULL) {
+    /* Make a copy of the backing expression as well. */
+    new_constant->expr = i_copy_expr_tree(new_constant->expr, options, cblock);
   }  /* if */
   if (may_be_shared) {
     new_constant = alloc_shareable_constant(new_constant);
@@ -22626,13 +22633,6 @@ be called to start a copy.
                        i_copy_constant_full(node_constant(expr),
                                             (a_constant *)NULL,
                                             subcopy_options, cblock);
-        if (((options & CE_COPYING_FOR_LOCAL_EXPR_NODE_REF) ||
-             (options & CE_ALWAYS_COPY_BACKING_EXPRESSIONS)) &&
-            node_constant(expr)->expr != NULL) {
-          /* Get a local copy of the backing expression as well. */
-          node_constant(expr_copy)->expr =
-               i_copy_expr_tree(node_constant(expr)->expr, options, cblock);
-        }  /* if */
       }  /* if */
       break;
     case enk_operation:
@@ -25428,6 +25428,67 @@ local scope or an enk_statement node allocated in function-scope memory.
   }  /* if */
   return result;
 }  /* expr_has_reference_to_local_entity */
+
+
+/*
+Variables used for detecting mixed memory regions in an expression tree.
+They are set to FALSE by mixed_regions_in_expr_tree and updated by
+check_node_for_mixed_memory_regions during the tree traversal.
+*/
+STATIC_THREAD a_boolean tree_has_file_scope_node;
+STATIC_THREAD a_boolean tree_has_local_node;
+
+static void check_node_for_mixed_memory_regions(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called via traverse_expr from mixed_regions_in_expr_tree; sets
+tblock->result to TRUE and terminates the traversal if expr is allocated in
+file-scope memory and a local node or reference to a local variable has
+been seen or vice versa.
+*/
+{
+  if (expr != NULL) {
+    if (in_file_scope(expr)) {
+      tree_has_file_scope_node = TRUE;
+      if (is_variable_node(expr) &&
+          node_variable(expr)->source_corresp.enclosing_routine != NULL) {
+        tree_has_local_node = TRUE;
+      }  /* if */
+    } else {
+      tree_has_local_node = TRUE;
+    }  /* if */
+    if (tree_has_file_scope_node && tree_has_local_node) {
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* check_node_for_mixed_memory_regions */
+
+
+a_boolean mixed_regions_in_expr_tree(an_expr_node_ptr expr)
+/*
+Return FALSE if all the nodes in the tree rooted in expr are allocated in
+the file-scope memory region or all are allocated in a local memory region;
+otherwise, return TRUE.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+  a_boolean                       result = FALSE;
+
+  if (expr != NULL) {
+    tree_has_file_scope_node = FALSE;
+    tree_has_local_node = FALSE;
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = check_node_for_mixed_memory_regions;
+    tblock.process_non_dynamic_constants = TRUE;
+    tblock.process_expressions_for_constants = TRUE;
+    tblock.process_template_parameter_constants_and_expressions = TRUE;
+    traverse_expr(expr, &tblock);
+    result = tblock.result;
+  }  /* if */
+  return result;
+}  /* mixed_regions_in_expr_tree */
 
 
 STATIC_THREAD an_expr_node_ptr

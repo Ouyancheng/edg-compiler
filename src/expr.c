@@ -50691,16 +50691,16 @@ memory region).  Do various error checks.
                  operand->variant.constant.expr != NULL) {
         epp = &operand->variant.constant.expr;
       }  /* if */
-      if (epp != NULL && region != FILE_SCOPE_REGION_NUMBER &&
-          in_file_scope(*epp)) {
+      if (epp != NULL && region != FILE_SCOPE_REGION_NUMBER) {
         /* Ensure that the entire expression tree resides in a single
            memory region. */
-        if (expr_has_reference_to_local_entity(*epp)) {
+        if (mixed_regions_in_expr_tree(*epp)) {
           /* Copy the expression tree into the current memory region. */
           *epp = copy_expr_tree(*epp, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
-        } else {
-          /* Ensure that any allocations by extract_constant_from_operand
-             go into the file scope. */
+        } else if (in_file_scope(*epp)) {
+          /* Ensure that any entries created by
+             extract_constant_from_operand will be allocated in file-scope
+             memory. */
           curr_il_region_number = FILE_SCOPE_REGION_NUMBER;
         }  /* if */
       }  /* if */
