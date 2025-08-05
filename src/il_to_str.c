@@ -4863,13 +4863,13 @@ parentheses are not needed.
     case abk_temporary:
       /* Temporary with a constant value. */
       con = constant->variant.address.variant.constant;
+      type = con->type;
       if (gen_output && constant_is_recursive(con)) {
         /* Avoid runaway recursion. */
         special_address_kind = constant->variant.address.kind;
         check_assertion(!octl->gen_compilable_code);
         con = NULL;
       }  /* if */
-      type = con->type;
       break;
     case abk_uuidof:
     case abk_typeid:
