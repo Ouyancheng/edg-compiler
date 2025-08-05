@@ -5250,6 +5250,7 @@ stack.
 #endif /* GENERATE_EH_TABLES */
 
 #else /* !DO_IL_LOWERING */
+#undef GENERATE_EH_TABLES
 #define GENERATE_EH_TABLES FALSE
 #endif /* DO_IL_LOWERING */
 
