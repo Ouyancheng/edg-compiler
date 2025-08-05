@@ -22977,6 +22977,11 @@ be called to start a copy.
                                           expr->variant.nested_req.constraint,
                                           options, cblock);
       break;
+    case enk_initializer:
+      expr_copy->variant.initializer.dyn_init =
+                        i_copy_dynamic_init(expr->variant.initializer.dyn_init,
+                                            options, cblock);
+      break;
 #if BUILTIN_FUNCTIONS_ENABLED
     case enk_const_eval_deferred:
       { auto &reattempt_state =
