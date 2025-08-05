@@ -13249,7 +13249,8 @@ to control storage size, however, declaring it as a bit field (and then
 constraining the number of bits to 8) results in a better layout with some
 compilers.
 
-If you add new expression kinds, be sure to update expr_node_kind_names.
+If you add new expression kinds, be sure to update expr_node_kind_names and
+i_copy_expr_tree.
 */
 #define NUM_BITS_FOR_EXPR_NODE_KIND 8
 enum an_expr_node_kind : a_bit_field {
