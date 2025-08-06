@@ -9815,6 +9815,46 @@ so it can go into the IL.
       extract_constant_from_operand_with_fs_fixup(operand, constant);
       tap->variant.constant = constant;
       switch_back_to_original_region(region_to_switch_back_to);
+#if BACK_END_IS_CP_GEN_BE
+      if (constant->expr != NULL) {
+        constant->expr->needed_in_cp_gen_be = TRUE;
+      }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
+      if (constant->expr != NULL &&
+          curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
+          mixed_regions_in_expr_tree(constant->expr)) {
+        a_scope_ptr            scope_for_local_ref = innermost_function_scope;
+        an_expr_node_ptr       expr = constant->expr;
+        if (scope_for_local_ref == NULL &&
+            scope_stack_top().kind == sck_function_access) {
+          a_scope_depth orig_depth = scope_stack_top().orig_access_depth;
+          if (orig_depth != NO_SCOPE_DEPTH) {
+            a_scope_depth func_depth =
+                        scope_stack[orig_depth].depth_innermost_function_scope;
+            if (func_depth != NO_SCOPE_DEPTH) {
+              scope_for_local_ref = scope_stack[func_depth].il_scope;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        if (scope_for_local_ref != NULL
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            && !expr_stack->statement_expression_seen
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+                                                     ) {
+          /* Refer to the underlying expression indirectly since it lives in
+             function scope memory.  (Discard the expression if a statement
+             expression and source sequence entries are recorded, because no
+             source sequence entries could be recorded for a template
+             argument.) */
+          expr = copy_expr_tree(expr, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
+          constant->expr = NULL;
+          make_local_expr_node_ref(expr, lerk_constant_expr, (char*)constant,
+                                   scope_for_local_ref);
+        } else {
+          /* We cannot make the backing expression referenceable. */
+          constant->expr = NULL;
+        }  /* if */
+      }  /* if */
       free_arg_operand_list(tap->arg_operand);
       tap->arg_operand = NULL;
       pop_expr_stack();

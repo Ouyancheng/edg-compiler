@@ -50705,6 +50705,11 @@ memory region).  Do various error checks.
         }  /* if */
       }  /* if */
       extract_constant_from_operand(operand, constant);
+#if BACK_END_IS_CP_GEN_BE
+    if (constant->expr != NULL) {
+      constant->expr->needed_in_cp_gen_be = TRUE;
+    }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
       curr_il_region_number = region;
       if (constant_addresses_local_var(constant)) {
         expr_pos_error(ec_constant_addresses_local_variable,
@@ -50753,11 +50758,6 @@ memory region).  Do various error checks.
       !gpp_version_is(<60000)) {
     constant->null_pointer_constant_ruled_out = TRUE;
   }  /* if */
-#if BACK_END_IS_CP_GEN_BE
-  if (constant->expr != NULL) {
-    constant->expr->needed_in_cp_gen_be = TRUE;
-  }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);
