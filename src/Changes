@@ -1,5 +1,16 @@
 Version 6.8
 
+8/6/25   [EDGcpfe/28375]
+Alignment of variable templates
+
+Any alignment attributes attached to a variable template had not been
+applied to variable template instances.  That had caused the static_assert
+to fail in the following case (with --c++17 -tused):
+
+  template <class T> T v [[align(32)]];
+  static_assert(alignof(v<char>) == 32);
+
+
 8/6/25   [EDGcpfe/24784,EDGcpfe/25500]
 Adjustments to handling of identifiers in lambda headers
 

@@ -7820,6 +7820,10 @@ expression context) rather than a declaration.
     dps.is_definition = TRUE;
   }  /* if */
   attach_decl_attributes(&dps, /*primary_decl=*/TRUE);
+  /* Compute alignment of instantiated template variable if needed. */
+  record_strongest_alignment_attr(&dps, iek_variable, &var_ptr->source_corresp,
+                                  /*is_defined=*/FALSE,
+                                  /*is_definition=*/TRUE);
   /* Call a routine to do processing common to various forms of variable
      declarations. */
   if (is_var_templ_instance && is_use) {

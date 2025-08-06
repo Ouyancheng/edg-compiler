@@ -18543,6 +18543,7 @@ any entity on which a standard alignment attribute may have been specified
     entity_alignment = &vp->alignment;
     type_alignment = alignment_of_type(vp->type);
     has_alignment = vp->alignment != 0;
+    tp = vp->type;
   } else if (kind == iek_type) {
     tp = (a_type_ptr)scp;
     if (is_class_struct_union_type(tp) || is_enum_type(tp)) {
@@ -18560,6 +18561,7 @@ any entity on which a standard alignment attribute may have been specified
         dps->alignment > current_pack_pragma_value()) {
       type_alignment = current_pack_pragma_value();
     }  /* if */
+    tp = fp->type;
   } else {
     unexpected_condition();
   }  /* if */
@@ -18590,7 +18592,9 @@ any entity on which a standard alignment attribute may have been specified
          for this entity.  If a definition appeared previously, this is an
          error. */
       an_error_severity severity = es_none;
-      if (is_defined) {
+      if (tp != NULL && is_error_type(tp)) {
+        expect_error();
+      } else if (is_defined) {
         if (clang_mode) {
           severity = es_warning;
         } else if (gnu_mode) {
@@ -18607,7 +18611,7 @@ any entity on which a standard alignment attribute may have been specified
       if (severity != es_error) {
         /* Set the alignment. */
         *entity_alignment = dps->alignment;
-        if (tp != NULL) {
+        if (kind == iek_type && tp != NULL) {
           /* For types, indicate that the alignment has been set explicitly. */
           tp->alignment_set_explicitly = TRUE;
         }  /* if */
@@ -18646,7 +18650,8 @@ any entity on which a standard alignment attribute may have been specified
        specify an explicit alignment.  If that explicit alignment was the
        result of an attribute, issue a diagnostic. */
     an_attribute_ptr  ap = find_attribute(ak_align, scp->attributes);
-    if (ap != NULL && is_std_attribute(ap) && !ap->is_std_gcc_attribute) {
+    if (ap != NULL && is_std_attribute(ap) && !ap->is_std_gcc_attribute &&
+        (tp == NULL || !is_error_type(tp))) {
       pos2_diagnostic(gnu_mode && !clang_mode ? es_warning :
                                                 es_error,
                       ec_variable_align_attr_not_on_definition,
