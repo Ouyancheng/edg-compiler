@@ -34474,6 +34474,7 @@ proper.
   dps->first_decl = TRUE;
   /* Check for explicit lambda template parameters (a C++20 feature). */
   if (curr_token == tok_lt && generic_lambdas_enabled) {
+    a_lambda_capture  *lcp = lambda->capture_list;
     if (!lambda_template_param_list_enabled) {
       an_error_severity  sev = es_error;
       if (gpp_version_is(>=40900) || clang_version_is(>=90000)) {
@@ -34487,6 +34488,26 @@ proper.
     lambda->has_template_param_list = TRUE;
     if (scope_stack_top().is_generic_lambda) {
       lambda->is_generic = TRUE;
+    }  /* if */
+    if (!ms_version_is(any_version) && !clang_version_is(<80000) &&
+        !gnu_version_is(<90000)) {
+      /* An explicit lambda template parameter cannot have the same name as
+         an explicit capture. */
+      for (; lcp != NULL; lcp = lcp->next) {
+        a_symbol_header  *hdr = sym_hdr_for_capture(lcp);
+        if (hdr != NULL) {
+          a_template_param  *tpp = scope_stack_top().template_decl_info
+                                                    ->parameters;
+          for (; tpp != NULL; tpp = tpp->next) {
+            if (tpp->param_symbol->header == hdr) {
+              pos_error(ec_template_parameter_capture_conflict,
+                        &tpp->param_symbol->decl_position);
+              goto next_capture;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+next_capture:;
+      }  /* for */
     }  /* if */
   }  /* if */
   /* Lambda attributes are allowed in C++23 (and some emulation modes).*/

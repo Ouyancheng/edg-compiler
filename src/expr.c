@@ -38107,6 +38107,20 @@ a capture).
      also when we're inside a lambda body. */
   if (inside_local_class || expr_stack->is_default_arg_expression) {
     var = variable_for_symbol(sym_ptr);
+    if (in_lambda_header() && symbol_is(sym_ptr, sk_variable) &&
+        var->storage_class == sc_auto &&
+        !(gpp_version_is(any_version) || clang_version_is(any_version) ||
+          ms_version_is(any_version))) {
+      /* P2579 causes mentions of automatic variables in a lambda header
+         after the parameter list (and after any "mutable" qualifier) to be
+         treated as a "const" lvalue if no mutable qualifier was specified. */
+      if (scope_is(&scope_stack_top(), sck_func_prototype) &&
+          scope_stack_top().outside_parameter_list &&
+          rout_type_supp(scope_stack_top().assoc_type)->qualifiers
+                                                                == TQ_CONST) {
+        *add_const = TRUE;
+      }  /* if */
+    }  /* if */
     if (!curr_expr_is_potentially_evaluated() &&
         !var->has_variably_modified_type) {
       /* References from non-evaluated contexts are generally fine (unless a

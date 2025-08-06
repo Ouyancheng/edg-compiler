@@ -1,5 +1,27 @@
 Version 6.8
 
+8/6/25   [EDGcpfe/24784,EDGcpfe/25500]
+Adjustments to handling of identifiers in lambda headers
+
+The front end now diagnoses (with a discretionary error) lambda parameters and
+(C++20) explicit lambda template parameters whose names conflict with that of
+an explicit capture of that lambda.  For example (in C++17 mode):
+
+  auto lm = [x = 1](int x) { return x; };  // Now an error.
+
+Furthermore, the front end now also implements the changes in the C++
+standardization committee's paper P2579R0 (adopted as a DR), which causes
+some additional uses of captured variables to become "const".  For example:
+
+  void g() {
+    int x;
+    int const y = 0;
+    [=]() -> decltype((x)) { // Previously returned "int&".  Now "int const&".
+      return y;              // Previously an error.  Now okay.
+    };
+  }
+
+
 8/6/25   [EDGcpfe/28004]
 Clang compatibility: Enabling standard attribute syntax in C mode
 

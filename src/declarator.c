@@ -8742,6 +8742,37 @@ STATIC_THREAD an_abbr_lambda_descr_map
 			   accidentally be expanded to empty lists because of
 			   the missing template declaration context. */
 
+a_symbol_header* sym_hdr_for_capture(a_lambda_capture  *lcp)
+/*
+Return the symbol header associated with the given capture.  If the capture is
+for "this", return NULL.
+*/
+{
+  a_symbol_header  *hdr = NULL;
+
+retry:
+  if (lcp->is_init_capture) {
+    a_decl_parse_state  *dps = lcp->capture_info.init_capture_dps;
+    if (dps != NULL) {
+      hdr = dps->sym->header;
+    } else {
+      hdr = symbol_for(lcp->closure_field)->header;
+    }  /* if */
+  } else if (!lcp->is_indirect_init_capture) {
+    if (lcp->captured.variable != NULL &&
+        symbol_for(lcp->captured.variable) != NULL) {
+      hdr = symbol_for(lcp->captured.variable)->header;
+    }  /* if */
+  } else if (lcp->field_pending) {
+    lcp = lcp->capture_info.source_capture;
+    goto retry;
+  } else {
+    hdr = symbol_for(lcp->captured.init_capture_field)->header;
+  }  /* if */
+  return hdr;
+}  /* sym_hdr_for_capture */
+
+
 void scan_lambda_declarator(a_decl_parse_state  *dps,
                             a_func_info_block   *func_info,
                             a_tmpl_decl_state   *templ_state,
@@ -8858,6 +8889,29 @@ reparse_declarator:
     } else {
       end_potential_abbr_func_templ_caching(dps);
     }  /* if */
+  }  /* if */
+  /* Check that the parameters do not conflict with the captures.  Note that
+     func_info->lambda is NULL when rescanning generic lambdas, but we do not
+     need to recheck conflicts in that case. */
+  if (func_info->lambda != NULL &&
+      !ms_version_is(any_version) && !clang_version_is(<80000) &&
+      !gnu_version_is(<90000)) {
+    a_lambda          *lambda = func_info->lambda;
+    a_lambda_capture  *lcp = lambda->capture_list;
+    for (; lcp != NULL; lcp = lcp->next) {
+      a_symbol_header  *hdr = sym_hdr_for_capture(lcp);
+      if (hdr != NULL) {
+        a_symbol  *sym = func_info->prototype_scope_symbols;
+        for (; sym != NULL; sym = sym->next_in_scope) {
+          if (sym->header == hdr) {
+            pos_diagnostic(es_discretionary_error,
+                           ec_parameter_capture_conflict, &sym->decl_position);
+            goto next_capture;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+next_capture:;
+    }  /* for */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   func_info->declared_type = func_type;
