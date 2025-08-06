@@ -5462,6 +5462,7 @@ struct Ptr_multi_map {
   inline auto get_or_alloc(a_Ptr_key key) -> a_multi_value*;
   inline auto take(a_Ptr_key key) -> a_multi_value;
   inline void remove(a_Ptr_key key);
+  inline void clear();
 private:
   inline void dealloc(a_multi_value *values);
   Ptr_map<a_Ptr_key, a_multi_value*, Allocator>
@@ -5498,13 +5499,7 @@ Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::~Ptr_multi_map()
 Destruct the Ptr_multi_map tearing down any allocated multi-values.
 */
 {
-  using an_entry = Ptr_map_entry<a_Ptr_key, a_multi_value*>;
-  /* Deallocate the underlying allocated multi-value objects. */
-  for (const an_entry &entry : this->backing_map) {
-    if (entry.has_value()) {
-      this->dealloc(entry.value());
-    }  /* if */
-  }  /* for */
+  this->clear();
 }  /* Ptr_multi_map::~Ptr_multi_map */
 
 
@@ -5585,6 +5580,24 @@ deallocate the associated multi-value (if any).
     this->backing_map.unmap(key);
   }  /* if */
 }  /* Ptr_multi_map::remove */
+
+
+template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
+         template<typename> class Allocator>
+void Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::clear()
+/*
+Clear the map destroying all mapped entries.
+*/
+{
+  using an_entry = Ptr_map_entry<a_Ptr_key, a_multi_value*>;
+  /* Deallocate the underlying allocated multi-value objects. */
+  for (const an_entry &entry : this->backing_map) {
+    if (entry.has_value()) {
+      this->dealloc(entry.value());
+    }  /* if */
+  }  /* for */
+  this->backing_map.clear();
+}  /* Ptr_multi_map::clear */
 
 
 template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
