@@ -1,5 +1,15 @@
 Version 6.8
 
+8/6/25   [EDGcpfe/28004]
+Clang compatibility: Enabling standard attribute syntax in C mode
+
+Clang accepts standard attribute syntax (a C23 feature) in C mode beginning
+with version 17.1.0 and the front end now emulates that.
+
+Additionally, a bug that had prevented attribute namespaces from being
+parsed in GNU C modes was fixed.
+
+
 8/6/25   [EDGcpfe/28377]
 C++-generating back end: explicit cast in variable initializer
 

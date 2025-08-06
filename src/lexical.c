@@ -19613,7 +19613,7 @@ identifier, else to NULL.
   while (ctp != NULL &&
          ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
     ctp = ctp->next;
-  }  /* for */
+  }  /* while */
   /* If there is no cached token or if the token is the end-of-source token
      which is used to terminate the token cache, then disregard this token
      and fetch the next token using the slower method. */

@@ -3565,6 +3565,7 @@ ec_embed_narrowing;;"narrowing conversion to signed character in #embed data"
 ec_invalid_vector_of_bool_operator;;"operator is not permitted for \"vector of bool\" types"
 ec_constexpr_object_too_large;;"object too large for constant-evaluation"
 ec_self_referencing_temporary_object;;"self-referencing temporary object"
+ec_exp_colon_colon;;"expected a \"::\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

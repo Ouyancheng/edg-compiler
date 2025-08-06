@@ -1750,7 +1750,8 @@ EXTERN_THREAD a_boolean
 EXTERN_THREAD a_boolean
 		std_attributes_enabled;
 			/* TRUE if C++11 attribute syntax (e.g., [[final]]) is
-			   accepted. */
+			   accepted.  The syntax is also accepted in C23 as
+			   well as later GNU and Clang C modes. */
 
 EXTERN_THREAD a_boolean
 		alignas_enabled;

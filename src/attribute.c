@@ -2356,7 +2356,24 @@ be used as the implicit attribute namespace name for this attribute.
     ap = make_attribute(af);
     record_attribute_name(ap);
     (void)get_token();
-    if (curr_token == tok_colon_colon && af == af_std) {
+    /* Look for a "::".  In most cases that will be a single tok_colon_colon
+       token, but in pre-C23 modes where GNU and Clang accept standard
+       attribute syntax, that will appear as two tok_colon tokens. */
+    if (af == af_std &&
+        (curr_token == tok_colon_colon ||
+         (C_mode() && !c23_mode &&
+          curr_token == tok_colon &&
+          next_token() == tok_colon))) {
+      if (curr_token == tok_colon) {
+        /* Make sure that the two colon characters are adjacent in the source
+           code (and not, e.g., ": :"). */
+        a_source_position pos = pos_curr_token;
+        (void)get_token();
+        check_assertion(curr_token == tok_colon);
+        if (pos_curr_token.column != pos.column+1) {
+          pos_error(ec_exp_colon_colon, &pos);
+        }  /* if */
+      }  /* if */
       /* The previous name was the attribute namespace name.  The attribute
          name proper should follow the "::". */
       (void)get_token();
