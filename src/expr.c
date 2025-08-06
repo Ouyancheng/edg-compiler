@@ -50706,9 +50706,9 @@ memory region).  Do various error checks.
       }  /* if */
       extract_constant_from_operand(operand, constant);
 #if BACK_END_IS_CP_GEN_BE
-    if (constant->expr != NULL) {
-      constant->expr->needed_in_cp_gen_be = TRUE;
-    }  /* if */
+      if (constant->expr != NULL) {
+        constant->expr->needed_in_cp_gen_be = TRUE;
+      }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
       curr_il_region_number = region;
       if (constant_addresses_local_var(constant)) {
@@ -50717,8 +50717,8 @@ memory region).  Do various error checks.
         make_error_operand(operand);
         extract_constant_from_operand(operand, constant);
       } else {
-        a_scope_ptr            scope_for_local_ref = innermost_function_scope;
-        an_expr_node_ptr       expr = constant->expr;
+        a_scope_ptr      scope_for_local_ref = innermost_function_scope;
+        an_expr_node_ptr expr = constant->expr;
         if (scope_for_local_ref == NULL &&
             scope_stack_top().kind == sck_function_access) {
           a_scope_depth orig_depth = scope_stack_top().orig_access_depth;

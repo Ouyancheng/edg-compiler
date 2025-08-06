@@ -9823,6 +9823,9 @@ so it can go into the IL.
       if (constant->expr != NULL &&
           curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
           mixed_regions_in_expr_tree(constant->expr)) {
+        /* The backing expression tree must reside entirely in one memory
+           region.  Attempt to copy it to the local region and refer to it
+           via the local expr node reference mechanism. */
         a_scope_ptr            scope_for_local_ref = innermost_function_scope;
         an_expr_node_ptr       expr = constant->expr;
         if (scope_for_local_ref == NULL &&
