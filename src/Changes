@@ -22,7 +22,7 @@ some additional uses of captured variables to become "const".  For example:
   }
 
 
-8/6/25   [EDGcpfe/28004]
+8/6/25   [EDGcpfe/26143,EDGcpfe/28004]
 Clang compatibility: Enabling standard attribute syntax in C mode
 
 Clang accepts standard attribute syntax (a C23 feature) in C mode beginning
