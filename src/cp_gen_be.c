@@ -22130,14 +22130,11 @@ and the output of the type name.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (!processed && ((is_deduced_type_var_init && !ctad_init) ||
-                           dip->is_explicit_cast) &&
+        if (!processed && is_deduced_type_var_init && !ctad_init &&
             has_name_before_mangling(
                                skip_typerefs_not_typedefs(init_entity_type))) {
-          /* We need to put out a cast to the class type, not just the
-             constructor arguments, either because the original source used
-             an explicit cast or to allow deduction of the variable
-             type. */
+          /* We need to put out the class type, not just the constructor
+             arguments, to allow deduction of the variable type. */
           a_boolean need_closing_paren;
           if (paren_form && args != NULL && args->next == NULL &&
               (gcc_is_generated_code_target ||
