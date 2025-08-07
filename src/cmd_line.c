@@ -5397,12 +5397,7 @@ This function is also called in clang mode.
       terse_static_assert_enabled = TRUE;
     }  /* if */
     if (gnu_version >= 100000) {
-      /* Standard attribute syntax is accepted unless a C mode earlier than
-         C23 is explicitly specified.  Starting with GNU 14.0.0 they are
-         unconditionally accepted. */
-      std_attributes_enabled = (gnu_version >= 140000) ? TRUE :
-                               (c_mode_specified() && !c23_mode) ? FALSE :
-                                                                   TRUE;
+      std_attributes_enabled = TRUE;
       nodiscard_attribute_enabled = TRUE;
       enumerator_attributes_enabled = TRUE;
     }  /* if */
