@@ -1,5 +1,11 @@
 Version 6.8
 
+8/7/25   [EDGcpfe/28372]
+Clang compatibility: __builtin_invoke
+
+The new builtin __builtin_invoke is now supported for Clang 21 and later.
+
+
 8/7/25   [EDGcpfe/28380]
 Segfault in db_token_range
 
