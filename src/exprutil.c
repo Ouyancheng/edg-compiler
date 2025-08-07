@@ -1053,7 +1053,7 @@ Allocate an init component/arg list element containing the given operand.
 }  /* alloc_arg_list_elem_for_operand */
 
 
-static void free_init_component(an_init_component_ptr icp)
+void free_init_component(an_init_component_ptr icp)
 /*
 Free the initializer component entry pointed to by icp.  If it has a
 subtree of entries, free those as well.

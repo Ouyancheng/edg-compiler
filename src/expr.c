@@ -5787,6 +5787,8 @@ typedef struct a_builtin_call_adjustment {
   a_boolean   is_reduce;
                         /* TRUE if this is a clang __builtin_reduce_*
                            builtin. */
+  a_boolean   is_invoke;
+                        /* TRUE if this is a clang __builtin_invoke builtin. */
   a_boolean   has_trailing_n;
                         /* TRUE if this is a GCC atomic function with a
                            trailing "_n" in its name (which is replaced by the
@@ -5824,6 +5826,7 @@ be called to check and adjust the argument and routine types as needed.
   bcap->is_generic = FALSE;
   bcap->is_elementwise = FALSE;
   bcap->is_reduce = FALSE;
+  bcap->is_invoke = FALSE;
   bcap->has_trailing_n = FALSE;
   bfk = rout->variant.builtin_function_kind;
   /* Set fields of *bcap as determined by the particular builtin. */
@@ -6098,6 +6101,9 @@ be called to check and adjust the argument and routine types as needed.
       bcap->n_args = 1;
       bcap->replace_routine_type = TRUE;
       bcap->callback = adjust_return_type_to_type_of_first_argument;
+      break;
+    case bfk_invoke:
+      bcap->is_invoke = TRUE;
       break;
     default:
       /* No special processing is needed for most builtins. */
@@ -7268,6 +7274,7 @@ and bound_function_selector are expected to be NULL in that case.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean         call_folded_to_constant = FALSE;
 #if BUILTIN_FUNCTIONS_ENABLED
+  a_routine_ptr     operand_routine;
   a_builtin_call_adjustment
                     bca, *bcap = NULL;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
@@ -7816,17 +7823,19 @@ and bound_function_selector are expected to be NULL in that case.
                           SRK_REFERENCE);
   }  /* if */
 #if BUILTIN_FUNCTIONS_ENABLED
-  if (routine != NULL && is_gnu_builtin_function(routine)) {
+  operand_routine = routine_from_function_operand(operand);
+  if (operand_routine != NULL && is_gnu_builtin_function(operand_routine)) {
     /* See if this is a call to a predeclared builtin function that needs some
        type of adjustment.  The vast majority of builtin functions need no
        adjustment, but some compiler "magic" is needed in other cases.  In many
        of these cases the builtin's signature (often "void(...)") is
        meaningless.  If adjustment is needed, the concrete routine to call will
        not be known until after the arguments are scanned. */
-    if (builtin_call_needs_adjustment(routine, &bca)) {
+    if (builtin_call_needs_adjustment(operand_routine, &bca)) {
       bcap = &bca;
       routine_type = NULL;
       routine = NULL;
+      unknown_dependent_function = FALSE;
       if (bcap->overloaded_function_symbol != NULL) {
         /* The builtin is being replaced by a call to a global overloaded
            operator function; use that symbol to do the overload resolution. */
@@ -7863,7 +7872,8 @@ and bound_function_selector are expected to be NULL in that case.
     a_boolean  return_raw_arguments, generic_array = FALSE;
 
 #if BUILTIN_FUNCTIONS_ENABLED
-    builtin_needs_adjustment = bcap != NULL && bcap->callback != NULL;
+    builtin_needs_adjustment = bcap != NULL &&
+                               (bcap->callback != NULL || bcap->is_invoke);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
     if (is_multi_subscript) {
       overloaded_function_case = TRUE;
@@ -7921,19 +7931,159 @@ and bound_function_selector are expected to be NULL in that case.
   }  /* if */
   error_position = call_position;
 #if BUILTIN_FUNCTIONS_ENABLED
-  if (bcap != NULL && bcap->callback != nullptr) {
-    /* Check and adjust the arguments for a call of a builtin function.  Also
-       determine the concrete routine being called, based on the argument
-       types. */
-    routine = bcap->callback(operand, arg_list, &closing_paren_position, bcap,
-                             &argument_list);
-    if (routine == NULL) {
-      /* Something went wrong. */
-      expr_expect_error();
-      make_error_operand(result);
-      goto done;
+  if (bcap != NULL) {
+    if (bcap->is_invoke) {
+      /* Special handling for __builin_invoke. */
+      an_operand_ptr  first_operand;
+
+      check_arg_list_elem_is_expression(arg_list);
+      first_operand = operand_of_arg_list_elem(arg_list);
+      do_operand_transformations(first_operand,
+                                 TOPT_WILL_CALL |
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+      if (first_operand->kind == ok_error) {
+        make_error_operand(result);
+        goto done;
+      } else if (is_template_dependent_type(first_operand->type)) {
+        /* Keep the call as an unknown dependent function call for a
+           type-dependent first operand. */
+        overloaded_function_case = FALSE;
+        unknown_dependent_function = TRUE;
+        routine_type = NULL;
+        prep_generic_operand(operand);
+        operand_routine->type->variant.routine.return_type =
+                                           type_of_unknown_templ_param_nontype;
+      } else {
+        an_arg_list_elem_ptr  first_arg = arg_list;
+
+        routine_type = NULL;
+        arg_list = arg_list->next;
+        if (is_class_struct_union_type(first_operand->type)) {
+          /* For a class-type operand, look for a function call operator. */
+          a_type_ptr    class_type = skip_typerefs(first_operand->type);
+          a_symbol_ptr  member_function_symbol;
+
+          try_surrogate_functions = TRUE;
+          overloaded_function_case = TRUE;
+          operand = first_operand;
+          copy_operand(first_operand, bound_function_selector);
+          member_function_symbol = opname_member_function_symbol(
+                                                             onk_function_call,
+                                                             class_type);
+          if (member_function_symbol != NULL) {
+            /* There is an operator() function.  The operand has become the
+               selector object, and the function call operator routine becomes
+               the operand.  We can use an indefinite function operand whether
+               the operator() is overloaded or not. */
+            has_overloaded_call_operator = TRUE;
+            make_indefinite_function_operand(member_function_symbol,
+                                             (a_symbol_locator*)NULL,
+                                             first_operand);
+            overloaded_function_symbol = member_function_symbol;
+            bind_member_function_operand_to_selector(
+                                          bound_function_selector,
+                                          /*selector_is_object_pointer=*/FALSE,
+                                          first_operand);
+          }  /* if */
+        } else {
+          /* We should have either a pointer or a pointer to member. */
+          a_boolean  mbr_pointer = is_ptr_to_member_type(first_operand->type);
+          if (mbr_pointer || is_pointer_type(first_operand->type)) {
+            overloaded_function_case = FALSE;
+            conv_glvalue_to_prvalue(first_operand);
+            if (mbr_pointer) {
+              routine_type = pm_member_type(first_operand->type);
+            } else {
+              routine_type = type_pointed_to(first_operand->type);
+            }  /* if */
+            if (skip_typerefs(routine_type)->kind != tk_routine) {
+              free_arg_list_elem(first_arg);
+              if (expr_error_should_be_issued()) {
+                pos_error(ec_expr_not_ptr_to_function,
+                          &first_operand->position);
+              }  /* if */
+              make_error_operand(result);
+              goto done;
+            }  /* if */
+            if (mbr_pointer) {
+              /* For a pointer to member, the second operand should be of class
+                 type (or pointer to class type). */
+              an_operand_ptr  second_operand =
+                                            operand_of_arg_list_elem(arg_list);
+              if (!is_template_dependent_type(second_operand->type)) {
+                a_type_ptr  cls_type = second_operand->type;
+                free_arg_list_elem(first_arg);
+                first_arg = arg_list;
+                if (is_pointer_type(cls_type)) {
+                  cls_type = type_pointed_to(cls_type);
+                  conv_glvalue_to_prvalue(second_operand);
+                }  /* if */
+                if (!is_class_struct_union_type(cls_type)) {
+                  if (expr_error_should_be_issued()) {
+                    expr_pos_ty_error(ec_expr_not_class,
+                                      &second_operand->position,
+                                      cls_type);
+                  }  /* if */
+                  make_error_operand(result);
+                  goto done;
+                }  /* if */
+                copy_operand(second_operand, bound_function_selector);
+                bind_member_function_operand_to_selector(
+                                         bound_function_selector,
+                                         is_pointer_type(second_operand->type),
+                                         first_operand);
+                arg_list = arg_list->next;
+                operand = first_operand;
+              } else {
+                overloaded_function_case = FALSE;
+                unknown_dependent_function = TRUE;
+                routine_type = NULL;
+                prep_generic_operand(operand);
+                operand_routine->type->variant.routine.return_type =
+                                           type_of_unknown_templ_param_nontype;
+              }  /* if */
+            } else {
+              operand = first_operand;
+            }  /* if */
+          } else {
+            free_arg_list_elem(first_arg);
+            if (expr_error_should_be_issued()) {
+              pos_error(ec_expr_not_ptr_to_function, &first_operand->position);
+            }  /* if */
+            make_error_operand(result);
+            goto done;
+          }  /* if */
+        }  /* if */
+        if (!unknown_dependent_function) {
+          free_arg_list_elem(first_arg);
+        } else {
+          arg_list = first_arg;
+        }  /* if */
+      }  /* if */
+      if (!overloaded_function_case) {
+        /* In the non-overloaded case, check and transform the call arguments
+           based on the parameter list. */
+        an_arg_check_block  arg_block;
+        start_call_argument_processing(routine_type, NULL, &arg_block);
+        process_call_argument_list(arg_list, &arg_block);
+        argument_list = arg_block.argument_head;
+        free_init_component_list(arg_list);
+        arg_list = NULL;
+      }  /* if */
+    } else if (bcap->callback != nullptr) {
+      /* Check and adjust the arguments for a call of a builtin function.  Also
+         determine the concrete routine being called, based on the argument
+         types. */
+      routine = bcap->callback(operand, arg_list, &closing_paren_position,
+                               bcap, &argument_list);
+      if (routine == NULL) {
+        /* Something went wrong. */
+        expr_expect_error();
+        make_error_operand(result);
+        goto done;
+      }  /* if */
+      routine_type = routine->type;
     }  /* if */
-    routine_type = routine->type;
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
