@@ -28930,8 +28930,8 @@ Print diagnostics for the range of tokens starting at the given cached token
 pointer, and ending (inclusive) with the token identified by last_tsn.
 */
 {
-  sizeof_t                 saved_pos = pos_in_temp_text_buffer;
-  a_token_sequence_number  end_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+  a_temp_text_buffer_swap tmp_buffer_swap;
+  a_token_sequence_number end_tsn = NO_TOKEN_SEQUENCE_NUMBER;
 
   /* Look for the true end_tsn (as last_tsn is inclusive, and end_tsn is
      not). */
@@ -28987,7 +28987,7 @@ pointer, and ending (inclusive) with the token identified by last_tsn.
     /* Add the tokens to the temp_text_buffer. */
     add_cached_tokens_to_string_for_debug(first_token, end_tsn);
 
-    sizeof_t k = saved_pos;
+    sizeof_t k = 0;
     sizeof_t indent = 0;
     /* Skip leading spaces. */
     while (temp_text_buffer[k] == ' ') ++k;
@@ -29057,9 +29057,6 @@ pointer, and ending (inclusive) with the token identified by last_tsn.
     /* Ensure there's a trailing newline. */
     fprintf(f_debug, "\n");
   }  /* if */
-  /* Restore the temporary text buffer to its prior state. */
-  pos_in_temp_text_buffer = saved_pos;
-  temp_text_buffer[saved_pos] = '\0';
 }  /* db_token_range */
 
 
