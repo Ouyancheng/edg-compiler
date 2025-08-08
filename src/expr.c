@@ -6104,6 +6104,7 @@ be called to check and adjust the argument and routine types as needed.
       break;
     case bfk_invoke:
       bcap->is_invoke = TRUE;
+      bcap->callback = nullptr;
       break;
     default:
       /* No special processing is needed for most builtins. */
