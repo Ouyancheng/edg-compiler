@@ -1,5 +1,16 @@
 Version 6.8
 
+8/8/25   [EDGcpfe/20813,EDGcpfe/27780,EDGcpfe/28376]
+GNU compatibility: Pointer arguments to __atomic_... builtins
+
+GCC allows the "value" parameter of __atomic_... builtins to also have pointer
+type.  For example, with --g++:
+
+  void f(char *p, char *v) {
+    __atomic_store_n(p, v, 0);  // Now accepted in GNU mode.
+  }
+
+
 8/7/25   [EDGcpfe/28372]
 Clang compatibility: __builtin_invoke
 

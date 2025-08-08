@@ -6556,10 +6556,12 @@ indicated type.
           if ((is_pointer_type(operand->type) ||
                 is_nullptr_type(operand->type)) &&
               is_integral_type(ptp->type) &&
-              skip_typerefs(operand->type)->size == 
-                                              skip_typerefs(ptp->type)->size) {
-            /* Pointer operands are allowed and must be converted to an integer
-               value. */
+              (bcap->is_sync ||
+               (bcap->is_atomic && !bcap->is_generic &&
+                ((bcap->n_args == 6 && ptp->param_num == 3) ||
+                 (bcap->n_args == 3 && ptp->param_num == 2))))) {
+            /* Pointer operands for the "value" parameters of __sync_... and
+               __atomic_... functions must be converted to an integer value. */
             cast_operand(ptp->type, operand, /*is_implicit_cast=*/TRUE);
           } else if (bcap->is_generic && ptp->param_num > 1 && 
                      is_pointer_type(ptp->type)) {
