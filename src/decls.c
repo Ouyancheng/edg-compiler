@@ -3130,8 +3130,7 @@ scope.
   if (sym != NULL && sym->decl_scope == scope_stack[depth-1].number) {
     /* There already is a declaration of the same name in the scope enclosing
        the for-statement. */
-    if (sym->kind == (a_symbol_kind)sk_variable &&
-        sym->variant.variable.declared_in_for_init) {
+    if (sym->declared_in_for_init) {
       /* The existing declaration is also a for-init variable: Hide it. */
       sym->is_invisible = TRUE;
     } else {
@@ -6824,11 +6823,10 @@ to TRUE if we are in Microsoft mode and in a for-init block.
       decl_scope_level = saved_decl_scope_level;
       if (prev_decl != NULL &&
           prev_decl->decl_scope == scope_stack[decl_level].number) {
-        if (!(prev_decl->kind == (a_symbol_kind)sk_variable &&
-              prev_decl->variant.variable.declared_in_for_init)) {
+        if (!prev_decl->declared_in_for_init) {
           /* Do not issue a warning if the hidden variable is a for-init
              declaration since that is common and unsurprising practice. */
-          a_diagnostic_ptr	dp;
+          a_diagnostic_ptr  dp;
           dp = pos_start_diagnostic(es_warning, ec_for_init_hides_declaration,
                                     &loc->source_position);
           add_diag_info_with_pos_insert(dp, ec_for_init_hidden_declaration,
@@ -7570,7 +7568,7 @@ for use in generating cross-reference output describing this declaration.
     sym = make_symbol((a_symbol_kind)sk_variable, locator);
     sym_must_be_entered = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    sym->variant.variable.declared_in_for_init = in_microsoft_for_init;
+    sym->declared_in_for_init = in_microsoft_for_init;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if RECORD_HIDDEN_NAMES_IN_IL
     /* Block extern declarations have associated hidden name entries; so we

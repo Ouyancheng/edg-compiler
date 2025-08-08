@@ -3708,6 +3708,10 @@ typedef struct a_symbol {
 			   the hide-by-sig processing determined that the
 			   original normal lookup result should be used
 			   instead of the hide-by-sig lookup result. */
+  a_bit_field
+		declared_in_for_init:1;
+			/* TRUE if the variable was declared in a for-init
+			   block in Microsoft mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	is_alias:1;
@@ -3816,12 +3820,6 @@ typedef struct a_symbol {
 			   entry providing additional information about
 			   whether and how to define the variable.  NULL
 			   otherwise. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      a_bit_field
-		declared_in_for_init:1;
-			/* TRUE if the variable was declared in a for-init
-			   block in Microsoft mode. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEED_NAME_MANGLING
       a_discriminator
 		discriminator;

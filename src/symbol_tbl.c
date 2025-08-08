@@ -4143,9 +4143,6 @@ state.
     case sk_variable:
       sym_ptr->variant.variable.ptr = NULL;
       sym_ptr->variant.variable.instance_ptr = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      sym_ptr->variant.variable.declared_in_for_init = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if IA64_ABI && NEED_NAME_MANGLING
       sym_ptr->variant.variable.discriminator = 0;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
@@ -4927,12 +4924,11 @@ this is not allowed, an error will be issued by the caller.
       /* A namespace name must be unique in its scope. */
       /* err = TRUE; */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode && microsoft_version >= 1300 &&
+    } else if (ms_version_is(>= 1300) &&
                (use_nonstandard_for_init_scope ||
                 microsoft_type_dependent_for_init_scope) &&
-               old_sym->kind == (a_symbol_kind)sk_variable &&
-               new_sym->kind == (a_symbol_kind)sk_variable &&
-               old_sym->variant.variable.declared_in_for_init) {
+               old_sym->declared_in_for_init &&
+               symbol_is(new_sym, sk_variable)) {
       /* Microsoft Visual C++ 7.0 (and later) supports a nonstandard for-init
          declaration mode that makes the declared variable visible outside the
          for-statement, but it does not conflict with the declaration of other
@@ -19146,6 +19142,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.is_microsoft_invisible_operator   = FALSE;
   cleared_symbol.hide_by_sig_lookup_done           = FALSE;
   cleared_symbol.suppress_hide_by_sig_lookup       = FALSE;
+  cleared_symbol.declared_in_for_init              = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   cleared_symbol.is_alias                          = FALSE;
