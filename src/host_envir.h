@@ -1446,13 +1446,13 @@ many times using different expressions that fold to the same constant
 value, and only one of those can be kept in the template argument for that
 instance.
 */
-#ifdef KEEP_TEMPLATE_ARG_THAT_CAUSES_TEMPLATE_INSTANTIATION
+#ifdef KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_TEMPLATE_INSTANTIATION
 /* In earlier versions of the front end, this option had a more limited
    scope and was named accordingly.  Preserve the effect of legacy
    configurations that use the previous name. */
 #define BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG \
-                           KEEP_TEMPLATE_ARG_THAT_CAUSES_TEMPLATE_INSTANTIATION
-#endif /* defined(KEEP_TEMPLATE_ARG_THAT_CAUSES_TEMPLATE_INSTANTIATION) */
+                      KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_TEMPLATE_INSTANTIATION
+#endif /* defined(KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_TEMPLATE_INSTANTIATION) */
 #ifndef BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG
 #if BACK_END_IS_CP_GEN_BE
 /* The C++-generating back end requires backing expressions for non-type
