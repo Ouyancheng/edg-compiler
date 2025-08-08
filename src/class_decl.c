@@ -2209,24 +2209,6 @@ capture described by lcp.  Return the field entry.
   source_sequence_entries_disallowed =
                                      saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (lcp->is_implicit && lcp->next != NULL) {
-    /* It is possible that implicit lambda capture entries are created in an
-       order that is distinct from the order of the corresponding fields.
-       However, other parts of the front end (particularly, the function
-       make_initializer_for_lambda) expect the list of captures to correspond
-       to the list of fields.  Adjust the order now. */
-    a_lambda_capture_ptr  last_lcp_with_field = NULL, lcp2,
-                          *p_lcp = &lambda->capture_list;
-    while (*p_lcp != lcp) p_lcp = &(*p_lcp)->next;
-    for (lcp2 = (*p_lcp)->next; lcp2 != NULL; lcp2 = lcp2->next) {
-      if (!lcp2->field_pending) last_lcp_with_field = lcp2;
-    }  /* for */
-    if (last_lcp_with_field != NULL) {
-      *p_lcp = lcp->next;
-      lcp->next = last_lcp_with_field->next;
-      last_lcp_with_field->next = lcp;
-    }  /* if */
-  }  /* if */
   return fp;
 }  /* make_field_for_lambda_capture */
 
@@ -34395,15 +34377,19 @@ capture_processed:
 }  /* scan_lambda_capture_list */
 
 
-static void decl_lambda_capture_fields(a_lambda_ptr  lambda)
+static void decl_lambda_capture_fields(a_lambda_ptr  lambda,
+                                       a_boolean     init_captures)
 /*
 Declare the fields corresponding to the non-implicit "captures" of the given
-lambda in its associated closure type.
+lambda in its associated closure type.  If init_captures is TRUE, process the
+init_captures (this happens early).  Otherwise, process the simple captures
+(this happens after the declarator was seen).
 */
 {
   a_lambda_capture_ptr  lcp;
 
   for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+    if (lcp->is_init_capture != init_captures) continue;
     if (!lcp->is_init_capture) {
       compute_const_capture_flag(lambda, lcp);
     }  /* if */
@@ -35189,6 +35175,76 @@ The heavy lifting for this routine is performed by scan_function_body.
 }  /* scan_lambda_body */
 
 
+static void order_capture_fields(a_lambda  *lambda)
+/*
+The fields corresponding to captures are not created in the same order as the
+captures themselves: Fields for init-captures are created right away, fields
+for explicit simple captures are created after the lambda header is seen, and
+fields for implicit captures are created after a use of the implicitly
+created lambda capture entry is confirmed.  This function rearranges the
+a_field entries and associated symbols corresponding to the captures to match
+the order of the a_lambda_capture entries.  It only needs to be called if
+there are at least two captures.
+*/
+{
+  a_lambda_capture  *lcp;
+  a_type            *type = lambda->closure_class;
+  a_field           **p_fp = &fields_of(type);
+  a_symbol          *sym, **p_sym;
+  Small_dyn_array<a_decl_sequence_number, 20>
+                    seq_numbers;
+  a_decl_sequence_number
+                    *p_seq;
+  a_class_symbol_supplement
+                    *cssp = class_symbol_supp(symbol_for(type));
+
+  /* Rearrange the IL entries representing the fields corresponding to the
+     captures. */
+  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+    *p_fp = lcp->closure_field;
+    p_fp = &(*p_fp)->next;
+  }  /* for */
+  *p_fp = NULL;
+  /* Update the corresponding symbols.  First remove them from the list,
+     collecting their decl_sequence_number values.  The re-add them in the
+     order they appear on the capture list and assign the decl_sequence_number
+     values in order. */
+  sym = cssp->symbols;
+  while (sym != NULL) {
+    a_symbol  *prev = sym->prev_in_scope,
+              *next = sym->next_in_scope;
+    if (symbol_is(sym, sk_field)) {
+      seq_numbers.push_back(sym->decl_seq);
+      if (next != NULL) {
+        next->prev_in_scope = prev;
+      } else {
+        cssp->pointers_block.last_symbol = prev;
+      }  /* if */
+      if (prev != NULL) {
+        prev->next_in_scope = next;
+      } else {
+        cssp->symbols = next;
+      }  /* if */
+    }  /* if */
+    sym = next;
+  }  /* while */
+  p_seq = &seq_numbers[0];
+  p_sym = &cssp->symbols;
+  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+    sym = symbol_for(lcp->closure_field);
+    sym->decl_seq = *(p_seq++);
+    sym->next_in_scope = *p_sym;
+    sym->prev_in_scope = (*p_sym)->prev_in_scope;
+    *p_sym = sym;
+    p_sym = &sym->next_in_scope;
+  }  /* for */
+  cssp->pointers_block.symbols = cssp->symbols;
+  if (sym->next_in_scope == NULL) {
+    cssp->pointers_block.last_symbol = sym;
+  }  /* if */
+}  /* order_capture_fields */
+
+
 a_lambda_ptr scan_lambda(void)
 /*
 Scan a C++11 lambda construct and return a pointer to an a_lambda entry
@@ -35266,6 +35322,7 @@ For example:
   remove_stop_token(tok_rbracket);
   /* Now push the scope stack entry for the closure class. */
   push_closure_class(lambda, &class_state);
+  decl_lambda_capture_fields(lambda, /*init_captures=*/TRUE);
   /* Parse the "declarator" part of the lambda (the parameter list, etc.). */
   scan_optional_lambda_declarator(lambda, &func_info, &decl_info,
                                   &templ_state);
@@ -35287,7 +35344,7 @@ For example:
   }
 #endif /* NEED_NAME_MANGLING */
   /* Fill in the capture fields information for the explicit captures. */
-  decl_lambda_capture_fields(lambda);
+  decl_lambda_capture_fields(lambda, /*init_captures=*/FALSE);
   if (lambda->is_generic) {
     /* For generic lambdas, perform a prototype instantiation of the lambda
        body. */
@@ -35321,6 +35378,9 @@ For example:
     generate_copy_assignment_operator(&class_state, &gsfd);
   }
   /* Record the capture list and complete the closure class. */
+  if (lambda->capture_list != NULL && lambda->capture_list->next != NULL) {
+    order_capture_fields(lambda);
+  }  /* if */
   complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();
   if (!lambda->is_generic) {

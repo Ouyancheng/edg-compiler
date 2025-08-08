@@ -37790,16 +37790,27 @@ another lambda; if you don't want that, test !in_lambda_header() also.
 }  /* in_lambda_body */
 
 
-static a_boolean in_lambda_header(void)
+static a_boolean in_lambda_header(a_scope_stack_entry  **p_func_proto = NULL)
 /*
 Return TRUE if we are currently in the header (not the body) of a lambda.
+If p_func_proto is non-NULL, set *p_func_proto to point to the scope stack
+entry for the lambda call operator's function prototype or to NULL if there
+is no such entry.
 */
 {
   a_boolean                in_header = FALSE;
-  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top(), func_proto_ssep = NULL;
 
-  
+  /* First skip out of any requires-expressions. */
+  while (scope_is(ssep, sck_func_prototype)) {
+    if (ssep->decl_parse_state == NULL ||
+        !ssep->decl_parse_state->for_requires_expr_params) {
+      break;
+    }  /* if */
+    ssep -= 1;
+  }  /* while */
   if (scope_is(ssep, sck_func_prototype)) {
+    func_proto_ssep = NULL;
     ssep -= 1;
   }  /* if */
   if (scope_is(ssep, sck_template_declaration) ||
@@ -37819,6 +37830,7 @@ Return TRUE if we are currently in the header (not the body) of a lambda.
     /* We're in a capture list. */
     in_header = TRUE;
   }  /* if */
+  if (in_header && p_func_proto != NULL) *p_func_proto = func_proto_ssep;
   return in_header;
 }  /* in_lambda_header */
 
@@ -38259,17 +38271,17 @@ a capture).
      default argument expression.  Note that inside_local_class is TRUE
      also when we're inside a lambda body. */
   if (inside_local_class || expr_stack->is_default_arg_expression) {
+    a_scope_stack_entry  *func_proto_ssep;
     var = variable_for_symbol(sym_ptr);
-    if (in_lambda_header() && symbol_is(sym_ptr, sk_variable) &&
-        var->storage_class == sc_auto &&
+    if (in_lambda_header(&func_proto_ssep) &&
+        symbol_is(sym_ptr, sk_variable) && var->storage_class == sc_auto &&
         !(gpp_version_is(any_version) || clang_version_is(any_version) ||
           ms_version_is(any_version))) {
       /* P2579 causes mentions of automatic variables in a lambda header
          after the parameter list (and after any "mutable" qualifier) to be
          treated as a "const" lvalue if no mutable qualifier was specified. */
-      if (scope_is(&scope_stack_top(), sck_func_prototype) &&
-          scope_stack_top().outside_parameter_list &&
-          rout_type_supp(scope_stack_top().assoc_type)->qualifiers
+      if (func_proto_ssep != NULL && func_proto_ssep->outside_parameter_list &&
+          rout_type_supp(func_proto_ssep->assoc_type)->qualifiers
                                                                 == TQ_CONST) {
         *add_const = TRUE;
       }  /* if */
@@ -39329,38 +39341,64 @@ normal_function:
              could be a member of an unnamed union at file scope or in
              a block. */
           if (sym_ptr->variant.field.ptr->is_init_capture) {
-            /* We found an init-capture.  Therefore, we must be in a lambda
-               body. */
-            a_lambda_capture_ptr lcp;
-            /* If one or more intermediate lambdas captured that init-capture,
-               switch to the field corresponding to the innermost capture.  In
-               the case of implicit captures, that field may have to be created
-               first. */
-            lcp = lambda_capture_for_init_capture(
-                        sym_ptr->variant.field.ptr, &locator.source_position);
-            if (lcp == NULL) {
-              /* The init-capture could not be captured.  An error has already
-                 been issued. */
-              expect_error();
-              make_error_operand(result);
-              change_refs_to_error(rep);
-              rep = NULL;
-              break;
-            } else {
-              an_expr_node_ptr  this_var_node;
-              /* Create a "this" operand explicitly (the ordinary path ignores
-                 closure types). */
-              this_var_node = this_expr_node_for_lambda_closure(
-                                                     get_curr_lambda_depth());
-              this_var_node->position = pos_curr_token;
-              make_expression_operand(this_var_node, &this_pointer_operand);
+            /* We found an init-capture.  Therefore, we must be in a lambda. */
+            if (in_lambda_header() && in_unevaluated_expr_context()) {
+              /* FIXME */
+              a_type_ptr     closure_type = sym_parent_class(sym_ptr),
+                             this_type = closure_type;
+              a_scope_depth  sd = depth_scope_stack;
+              for (;;) {
+                a_type_ptr  tp = scope_stack[sd].assoc_type;
+                if (scope_is(&scope_stack[sd], sck_func_prototype)) {
+                  if (tp != NULL && 
+                      (rout_type_supp(tp)->qualifiers & TQ_CONST) != TQ_NONE) {
+                    this_type = make_qualified_type(this_type, TQ_CONST);
+                    break;
+                  }  /* if */
+                } else if (tp == closure_type) {
+                  break;
+                }  /* if */
+                sd = scope_stack[sd].previous_scope;
+                check_assertion(sd > 0);
+              }  /* for */
+              make_abstract_this_operand(&this_pointer_operand,
+                                         make_pointer_type(this_type),
+                                         &locator.source_position,
+                                         /*compiler_generated=*/TRUE);
               this_operand_set = TRUE;
-              sym_ptr = symbol_for(lcp->closure_field);
-              locator.specific_symbol = sym_ptr;
+            } else {
+              /* We are in a lambda body. */
+              a_lambda_capture_ptr lcp;
+              /* If one or more intermediate lambdas captured that
+                 init-capture, switch to the field corresponding to the
+                 innermost capture.  In the case of implicit captures, that
+                 field may have to be created first. */
+              lcp = lambda_capture_for_init_capture(
+                        sym_ptr->variant.field.ptr, &locator.source_position);
+              if (lcp == NULL) {
+                /* The init-capture could not be captured.  An error has
+                   already been issued. */
+                expect_error();
+                make_error_operand(result);
+                change_refs_to_error(rep);
+                rep = NULL;
+                break;
+              } else {
+                an_expr_node_ptr  this_var_node;
+                /* Create a "this" operand explicitly (the ordinary path
+                   ignores closure types). */
+                this_var_node = this_expr_node_for_lambda_closure(
+                                                     get_curr_lambda_depth());
+                this_var_node->position = pos_curr_token;
+                make_expression_operand(this_var_node, &this_pointer_operand);
+                this_operand_set = TRUE;
+                sym_ptr = symbol_for(lcp->closure_field);
+                locator.specific_symbol = sym_ptr;
+              }  /* if */
             }  /* if */
           }  /* if */
           if ((local_options & EOPT_REFLECTION_OP) != 0) {
-            /* This is something like the identifier in ^S::fld.  Just return
+            /* This is something like the identifier in ^^S::fld.  Just return
                an operand representing that symbol for S::fld. */
             make_sym_for_member_operand(sym_ptr, locator.is_qualified_name,
                                         rep, result);
@@ -39435,6 +39473,7 @@ normal_function:
               /* Normal case: "x" is interpreted as "this->x". */
               an_expr_node_ptr node;
               if (curr_expr_is_potentially_unevaluated() &&
+                  !this_operand_set &&
                   /*lint -e(506)*/!field_is_property_or_event(
                                                  sym_ptr->variant.field.ptr) &&
                   !this_exists_for_member_access(

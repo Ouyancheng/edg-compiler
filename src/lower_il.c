@@ -15970,6 +15970,8 @@ If we're in a non-constant aggregate initialization, search for that first.
       new_type = type_pointed_to(new_expr->type);
       if (identical_types_ignoring_qualifiers(new_type, old_type) ||
           (aggregate_classes_can_have_bases &&
+           !class_type_supp(old_type)->is_lambda_closure_class &&
+           !class_type_supp(new_type)->is_lambda_closure_class &&
            (subobj_type = subobject_for_class(old_type),
             identical_types_ignoring_qualifiers(new_type, subobj_type)))) {
         found = TRUE;

@@ -1,5 +1,21 @@
 Version 6.8
 
+8/8/25   [EDGcpfe/21246,EDGcpfe/24784,EDGcpfe/25500]
+Handling of captures in a lambda header
+
+The C++ standardization paper P2579R0 (and its predecessor, P2036R3) changes
+the way captures are handled in a lambda header.  In particular:
+  - referring to a capture after the parameter list of a lambda produces
+    a "const" lvalue if the lambda is not "mutable", and
+  - init-captures are visible throughout the lambda header.
+These changes were voted into the standard as a defect report (DR), which means
+they apply to all language modes.  However, it appears MSVC, GCC, and Clang do
+not yet implement this feature and the front end therefore approximates their
+behavior in its corresponding modes.  The front end now also diagnoses lambda
+parameters and (C++20) explicit template parameters whose names conflict with
+explicitly-specified captures.
+
+
 8/8/25   [EDGcpfe/28383]
 Segfault involving freed overload resolution descriptors
 

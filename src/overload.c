@@ -13186,10 +13186,10 @@ The selection is an lvalue selection if is_lvalue is TRUE.
 }  /* make_selection_for_captured_variable */
 
 
-static void make_abstract_this_operand(an_operand         *opnd,
-                                       a_type_ptr         this_type,
-                                       a_source_position  *pos,
-                                       a_boolean          compiler_generated)
+void make_abstract_this_operand(an_operand         *opnd,
+                                a_type_ptr         this_type,
+                                a_source_position  *pos,
+                                a_boolean          compiler_generated)
 /*
 In some contexts there is no "this" variable, but "this" can nonetheless be
 used (explicitly or implicitly).  Create in *opnd a special enk_param_ref

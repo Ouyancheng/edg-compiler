@@ -15085,7 +15085,7 @@ type, or NULL if the lambda body routine does not exist yet.
       } else {
         sym = class_symbol_supp(symbol_for(type))->symbols;
       }  /* if */
-      for (; sym != NULL; sym = sym->next) {
+      for (; sym != NULL; sym = sym->next_in_scope) {
         if (symbol_is(sym, sk_function_template)) {
           a_routine_ptr  proto_rp = sym->variant.template_info
                                        ->variant.function.routine;

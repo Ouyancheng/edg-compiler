@@ -1064,6 +1064,11 @@ other things to access the fields that contain the captures of local variables.
 extern an_expr_node_ptr this_expr_node_for_lambda_closure(
                                                  a_scope_depth  depth_lambda);
 
+extern void make_abstract_this_operand(an_operand         *opnd,
+                                       a_type_ptr         this_type,
+                                       a_source_position  *pos,
+                                       a_boolean          compiler_generated);
+
 extern an_expr_node_ptr make_selection_for_captured_variable(
                                               a_lambda_capture *lambda_capture,
                                               a_scope_depth    depth_lambda,

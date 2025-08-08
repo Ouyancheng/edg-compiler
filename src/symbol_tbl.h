@@ -3471,9 +3471,9 @@ typedef struct a_symbol {
 			/* When the symbol is in the symbol table, this
 			   points to the previous symbol in the same scope. */
   a_symbol_ptr	next_in_lookup_table;
-			/* When the symbol is in a lookup table, this
-			   points to the next symbol in the same scope with
-			   the same symbol header. */
+			/* When the symbol is in a lookup table (a hash table),
+			   this points to the next symbol in the same scope
+			   with the same symbol header. */
   a_scope_number
 		decl_scope;
 			/* Scope number of the scope in which this symbol
