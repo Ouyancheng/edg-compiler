@@ -611,19 +611,18 @@ struct an_ovl_res_stack {
   an_ovl_res_stack(const an_ovl_res_stack&) = delete;
   inline an_ovl_res_stack(an_ovl_res_stack&&);
 
-  void push()
-    { this->underlying_array.push_back(an_ovl_resolution_descr{}); }
+  inline void push();
   void pop()
     { this->underlying_array.pop_back(); }
 
   an_ovl_resolution_descr &top()
-    { return this->underlying_array.back_elem(); }
+    { return *this->underlying_array.back_elem(); }
   const an_ovl_resolution_descr &top() const
-    { return this->underlying_array.back_elem(); }
+    { return *this->underlying_array.back_elem(); }
   an_ovl_resolution_descr &bottom()
-    { return this->underlying_array.front_elem(); }
+    { return *this->underlying_array.front_elem(); }
   const an_ovl_resolution_descr &bottom() const
-    { return this->underlying_array.front_elem(); }
+    { return *this->underlying_array.front_elem(); }
 
   a_boolean is_empty() const
     { return this->underlying_array.length() == 0; }
@@ -635,7 +634,7 @@ struct an_ovl_res_stack {
     { return !this->is_empty() && this->bottom().emit_note_diagnostics; }
   a_boolean note_reporting_pass_needed();
 private:
-  Small_dyn_array<an_ovl_resolution_descr, 25>
+  Small_dyn_array<Owning_ptr<an_ovl_resolution_descr>, 25>
                 underlying_array;
                         /* The array providing the storage backing this
                            overload resolution stack. */
@@ -651,6 +650,15 @@ Move constructor.
 }  /* an_ovl_res_stack::an_ovl_res_stack */
 
 
+void an_ovl_res_stack::push()
+/*
+Push a new overload resolution descriptor to the stack.
+*/
+{
+  this->underlying_array.push_back(owning_ptr<an_ovl_resolution_descr>());
+}  /* an_ovl_res_stack::push */
+
+
 inline a_boolean an_ovl_res_stack::note_reporting_pass_needed(void)
 /*
 Returns TRUE if a second, error reporting pass, is needed at this level
@@ -663,11 +671,11 @@ of overload.
     /* If we're not producing diagnostics, no pass is needed. */
   } else if (this->has_multiple_levels()) {
     /* Re-processing of overloads is only triggered at the top-most level. */
-  } else if (this->underlying_array.front_elem().emit_note_diagnostics) {
+  } else if (this->underlying_array.front_elem()->emit_note_diagnostics) {
     /* Just finished emitting errors, so we're done. */
   } else {
     /* An error processing pass is needed. */
-    this->underlying_array.front_elem().emit_note_diagnostics = TRUE;
+    this->underlying_array.front_elem()->emit_note_diagnostics = TRUE;
     result = TRUE;
   }  /* if */
   return result;

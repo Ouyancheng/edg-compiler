@@ -1,5 +1,13 @@
 Version 6.8
 
+8/8/25   [EDGcpfe/28383]
+Segfault involving freed overload resolution descriptors
+
+Previously, in rare cases, overload resolution stack entries could be
+reallocated while still in use resulting in a possible segfault.  This is now
+fixed.
+
+
 8/8/25   [EDGcpfe/20813,EDGcpfe/27780,EDGcpfe/28376]
 GNU compatibility: Pointer arguments to __atomic_... builtins
 
