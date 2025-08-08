@@ -39343,7 +39343,12 @@ normal_function:
           if (sym_ptr->variant.field.ptr->is_init_capture) {
             /* We found an init-capture.  Therefore, we must be in a lambda. */
             if (in_lambda_header() && in_unevaluated_expr_context()) {
-              /* FIXME */
+              /* We are in a lambda header but this is not an evaluated use of
+                 the init-capture.  Use a enk_param_ref entry to represent the
+                 "this" pointer since for init-captures of the current lambda
+                 there is no available "this" variable.  If the init-capture
+                 is used within a non-mutable lambda, add "const" to the
+                 closure type. */
               a_type_ptr     closure_type = sym_parent_class(sym_ptr),
                              this_type = closure_type;
               a_scope_depth  sd = depth_scope_stack;
