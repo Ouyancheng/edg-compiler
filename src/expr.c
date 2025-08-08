@@ -15957,6 +15957,7 @@ indication in *rcblock).
                                         break;
       case tok_is_trivially_relocatable:bok = bok_is_trivially_relocatable;
                                         break;
+      case tok_is_bitwise_cloneable:    bok = bok_is_bitwise_cloneable; break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -33853,6 +33854,7 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_is_referenceable:
     case tok_is_trivially_equality_comparable:
     case tok_is_trivially_relocatable:
+    case tok_is_bitwise_cloneable:
       result = TRUE;
       break;
     default:
@@ -36768,6 +36770,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_referenceable:
     case tok_is_trivially_equality_comparable:
     case tok_is_trivially_relocatable:
+    case tok_is_bitwise_cloneable:
     case tok_coroutine_yield:
     case tok_coroutine_await:
     case tok_lsplice:
@@ -43290,6 +43293,7 @@ handle_nullptr:
     case tok_is_referenceable:
     case tok_is_trivially_equality_comparable:
     case tok_is_trivially_relocatable:
+    case tok_is_bitwise_cloneable:
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);

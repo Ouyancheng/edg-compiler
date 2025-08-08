@@ -7802,10 +7802,6 @@ done:
                                cssp = symbol_supplement_for_class(class_type);
       cssp->construction_by_bitwise_copy_allowed = FALSE;
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
-      cssp->makes_copy_construction_nontrivial = TRUE;
-      cssp->makes_move_construction_nontrivial = TRUE;
-      cssp->makes_copy_assignment_nontrivial = TRUE;
-      cssp->makes_move_assignment_nontrivial = TRUE;
       /* Classes with virtual functions require nontrivial default
          constructors. */
       class_state->default_ctor_is_nontrivial = TRUE;
@@ -9918,10 +9914,6 @@ to FALSE before returning).
   if (is_virtual) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
-    cssp->makes_copy_construction_nontrivial = TRUE;
-    cssp->makes_move_construction_nontrivial = TRUE;
-    cssp->makes_copy_assignment_nontrivial = TRUE;
-    cssp->makes_move_assignment_nontrivial = TRUE;
   } else if (!bcp_type->variant.class_struct_union.is_nonreal_class &&
              !is_value_class) {
     if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
@@ -23624,17 +23616,22 @@ deleted, disable bitwise copying.
   a_type_ptr  class_type = class_state->class_type;
   a_class_symbol_supplement_ptr
               cssp = class_symbol_supp(symbol_for(class_type));
-
+  a_boolean   has_vtable;
   /* At this point, cssp->assignment_by_bitwise_copy_allowed and
      cssp->construction_by_bitwise_copy_allowed only reflect whether the
      class' subcomponents are bitwise copyable (that includes the fact that
      e.g. virtual function table pointers are not bitwise copyable).  The
      flags do not yet reflect the presence of user-provided copy constructors
      or user-provided copy assignment operators. */
-  if (!cssp->makes_copy_construction_nontrivial ||
-      !cssp->makes_move_construction_nontrivial ||
-      !cssp->makes_copy_assignment_nontrivial ||
-      !cssp->makes_move_assignment_nontrivial) {
+  has_vtable =
+          (class_type->variant.class_struct_union.any_virtual_functions ||
+           class_type->variant.class_struct_union.any_virtual_base_classes) &&
+          !is_value_class_type(class_type);
+  if (!has_vtable &&
+      (!cssp->makes_copy_construction_nontrivial ||
+       !cssp->makes_move_construction_nontrivial ||
+       !cssp->makes_copy_assignment_nontrivial ||
+       !cssp->makes_move_assignment_nontrivial)) {
     /* Trivial copying is possible: Traverse the member to find defaulted or
        compiler-generated copy/move constructors and copy/move assignment
        operators. */

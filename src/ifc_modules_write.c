@@ -4588,6 +4588,7 @@ a_token_kind for more information about IFC token serialization.
     case tok_is_trivially_destructible:
     case tok_is_trivially_equality_comparable:
     case tok_is_trivially_relocatable:
+    case tok_is_bitwise_cloneable:
     case tok_is_unbounded_array:
     case tok_is_union:
     case tok_is_unsigned:

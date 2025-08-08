@@ -830,6 +830,9 @@ modes.
     if (clang_version >= 170000) {
       enter_keyword(tok_is_trivially_equality_comparable,
                     "__is_trivially_equality_comparable");
+      if (clang_version >= 190000) {
+        enter_keyword(tok_is_bitwise_cloneable, "__is_bitwise_cloneable");
+      }  /* if */
     }  /* if */
   }  /* if */
   if (gnu_version_is(>=130000) || clang_version_is(>=180000)) {

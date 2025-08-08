@@ -9123,7 +9123,8 @@ and, if pos is not NULL, an error will be reported.
         kind == bok_has_trivial_constructor ||
         kind == bok_is_trivially_copyable ||
         kind == bok_has_user_destructor ||
-        kind == bok_is_trivially_relocatable) {
+        kind == bok_is_trivially_relocatable ||
+        kind == bok_is_bitwise_cloneable) {
       if (is_array_type(type)) {
         type = skip_array_types(type);
         if ((gpp_version_is(any_version) || microsoft_mode) &&
@@ -9443,6 +9444,10 @@ and, if pos is not NULL, an error will be reported.
         case bok_is_trivially_relocatable:
           result = type_is_trivially_relocatable(type);
           break;
+        case bok_is_bitwise_cloneable:
+          /* Non-class types are always bitwise cloneable. */
+          result = TRUE;
+          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -9728,6 +9733,12 @@ and, if pos is not NULL, an error will be reported.
         break;
       case bok_is_trivially_relocatable:
         result = type_is_trivially_relocatable(type);
+        break;
+      case bok_is_bitwise_cloneable:
+        result = cssp->assignment_by_bitwise_copy_allowed ||
+                 cssp->construction_by_bitwise_copy_allowed ||
+                 !cssp->makes_copy_construction_nontrivial ||
+                 !cssp->makes_copy_assignment_nontrivial;
         break;
       case bok_is_arithmetic:
       case bok_is_floating_point:
@@ -10480,6 +10491,7 @@ constant is set as well.
       case bok_has_unique_object_representations:
       case bok_is_aggregate:
       case bok_is_trivially_relocatable:
+      case bok_is_bitwise_cloneable:
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
