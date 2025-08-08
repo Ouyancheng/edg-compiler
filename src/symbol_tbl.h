@@ -3710,8 +3710,8 @@ typedef struct a_symbol {
 			   instead of the hide-by-sig lookup result. */
   a_bit_field
 		declared_in_for_init:1;
-			/* TRUE if the variable was declared in a for-init
-			   block in Microsoft mode. */
+			/* TRUE if this symbol represents a variable that was
+			   declared in a for-init block in Microsoft mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	is_alias:1;
