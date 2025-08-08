@@ -3640,6 +3640,7 @@ nested class.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "inline_function_fixup_for_class");
+  push_lexical_state_stack();
   /* Get the declaration sequence number at the point where fixup is
      being done. */
   class_end_decl_seq = decl_seq_counter;
@@ -4127,6 +4128,7 @@ nested class.
        pointer in the class symbol supplement. */
     cssp->routine_fixup_list = NULL;
   }  /* if */
+  pop_lexical_state_stack();
   db_exit();
 }  /* inline_function_fixup_for_class */
 
