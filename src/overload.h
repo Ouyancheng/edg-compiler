@@ -601,6 +601,26 @@ Constructor for an_ovl_resolution_descr.
 {
 }  /* an_ovl_resolution_descr::an_ovl_resolution_descr */
 
+namespace detail {
+
+using an_ovl_res_stack_backing_array =
+                Small_dyn_array<an_ovl_resolution_descr, 25>;
+                        /* The array type that is the underlying implementation
+                           type for an_ovl_res_stack. */
+
+}  /* detail */
+
+using an_ovl_res_descr_ptr =
+		Array_ptr<detail::an_ovl_res_stack_backing_array>;
+			/* A pointer type used to reference elements within the
+			   overload resolution stack (even if the backing
+			   storage is reallocated). */
+
+using a_const_ovl_res_descr_ptr =
+		Array_ptr<const detail::an_ovl_res_stack_backing_array>;
+			/* A pointer type used to reference const elements
+			   within the overload resolution stack (even if the
+			   backing storage is reallocated). */
 
 /*
 An overload resolution stack.  Uses Dyn_array to maintain a "stack" of entries
@@ -611,18 +631,15 @@ struct an_ovl_res_stack {
   an_ovl_res_stack(const an_ovl_res_stack&) = delete;
   inline an_ovl_res_stack(an_ovl_res_stack&&);
 
-  inline void push();
+  void push()
+    { this->underlying_array.push_back(an_ovl_resolution_descr{}); }
   void pop()
     { this->underlying_array.pop_back(); }
 
-  an_ovl_resolution_descr &top()
-    { return *this->underlying_array.back_elem(); }
-  const an_ovl_resolution_descr &top() const
-    { return *this->underlying_array.back_elem(); }
-  an_ovl_resolution_descr &bottom()
-    { return *this->underlying_array.front_elem(); }
-  const an_ovl_resolution_descr &bottom() const
-    { return *this->underlying_array.front_elem(); }
+  inline an_ovl_res_descr_ptr top();
+  inline a_const_ovl_res_descr_ptr top() const;
+  inline an_ovl_res_descr_ptr bottom();
+  inline a_const_ovl_res_descr_ptr bottom() const;
 
   a_boolean is_empty() const
     { return this->underlying_array.length() == 0; }
@@ -631,10 +648,10 @@ struct an_ovl_res_stack {
   a_boolean has_multiple_levels() const
     { return this->underlying_array.length() > 1; }
   a_boolean emit_note_diagnostics() const
-    { return !this->is_empty() && this->bottom().emit_note_diagnostics; }
+    { return !this->is_empty() && this->bottom()->emit_note_diagnostics; }
   a_boolean note_reporting_pass_needed();
 private:
-  Small_dyn_array<Owning_ptr<an_ovl_resolution_descr>, 25>
+  detail::an_ovl_res_stack_backing_array
                 underlying_array;
                         /* The array providing the storage backing this
                            overload resolution stack. */
@@ -650,13 +667,48 @@ Move constructor.
 }  /* an_ovl_res_stack::an_ovl_res_stack */
 
 
-void an_ovl_res_stack::push()
+inline an_ovl_res_descr_ptr an_ovl_res_stack::top()
 /*
-Push a new overload resolution descriptor to the stack.
+Return an pointer to the top overload resolution descriptor on this stack.
 */
 {
-  this->underlying_array.push_back(owning_ptr<an_ovl_resolution_descr>());
-}  /* an_ovl_res_stack::push */
+  check_assertion(!this->is_empty());
+  return an_ovl_res_descr_ptr(&this->underlying_array,
+                              this->underlying_array.length() - 1);
+}  /* an_ovl_res_stack::top */
+
+
+inline a_const_ovl_res_descr_ptr an_ovl_res_stack::top() const
+/*
+Return an pointer to a const view of the top overload resolution descriptor on
+this stack.
+*/
+{
+  check_assertion(!this->is_empty());
+  return a_const_ovl_res_descr_ptr(&this->underlying_array,
+                                   this->underlying_array.length() - 1);
+}  /* an_ovl_res_stack::top */
+
+
+inline an_ovl_res_descr_ptr an_ovl_res_stack::bottom()
+/*
+Return an pointer to the bottom overload resolution descriptor on this stack.
+*/
+{
+  check_assertion(!this->is_empty());
+  return an_ovl_res_descr_ptr(&this->underlying_array, 0);
+}  /* an_ovl_res_stack::bottom */
+
+
+inline a_const_ovl_res_descr_ptr an_ovl_res_stack::bottom() const
+/*
+Return an pointer to a const view of the bottom overload resolution descriptor
+on this stack.
+*/
+{
+  check_assertion(!this->is_empty());
+  return a_const_ovl_res_descr_ptr(&this->underlying_array, 0);
+}  /* an_ovl_res_stack::bottom */
 
 
 inline a_boolean an_ovl_res_stack::note_reporting_pass_needed(void)
@@ -671,11 +723,11 @@ of overload.
     /* If we're not producing diagnostics, no pass is needed. */
   } else if (this->has_multiple_levels()) {
     /* Re-processing of overloads is only triggered at the top-most level. */
-  } else if (this->underlying_array.front_elem()->emit_note_diagnostics) {
+  } else if (this->underlying_array.front_elem().emit_note_diagnostics) {
     /* Just finished emitting errors, so we're done. */
   } else {
     /* An error processing pass is needed. */
-    this->underlying_array.front_elem()->emit_note_diagnostics = TRUE;
+    this->underlying_array.front_elem().emit_note_diagnostics = TRUE;
     result = TRUE;
   }  /* if */
   return result;
@@ -684,16 +736,16 @@ of overload.
 
 extern an_ovl_res_stack* ovl_res_stack();
 
-inline an_ovl_resolution_descr* ovl_res_descr()
+inline an_ovl_res_descr_ptr ovl_res_descr()
 /*
 Return the current overload resolution description or NULL if there is none.
 */
 {
-  an_ovl_resolution_descr  *result = NULL;
-  an_ovl_res_stack         *stack = ovl_res_stack();
+  an_ovl_res_descr_ptr  result;
+  an_ovl_res_stack      *stack = ovl_res_stack();
 
   if (stack != NULL && !stack->is_empty()) {
-    result = &stack->top();
+    result = stack->top();
   }  /* if */
   return result;
 }  /* ovl_res_descr */
@@ -708,7 +760,7 @@ Return the notes associated with a diagnostic at the current overload
 resolution level.
 */
 {
-  return &(ovl_res_stack()->top().notes);
+  return &(ovl_res_stack()->top()->notes);
 }  /* current_ovl_res_notes */
 
 
@@ -720,9 +772,9 @@ record the candidate as now having an associated note (the expectation
 is that the caller is about to record that note).
 */
 {
-  an_ovl_resolution_descr  *descr = &(ovl_res_stack()->top());
-  Ptr_set<a_symbol_ptr>    *sym_set = descr->noted_candidates;
-  a_boolean                result;
+  an_ovl_res_descr_ptr  descr = ovl_res_stack()->top();
+  Ptr_set<a_symbol_ptr> *sym_set = descr->noted_candidates;
+  a_boolean             result;
 
   if (sym_set == NULL) {
     /* The set of candidates is created on-demand. */

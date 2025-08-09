@@ -5859,7 +5859,7 @@ in a new-expression).
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     routine_type = func_sym_routine(function_symbol)->type;
   }  /* if */
-  if (ovl_stack->top().emit_note_diagnostics &&
+  if (ovl_stack->top()->emit_note_diagnostics &&
       function_symbol != NULL) {
     if (candidate_already_noted(function_symbol)) {
       /* Candidates sometimes appear twice (e.g., via normal and argument-
@@ -5868,7 +5868,7 @@ in a new-expression).
     } else {
       /* Prepare to record notes explaining why this candidate is not
          viable. */
-      an_ovl_resolution_descr  *descr = &ovl_stack->top();
+      an_ovl_res_descr_ptr descr = ovl_stack->top();
       descr->curr_candidate = function_symbol;
       notes = &descr->notes;
       descr->curr_diagnostic = notes->tail;
@@ -6040,7 +6040,7 @@ in a new-expression).
         n_explicit_arg_viability_checks += 1;
 #endif /* DEBUG */
         if (notes != NULL) {
-          an_ovl_resolution_descr  *descr = &ovl_stack->top();
+          an_ovl_res_descr_ptr descr = ovl_stack->top();
           descr->curr_template_args = template_arg_list;
         }  /* if */
         routine_type = substitute_template_arguments(
@@ -6055,7 +6055,7 @@ in a new-expression).
           n_explicit_arg_viability_failures += 1;
 #endif /* DEBUG */
           if (notes != NULL) {
-            if (!ovl_stack->top().constraint_failure) {
+            if (!ovl_stack->top()->constraint_failure) {
               /* Ideally, we'd want to know why the substitution failed.
                  For now, we just leave it at this. */
               more_info_sym_tap_diagnostic(
@@ -6545,7 +6545,7 @@ next_argument:
       n_deduction_viability_failures += 1;
 #endif /* DEBUG */
       if (notes != NULL) {
-        if (!ovl_stack->top().constraint_failure) {
+        if (!ovl_stack->top()->constraint_failure) {
           more_info_sym_diagnostic(ec_deduction_failed,
                                    &function_symbol->decl_position,
                                    function_symbol, notes);
@@ -6850,7 +6850,7 @@ accept_function:
   goto end_of_routine;
 reject_function:
   if (notes != NULL) {
-    an_ovl_resolution_descr  *descr = &ovl_res_stack()->top();
+    an_ovl_res_descr_ptr descr = ovl_res_stack()->top();
     descr->constraint_failure = FALSE;
     descr->curr_diagnostic = NULL;
     descr->curr_candidate = NULL;
@@ -11484,7 +11484,7 @@ in_instantiation:
   *arg_match_list = NULL;
   if (undecidable_because_of_error) {
     /* There was some previous error, so do not put out an error message. */
-  } else if (ovl_res_stack()->top().emit_note_diagnostics) {
+  } else if (ovl_res_stack()->top()->emit_note_diagnostics) {
     /* We've just completed the note processing pass; no need to generate
        errors (they've already been emitted). */
   } else if (candidate_functions == NULL) {
@@ -17918,7 +17918,7 @@ the target type to be used).
        the built-in operator. */
     if (arg_match->match_level == aml_none) {
       okay = FALSE;
-      if (ovl_res_stack()->top().emit_note_diagnostics) {
+      if (ovl_res_stack()->top()->emit_note_diagnostics) {
         /* Record a note explaining which candidate is being rejected. */
         /* Construct a string describing the "signature" of the built-in
            candidate. */
@@ -19410,7 +19410,7 @@ find_more_operator_candidates:
                                              &candidate_functions);
       }  /* if */
     }  /* if */
-    if (spaceship_enabled && !ovl_res_stack()->top().in_comparison_rewrite) {
+    if (spaceship_enabled && !ovl_res_stack()->top()->in_comparison_rewrite) {
       /* For comparison operators, consider additional candidates: 
            (1) For relational operators, consider operator<=> candidates.
                For !=, consider operator== candidates.
@@ -19654,10 +19654,10 @@ selected, it is stored in *rewritten_candidate.
 
   db_enter(4, "check_for_operator_overloading");
   if (!ovl_stack->is_empty()) {
-    in_comparison_rewrite = ovl_stack->top().in_comparison_rewrite;
+    in_comparison_rewrite = ovl_stack->top()->in_comparison_rewrite;
   }  /* if */
   ovl_stack->push();
-  ovl_stack->top().in_comparison_rewrite = in_comparison_rewrite;
+  ovl_stack->top()->in_comparison_rewrite = in_comparison_rewrite;
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
@@ -20327,11 +20327,11 @@ no_applicable_operator_function:
                   } else {
                     a_boolean  reversed = candidate_functions
                                             ->supplemental_reversed_candidate;
-                    ovl_res_stack()->top().in_comparison_rewrite = TRUE;
+                    ovl_res_stack()->top()->in_comparison_rewrite = TRUE;
                     complete_comparison_rewrite(orig_kind, call_node,
                                                 operator_tok_seq_number,
                                                 result, reversed);
-                    ovl_res_stack()->top().in_comparison_rewrite = FALSE;
+                    ovl_res_stack()->top()->in_comparison_rewrite = FALSE;
                   }  /* if */
                 }  /* if */
               }  /* if */

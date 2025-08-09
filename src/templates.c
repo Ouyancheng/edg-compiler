@@ -3117,8 +3117,10 @@ Otherwise it is zero.
   { /* If we are doing overload resolution, record the completed argument
        list in the overload resolution stack, so constraint checking can
        output them in diagnostics if needed. */
-    an_ovl_resolution_descr  *descr = ovl_res_descr();
-    if (descr != NULL) descr->curr_template_args = *templ_arg_list;
+    an_ovl_res_descr_ptr descr = ovl_res_descr();
+    if (descr.has_value()) {
+      descr->curr_template_args = *templ_arg_list;
+    }  /* if */
   }
   if (wrapup_template_argument_deduction(
                                *templ_arg_list, rout_templ_sym,

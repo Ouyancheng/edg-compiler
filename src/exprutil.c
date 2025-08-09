@@ -26430,10 +26430,8 @@ block pointer.
       unexpected_condition();
   }  /* switch */
   if (!result && !*p_fatal && diag_list != NULL) {
-    an_ovl_resolution_descr  *descr = ovl_res_descr();
-    if (descr != NULL) {
-      /* A caller will add a note if needed. */
-    } else {
+    an_ovl_res_descr_ptr descr = ovl_res_descr();
+    if (descr.has_value()) {
     /* Insert a diagnostic before the ones detailing the constraint
        failure. */
       a_diag_list  new_diags;
@@ -26441,6 +26439,8 @@ block pointer.
       more_info_tap_diagnostic(ec_concept_failed, &constraint->position,
                                copy_template_arg_list(args), &new_diags);
       splice_diag_list(&new_diags, diag_list, prev_diags);
+    } else {
+      /* A caller will add a note if needed. */
     }  /* if */
   }  /* if */
   return result;
@@ -26473,8 +26473,7 @@ block pointer.
   a_template_arg_ptr   old_args = constraint->variant.concept_id.args;
   an_owned_template_arg_list
                        new_args;
-  an_ovl_resolution_descr
-                       *descr;
+  an_ovl_res_descr_ptr descr;
 
   /* Substitute the template argument list of the concept, and then check
      the satisfaction of the concept's constraint expression with that
@@ -26525,7 +26524,7 @@ block pointer.
                                copy_template_arg_list(
                                                subst_pairs.front_elem().args),
                                diag_list);
-      if (descr != NULL && descr->emit_note_diagnostics) {
+      if (descr.has_value() && descr->emit_note_diagnostics) {
         splice_diag_list(diag_list, &descr->notes,
                          descr->curr_diagnostic != NULL ?
                                   descr->curr_diagnostic : descr->notes.tail);
@@ -26537,7 +26536,7 @@ block pointer.
     result = is_concept_satisfied(constraint, new_args.raw(), diag_list,
                                   options, ctws_state, p_fatal);
     if (!result) {
-      if (descr != NULL && descr->emit_note_diagnostics) {
+      if (descr.has_value() && descr->emit_note_diagnostics) {
         a_diag_list  new_note = { NULL, NULL }, *notes = &descr->notes;
         more_info_sym_tap_diagnostic(ec_concept_not_satisfied,
                                      &constraint->position, sym,
@@ -26609,10 +26608,10 @@ p_fatal and p_copy_error are NULL by default.
     if (!result && !*p_fatal) {
       /* Evaluate the right side of the disjunction.  This is an independent
          evaluation that should have its own notes sequence if needed. */
-      an_ovl_resolution_descr  *descr = ovl_res_descr();
-      a_boolean                notes_pass = FALSE;
-      a_diagnostic_ptr         saved_curr_diagnostic;
-      if (descr != NULL && descr->emit_note_diagnostics) {
+      an_ovl_res_descr_ptr descr = ovl_res_descr();
+      a_boolean            notes_pass = FALSE;
+      a_diagnostic_ptr     saved_curr_diagnostic;
+      if (descr.has_value() && descr->emit_note_diagnostics) {
         notes_pass = TRUE;
         saved_curr_diagnostic = descr->curr_diagnostic;
         descr->curr_diagnostic = descr->notes.tail;
@@ -26637,7 +26636,7 @@ p_fatal and p_copy_error are NULL by default.
     a_template_arg_ptr  template_arg_list = NULL;
     a_diag_list         interpret_diag_list = { NULL, NULL };
     if (ovl_stack != NULL && !ovl_stack->is_empty() &&
-        ovl_stack->top().emit_note_diagnostics) {
+        ovl_stack->top()->emit_note_diagnostics) {
       /* Overload resolution failed and we are repeating constraint checking
          to collect diagnostic notes. */
       notes_pass = TRUE;
@@ -26830,8 +26829,8 @@ p_fatal and p_copy_error are NULL by default.
                                   "unexpected result");
     }  /* switch */
     if (!result && notes_pass) {
-      an_ovl_resolution_descr  *ovl_descr = &ovl_stack->top();
-      a_diag_list              *notes = &ovl_descr->notes;
+      an_ovl_res_descr_ptr ovl_descr = ovl_stack->top();
+      a_diag_list          *notes = &ovl_descr->notes;
       if (!ovl_descr->constraint_failure) {
         /* This is the first constraint failure reported for the current
            candidate.  Record an introductory note. */
@@ -27052,8 +27051,8 @@ non-NULL (it's NULL by default), update *diag_list accordingly.
     result = constraint_satisfied(expr, new_args, params, diag_list);
   }  /* if */
   if (!result) {
-    an_ovl_resolution_descr  *descr = ovl_res_descr();
-    if (descr != NULL && descr->emit_note_diagnostics &&
+    an_ovl_res_descr_ptr descr = ovl_res_descr();
+    if (descr.has_value() && descr->emit_note_diagnostics &&
         !subst_pairs.is_empty()) {
       /* Overload resolution failed and we are repeating constraint checking
          to collect diagnostic notes. */
