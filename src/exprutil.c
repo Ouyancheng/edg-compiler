@@ -26432,15 +26432,15 @@ block pointer.
   if (!result && !*p_fatal && diag_list != NULL) {
     an_ovl_res_descr_ptr descr = ovl_res_descr();
     if (descr.has_value()) {
-    /* Insert a diagnostic before the ones detailing the constraint
-       failure. */
+      /* A caller will add a note if needed. */
+    } else {
+      /* Insert a diagnostic before the ones detailing the constraint
+         failure. */
       a_diag_list  new_diags;
       clear_diag_list(&new_diags);
       more_info_tap_diagnostic(ec_concept_failed, &constraint->position,
                                copy_template_arg_list(args), &new_diags);
       splice_diag_list(&new_diags, diag_list, prev_diags);
-    } else {
-      /* A caller will add a note if needed. */
     }  /* if */
   }  /* if */
   return result;
