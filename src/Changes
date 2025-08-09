@@ -1,5 +1,14 @@
 Version 6.8
 
+8/8/25   [EDGcpfe/28384]
+Fixed lexical state corruption
+
+Previously, the lexical state could become corrupted while processing some
+grammatically incorrect lambdas and module entities.  In rare cases, this can
+result in assertion failures in scan_lambda_declarator (and likely other
+places).
+
+
 8/8/25   [EDGcpfe/21246,EDGcpfe/24784,EDGcpfe/25500]
 Handling of captures in a lambda header
 
