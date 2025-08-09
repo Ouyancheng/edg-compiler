@@ -1375,6 +1375,33 @@ struct Delegate_buffered_allocator {
   };  /* Meta */
 };  /* Delegate_buffered_allocator */
 
+/*
+This type is used to provide a special "pointer" to a Dyn_array that is still
+usable even if the underlying storage is reallocated.
+
+Note this type diverges from the typical EDG style so that the decltype calls
+can find the data members for type deduction.
+*/
+template<typename an_Array_type>
+class Array_ptr {
+  an_Array_type *array; /* The array being referenced. */
+  size_t        offset; /* The offset into the array. */
+public:
+  Array_ptr()
+     : array(NULL), offset(0)
+     {}
+  Array_ptr(an_Array_type *array_val,
+            size_t        offset_val)
+     : array(array_val), offset(offset_val)
+     {}
+
+  a_boolean has_value() const
+    { return this->array != NULL; }
+  auto operator*() const -> decltype((*this->array)[this->offset])
+    { return (*this->array)[offset]; }
+  auto operator->() const -> decltype(&((*this->array)[this->offset]))
+    { return &(*this->array)[offset]; }
+};  /* Array_ptr */
 
 /*
 The Dyn_array template
