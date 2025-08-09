@@ -9,6 +9,13 @@ result in assertion failures in scan_lambda_declarator (and likely other
 places).
 
 
+8/8/25   [EDGcpfe/28092,EDGcpfe/28328]
+Clang compatibility: __is_bitwise_cloneable
+
+In Clang C++ mode with clang_version >= 190000, the front end now supports the
+type trait helper __is_bitwise_cloneable.
+
+
 8/8/25   [EDGcpfe/21246,EDGcpfe/24784,EDGcpfe/25500]
 Handling of captures in a lambda header
 
