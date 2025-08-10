@@ -3569,6 +3569,7 @@ ec_exp_colon_colon;;"expected a \"::\""
 ec_lambda_cannot_refer_to_local_entity_here;;"a lambda cannot refer to a local variable or init-capture in this context"
 ec_parameter_capture_conflict;;"a lambda parameter cannot hide an explicit capture"
 ec_template_parameter_capture_conflict;;"a lambda template parameter cannot hide an explicit capture"
+ec_insufficient_address_space;;"insufficient address space exists to process this translation unit"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
