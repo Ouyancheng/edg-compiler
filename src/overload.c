@@ -262,7 +262,8 @@ Output a log of the current substitution stack.
 
 #endif  /* DEBUG */
 
-using a_small_ovl_res_stack_stack = Small_dyn_array<an_ovl_res_stack, 3>;
+using a_small_ovl_res_stack_stack =
+                              Small_dyn_array<Owning_ptr<an_ovl_res_stack>, 3>;
 STATIC_THREAD a_small_ovl_res_stack_stack
                 *ovl_res_stack_stack;
                         /* Pointer to a stack of stacks of cascading overload
@@ -274,7 +275,7 @@ an_ovl_res_stack *ovl_res_stack()
 Return the current overload resolution stack.
 */
 {
-  return &(ovl_res_stack_stack->back_elem());
+  return ovl_res_stack_stack->back_elem().raw();
 }  /* ovl_res_stack */
 
 
@@ -283,7 +284,7 @@ void push_new_ovl_res_stack()
 Push a new overload resolution stack.
 */
 {
-  ovl_res_stack_stack->push_back(an_ovl_res_stack());
+  ovl_res_stack_stack->push_back(owning_ptr<an_ovl_res_stack>());
 }  /* push_new_ovl_res_stack */
 
 
