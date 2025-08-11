@@ -1379,8 +1379,9 @@ struct Delegate_buffered_allocator {
 This type is used to provide a special "pointer" to a Dyn_array that is still
 usable even if the underlying storage is reallocated.
 
-Note this type diverges from the typical EDG style so that the decltype calls
-can find the data members for type deduction.
+Note this type diverges from the typical EDG style in placing the private data
+members first, preceding the public interface.  This is done so that, the
+decltype operators can find the data members for type deduction.
 */
 template<typename an_Array_type>
 class Array_ptr {
