@@ -14,7 +14,7 @@ memory used.
 Fixed lexical state corruption
 
 Previously, the lexical state could become corrupted while processing some
-grammatically incorrect lambdas and module entities.  In rare cases, this can
+grammatically-incorrect lambdas and module entities.  In rare cases, this could
 result in assertion failures in scan_lambda_declarator (and likely other
 places).
 
