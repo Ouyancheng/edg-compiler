@@ -37813,7 +37813,7 @@ is no such entry.
     ssep -= 1;
   }  /* while */
   if (scope_is(ssep, sck_func_prototype)) {
-    func_proto_ssep = NULL;
+    func_proto_ssep = ssep;
     ssep -= 1;
   }  /* if */
   if (scope_is(ssep, sck_template_declaration) ||
@@ -38277,7 +38277,8 @@ a capture).
     a_scope_stack_entry  *func_proto_ssep;
     var = variable_for_symbol(sym_ptr);
     if (in_lambda_header(&func_proto_ssep) &&
-        symbol_is(sym_ptr, sk_variable) && var->storage_class == sc_auto &&
+        symbol_is(sym_ptr, sk_variable) &&
+        !var_has_static_or_thread_storage_duration(var) &&
         !(gpp_version_is(any_version) || clang_version_is(any_version) ||
           ms_version_is(any_version))) {
       /* P2579 causes mentions of automatic variables in a lambda header
