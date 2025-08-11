@@ -39347,7 +39347,7 @@ normal_function:
             /* We found an init-capture.  Therefore, we must be in a lambda. */
             if (in_lambda_header() && in_unevaluated_expr_context()) {
               /* We are in a lambda header but this is not an evaluated use of
-                 the init-capture.  Use a enk_param_ref entry to represent the
+                 the init-capture.  Use an enk_param_ref entry to represent the
                  "this" pointer since for init-captures of the current lambda
                  there is no available "this" variable.  If the init-capture
                  is used within a non-mutable lambda, add "const" to the
