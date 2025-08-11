@@ -669,7 +669,7 @@ Move constructor.
 
 inline an_ovl_res_descr_ptr an_ovl_res_stack::top()
 /*
-Return an pointer to the top overload resolution descriptor on this stack.
+Return a pointer to the top overload resolution descriptor on this stack.
 */
 {
   check_assertion(!this->is_empty());
@@ -680,7 +680,7 @@ Return an pointer to the top overload resolution descriptor on this stack.
 
 inline a_const_ovl_res_descr_ptr an_ovl_res_stack::top() const
 /*
-Return an pointer to a const view of the top overload resolution descriptor on
+Return a pointer to a const view of the top overload resolution descriptor on
 this stack.
 */
 {
@@ -692,7 +692,7 @@ this stack.
 
 inline an_ovl_res_descr_ptr an_ovl_res_stack::bottom()
 /*
-Return an pointer to the bottom overload resolution descriptor on this stack.
+Return a pointer to the bottom overload resolution descriptor on this stack.
 */
 {
   check_assertion(!this->is_empty());
@@ -702,7 +702,7 @@ Return an pointer to the bottom overload resolution descriptor on this stack.
 
 inline a_const_ovl_res_descr_ptr an_ovl_res_stack::bottom() const
 /*
-Return an pointer to a const view of the bottom overload resolution descriptor
+Return a pointer to a const view of the bottom overload resolution descriptor
 on this stack.
 */
 {
