@@ -18819,6 +18819,31 @@ back into an identifier.
 }  /* is_keyword_token */
 
 
+void add_colon_to_tok_colon_if_present(void)
+/*
+The current token is tok_colon.  If the next character is ':', update the
+current token to tok_colon_colon (potentially issuing a warning if the new
+token is the result of macro concatenation).  This routine is used in C
+emulation modes in which "::" is not a token but can be used for attribute
+namespaces.
+*/
+{
+  check_assertion(curr_token == tok_colon);
+  if (*curr_char_loc == ':') {
+    /* Temporarily treat the second ':' as the start of a new token in order
+       to check if there was invalid token concatenation. */
+    ++start_of_curr_token;
+    check_for_invalid_macro_concatenation(/*end_token_is_valid=*/FALSE);
+    --start_of_curr_token;
+    /* Update the current token values to include the second ':'. */
+    curr_token = tok_colon_colon;
+    ++end_of_curr_token;
+    ++len_of_curr_token;
+    ++curr_char_loc;
+  }  /* if */
+}  /* add_colon_to_tok_colon_if_present */
+
+
 static a_stop_token_stack_entry_ptr alloc_stop_token_stack_entry(void)
 /*
 Allocate a new stop token stack entry, initialize it, and return a pointer

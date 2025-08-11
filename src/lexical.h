@@ -2766,6 +2766,8 @@ extern a_const_char orig_char_from_embed_directive(a_const_char lex_escape);
 extern a_token_kind get_token(void);
 /* Return whether a token is a keyword token. */
 extern a_boolean is_keyword_token(a_token_kind	token);
+/* Transform a tok_colon followed by a ':' into a tok_colon_colon. */
+extern void add_colon_to_tok_colon_if_present(void);
 /* Generate a line-identifying directive in preprocessing output. */
 extern void gen_pp_line_info(char      kind,
 		             a_boolean next_line);
