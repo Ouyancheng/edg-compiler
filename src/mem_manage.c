@@ -2198,8 +2198,8 @@ Do one-time initialization of variables related to the mem_manage routines.
 
 void mem_manage_one_time_init_done()
 /*
-This function is called after translation one-time initialization is complete
-to record the amount of memory that was in use after the initialization phase.
+This function is called after one-time initialization is complete to record the
+amount of memory that was in use after the initialization phase.
 */
 {
   mem_in_use_after_one_time_init = (num_bytes_allocated - num_bytes_freed);
