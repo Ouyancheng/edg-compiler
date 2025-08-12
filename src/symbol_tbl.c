@@ -16607,14 +16607,14 @@ void add_to_dependent_type_fixup_list(a_type_ptr                   type_ptr,
                                       an_il_entry_kind             entity_kind,
                                       a_source_position            *pos)
 /*
-type_ptr is a pointer an incomplete class/struct/union or enum type, and
+type_ptr is a pointer to an incomplete class/struct/union or enum type, and
 entity_ptr and entity_kind together identify a type or param_type dependent
 on it.  An fixup entry is created and put on a list so that the dependent
 entity can be modified appropriately when the class or enum type is finally
 defined.
 */
 {
-  a_dependent_type_fixup_ptr     dtfp, end_of_list, *start_of_list;
+  a_dependent_type_fixup_ptr     dtfp, *start_of_list;
   a_symbol_ptr                   sym;
 
   db_enter(5, "add_to_dependent_type_fixup_list");
@@ -16637,24 +16637,18 @@ defined.
   dtfp->decl_position = *pos;
   dtfp->next = NULL;
   /* Add the entry to the end of the appropriate list. */
-  sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
+  sym = symbol_for(type_ptr);
   if (is_class_symbol(sym)) {
     /* Use the list associated with the class. */
-    start_of_list = &sym->variant.class_struct_union.extra_info->
-                                              dependent_type_fixup_list;
+    start_of_list = &class_symbol_supp(sym)->dependent_type_fixup_list;
   } else {
     /* Use the list associated with the enum type. */
     check_assertion(sym->kind == (a_symbol_kind)sk_enum_tag);
     start_of_list = &sym->variant.enumeration.extra_info
                                               ->dependent_type_fixup_list;
   }  /* if */
-  if (*start_of_list == NULL) {
-    *start_of_list = dtfp;
-  } else {
-    end_of_list = *start_of_list;
-    while (end_of_list->next != NULL) end_of_list = end_of_list->next;
-    end_of_list->next = dtfp;
-  }  /* if */
+  dtfp->next = *start_of_list;
+  *start_of_list = dtfp;
   db_exit();
 }  /* add_to_dependent_type_fixup_list */
 

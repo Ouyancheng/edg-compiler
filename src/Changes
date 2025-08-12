@@ -1,5 +1,13 @@
 Version 6.8
 
+8/12/25  [EDGcpfe/28242]
+Poor performance of add_to_dependent_type_fixup_list
+
+The function add_to_dependent_type_fixup_list could lead to unnecessarily poor
+performance in somewhat unusual cases (involving many function declarations
+that refer to dependent types).  That is now fixed.
+
+
 8/10/25  [EDGcpfe/28386]
 Additional memory management metrics
 
@@ -93,7 +101,7 @@ The front end now diagnoses (with a discretionary error) lambda parameters and
 (C++20) explicit lambda template parameters whose names conflict with that of
 an explicit capture of that lambda.  For example (in C++17 mode):
 
-  auto lm = [x = 1](int x) { return x; };  // Now an error.
+  auto lm = [x = 1](int x) { return x; };  // Nowks  an error.
 
 Furthermore, the front end now also implements the changes in the C++
 standardization committee's paper P2579R0 (adopted as a DR), which causes
