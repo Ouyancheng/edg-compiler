@@ -50904,15 +50904,12 @@ memory region).  Do various error checks.
         is_variable_node(operand->variant.expression)) {
     need_backing_expr = TRUE;
   } else if (is_constant_operand(operand) &&
-             operand->variant.constant.kind == ck_aggregate) {
-    a_type_ptr aggr_type = skip_typerefs(operand->variant.constant.type);
-    if (is_immediate_class_type(aggr_type) &&
-        !class_symbol_supp(symbol_for(aggr_type))->is_class_aggregate) {
-      /* We also need to prevent the C++-generating back end from putting
-         out an aggregate initializer for a class value that folded to a
-         constant but cannot be aggregate-initialized. */
-      need_backing_expr = TRUE;
-    }  /* if */
+             constant_is(&operand->variant.constant, ck_aggregate) &&
+             !is_aggregate_type(operand->type)) {
+    /* We also need to prevent the C++-generating back end from putting out
+       an aggregate initializer for a class value that folded to a constant
+       but cannot be aggregate-initialized. */
+    need_backing_expr = TRUE;
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (ms_version_is(<1310) &&
