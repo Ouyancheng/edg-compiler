@@ -7746,6 +7746,7 @@ done:
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
     class_type->variant.class_struct_union.
                  any_virtual_functions_including_in_base_classes = TRUE;
+    class_symbol_supp(symbol_for(class_type))->contains_vtable = TRUE;
     class_state->cpp03_POD_ruled_out = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled) {
@@ -7799,9 +7800,10 @@ done:
       /* Classes with virtual functions cannot be constructed or assigned
          by bitwise copying. */
       a_class_symbol_supplement_ptr
-                               cssp = symbol_supplement_for_class(class_type);
+                             cssp = class_symbol_supp(symbol_for(class_type));
       cssp->construction_by_bitwise_copy_allowed = FALSE;
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
+      cssp->contains_vtable = TRUE;
       /* Classes with virtual functions require nontrivial default
          constructors. */
       class_state->default_ctor_is_nontrivial = TRUE;
@@ -9914,6 +9916,7 @@ to FALSE before returning).
   if (is_virtual) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
+    cssp->contains_vtable = TRUE;
   } else if (!bcp_type->variant.class_struct_union.is_nonreal_class &&
              !is_value_class) {
     if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
@@ -9933,6 +9936,9 @@ to FALSE before returning).
     }  /* if */
     if (bcp_cssp->makes_move_assignment_nontrivial) {
       cssp->makes_move_assignment_nontrivial = TRUE;
+    }  /* if */
+    if (bcp_cssp->contains_vtable) {
+      cssp->contains_vtable = TRUE;
     }  /* if */
   }  /* if */
   if (bcp_cssp->any_nonstatic_data_members) {
@@ -21434,6 +21440,9 @@ be entered.
           if (member_cssp->makes_move_assignment_nontrivial) {
             cssp->makes_move_assignment_nontrivial = TRUE;
           }  /* if */
+        }  /* if */
+        if (member_cssp->contains_vtable) {
+          cssp->contains_vtable = TRUE;
         }  /* if */
         /* If the member type has mutable members, set the flag in the parent
            type. */

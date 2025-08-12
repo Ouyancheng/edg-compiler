@@ -1241,6 +1241,10 @@ typedef struct a_class_symbol_supplement {
 			   has a "const&" type, and that doesn't admit a
 			   volatile argument), but it doesn't make the copy
 			   function nontrivial either. */
+  a_bit_field	contains_vtable:1;
+			/* TRUE if the class has a virtual function or a
+			   virtual base class, or if any of its subobjects
+			   has a virtual function or a virtual base class. */
   a_bit_field	has_auto_conversion_function:1;
 			/* TRUE if this class has at least one conversion
 			   function member whose type involves the "auto" or

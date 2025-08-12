@@ -9526,7 +9526,8 @@ and, if pos is not NULL, an error will be reported.
       case bok_has_trivial_assign:
         check_assertion(cssp != NULL);  /* For Coverity. */
         result = !is_const &&
-                 all_copy_assignment_operators_trivial(cssp);
+                 (all_copy_assignment_operators_trivial(cssp) &&
+                  !cssp->contains_vtable);
         break;
       case bok_has_trivial_constructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
@@ -9536,7 +9537,8 @@ and, if pos is not NULL, an error will be reported.
       case bok_has_trivial_copy:
         check_assertion(cssp != NULL);  /* For Coverity. */
         result = cssp->construction_by_bitwise_copy_allowed ||
-                 all_copy_constructors_trivial(cssp);
+                 (all_copy_constructors_trivial(cssp) &&
+                  !cssp->contains_vtable);
         break;
       case bok_has_trivial_destructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
@@ -9735,6 +9737,7 @@ and, if pos is not NULL, an error will be reported.
         result = type_is_trivially_relocatable(type);
         break;
       case bok_is_bitwise_cloneable:
+        check_assertion(cssp != NULL);
         result = cssp->assignment_by_bitwise_copy_allowed ||
                  cssp->construction_by_bitwise_copy_allowed ||
                  !cssp->makes_copy_construction_nontrivial ||

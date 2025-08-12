@@ -821,6 +821,9 @@ and indentation is the indentation desired.
         if (cssp->assignment_by_bitwise_copy_allowed) {
           put_string("op= bitwise copy okay");
         }  /* if */
+        if (cssp->contains_vtable) {
+          put_string("contains vtable");
+        }  /* if */
         if (cssp->target_of_conversion_function) {
           put_string("conv target");
         }  /* if */
@@ -4097,6 +4100,7 @@ state.
         cssp->makes_move_construction_nontrivial = FALSE;
         cssp->makes_copy_assignment_nontrivial = FALSE;
         cssp->makes_move_assignment_nontrivial = FALSE;
+        cssp->contains_vtable = FALSE;
         cssp->has_auto_conversion_function = FALSE;
         cssp->target_of_conversion_function = FALSE;
         cssp->any_ref_member = FALSE;
