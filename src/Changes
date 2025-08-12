@@ -101,7 +101,7 @@ The front end now diagnoses (with a discretionary error) lambda parameters and
 (C++20) explicit lambda template parameters whose names conflict with that of
 an explicit capture of that lambda.  For example (in C++17 mode):
 
-  auto lm = [x = 1](int x) { return x; };  // Nowks  an error.
+  auto lm = [x = 1](int x) { return x; };  // Now an error.
 
 Furthermore, the front end now also implements the changes in the C++
 standardization committee's paper P2579R0 (adopted as a DR), which causes
