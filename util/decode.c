@@ -5549,13 +5549,20 @@ to be on top of the type.  If parse_template_args is TRUE then any
       } else {
         /* This is a vendor string that we don't recognize; simply emit the
            string. */
-        vendor_ext_buffer = (char*)malloc((true_size_t)num+1);
-        memcpy(vendor_ext_buffer, p, num);
-        vendor_ext_buffer[num] = '\0';
-        vendor_ext = vendor_ext_buffer;
+        if (num >= (long)strlen(p)) {
+          /* Likely a malformed string. */
+          bad_mangled_name(dctl);
+          goto no_increment;
+        } else {
+          vendor_ext_buffer = (char*)malloc((true_size_t)num+1);
+          memcpy(vendor_ext_buffer, p, num);
+          vendor_ext_buffer[num] = '\0';
+          vendor_ext = vendor_ext_buffer;
+        }  /* if */
       }  /* if */
       /* Advance past the string. */
       p += num;
+no_increment:;
     }  /* if */
     if (kind == 'C') {
       write_id_str("_Complex ", dctl);
