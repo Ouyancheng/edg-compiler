@@ -1,9 +1,9 @@
 Version 6.7, January 27, 2025
 
 8/12/25  [EDGcpfe/28388]
-Unbounded allocation of memory on malicious IA-64 mangled name
+Unbounded allocation of memory on malformed IA-64 mangled name
 
-Some malicious IA-64 mangled names could cause edg_decode to allocate a
+Some malformed IA-64 mangled names could cause edg_decode to allocate a
 large amount of memory, causing unspecified behavior.  Now fixed.
 
 
