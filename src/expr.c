@@ -50891,6 +50891,9 @@ memory region).  Do various error checks.
        - When the template argument is a constexpr variable, to avoid
          "unused variable" warnings when the generated code is compiled.
 
+       - When the node is an explicit temporary, to ensure that the type
+         specifier is preserved.
+
        - When a class-type template argument is folded to an aggregate
          constant but the class type cannot be aggregate-initialized.
 
@@ -50901,7 +50904,8 @@ memory region).  Do various error checks.
   need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH ||
                        operand->caused_template_instantiation);
   if (!need_backing_expr && is_expression_operand(operand) &&
-        is_variable_node(operand->variant.expression)) {
+        (is_variable_node(operand->variant.expression) ||
+         is_temp_node(operand->variant.expression))) {
     need_backing_expr = TRUE;
   } else if (is_constant_operand(operand) &&
              constant_is(&operand->variant.constant, ck_aggregate) &&
