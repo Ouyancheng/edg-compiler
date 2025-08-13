@@ -50891,8 +50891,8 @@ memory region).  Do various error checks.
        - When the template argument is a constexpr variable, to avoid
          "unused variable" warnings when the generated code is compiled.
 
-       - When the node is an explicit temporary, to ensure that the type
-         specifier is preserved.
+       - When the node is an explicit temporary or a constant with an
+         explicit cast, to ensure that the type specifier is preserved.
 
        - When a class-type template argument is folded to an aggregate
          constant but the class type cannot be aggregate-initialized.
@@ -50908,8 +50908,9 @@ memory region).  Do various error checks.
          is_temp_node(operand->variant.expression))) {
     need_backing_expr = TRUE;
   } else if (is_constant_operand(operand) &&
-             constant_is(&operand->variant.constant, ck_aggregate) &&
-             !is_aggregate_type(operand->type)) {
+             (operand->variant.constant.explicit_cast_applied ||
+              (constant_is(&operand->variant.constant, ck_aggregate) &&
+               !is_aggregate_type(operand->type)))) {
     /* We also need to prevent the C++-generating back end from putting out
        an aggregate initializer for a class value that folded to a constant
        but cannot be aggregate-initialized. */
@@ -50940,6 +50941,15 @@ memory region).  Do various error checks.
       force_operand_to_constant_if_possible_full(
                                      operand, /*is_constant_evaluated=*/TRUE);
     }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+    /* The call to prep_initializer_operand may have added a user-defined
+       conversion. */
+    if (is_constant_operand(operand) &&
+        operand->variant.constant.expr != NULL &&
+        is_temp_node(operand->variant.constant.expr)) {
+      need_backing_expr = TRUE;
+    }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
     if ((microsoft_mode || (gpp_mode && !clang_mode)) &&
         !is_constant_operand(operand) &&
         is_prototype_instantiation_context()) {
