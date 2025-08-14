@@ -50865,58 +50865,8 @@ for the converted result in *constant (which must be in the file scope
 memory region).  Do various error checks.
 */
 {
-#if BACK_END_IS_CP_GEN_BE
-  a_boolean need_backing_expr;
-#endif /* BACK_END_IS_CP_GEN_BE */
-
   db_enter(3, "prep_nontype_template_argument_initializer");
   check_assertion(constant != NULL && in_file_scope(constant));
-#if BACK_END_IS_CP_GEN_BE
-  /* Whether backing expressions are kept for nontype template arguments is
-     determined by the value of the BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG
-     configuration option, which must be set to TRUE for C++-generating
-     back end configurations.  However, they are typically not needed in
-     the generated code, as the value of the argument can usually be used
-     instead, with certain exceptions.  The cases in which the backing
-     expression is required are:
-
-       - Inside the definition of a template, to ensure that the generated
-         code has the same dependencies (and thus the same mangled names)
-         as the source.
-
-       - When the expression results in the instantiation of another
-         template, to ensure that the generated code will also cause that
-         instantiation.
-
-       - When the template argument is a constexpr variable, to avoid
-         "unused variable" warnings when the generated code is compiled.
-
-       - When the node is an explicit temporary or a constant with an
-         explicit cast, to ensure that the type specifier is preserved.
-
-       - When a class-type template argument is folded to an aggregate
-         constant but the class type cannot be aggregate-initialized.
-
-     In all other cases, the C++-generating back end ignores the backing
-     expression because, in pathological cases involving very deep template
-     instantiation trees, putting out every backing expression can be
-     prohibitively expensive. */
-  need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH ||
-                       operand->caused_template_instantiation);
-  if (!need_backing_expr && is_expression_operand(operand) &&
-        (is_variable_node(operand->variant.expression) ||
-         is_temp_node(operand->variant.expression))) {
-    need_backing_expr = TRUE;
-  } else if (is_constant_operand(operand) &&
-             (operand->variant.constant.explicit_cast_applied ||
-              (constant_is(&operand->variant.constant, ck_aggregate) &&
-               !is_aggregate_type(operand->type)))) {
-    /* We also need to prevent the C++-generating back end from putting out
-       an aggregate initializer for a class value that folded to a constant
-       but cannot be aggregate-initialized. */
-    need_backing_expr = TRUE;
-  }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
   if (ms_version_is(<1310) &&
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_expression_operand(operand) &&
@@ -50941,15 +50891,6 @@ memory region).  Do various error checks.
       force_operand_to_constant_if_possible_full(
                                      operand, /*is_constant_evaluated=*/TRUE);
     }  /* if */
-#if BACK_END_IS_CP_GEN_BE
-    /* The call to prep_initializer_operand may have added a user-defined
-       conversion. */
-    if (is_constant_operand(operand) &&
-        operand->variant.constant.expr != NULL &&
-        is_temp_node(operand->variant.constant.expr)) {
-      need_backing_expr = TRUE;
-    }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
     if ((microsoft_mode || (gpp_mode && !clang_mode)) &&
         !is_constant_operand(operand) &&
         is_prototype_instantiation_context()) {
@@ -50982,7 +50923,7 @@ memory region).  Do various error checks.
       extract_constant_from_operand(operand, constant);
 #if BACK_END_IS_CP_GEN_BE
       if (constant->expr != NULL) {
-        constant->expr->needed_in_cp_gen_be = need_backing_expr;
+        constant->expr->needed_in_cp_gen_be = TRUE;
       }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
       curr_il_region_number = region;
