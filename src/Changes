@@ -1,5 +1,17 @@
 Version 6.8
 
+8/14/25  [EDGcpfe/28392
+C++-generating back end: trailing requires clause for lambda expressions
+
+The C++-generating back end previously failed to put out a trailing requires
+clause appearing in a generic lambda expression.  This is now fixed.  For
+example, with --c++20:
+
+  template<typename> concept C = true;
+  auto l = []<typename T>(T) requires C<T> { };  // Previously omitted the
+                                                 // requires clause
+
+
 8/12/25  [EDGcpfe/28242]
 Poor performance of add_to_dependent_type_fixup_list
 

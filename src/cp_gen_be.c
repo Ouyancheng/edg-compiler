@@ -16805,6 +16805,21 @@ Generate code for the given lambda.
                                          /*suppress_def_args=*/FALSE);
       write_space();
     }  /* if */
+    a_requires_clause_ptr rcp = rp->trailing_requires_clause;
+    if (rcp != NULL) {
+      /* Put out a requires-clause. */
+      write_tok_str(" requires ");
+      /* Force parentheses for the constraint expression because the grammar
+         in this context is otherwise limited. */
+      a_func_prototype_stack_entry fpse;
+      fpse.params = function_type_params(skip_typerefs(rp->type));
+      fpse.outside_parameter_list = TRUE;
+      push_function_prototype(&fpse, &octl);
+      write_tok_ch('(');
+      gen_expression(rcp->constraint);
+      write_tok_ch(')');
+      pop_function_prototype(&octl);
+    }  /* if */
     save_function_state(&state);
     innermost_function_scope = scope;
     push_name_context(scope);
