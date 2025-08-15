@@ -564,9 +564,16 @@ Output the indicated template argument in the way described by octl.
             con->expr = NULL;
             con->local_expr_ref = FALSE;
 #if BACK_END_IS_CP_GEN_BE
-          } else if (con->expr != NULL) {
-            /* Ensure the backing expression is suppressed in subsequent
-               references. */
+          } else if (con->expr != NULL &&
+                     !(constant_is(con, ck_address) && con->implicit_cast)) {
+            /* In most cases, we ensure the backing expression is
+               suppressed in subsequent references to avoid the overhead of
+               repetitively generating the backing expression, which can be
+               prohibitive in some cases involving deeply-nested template
+               instantiation.  However, casts involving address constants
+               are often not valid constant expressions, so we must
+               continue to put out the backing expression for an address
+               constant with a cast. */
             con->expr->needed_in_cp_gen_be = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
           }  /* if */
