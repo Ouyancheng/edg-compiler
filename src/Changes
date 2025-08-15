@@ -1,6 +1,6 @@
 Version 6.8
 
-8/14/25  [EDGcpfe/28392
+8/14/25  [EDGcpfe/28392]
 C++-generating back end: trailing requires clause for lambda expressions
 
 The C++-generating back end previously failed to put out a trailing requires
