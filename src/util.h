@@ -2254,6 +2254,303 @@ This macro is used to avoid compiler warnings when copying into a bitfield.
 #define copy_to_bitfield(src_val, dest, bitwidth)                             \
     (dest) = ((src_val) & bitmask_of_width(bitwidth))
 
+namespace detail {
+
+/*
+The type used for lifetime management of a shared object.
+*/
+template<typename an_Object>
+struct Shared_obj_control_block {
+  INLINE ~Shared_obj_control_block() = default;
+  an_Object     object;
+                        /* The shared object owned by the shared pointer. */
+  unsigned      ref_counter;
+                        /* The number of references to this control block. */
+};  /* Shared_obj_control_block */
+
+}  /* detail */
+
+/*
+This type is used to represent a reference counted object.
+
+It is conceptually very similar to a std::shared_ptr.  However, it reduces
+indirection by storing the shared object with the shared reference counter.
+Additionally, this type differs in that it cannot take ownership of an existing
+pointer; this avoids a class of bugs where object lifetime is incorrectly
+managed.
+*/
+template<typename an_Object,
+         template<typename> class Allocator = FE_allocator>
+struct Shared_obj {
+  using an_object = an_Object;
+  using a_shared_object = Shared_obj<an_Object, Allocator>;
+  using a_control_block = detail::Shared_obj_control_block<an_object>;
+  using an_allocator = Allocator<a_control_block>;
+  using an_allocation = typename an_allocator::an_allocation;
+
+  INLINE explicit Shared_obj()
+    : allocator(an_allocator()), ctrl_block(NULL) {}
+  INLINE explicit Shared_obj(const an_Object    &o,
+                             const an_allocator &a = an_allocator());
+  INLINE explicit Shared_obj(an_Object          &&o,
+                             const an_allocator &a = an_allocator());
+  INLINE Shared_obj(const a_shared_object &other)
+    : allocator(other.allocator), ctrl_block(other.ctrl_block)
+    { if (this->ctrl_block != NULL) { ++(this->ctrl_block->ref_counter); } }
+  INLINE Shared_obj(a_shared_object &&other)
+    : allocator(other.allocator), ctrl_block(other.ctrl_block)
+    { other.ctrl_block = NULL; }
+  INLINE ~Shared_obj();
+  INLINE auto operator=(const an_Object &other) -> a_shared_object&;
+  INLINE auto operator=(an_Object &&other) -> a_shared_object&;
+  INLINE auto operator=(const a_shared_object &other) -> a_shared_object&;
+  INLINE auto operator=(a_shared_object &&other) -> a_shared_object&;
+  INLINE auto operator->() const -> an_object*
+    { return &this->get_ctrl_block().object; }
+  INLINE auto operator*() const -> an_object&
+    { return this->get_ctrl_block().object; }
+  INLINE auto ptr() const -> an_object*;
+private:
+  template<typename ...an_Arg_pack>
+  INLINE Shared_obj(const an_allocator &a,
+                    an_Arg_pack&&      ...args);
+  INLINE a_control_block& get_ctrl_block() const
+    { check_assertion(this->ctrl_block != NULL); return *this->ctrl_block; }
+  INLINE void increment_reference() const;
+  INLINE void decrement_reference();
+  an_allocator  allocator;
+                        /* An allocator that can be used to allocator or
+                           deallocate a control block. */
+  a_control_block
+                *ctrl_block;
+                        /* Pointer to the control block. */
+  template<typename an_Object_ty, typename ...an_Arg_pack>
+  friend INLINE Shared_obj<an_Object_ty> shared_obj(an_Arg_pack&& ...args);
+};  /* Shared_obj */
+
+
+template<typename an_Object, template<typename> class Allocator>
+Shared_obj<an_Object, Allocator>::Shared_obj(const an_Object    &o,
+                           /* Defaulted: */  const an_allocator &a)
+/*
+Create a new shared copy of the given object using the given allocator.
+*/
+  : allocator(a)
+{
+  an_allocation allocation = this->allocator.alloc(1);
+
+  this->ctrl_block = (a_control_block*)allocation.start;
+  new (this->ctrl_block) a_control_block{o, /*ref_counter=*/1};
+}  /* Shared_obj::Shared_obj */
+
+
+template<typename an_Object, template<typename> class Allocator>
+Shared_obj<an_Object, Allocator>::Shared_obj(an_Object          &&o,
+                           /* Defaulted: */  const an_allocator &a)
+/*
+Create a new shared copy of the given object using the given allocator.
+*/
+  : allocator(a)
+{
+  an_allocation allocation = this->allocator.alloc(1);
+
+  this->ctrl_block = (a_control_block*)allocation.start;
+  new (this->ctrl_block) a_control_block{move_from(&o), /*ref_counter=*/1};
+}  /* Shared_obj::Shared_obj */
+
+
+template<typename an_Object, template<typename> class Allocator>
+template<typename ...an_Arg_pack>
+Shared_obj<an_Object, Allocator>::Shared_obj(const an_allocator &a,
+                                             an_Arg_pack&&      ...args)
+/*
+In-place construct a new shared object from the given objects using the given
+allocator.  This constructor should be used via the shared_obj factory
+function.
+*/
+{
+  an_allocation allocation = this->allocator.alloc(1);
+
+  this->ctrl_block = (a_control_block*)allocation.start;
+  new (this->ctrl_block) a_control_block{{fwd<an_Arg_pack>(args)...},
+                                         /*ref_counter=*/1};
+}  /* Shared_obj::Shared_obj */
+
+
+template<typename an_Object, template<typename> class Allocator>
+Shared_obj<an_Object, Allocator>::~Shared_obj()
+/*
+Destroy and deallocate the pointed-to object, if any.
+*/
+{
+  this->decrement_reference();
+}  /* Shared_obj::~Shared_obj */
+
+
+template<typename an_Object, template<typename> class Allocator>
+auto Shared_obj<an_Object, Allocator>::operator=(const an_Object &other)
+                                                            -> a_shared_object&
+/*
+Move copy other to *this, then return *this.
+*/
+{
+  /* Decrement the reference count of the control block currently owned. */
+  this->decrement_reference();
+
+  /* Create a copy of the object. */
+  an_allocation allocation = this->allocator.alloc(1);
+  this->ctrl_block = (a_control_block*)allocation.start;
+  new (this->ctrl_block) a_control_block{other, /*ref_counter=*/1};
+  return *this;
+}  /* Shared_obj::operator= */
+
+
+template<typename an_Object, template<typename> class Allocator>
+auto Shared_obj<an_Object, Allocator>::operator=(an_Object &&other)
+                                                            -> a_shared_object&
+/*
+Move other to *this, then return *this.
+*/
+{
+  /* Decrement the reference count of the control block currently owned. */
+  this->decrement_reference();
+
+  /* Move construct the object. */
+  an_allocation allocation = this->allocator.alloc(1);
+  this->ctrl_block = (a_control_block*)allocation.start;
+  new (this->ctrl_block) a_control_block{move_from(&other), /*ref_counter=*/1};
+  return *this;
+}  /* Shared_obj::operator= */
+
+
+template<typename an_Object, template<typename> class Allocator>
+auto Shared_obj<an_Object, Allocator>::operator=(const a_shared_object &other)
+                                                            -> a_shared_object&
+/*
+Move copy other to *this, then return *this.
+*/
+{
+  if (this != &other) {
+    /* Increase the reference count of the control block being copied. */
+    other.increment_reference();
+    /* Decrement the reference count of the control block currently owned. */
+    this->decrement_reference();
+    /* Update the allocator and control block. */
+    this->allocator = other.allocator;
+    this->ctrl_block = other.ctrl_block;
+  }  /* if */
+  return *this;
+}  /* Shared_obj::operator= */
+
+
+template<typename an_Object, template<typename> class Allocator>
+auto Shared_obj<an_Object, Allocator>::operator=(a_shared_object &&other)
+                                                            -> a_shared_object&
+/*
+Move other to *this, then return *this.
+*/
+{
+  /* An unconditional swap is faster than managing reference counts here. */
+  swap_at(&this->allocator, &other.allocator);
+  swap_at(&this->ctrl_block, &other.ctrl_block);
+  return *this;
+}  /* Shared_obj::operator= */
+
+
+template<typename an_Object, template<typename> class Allocator>
+auto Shared_obj<an_Object, Allocator>::ptr() const -> an_object*
+/*
+Return a pointer to the shared object or NULL if this is the default (empty)
+Shared_obj state.
+*/
+{
+  an_object *result = NULL;
+
+  if (this->ctrl_block != NULL) {
+    return &this->ctrl_block->object;
+  }  /* if */
+  return result;
+}  /* Shared_obj::ptr */
+
+
+template<typename an_Object, template<typename> class Allocator>
+void Shared_obj<an_Object, Allocator>::increment_reference() const
+/*
+If a reference to the shared object is currently present, increment it.
+
+Note this is used to increment a control block owned by the "other" object
+during copy assignment.  Thus, while it modifies the object in some sense,
+it's allowed on const objects.
+*/
+{
+  if (this->ctrl_block != NULL) {
+    ++(this->ctrl_block->ref_counter);
+  }  /* if */
+}  /* Shared_obj::increment_reference */
+
+
+template<typename an_Object, template<typename> class Allocator>
+void Shared_obj<an_Object, Allocator>::decrement_reference()
+/*
+If a reference to the shared object is currently present, decrement its
+counter.  If the counter hits 0, the object will be deallocated.
+*/
+{
+  /* Disable the GCC maybe uninitialized warning which may falsely flag
+     the control block as being uninitialized in some contexts. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+  if (this->ctrl_block != NULL) {
+    if ((--(this->ctrl_block->ref_counter)) == 0) {
+      an_allocation allocation{this->ctrl_block, sizeof(a_control_block)};
+
+      destroy(this->ctrl_block);
+      this->allocator.dealloc(allocation);
+      this->ctrl_block = NULL;
+    }  /* if */
+  }  /* if */
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+}  /* Shared_obj::decrement_reference */
+
+
+template<typename an_Object,
+         template<typename> class Allocator_A,
+         template<typename> class Allocator_B>
+INLINE a_boolean operator==(const Shared_obj<an_Object, Allocator_A> &obj_a,
+                            const Shared_obj<an_Object, Allocator_B> &obj_b)
+/*
+Return TRUE if the given shared object values are equal; otherwise, return
+FALSE.
+*/
+{
+  return obj_a.ptr() == obj_b.ptr();
+}  /* operator== */
+
+
+template<typename an_Object,
+         template<typename> class Allocator_A,
+         template<typename> class Allocator_B>
+INLINE a_boolean operator!=(const Shared_obj<an_Object, Allocator_A> &obj_a,
+                            const Shared_obj<an_Object, Allocator_B> &obj_b)
+/*
+Return TRUE if the given shared object values are not equal; otherwise, return
+FALSE.
+*/
+{
+  return !(obj_a == obj_b);
+}  /* operator!= */
+
+
+template<typename an_Object, typename ...an_Arg_pack>
+INLINE Shared_obj<an_Object> shared_obj(an_Arg_pack&& ...args)
+/*
+Convenience function to create a shared pointer to an object allocated in
+front-end memory.
+*/
+{
+  return Shared_obj<an_Object>(typename Shared_obj<an_Object>::an_allocator(),
+                               fwd<an_Arg_pack>(args)...);
+}  /* shared_obj */
+
 
 template<typename an_Object>
 INLINE an_Object min_val(const an_Object &x,
