@@ -1252,9 +1252,16 @@ handle_next_entry:
             break;
           case tk_typeref:
             walk_ptr(eptr->variant.typeref.type, a_type_ptr, iek_type);
-            walk_ptr(eptr->variant.typeref.extra_info,
-                     a_typeref_type_supplement_ptr,
-                     iek_typeref_type_supplement);
+#if NEEDED_FLAG_WALK
+            /* A decltype operand should not be marked as needed. */
+            if (eptr->variant.typeref.kind != trk_is_decltype) {
+#endif /* NEEDED_FLAG_WALK */
+              walk_ptr(eptr->variant.typeref.extra_info,
+                       a_typeref_type_supplement_ptr,
+                       iek_typeref_type_supplement);
+#if NEEDED_FLAG_WALK
+            }  /* if */
+#endif /* NEEDED_FLAG_WALK */
 #if DO_IL_LOWERING
 #if KEEP_IN_IL_WALK
             walk_ptr(eptr->variant.typeref.orig_type, a_type_ptr, iek_type);
