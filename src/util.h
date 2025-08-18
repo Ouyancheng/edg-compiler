@@ -1543,7 +1543,10 @@ struct Dyn_array: private Allocator<an_Elem> {
   INLINE void remove(size_t i);
   INLINE void remove_many(size_t i, size_t num_elements);
   template<typename a_Predicate>
-  INLINE void remove_if(a_Predicate predicate_fn);
+  INLINE void remove_if(size_t i, a_Predicate predicate_fn);
+  template<typename a_Predicate>
+  INLINE void remove_if(a_Predicate predicate_fn)
+    { this->remove_if(0, predicate_fn); }
   INLINE void clear();
   INLINE void resize(size_t new_n, const an_elem  &value);
   INLINE void reserve(size_t);
@@ -1993,7 +1996,8 @@ subsequent values (if any) are first moved by the number of copies back.
 
 template<typename an_Elem, template<typename> class Allocator>
 template<typename a_Predicate>
-void Dyn_array<an_Elem, Allocator>::remove_if(a_Predicate predicate_fn)
+void Dyn_array<an_Elem, Allocator>::remove_if(size_t      i,
+                                              a_Predicate predicate_fn)
 /*
 Given a predicate function that accepts a value of an_Elem type and returns a
 boolean, apply the predicate function to all elements and remove any elements
@@ -2003,7 +2007,7 @@ where the function returns TRUE.
   an_elem *arr_elems = this->elems;
   size_t  num_removed = 0;
 
-  for (size_t i = 0; i < this->n_elems; ++i) {
+  for (; i < this->n_elems; ++i) {
     if (predicate_fn(arr_elems[i])) {
       ++num_removed;
       destroy(&arr_elems[i]);
