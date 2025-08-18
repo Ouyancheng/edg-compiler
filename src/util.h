@@ -552,6 +552,42 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* swap_at */
 
 
+/*
+This type can be used to reverse a random access iterator.
+*/
+template<typename a_Base_iter>
+struct Reverse_iter {
+  using an_iterator = Reverse_iter<a_Base_iter>;
+
+  Reverse_iter(a_Base_iter it)
+    : base_it(it)
+    {}
+
+  auto operator*() -> decltype(*a_Base_iter())
+    { return *(this->base_it); }
+
+  an_iterator& operator++()
+    { --this->base_it; return *this; }
+  an_iterator& operator--()
+    { ++this->base_it; return *this; }
+
+  an_iterator operator+(int adjustment)
+    { an_iterator tmp = *this; tmp.base_it - adjustment; return tmp; }
+  an_iterator operator-(int adjustment)
+    { an_iterator tmp = *this; tmp.base_it + adjustment; return tmp; }
+
+  a_boolean operator==(an_iterator other)
+    { return this->base_it == other.base_it; }
+  a_boolean operator!=(an_iterator other)
+    { return !(*this == other); }
+
+  a_Base_iter base() const
+    { return this->base_it; }
+private:
+  a_Base_iter   base_it;
+                        /* The underlying iterator that's being reversed. */
+};  /* Reverse_iter */
+
 template<typename an_Object>
 void reverse_array(an_Object  *arr,
                    size_t     length)
@@ -6305,6 +6341,22 @@ struct Seq_comparator<an_Elem_a*, an_Elem_b*, Allocator>:
                               Allocator>;
   using a_base_type::a_base_type;
 };  /* Seq_comparator */
+
+
+template<typename a_Forward_iterator>
+INLINE sizeof_t distance(a_Forward_iterator begin,
+                         a_Forward_iterator end)
+/*
+Return the number of elements in the range [begin, end).
+*/
+ {
+  sizeof_t result = 0;
+
+  for (; begin != end; ++begin) {
+    ++result;
+  }  /* for */
+  return result;
+}  /* distance */
 
 
 template<typename a_Linked_list_type, typename a_Predicate>
