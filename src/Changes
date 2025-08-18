@@ -1,32 +1,30 @@
 Version 6.8
 
 8/15/25  [EDGcpfe/28399]
-C++generating back end: address constant expressions in template arguments
+C++-generating back end: address constant expressions in template arguments
 
 The C++-generating back end sometimes put out address constant expressions
 appearing as non-type template arguments in an incorrect form, resulting in
 code that could not be compiled successfully.  This is now fixed.  For
 example, with --c++20:
 
-    template <int* p> class X {};
-    struct S {
-     int m;
-     int n;
-    };
-    extern S s;
-    constexpr S* ps = &s;
-    X<&ps[0].m> non_static_member2;
-    X<&ps[0].n> non_static_member3;
-    template <class T> void f();
-    void f() {
-      f<X<&ps[0].m>>();
-      f<X<&ps[0].n>>();
-    }
+  template <int* p> struct X { };
+  struct S {
+    int m;
+    int n;
+  };
+  extern S s;
+  constexpr S *ps = &s;
+  X<&ps[0].m> xsm;
+  X<&ps[0].n> xsn;
+  template <class T> void f();
+  void f() {
+    f<X<&ps[0].m>>();  // Previously generated as "X<&s>"
+    f<X<&ps[0].n>>();  // Previously generated as "X<(int*)(((char*)&s)+4)>"
+  }
 
-The template arguments in the body of the function were previously
-generated as "X<&s>" and "X<(int*)(((char*)&s) + 4)>", respectively.  The
-original source forms of the template arguments are now preserved in the
-generated code.
+The original source forms of those template arguments are now preserved in
+the generated code.
 
 
 8/14/25  [EDGcpfe/28392]
