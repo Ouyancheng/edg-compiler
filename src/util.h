@@ -2000,8 +2000,8 @@ void Dyn_array<an_Elem, Allocator>::remove_if(size_t      i,
                                               a_Predicate predicate_fn)
 /*
 Given a predicate function that accepts a value of an_Elem type and returns a
-boolean, apply the predicate function to all elements and remove any elements
-where the function returns TRUE.
+boolean, apply the predicate function to all elements (starting from the given
+index) and remove any elements where the function returns TRUE.
 */
 {
   an_elem *arr_elems = this->elems;
