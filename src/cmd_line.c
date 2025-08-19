@@ -9778,6 +9778,11 @@ file.
 #else /* !defined(TARG_SIZE_T_INT_KIND) */
   comment_undefined_macro_name(TARG_SIZE_T_INT_KIND);
 #endif /* defined(TARG_SIZE_T_INT_KIND) */
+#if defined(TARG_SIZE_T_MAX)
+  define_string_valued_macro(TARG_SIZE_T_MAX);
+#else /* !defined(TARG_SIZE_T_MAX) */
+  comment_undefined_macro_name(TARG_SIZE_T_MAX);
+#endif /* defined(TARG_SIZE_T_MAX) */
 #if defined(TARG_SSIZE_T_INT_KIND)
   define_string_valued_macro(TARG_SSIZE_T_INT_KIND);
 #else /* !defined(TARG_SSIZE_T_INT_KIND) */
