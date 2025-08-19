@@ -89,7 +89,7 @@ In Clang C++ mode with clang_version >= 190000, the front end now supports the
 type trait helper __is_bitwise_cloneable.
 
 
-8/8/25   [EDGcpfe/21246,EDGcpfe/24784,EDGcpfe/25500]
+8/8/25   [EDGcpfe/21022,EDGcpfe/21246,EDGcpfe/24784,EDGcpfe/25500]
 Handling of captures in a lambda header
 
 The C++ standardization paper P2579R0 (and its predecessor, P2036R3) changes
