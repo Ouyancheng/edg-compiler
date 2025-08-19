@@ -2387,10 +2387,6 @@ may be used.
     /* Update the IL header to reflect the information in the PCH file. */
     pch_fixup_part_1();
   }  /* if */
-  if (f_pch_input != NULL) {
-    (void)fclose(f_pch_input);
-    f_pch_input = NULL;
-  }  /* if */
   db_exit();
 }  /* restore_precompiled_header_information */
 
