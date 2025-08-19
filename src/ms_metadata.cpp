@@ -1265,8 +1265,8 @@ Append the generic arguments to the qualified name.
 */
 {
   check_assertion(!empty());
-  check_assertion(distance(generic_arguments_begin,
-                           generic_arguments_end) > 0);
+  check_assertion(std::distance(generic_arguments_begin,
+                                generic_arguments_end) > 0);
   generic_arguments_offset_ = name_.length();
   name_ += L'<';
   for (auto iter = generic_arguments_begin;
@@ -4988,8 +4988,8 @@ Open or close namespace scopes to set the current namespace to namespace_name.
       auto new_component_end = (new_separators_iter == new_separators_end)
                                        ? new_name_end
                                        : new_name_begin + *new_separators_iter;
-      if (distance(old_name_iter, old_component_end) !=
-                                 distance(new_name_iter, new_component_end) ||
+      if (std::distance(old_name_iter, old_component_end) !=
+                            std::distance(new_name_iter, new_component_end) ||
           !equal(old_name_iter, old_component_end, new_name_iter)) {
         /* The namespaces differ. */
         break;
@@ -8548,7 +8548,7 @@ public:
       auto assembly_name_begin = find_if(comma_iter + 1, type_name_end,
                                        [](wchar_t ch) { return ch != L' '; });
       assembly_name = wstring(assembly_name_begin, type_name_end);
-      type_name.resize(distance(type_name_begin, comma_iter));
+      type_name.resize(std::distance(type_name_begin, comma_iter));
     }  /* if */
     check_assertion(!type_name.empty());
     a_const_assembly_ptr     resolved_assembly = nullptr;
