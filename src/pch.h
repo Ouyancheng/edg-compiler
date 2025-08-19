@@ -287,7 +287,7 @@ extern void pch_init(void);
 extern void pch_early_init(void);
 
 #if MAKE_FRONT_END_CALLABLE
-extern void pch_cleanup(void);
+extern void pch_late_cleanup(void);
 #endif /* MAKE_FRONT_END_CALLABLE */
 
 #if DEBUG

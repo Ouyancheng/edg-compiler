@@ -904,13 +904,20 @@ memory used by the compilation.
   close_il_output_file();
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   error_cleanup();
-  pch_cleanup();
   lexical_cleanup();
   modules_cleanup();
 #if CPPCLI_ENABLING_POSSIBLE
   if (cli_or_cx_enabled) ms_metadata_cleanup();
 #endif /* CPPCLI_ENABLING_POSSIBLE */
   mem_manage_wrapup();
+  /* It's important that this is called after mem_manage_wrapup.
+
+     Older versions of the Linux kernel require the file backing a mmap
+     operation remain open.  Since the precompile header implementation loads a
+     variety of memory mappings from f_pch_input, f_pch_input must NOT be
+     closed prior to memory management wrapup (or else odd segfaults will
+     occur on older systems). */
+  pch_late_cleanup();
   /* This should remain the final cleanup operation. */
   error_late_cleanup();
 }  /* fe_cleanup */

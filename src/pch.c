@@ -2563,7 +2563,7 @@ This is done before command line processing.
 
 #if MAKE_FRONT_END_CALLABLE
 
-void pch_cleanup(void)
+void pch_late_cleanup(void)
 /*
 This routine is called at the end of compilation, or if compilation is
 terminated prematurely for some reason.  It performs any cleanup operations
@@ -2573,7 +2573,7 @@ the point at which the compilation was terminated.
 {
   close_file_if_open(&f_pch_input);
   close_file_if_open(&f_pch_output);
-}  /* pch_cleanup */
+}  /* pch_late_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 
