@@ -2499,7 +2499,6 @@ Initialize variables used by the precompiled header routines.
 #endif /* DEBUG */
   initialize_pch_id_string();
   cannot_do_pch_processing = FALSE;
-  cannot_create_pch_file = FALSE;
   pch_event_list_head = NULL;
   pch_event_list_tail = NULL;
   pch_file_name = NULL;
@@ -2552,6 +2551,7 @@ One time initialization that must take place early on in the front end.
 This is done before command line processing.
 */
 {
+  cannot_create_pch_file = FALSE;
   num_of_saved_variable_lists = 0;
   pch_cmd_line_event_list_head = NULL;
   pch_cmd_line_event_list_tail = NULL;
