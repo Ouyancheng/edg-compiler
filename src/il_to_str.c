@@ -499,8 +499,11 @@ Output the indicated template argument in the way described by octl.
       /* Type argument. */
       { a_type_ptr                    tp = tap->variant.type;
         a_routine_type_supplement_ptr rtsp = NULL;
-        if (is_immediate_class_type(tp) &&
-            tp->variant.class_struct_union.proxy_class) {
+        if (tp == NULL) {
+          octl->output_str(error_text(ec_undetermined_type), octl);
+          break;
+        } else if (is_immediate_class_type(tp) &&
+                   tp->variant.class_struct_union.proxy_class) {
           /* Use the original dependent type and not the nonreal proxy
              class for the display.  This matters in cases where the type
              has a template argument list, which would not appear if the
@@ -547,6 +550,8 @@ Output the indicated template argument in the way described by octl.
              end only). */
           check_assertion(!octl->gen_compilable_code);
           octl->output_str("<expression>", octl);
+        } else if (con == NULL) {
+          octl->output_str(error_text(ec_undetermined_constant), octl);
         } else {
           a_boolean        need_parens, saved_local_expr_ref;
           an_expr_node_ptr expr;
@@ -660,7 +665,11 @@ Output the indicated template argument in the way described by octl.
       break;
     case tak_template:
       /* A template template argument. */
-      form_template(tap->variant.templ.ptr, octl);
+      if (tap->variant.templ.ptr == NULL) {
+        octl->output_str(error_text(ec_undetermined_template), octl);
+      } else {
+        form_template(tap->variant.templ.ptr, octl);
+      }  /* if */
       break;
     case tak_start_of_pack_expansion:
       break;
