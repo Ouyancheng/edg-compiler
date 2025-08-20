@@ -126,7 +126,7 @@ extern void track_allocation(a_memory_region_number region_number,
 #endif /* DEBUG */
 
 
-inline char *alloc_in_region(a_memory_region_number region_number,
+INLINE char *alloc_in_region(a_memory_region_number region_number,
                              sizeof_t               size)
 /*
 Allocate "size" bytes in memory region "region_number", and return a
@@ -240,8 +240,8 @@ is used for allocation of general front end memory (i.e., not IL).
 }  /* alloc_in_region */
 
 
-inline a_void_ptr alloc_general_or_in_region(a_memory_region_number region,
-                                              sizeof_t              size)
+INLINE a_void_ptr alloc_general_or_in_region(a_memory_region_number region,
+                                             sizeof_t               size)
 /*
 Allocate either general memory or memory from a memory region.  If
 "region" is NO_MEMORY_REGION_NUMBER, general memory is used.  Otherwise,
@@ -397,8 +397,8 @@ free_fe_var_size function should be used to free it.
 }  /* alloc_fe_var_size */
 
 
-template<typename T> inline
-T* alloc_fe(void)
+template<typename T>
+INLINE T* alloc_fe(void)
 /*
 Function to allocate front end memory for an entry of the given type.  This is
 similar to the older macro "alloc_fe_of_type" (see below), but it handles type
@@ -409,7 +409,7 @@ names containing commas (e.g., "alloc_fe<Ptr_map<int, bool>>()").
 }  /* alloc_fe */
 
 
-inline void free_fe(a_void_ptr   ptr,
+INLINE void free_fe(a_void_ptr   ptr,
                     sizeof_t     size)
 /*
 Free the block of memory (allocated by alloc_fe) pointed to by ptr of the
@@ -429,7 +429,7 @@ specified size.  The block is recorded for possible reuse later.
 }  /* free_fe */
 
 
-inline void free_fe_var_size(a_void_ptr   ptr,
+INLINE void free_fe_var_size(a_void_ptr   ptr,
                              sizeof_t     size)
 /*
 Free the block of memory (allocated by alloc_fe_var_size) pointed to by ptr of
@@ -449,7 +449,8 @@ the specified size.  The block is recorded for possible reuse later.
 }  /* free_fe_var_size */
 
 
-template<typename a_Type> inline void free_fe(a_Type *ptr)
+template<typename a_Type>
+INLINE void free_fe(a_Type *ptr)
 /*
 Free an entry in front end storage of type a_Type.
 */
