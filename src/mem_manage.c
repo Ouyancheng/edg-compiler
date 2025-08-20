@@ -659,11 +659,7 @@ a smaller-sized block.  Return a pointer to the block header.
       alloc_size = (sizeof_t)(hdr->after_end_of_block - hdr->start_of_block) +
                    adjusted_header_size;
       if (alloc_size >= needed_size) {
-        if (hdr->start_of_block == desired_addr ||
-            (hdr_found == NULL &&
-             /* Don't waste a large available block as an extension for
-                a memory region, because we are unlikely to use it up. */
-             (!small_extension || alloc_size <= default_size))) {
+        if (hdr->start_of_block == desired_addr || hdr_found == NULL) {
            /* We've found a candidate, or if this is the desired address,
               we've found a definite match.  Save a pointer to this block */
            hdr_found = hdr;
@@ -1825,9 +1821,8 @@ allocations in any memory region.
     if (hdr->start_of_block == ptr) {
       a_mem_block_header_ptr next_hdr = hdr->next;
 
-      /* Recycle the block. */
-      hdr->next = reusable_blocks_list;
-      reusable_blocks_list = hdr;
+      /* Free the block. */
+      free_mem_block(hdr);
 #if CHECKING
       block_found = TRUE;
 #endif /* CHECKING */

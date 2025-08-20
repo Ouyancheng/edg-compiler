@@ -161,10 +161,15 @@ is used for allocation of general front end memory (i.e., not IL).
 
   sizeof_t  true_size = size + HOST_ALIGNMENT_REQUIRED;
   a_boolean use_dedicated_mem_block = true_size >= HUGE_FE_MEM_THRESHOLD;
+  a_boolean small_extension = FALSE;
+  a_boolean region_trimmed = hdr->trimmed;
   if (use_dedicated_mem_block) {
     /* If above the HUGE_FE_MEM_THRESHOLD, a dedicated memory region header is
-       created. */
+       created.  This uses the small extension logic so that the minimum memory
+       region size (if a new allocation is require) is not
+       HOST_ALLOCATION_INCREMENT. */
     trim_mem_block(hdr);
+    small_extension = TRUE;
     hdr = alloc_mem_block(region_number, true_size, (char*)NULL,
                           /*small_extension=*/TRUE);
   } else {
@@ -180,8 +185,10 @@ is used for allocation of general front end memory (i.e., not IL).
          If the memory region has already been trimmed, allocate only a
          small extension.  This comes up when per-instantiation needed flag
          entries are added to a function after it has been trimmed. */
-      a_boolean small_extension = hdr->trimmed && FALSE;
-      if (!small_extension) trim_mem_block(hdr);
+      small_extension = region_trimmed;
+      if (!hdr->trimmed) {
+        trim_mem_block(hdr);
+      }  /* if */
       hdr = alloc_mem_block(region_number, true_size,
                             (char *)NULL, small_extension);
     }  /* if */
@@ -189,11 +196,36 @@ is used for allocation of general front end memory (i.e., not IL).
   /* Take the required space out of the current block. */
   temp_ptr = hdr->next_avail_in_block;
   hdr->next_avail_in_block += size;
+  if (small_extension) {
+    sizeof_t remaining_space = (sizeof_t)(hdr->after_end_of_block -
+                                          hdr->next_avail_in_block);
+
+    if (remaining_space >= HUGE_FE_MEM_THRESHOLD) {
+      /* This case should show up rarely outside of configurations where
+         USE_MMAP_FOR_MEMORY_REGIONS is FALSE.  However, in configurations
+         where USE_MMAP_FOR_MEMORY_REGIONS is TRUE, this pruning is essential
+         so as to not waste large amounts of memory (because any allocation
+         performed while precompiled_header_processing is TRUE has a minimum
+         size of HOST_ALLOCATION_INCREMENT to prevent spuriously terminating
+         PCH processing). */
+      trim_mem_block(hdr);
+      /* Future blocks in this memory region will be allocated as small
+         extensions if this header is marked as trimmed.  If the original
+         header was not trimmed, reset this header's trimmed state so memory
+         region allocation doesn't allocate small blocks going forward. */
+      hdr->trimmed = region_trimmed;
+    }  /* if */
+  }  /* if */
   if (use_dedicated_mem_block) {
     /* If forming a dedicated memory region header, consume the rest of the
-       block now that the memory has been taken from it to make sure nothing
-       else is allocated into the same memory region header.  This allows the
-       code in free_fe to act appropriately. */
+       block now that the memory has been taken from it.  If this is not done
+       (despite the trim above) some bytes may remain "available" in the memory
+       region header (which would then be used during the next call to this
+       function for the current memory region number).
+
+       Preventing these unexpected secondary uses of the memory region header's
+       associated memory block allows the code in free_fe_huge to work as
+       intended (reclaiming the block in its entirety). */
     hdr->next_avail_in_block = hdr->after_end_of_block;
   }  /* if */
 #if DEBUG
