@@ -24,16 +24,16 @@ util.h -- General utility components (mostly templates).
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-char *alloc_fe(sizeof_t size);
+inline char *alloc_fe(sizeof_t size);
 
-char *alloc_fe_var_size(sizeof_t size,
-                        sizeof_t *actual_size);
+inline char *alloc_fe_var_size(sizeof_t size,
+                               sizeof_t *actual_size);
 
-void free_fe(a_void_ptr   ptr,
-             sizeof_t     size);
+inline void free_fe(a_void_ptr   ptr,
+                    sizeof_t     size);
 
-void free_fe_var_size(a_void_ptr   ptr,
-                      sizeof_t     size);
+inline void free_fe_var_size(a_void_ptr ptr,
+                             sizeof_t   size);
 
 extern char *alloc_general(sizeof_t size);
 
