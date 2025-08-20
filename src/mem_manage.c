@@ -723,6 +723,13 @@ a smaller-sized block.  Return a pointer to the block header.
     /* When using mmap, make sure the size is a multiple of the host
        page size. */
     alloc_size = do_page_alignment(alloc_size);
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+    /* When not using mmap all allocations must match the
+       HOST_ALLOCATION_INCREMENT otherwise the memory allocation history will
+       not be processed properly. */
+    if (alloc_size < HOST_ALLOCATION_INCREMENT) {
+      alloc_size = HOST_ALLOCATION_INCREMENT;
+    }  /* if */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     alloc_addr = alloc_new_mem_block(alloc_size);
   } else {
