@@ -1,5 +1,20 @@
 Version 6.8
 
+8/20/25  [EDGcpfe/28407]
+GNU/clang compatibility: bit pattern for signaling NaNs
+
+The IEEE floating point standard does not fully specify the bit pattern for
+a signaling NaN.  The values previously produced by the front end for
+signaling NaNs by __builtin_nan* functions invoked with an empty string
+operand were valid but were different from those produced by the GNU and
+clang implementations.  The front end has now been revised to produce the
+same bit patterns as GNU and clang for these builtin functions.  For
+example, with --c++20 --gnu_version=110400:
+
+  #include <bit>
+  static_assert(std::bit_cast<unsigned>(__builtin_nansf("")) == 0x7fa00000);
+
+
 8/20/25  [EDGcpfe/28398]
 Abort during diagnostic involving undetermined type
 

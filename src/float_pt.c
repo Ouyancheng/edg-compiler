@@ -1515,8 +1515,13 @@ float and 11 bits for _Float16).
 
   /* Generate a positive NaN bit pattern. */
   if (signaling && !microsoft_bugs) {
+    /* The exponent has all 1s and the most significant bit of the mantissa
+       is 0 to indicate a signaling NaN.  The rest of the mantissa
+       ("payload") will be set below. */
     u.u32 = 0x7f800000;
   } else {
+    /* The exponent is all 1s and the most significant bit of the mantissa
+       is 1 to indicate a quiet Nan. */
     u.u32 = 0x7fc00000;
   }  /* if */
   memzero((char *)value, sizeof(an_internal_float_value));
@@ -1530,17 +1535,10 @@ float and 11 bits for _Float16).
     fp_change_kind(value, (a_float_kind)fk_float, value, kind,
                    &err, &fp_mode_dependent);
   }  /* if */
-  if (mantissa == 0 && signaling) {
-    /* A signaling NaN must have a non-zero mantissa.  GNU seems to set the
-       second highest-order mantissa bit in each case, but we just set the
-       lowest order bit (because the code below only handles the low-order
-       32 bits). */
-    mantissa = 1;
-  }  /* if */
   if (mantissa != 0) {
-    /* Set the mantissa portion of the floating-point value to the value in
-       mantissa.  This code only sets the low-order 32-bits (or 23 in the case
-       of a float type). */
+    /* Set the mantissa portion of the floating-point value to the specified
+       payload.  This code only sets the low-order 32 bits (23 bits in the
+       case of a float type and 11 for _Float16). */
     an_fp_value_part *part, val;
     a_targ_size_t    size;
     /* Pointer to the first word. */
@@ -1590,6 +1588,36 @@ float and 11 bits for _Float16).
       val = mantissa;
     }  /* if */
     (void)memcpy((char*)part, (char*)&val, sizeof(val));
+  } else if (signaling) {
+    /* The mantissa of a NaN must be non-zero to distinguish it from an
+       infinity.  If no explicit payload is specified, GNU and clang set
+       the bit following the most significant bit of the mantissa to 1.
+       Set byte_no and bit to designate the requisite bit in the result
+       value and then set that bit to 1. */
+    int           byte_no;
+    unsigned char bit;
+#if HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT
+    if (kind_is_binary16(kind)) {
+      byte_no = host_little_endian ? 1 : 0;
+      bit = 0x01;
+    } else
+#endif /* HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT */
+    /* Do not insert code here. */
+    if (kind_is_16bit(kind) || kind == fk_float || kind == fk_std_float32) {
+      byte_no = host_little_endian ? 2 : 1;
+      bit = 0x20;
+    } else if (repr_is_double(kind)) {
+      byte_no = host_little_endian ? 6 : 1;
+      bit = 0x04;
+    } else if (num_mantissa_bits[(int)kind] == 64) {
+      byte_no = host_little_endian ? 7 : 2;
+      bit = 0x20;
+    } else {
+      check_assertion(num_mantissa_bits[(int)kind] == 113);
+      byte_no = host_little_endian ? 13 : 2;
+      bit = 0x40;
+    }  /* if */
+    value->bytes[byte_no] |= bit;
   }  /* if */
   return !err && !fp_mode_dependent;
 }  /* make_fp_nan */
