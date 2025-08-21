@@ -6622,6 +6622,12 @@ type.
   }  /* if */
   node = make_node_from_operand(operand);
   make_template_param_expr_constant(node, result_con);
+  if (expr_stack->possible_rescan_context) {
+    /* Save rescan info if we may rescan this constant later. */
+    result_con->rescan_info = save_operand_info_in_rescan_info_entry(
+                                          operand,
+                                          (an_expr_rescan_info_entry_ptr)NULL);
+  }  /* if */
 }  /* make_template_param_constant_from_operand */
 
 

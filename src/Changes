@@ -1,5 +1,14 @@
 Version 6.8
 
+8/21/25  [EDGcpfe/28088,EDGcpfe/28173]
+Abort in transfer_arg_operand_for_template_arg during substitution
+
+In somewhat complex cases the front end failed an assertion check in
+transfer_arg_operand_for_template_arg (in expr.c) because some information
+needed to perform expression substitution had not been recorded as needed.
+That is now fixed.
+
+
 8/20/25  [EDGcpfe/28407]
 GNU/clang compatibility: bit pattern for signaling NaNs
 

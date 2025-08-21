@@ -9448,7 +9448,7 @@ be called from outside of the expression processing routines.
 */
 {
   if (is_nontype_templ_arg(tap) && !tap->is_array_bound_of_unknown_type) {
-    an_operand_ptr                operand;
+    an_operand_ptr  operand;
     check_assertion(is_nontype_templ_arg(orig_tap) &&
                     !orig_tap->is_array_bound_of_unknown_type);
     check_assertion(tap->arg_operand == NULL);
@@ -9458,16 +9458,17 @@ be called from outside of the expression processing routines.
     if (cpp11_sfinae_enabled) {
       an_expr_rescan_info_entry_ptr eriep =
                                        orig_tap->variant.constant->rescan_info;
-      check_assertion_str(eriep != NULL,
-                          "missing rescan info on explicit template argument");
-      restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
-      if (expr_stack != NULL && expr_stack->possible_rescan_context) {
-        /* For a constant that may be rescanned to do semantic analysis later
-           for template deduction, save extra information from the operand. */
-        a_constant_ptr  constant = tap->variant.constant;
-        constant->rescan_info = save_operand_info_in_rescan_info_entry(
+      if (eriep != NULL) {
+        restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
+        if (expr_stack != NULL && expr_stack->possible_rescan_context) {
+          /* For a constant that may be rescanned to do semantic analysis
+             later for template deduction, save extra information from the
+             operand. */
+          a_constant_ptr  constant = tap->variant.constant;
+          constant->rescan_info = save_operand_info_in_rescan_info_entry(
                                                         operand,
                                                         constant->rescan_info);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
