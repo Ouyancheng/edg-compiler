@@ -106,8 +106,7 @@ extern char *realloc_buffer(char     *old_ptr,
                             sizeof_t new_size);
 
 constexpr sizeof_t
-		HUGE_FE_MEM_THRESHOLD = (sizeof(a_mem_block_header) +
-					  (10 * sizeof(a_constant)));
+		HUGE_FE_MEM_THRESHOLD = (sizeof(a_mem_block_header) + 2048);
 			/* The amount of bytes before a front end allocation is
 			   considered a huge allocation. */
 

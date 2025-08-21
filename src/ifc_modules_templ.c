@@ -17,9 +17,10 @@ ifc_modules_templ.c -- Shared IFC module template definitions and
 
 #include "basic_hdrs.h"
 #include "checking.h"
+#include "error.h"
 #include "header_util.h"
 #include "util.h"
-#include "error.h"
+#include "mem_manage.h"
 #include "ifc_map.h"
 #include "ifc_map_functions.h"
 #include "ifc_modules_internal.h"
