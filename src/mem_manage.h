@@ -124,6 +124,12 @@ extern void track_allocation(a_memory_region_number region_number,
                              sizeof_t               orig_size);
 #endif /* DEBUG */
 
+#if !STANDALONE_UTILITY_PROGRAM
+#ifdef TRACE_ALLOC
+extern void trace_alloc_check(void *ptr);
+#endif /* TRACE_ALLOC */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 
 INLINE char *alloc_in_region(a_memory_region_number region_number,
                              sizeof_t               size)
