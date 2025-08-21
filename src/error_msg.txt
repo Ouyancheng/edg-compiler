@@ -3569,6 +3569,9 @@ ec_lambda_cannot_refer_to_local_entity_here;;"a lambda cannot refer to a local v
 ec_parameter_capture_conflict;;"a lambda parameter cannot hide an explicit capture"
 ec_template_parameter_capture_conflict;;"a lambda template parameter cannot hide an explicit capture"
 ec_insufficient_address_space;;"insufficient address space exists to process this translation unit"
+ec_undetermined_type;;"<undetermined type>"
+ec_undetermined_constant;;"<undetermined constant>"
+ec_undetermined_template;;"<undetermined template>"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
