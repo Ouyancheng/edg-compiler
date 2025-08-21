@@ -15,27 +15,6 @@ example, with --c++20 --gnu_version=110400:
   static_assert(std::bit_cast<unsigned>(__builtin_nansf("")) == 0x7fa00000);
 
 
-8/20/25  [EDGcpfe/28398]
-Abort during diagnostic involving undetermined type
-
-Consider, in C++20 mode:
-
-  template<typename> concept C = false;
-  template<C T> using A = void;
-  struct S {};
-  template<typename T, typename = A<T>, int = 42> void g() {}
-  int main() {
-    g<S>();  // Previously triggered an abort.  Now an ordinary error message.
-  }
-
-Previously, this triggered an abort (a null pointer indirection) while emitting
-a diagnostic (g<S> cannot be called because of a constraint failure).  The
-abort was the consequence of the template argument list for g<S> not being
-fully determined.  That is now fixed: Template arguments that are not yet
-determined are now rendered in a special way (specified in the error_msg.txt
-file).
-
-
 8/19/25  [EDGcpfe/28409]
 Segfault when using PCH files with mmap on old versions of Linux
 
