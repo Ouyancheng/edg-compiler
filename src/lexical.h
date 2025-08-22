@@ -3452,6 +3452,18 @@ extern a_preinclude_file_ptr alloc_preinclude_file(void);
 extern void get_definition_of_class(a_type_ptr	class_type);
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
 
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+extern a_type_ptr make_typeref_with_lexical_information(
+                                              a_type_ptr        tp,
+                                              a_symbol_locator  *locator);
+extern a_hash_value hash_type_and_name_qualifier(a_void_ptr     key);
+extern a_boolean compare_type_and_name_qualifier(a_void_ptr     entry,
+                                                 a_void_ptr     key);
+extern a_hash_value hash_type_and_template_arg_list(a_void_ptr  key);
+extern a_boolean compare_type_and_template_arg_list(a_void_ptr  entry,
+                                                    a_void_ptr  key);
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+
 extern a_hash_value hash_name_reference(a_void_ptr	key);
 extern a_boolean compare_name_reference(a_void_ptr	entry,
 					a_void_ptr	key);

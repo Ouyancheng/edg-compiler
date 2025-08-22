@@ -2125,7 +2125,7 @@ template, add its instances as well in case they may be needed.
   a_boolean  base_is_unknown;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
-  targ_type = type->variant.typeref.type;
+  targ_type = skip_lexical_typerefs(type->variant.typeref.type);
   /* We must suppress the addition of substitutes where the base type is
      a tk_template_param/tptk_unknown type.  Such types can be reused in
      unrelated typedefs and thus can lead to incorrect substitutions. */
@@ -6725,7 +6725,8 @@ put out nothing.
     gen_name_qualifier_list(nqp->previous_qualifier);
     if (nqp->is_class) {
       /* A class qualifier. */
-      a_type_ptr                  class_type = nqp->qualifier.class_type;
+      a_type_ptr                  class_type = skip_lexical_typerefs(
+                                                    nqp->qualifier.class_type);
       a_source_correspondence_ptr scp;
       an_il_entry_kind            kind;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
@@ -14327,7 +14328,7 @@ is_reinterpret_cast indicate it.
     new_cast_keyword = "dynamic_cast";
   }  /* if */
   if (gcc_is_generated_code_target && in_prototype_instantiation_context) {
-    a_type_ptr tp = dest_type;
+    a_type_ptr tp = skip_lexical_typerefs(dest_type);
     while (type_is(tp, tk_pointer) || type_is(tp, tk_array)) {
       if (type_is(tp, tk_pointer)) {
         tp = skip_typerefs_not_typedefs(type_pointed_to(tp));
@@ -22525,7 +22526,7 @@ this one is such a continuation.
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
-    var_type = sec_decl->declared_type;
+    var_type = skip_lexical_typerefs(sec_decl->declared_type);
     if (!var->source_corresp.is_class_member &&
         is_incomplete_array_type(var_type)) {
       /* Microsoft compilers treat "T x[];" as "extern T x[];".  We make the
@@ -22550,7 +22551,7 @@ this one is such a continuation.
     attributes = var->source_corresp.attributes;
     is_definition = TRUE;
     var->definition_has_been_put_out = TRUE;
-    var_type = var->declared_type;
+    var_type = skip_lexical_typerefs(var->declared_type);
 #if GNU_EXTENSIONS_ALLOWED
     marked_as_gnu_extension = var->source_corresp.marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */

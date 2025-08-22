@@ -1410,6 +1410,9 @@ a pointer to it.
   ttsp->expr = NULL;
   ttsp->template_arg_list = NULL;
   ttsp->orig_template_arg_list = NULL;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+  ttsp->name_qualifier = NULL;
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   ttsp->assoc_template = NULL;
   ttsp->proxy_class = NULL;
   ttsp->operator_type_arg = NULL;
@@ -2162,6 +2165,7 @@ to default values.
       pte->variant.typeref.embedded_source_sequence_entries = FALSE;
       pte->variant.typeref.added_to_record_name = FALSE;
       pte->variant.typeref.has_typename_prefix = FALSE;
+      pte->variant.typeref.is_global_qualified_name = FALSE;
       /* Clear size and alignment because they aren't used in typerefs. */
       pte->size = 0;
       pte->alignment = 1;
@@ -5180,6 +5184,7 @@ Initialize the fields of a name reference entry.
   nrp->qualifier = NULL;
   nrp->variant.destructor_type = NULL;
   nrp->num_template_arguments = -1L;
+  nrp->orig_template_arg_list = NULL;
   nrp->special_kind = (a_special_function_kind)sfk_none;
   nrp->is_global_qualified_name = FALSE;
   nrp->is_template_id = FALSE;

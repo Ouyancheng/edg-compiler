@@ -2614,6 +2614,8 @@ do_set_proper_definition_needed_flag:
            because of issues with export creating lists that run between
            translation units. */
         walk_next_ptr(eptr->next, a_name_reference_ptr, iek_name_reference);
+        walk_list(eptr->orig_template_arg_list, a_template_arg_ptr,
+                  iek_template_arg);
         if (eptr->qualifier != NULL) {
           clear_or_walk_name_reference_field(eptr, eptr->qualifier,
                                              a_name_qualifier_ptr,
@@ -3545,6 +3547,10 @@ handle_class_type_supplement_for_class:
           walk_list(eptr->orig_template_arg_list, a_template_arg_ptr,
                     iek_template_arg);
         }  /* if */
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+        walk_list(eptr->name_qualifier, a_name_qualifier_ptr,
+                  iek_name_qualifier);
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
         remap_ptr(eptr->assoc_template, a_template_ptr, iek_template);
         walk_ptr(eptr->expr, an_expr_node_ptr, iek_expr_node);
         walk_ptr(eptr->proxy_class, a_type_ptr, iek_type);

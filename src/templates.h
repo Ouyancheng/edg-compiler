@@ -652,6 +652,11 @@ extern void explicit_instantiation(
                               a_template_decl_options_set options,
                               a_source_position_ptr       directive_start_pos);
 
+extern a_boolean are_template_args_lexically_identical(
+                                             a_template_arg_ptr list1,
+                                             a_template_arg_ptr list2,
+                                             long               num_args = -1);
+
 extern a_symbol_ptr find_template_instantiation(
                                              a_symbol_ptr       template_sym,
                                              a_template_arg_ptr template_args);

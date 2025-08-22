@@ -14235,6 +14235,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                                   /*instantiate_nonreal=*/FALSE,
                                   /*do_not_create=*/FALSE,
                                   /*in_substitution=*/TRUE);
+        free_template_arg_list(t_args);
       }  /* if */
       if (sym == NULL) {
         do_constexpr_fail(result);
@@ -19772,7 +19773,7 @@ given complete object).
   if (type != NULL) {
     a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
     a_constant_ptr       cp = local_constant();
-    make_typeid_constant(type, /*is_cli_typeid*/FALSE, cp);
+    make_typeid_constant(skip_typerefs(type), /*is_cli_typeid*/FALSE, cp);
     cp->next = ips->constants;
     ips->constants = cp;
     clear_runtime_constant_address(cap, cp);

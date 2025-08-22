@@ -21263,6 +21263,7 @@ next_integer_pack_element:
       /* Determine the template argument kind for this parameter. */
       arg_kind = templ_arg_kind_for_symbol_kind(sym->kind);
       arg_ptr = alloc_template_arg(arg_kind);
+      arg_ptr->explicitly_specified = TRUE;
       if (is_type_templ_arg(arg_ptr)) {
         a_boolean	is_unnamed, is_local, is_vla, is_generic;
         a_boolean	is_invalid = FALSE;
@@ -21721,7 +21722,8 @@ type argument.  Return TRUE if it is valid, FALSE otherwise.
     } else {
       rah_type = cli_class_type_for(csk_system_runtime_argument_handle);
     }  /* if */
-    result = !(rah_type != NULL && same_entities(argument_type, rah_type)) &&
+    result = !(rah_type != NULL && same_entities(skip_typerefs(argument_type),
+                                                 rah_type)) &&
              !is_void_type(argument_type);
   } else if (is_template_param_type(argument_type) ||
              is_cli_generic_definition_argument_type(argument_type)) {
@@ -22556,7 +22558,10 @@ a routine to lookup the appropriate instance (or generate one if needed).
              template<class T> struct S { friend void f<>(); };  */
   } else {
     /* Free any allocated template arguments. */
-    if (arg_list != NULL) free_template_arg_list(arg_list);
+    if (arg_list != NULL) {
+      free_template_arg_list(arg_list);
+      arg_list = NULL;
+    }  /* if */
     /* An error occurred while scanning the argument list so make an error
        locator and return a pointer to its specific symbol. */
     make_specific_symbol_error_locator(&locator_for_curr_id);
@@ -22603,14 +22608,20 @@ normal_exit:
   } else {
     locator_for_curr_id = orig_locator;
   }  /* if */
+  /* Don't set the is_template_id field after processing a constructor
+     reference followed by a template argument list in Microsoft mode. */
+  locator_for_curr_id.is_template_id = !is_constructor_reference;
   if (new_sym != NULL) {
     locator_for_curr_id.specific_symbol = new_sym;
     locator_for_curr_id.do_not_clear_specific_symbol = arg_list_coalesced;
     locator_for_curr_id.symbol_header = new_sym->header;
+    if (!record_form_of_name_reference ||
+        !locator_for_curr_id.is_template_id) {
+      free_template_arg_list(arg_list);
+      arg_list = NULL;
+    }  /* if */
+    locator_for_curr_id.template_arg_list = arg_list;
   }  /* if */
-  /* Don't set the is_template_id field after processing a constructor
-     reference followed by a template argument list in Microsoft mode. */
-  locator_for_curr_id.is_template_id = !is_constructor_reference;
   /* Set source position for error reporting. */
   error_position = start_position;
 
@@ -23218,6 +23229,226 @@ by the options.  Returns TRUE if any errors were diagnosed.
   return any_errors;
 }  /* f_check_for_generalized_identifier_errors */
 
+
+static a_hash_value hash_lexical_template_arg_list(a_template_arg_ptr  args)
+/*
+Return a hash value for the indicated template argument list, based on lexical
+equivalence.
+*/
+{
+  a_hash_value  value = 0;
+  for (a_template_arg_ptr tap = args; tap != NULL; tap = tap->next) {
+    value += 31*value + 7*tap->kind;
+    switch (tap->kind) {
+      case tak_type:
+        value += (a_hash_value)hash_ptr(tap->variant.type);
+        break;
+      case tak_nontype:
+        if (tap->is_array_bound_of_unknown_type) {
+          value += (a_hash_value)tap->variant.integer_value;
+        } else {
+          value += (a_hash_value)hash_ptr(tap->variant.constant);
+        }  /* if */
+        break;
+      case tak_template:
+        value += (a_hash_value)hash_ptr(tap->variant.templ.ptr);
+        break;
+      case tak_start_of_pack_expansion:
+        break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+  }  /* for */
+  return value;
+}  /* hash_lexical_template_arg_list */
+
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+
+/*
+Data structure used to represent a pair of a type and a name qualifier.
+*/
+typedef struct a_type_and_name_qualifier {
+  a_type_ptr    type;   /* The type. */
+  a_name_qualifier_ptr
+                name_qualifier;
+                        /* The name qualifier. */
+} a_type_and_name_qualifier;
+
+/*
+Data structure used to represent a pair of a type and a template argument list.
+*/
+typedef struct a_type_and_template_arg_list {
+  a_type_ptr    type;   /* The type. */
+  a_template_arg_ptr
+                template_arg_list;
+                        /* The template argument list. */
+} a_type_and_template_arg_list;
+
+STATIC_THREAD a_hash_table_ptr
+                name_qualifier_typeref_hash_table;
+                        /* A hash table used to find previously created name
+                           qualifiers for a type. */
+
+STATIC_THREAD a_hash_table_ptr
+                template_arg_list_typeref_hash_table;
+                        /* A hash table used to find previously created
+                           template argument lists for a type. */
+
+
+a_hash_value hash_type_and_name_qualifier(a_void_ptr key)
+/*
+Produce a hash value for a type and name qualifier pair.  The key is a pointer
+to a type and name qualifier pair.
+*/
+{
+  a_type_and_name_qualifier
+                *info = (a_type_and_name_qualifier*)key;
+  a_hash_value  value = 31*hash_ptr(info->type) +
+                        hash_ptr(info->name_qualifier);
+  return value;
+}  /* hash_type_and_name_qualifier */
+
+
+a_boolean compare_type_and_name_qualifier(a_void_ptr entry, a_void_ptr key)
+/*
+Compare an entry in the type and name qualifier hash table with an entry to be
+found.  "entry" and "key" are of type pointer to a_type_and_name_qualifier.
+Return TRUE if the key matches the entry.
+*/
+{
+  a_type_and_name_qualifier
+                      *info = (a_type_and_name_qualifier*)key;
+  a_type_ptr          entry_tp = (a_type_ptr)entry;
+  a_boolean           result = info->type == entry_tp->variant.typeref.type &&
+                               info->name_qualifier ==
+                                        typeref_supp(entry_tp)->name_qualifier;
+  return result;
+}  /* compare_type_and_name_qualifier */
+
+
+a_hash_value hash_type_and_template_arg_list(a_void_ptr  key)
+/*
+Produce a hash value for a type and template argument list pair.  The key is a
+pointer to a type and template argument list pair.
+*/
+{
+  a_type_and_template_arg_list
+                *info = (a_type_and_template_arg_list*)key;
+  a_hash_value  value = hash_ptr(info->type);
+  value = 31*value + hash_lexical_template_arg_list(info->template_arg_list);
+  return value;
+}  /* hash_type_and_template_arg_list */
+
+
+a_boolean compare_type_and_template_arg_list(a_void_ptr entry,
+                                             a_void_ptr key)
+/*
+Compare an entry in the type and template argument list hash table with an
+entry to be found.  "entry" and "key" are of type pointer to
+a_type_and_template_arg_list.  Return TRUE if the key matches the entry.
+*/
+{
+  a_type_and_template_arg_list
+                      *info = (a_type_and_template_arg_list*)key;
+  a_type_ptr          entry_tp = (a_type_ptr)entry;
+  a_template_arg_ptr  entry_tap = typeref_supp(entry_tp)->template_arg_list,
+                      key_tap = info->template_arg_list;
+  a_boolean           result;
+  result = info->type == entry_tp->variant.typeref.type &&
+           are_template_args_lexically_identical(entry_tap, key_tap);
+  return result;
+}  /* compare_type_and_template_arg_list */
+
+
+static a_type_ptr make_typeref_with_template_args(a_type_ptr          tp,
+                                                  a_template_arg_ptr  arg_list)
+/*
+Return a new tk_typref entry with the given template argument list and whose
+underlying type is tp.
+*/
+{
+  a_template_arg_ptr  tap, prev_tap = NULL;
+  a_type_ptr          *tp_in_table;
+
+  begin_template_arg_list_traversal_simple(arg_list, &tap);
+  for (; tap != NULL && tap->explicitly_specified;
+         advance_to_next_template_arg_simple(&tap)) {
+    prev_tap = tap;
+  }  /* for */
+  /* Free any trailing template arguments that were not explicitly
+     specified. */
+  free_template_arg_list(tap);
+  if (prev_tap == NULL) {
+    arg_list = NULL;
+  } else {
+    prev_tap->next = NULL;
+  }  /* if */
+  a_type_and_template_arg_list hash_key{tp, arg_list};
+  tp_in_table = (a_type_ptr*)hash_find(template_arg_list_typeref_hash_table,
+                                       &hash_key, /*create=*/TRUE);
+  if (*tp_in_table == NULL) {
+    a_type_ptr  new_tp = alloc_type(tk_typeref);
+    new_tp->variant.typeref.kind = trk_template_arg_list;
+    new_tp->variant.typeref.type = tp;
+    new_tp->variant.typeref.extra_info->template_arg_list = arg_list;
+    if (type_is(tp, tk_typeref)) {
+      new_tp->variant.typeref.is_nonreal = tp->variant.typeref.is_nonreal;
+      new_tp->variant.typeref.is_dependent = tp->variant.typeref.is_dependent;
+      new_tp->variant.typeref.is_prototype_instantiation =
+                                tp->variant.typeref.is_prototype_instantiation;
+    }  /* if */
+    *tp_in_table = new_tp;
+  } else {
+    free_template_arg_list(arg_list);
+  }  /* if */
+  return *tp_in_table;
+}  /* make_typeref_with_template_args */
+
+
+a_type_ptr make_typeref_with_lexical_information(a_type_ptr        tp,
+                                                 a_symbol_locator  *locator)
+/*
+If the given locator represents a qualified name, return a new tk_typref entry
+with the given name qualifier and whose underlying type is tp.  If the given
+locator includes an original template argument list, return a new tk_typref
+entry with that template argument list and whose underlying type is tp.
+*/
+{
+  if (locator->is_qualified_name) {
+    a_type_and_name_qualifier
+                hash_key{tp, locator->name_qualifier};
+    a_type_ptr  *tp_in_table =
+                      (a_type_ptr*)hash_find(name_qualifier_typeref_hash_table,
+                                             &hash_key, /*create=*/TRUE);
+    if (*tp_in_table == NULL) {
+      a_type_ptr  new_tp = alloc_type(tk_typeref);
+      new_tp->variant.typeref.kind = trk_name_qualifier;
+      new_tp->variant.typeref.type = tp;
+      new_tp->variant.typeref.is_global_qualified_name =
+                                             locator->is_global_qualified_name;
+      new_tp->variant.typeref.extra_info->name_qualifier =
+                                                       locator->name_qualifier;
+      if (type_is(tp, tk_typeref)) {
+        new_tp->variant.typeref.is_nonreal = tp->variant.typeref.is_nonreal;
+        new_tp->variant.typeref.is_dependent =
+                                              tp->variant.typeref.is_dependent;
+        new_tp->variant.typeref.is_prototype_instantiation =
+                                tp->variant.typeref.is_prototype_instantiation;
+      }  /* if */
+      *tp_in_table = new_tp;
+    }  /* if */
+    tp = *tp_in_table;
+  }  /* if */
+  if (locator->template_arg_list != NULL) {
+    tp = make_typeref_with_template_args(tp, locator->template_arg_list);
+    locator->template_arg_list = NULL;
+  }  /* if */
+  return tp;
+}  /* make_typeref_with_lexical_information */
+
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+
 #if DEBUG
 
 void db_name_qualifier(a_name_qualifier_ptr	nqp)
@@ -23325,24 +23556,15 @@ original type or namespace that was specified.
     switch (qualifier_sym->kind) {
       case sk_class_or_struct_tag:
       case sk_union_tag:
-        /* Get the type specified by the qualifier. */
-        new_type = qualifier_sym->variant.class_struct_union.type;
+      case sk_enum_tag:
+      case sk_type:
+        /* Use the qualifier type. */
+        new_type = qualifier_type;
         is_type = TRUE;
         break;
       case sk_namespace:
         /* Get the namespace specified by the qualifier. */
         new_namespace = qualifier_sym->variant.namespace_info.ptr;
-        break;
-      case sk_enum_tag:
-        /* Get the enumeration type specified by the qualifier. */
-        new_type = qualifier_sym->variant.enumeration.type;
-        is_type = TRUE;
-        break;
-      case sk_type:
-        /* Get the typedef or template parameter type specified by the
-           qualifier. */
-        new_type = qualifier_sym->variant.type.ptr;
-        is_type = TRUE;
         break;
       default:
         unexpected_condition();
@@ -23447,6 +23669,7 @@ a_name_reference_ptr.
   a_hash_value          value = 0;
 
   value += (a_hash_value)possible_lossy_cast_from_pointer(nrp->qualifier);
+  value += hash_lexical_template_arg_list(nrp->orig_template_arg_list);
   value += nrp->is_global_qualified_name;
   value += nrp->is_decltype_qualified * 2;
   value += nrp->is_template_id * 4;
@@ -23490,7 +23713,9 @@ matches the entry.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
            enrp->from_prototype_instantiation ==
                                           knrp->from_prototype_instantiation &&
-           enrp->is_super_qualified == knrp->is_super_qualified;
+           enrp->is_super_qualified == knrp->is_super_qualified &&
+           are_template_args_lexically_identical(enrp->orig_template_arg_list,
+                                                 knrp->orig_template_arg_list);
   return result;
 }  /* compare_name_reference */
 
@@ -23518,14 +23743,25 @@ describes the name specified by "locator".
     }  /* if */
   }  /* if */
   if (locator->is_template_id) {
-    /* Set the number of template arguments appearing in the reference. */
-    a_template_arg_ptr argp;
+    /* Set the number of explicitly-specified template arguments appearing in
+       the reference. */
+    a_template_arg_ptr argp, argp_tail = NULL;
     nrp->num_template_arguments = 0;
     begin_template_arg_list_traversal_simple(locator->template_arg_list,
                                              &argp);
-    for (; argp != NULL; advance_to_next_template_arg_simple(&argp)) {
+    for (; argp != NULL && argp->explicitly_specified;
+           advance_to_next_template_arg_simple(&argp)) {
       ++nrp->num_template_arguments;
+      argp_tail = argp;
     }  /* for */
+    /* Remove any trailing default template arguments */
+    free_template_arg_list(argp);
+    if (argp_tail == NULL) {
+      locator->template_arg_list = NULL;
+    } else {
+      argp_tail->next = NULL;
+    }  /* if */
+    nrp->orig_template_arg_list = locator->template_arg_list;
   }  /* for */
 #if DEBUG
   if (db_flag_is_set("name_refs") && locator->symbol_header != NULL) {
@@ -24423,6 +24659,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			separator_warning_issued = FALSE;
   a_name_qualifier_ptr          name_qualifier = NULL;
   a_symbol_ptr			qualifier_template_sym = NULL;
+  a_template_arg_ptr		orig_arg_list = NULL;
 
 /* Macro used to determine whether we are processing the identifier in
    a Microsoft __if_exists or __if_not_exists directive. */
@@ -24929,6 +25166,7 @@ selection operator, in which case it points to the type of the left operand.
                                            start_seq_number, template_options,
                                            field_sel_type == NULL, &err);
       specific_sym = locator_for_curr_id.specific_symbol;
+      orig_arg_list = locator_for_curr_id.template_arg_list;
     }  /* if */
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
@@ -24982,6 +25220,7 @@ selection operator, in which case it points to the type of the left operand.
         a_symbol_ptr	prev_qualifier_sym = qualifier_sym;
         a_boolean	invalid_qualifier_sym = FALSE;
         a_type_ptr      qualifier_sym_type;
+        a_type_ptr      qualifier_lexical_type = NULL;
         if (err ||
             (qualifier_sym == NULL && !qualifier_is_super &&
              !qualifier_is_decltype)) {
@@ -25016,6 +25255,18 @@ selection operator, in which case it points to the type of the left operand.
           /* Get the type associated with the class symbol. */
           qualifier_sym_type = type_symbol_type(qualifier_sym);
           qualifier_type = skip_typerefs(qualifier_sym_type);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+          if (orig_arg_list != NULL) {
+            qualifier_lexical_type = make_typeref_with_template_args(
+                                                            qualifier_sym_type,
+                                                            orig_arg_list);
+            orig_arg_list = NULL;
+          } else
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+          /* Do not insert code here. */
+          {
+            qualifier_lexical_type = qualifier_sym_type;
+          }  /* if */
           qualifier_is_type = TRUE;
           qualifier_type_is_class = TRUE;
         } else if (is_namespace_symbol(qualifier_sym)) {
@@ -25026,6 +25277,7 @@ selection operator, in which case it points to the type of the left operand.
           /* Enum qualifiers are accepted in some modes.  Earlier Microsoft
              compilers only accept them with member enum types. */
           qualifier_type = type_symbol_type(qualifier_sym);
+          qualifier_lexical_type = qualifier_type;
           qualifier_type = skip_typerefs(qualifier_type);
           qualifier_is_type = TRUE;
           qualifier_type_is_class = FALSE;
@@ -25040,6 +25292,18 @@ selection operator, in which case it points to the type of the left operand.
                last qualifier of a vacuous destructor/finalizer.  Set class
                type to the type pointed to. */
             qualifier_type = type_symbol_type(qualifier_sym);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+            if (orig_arg_list != NULL) {
+              qualifier_lexical_type = make_typeref_with_template_args(
+                                                                qualifier_type,
+                                                                orig_arg_list);
+              orig_arg_list = NULL;
+            } else
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+            /* Do not insert code here. */
+            {
+              qualifier_lexical_type = qualifier_type;
+            }  /* if */
             qualifier_is_type = TRUE;
             qualifier_type_is_class = FALSE;
             check_assertion(is_template_param_type(qualifier_type) ||
@@ -25096,6 +25360,7 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_type = NULL;
           qualifier_type_is_class = FALSE;
           qualifier_sym = NULL;
+          orig_arg_list = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (qualifier_is_super) {
           /* The Microsoft __super qualifier. */
@@ -25110,6 +25375,7 @@ selection operator, in which case it points to the type of the left operand.
           record_potential_pack_reference(
                           qualifier_sym, &locator_for_curr_id.source_position);
         }  /* if */
+        check_assertion(orig_arg_list == NULL);
         if (record_name_references_in_context()) {
           /* Create an entry that describes this qualifier.  Find a previously
              created entry if possible. */
@@ -25126,7 +25392,10 @@ selection operator, in which case it points to the type of the left operand.
           } else {
             make_name_qualifier(&name_qualifier, qualifier_sym,
                                 qualifier_template_sym,
-                                qualifier_type, qualifier_namespace,
+                                qualifier_lexical_type != NULL
+                                                       ? qualifier_lexical_type
+                                                       : qualifier_type,
+                                qualifier_namespace,
                                 decltype_type);
           }  /* if */
         }  /* if */
@@ -25475,6 +25744,7 @@ selection operator, in which case it points to the type of the left operand.
                                                  start_seq_number, options,
                                                  /*is_name_start=*/FALSE,
                                                  &err);
+            orig_arg_list = locator_for_curr_id.template_arg_list;
             /* We can only now determine whether this template reference is
                followed by a "::".  If it is not, break out of the qualifier
                loop. */
@@ -26273,11 +26543,9 @@ See also coalesce_and_lookup_generalized_identifier.
                     error_code = C_mode() ? ec_not_a_field : ec_not_a_member;
                   }  /* if */
                   if (qualifier_is_type) {
-                    err_sym = (a_symbol_ptr)qualifier_type->
-                                                    source_corresp.assoc_info;
+                    err_sym = symbol_for(skip_typerefs(qualifier_type));
                   } else {
-                    err_sym = (a_symbol_ptr)qualifier_namespace->
-                                                    source_corresp.assoc_info;
+                    err_sym = symbol_for(qualifier_namespace);
                   }  /* if */
                   pos_stsy_error(error_code, &identifier_pos,
                                  locator_for_curr_id.symbol_header->identifier,
@@ -26490,8 +26758,13 @@ scanned is, in fact, an identifier).
                                      /*instantiate_nonreal=*/FALSE,
                                      /*do_not_create=*/FALSE,
                                      /*in_substitution=*/FALSE);
+        if (!record_form_of_name_reference && arg_list != NULL) {
+          free_template_arg_list(arg_list);
+          arg_list = NULL;
+        }  /* if */
         locator_for_curr_id.is_unknown_template_reference = FALSE;
         locator_for_curr_id.specific_symbol = symbol;
+        locator_for_curr_id.template_arg_list = arg_list;
         locator_for_curr_id.do_not_clear_specific_symbol = TRUE;
         locator_for_curr_id.symbol_header = symbol->header;
       }  /* if */
@@ -29856,6 +30129,18 @@ of the front end.
   processing_macro_preincludes = FALSE;
   name_references_map = alloc_fe_of_type(a_name_references_map);
   construct(name_references_map, /*mask_width=*/8u);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+  template_arg_list_typeref_hash_table =
+         alloc_hash_table(FRONT_END_REGION_NUMBER,
+                          (a_hash_table_size)1024,
+                          fn_for_function(hash_type_and_template_arg_list),
+                          fn_for_function(compare_type_and_template_arg_list));
+  name_qualifier_typeref_hash_table =
+            alloc_hash_table(FRONT_END_REGION_NUMBER,
+                             (a_hash_table_size)1024,
+                             fn_for_function(hash_type_and_name_qualifier),
+                             fn_for_function(compare_type_and_name_qualifier));
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   pending_overflow_reports = NULL;
   last_pending_overflow_report = NULL;
   available_overflow_reports = NULL;

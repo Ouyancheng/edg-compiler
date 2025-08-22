@@ -900,6 +900,12 @@ enum a_function_number : a_byte {
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   fn_hash_name_reference,
   fn_compare_name_reference,
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+  fn_hash_type_and_name_qualifier,
+  fn_compare_type_and_name_qualifier,
+  fn_hash_type_and_template_arg_list,
+  fn_compare_type_and_template_arg_list,
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   fn_last
 };
 

@@ -7189,6 +7189,9 @@ or NULL in other contexts such as using-declarations.
            original symbol as referenced, not the placeholder. */
         mark_referenced(orig_fund_sym, &locator_for_curr_id.source_position);
         tp = type_symbol_type(fund_sym);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+        tp = make_typeref_with_lexical_information(tp, &locator_for_curr_id);
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
         *type_sym = sym;
       }  /* if */
     }  /* if */
@@ -10546,13 +10549,14 @@ would not be valid (inaccessible).
       set_source_corresp(&naming_type->source_corresp, orig_sym);
       set_class_membership(orig_sym, &naming_type->source_corresp,
                            parent_type);
-      naming_type->variant.typeref.type = tp;
+      naming_type->variant.typeref.type = skip_lexical_typerefs(tp);
       naming_type->variant.typeref.added_to_record_name = TRUE;
       add_to_types_list(naming_type, DEPTH_OF_FILE_SCOPE);
       orig_sym->variant.projection.extra_info->naming_type = naming_type;
     } else {
       /* The saved type should match the one we are looking for. */
-      check_assertion (naming_type->variant.typeref.type == tp);
+      check_assertion (naming_type->variant.typeref.type ==
+                                                    skip_lexical_typerefs(tp));
     }  /* if */
   }  /* if */
   return naming_type;
@@ -12394,6 +12398,7 @@ general_identifier_case:
                 }  /* if */
                 basic_type = bt_no_type;
                 locator_for_curr_id.specific_symbol = sym;
+                locator_for_curr_id.template_arg_list = NULL;
                 locator_for_curr_id.symbol_header = sym->header;
                 goto exit_loop;
               }  /* if */
@@ -12436,6 +12441,12 @@ general_identifier_case:
             *type_ptr = error_type();
           } else {
             a_type_ptr  tp = type_symbol_type(curr_token_type_symbol);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+            if (record_form_of_name_reference) {
+              tp = make_typeref_with_lexical_information(tp,
+                                                         &locator_for_curr_id);
+            }  /* if */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
             if (locator_for_curr_id.is_semivisible_nested_type) {
               /* The symbol in the locator is a nested class that is not
                  visible according to the ARM lookup rules but is returned
@@ -12472,13 +12483,14 @@ general_identifier_case:
                 state->type_is_injected_class_name = 
                               is_injected_class_symbol(curr_token_type_symbol);
                 if (class_template_arg_deduction_enabled &&
-                    type_is(tp, tk_template_param) &&
+                    type_is(skip_lexical_typerefs(tp), tk_template_param) &&
                     !locator_for_curr_id.is_template_id) {
                   /* Check for class template argument deduction.  If the
                      identifier is something like "T::template X<Y>" it
                      will have been coalesced, so suppress this processing
                      if we have a template-id. */
-                  process_class_template_placeholder(state, tp);
+                  process_class_template_placeholder(
+                                             state, skip_lexical_typerefs(tp));
                 } else {
                   /* In some cases, a typeref is added to record the
                      class name used when the symbol was named using
@@ -13035,16 +13047,16 @@ exit_loop:
         err = TRUE;
       } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cli_or_cx_enabled && *type_ptr != NULL &&
-            is_immediate_class_type(*type_ptr) &&
-            cli_class_type_kind_is(*type_ptr, cctk_value)) {
+        a_type_ptr  tp = *type_ptr;
+        if (tp != NULL) tp = skip_lexical_typerefs(tp);
+        if (cli_or_cx_enabled && tp != NULL && is_immediate_class_type(tp) &&
+            cli_class_type_kind_is(tp, cctk_value)) {
           /* Naming a special value class like System::Int32 is equivalent to
              denoting the corresponding standard type (e.g., int).  It may
              later be switched back to the System value type, e.g. if a handle
              to an int is formed (but not e.g. if a tracking reference to an
              int is formed). */
-          a_type_ptr  standard_type =
-                                 fundamental_type_from_system_type(*type_ptr);
+          a_type_ptr  standard_type = fundamental_type_from_system_type(tp);
           if (standard_type != NULL) *type_ptr = standard_type;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -2625,6 +2625,10 @@ typedef struct a_name_reference {
 			/* If is_template_id is TRUE, this is the number of
 			   template arguments used in the last component of
 			   the name; -1L otherwise. */
+  a_template_arg_ptr
+		orig_template_arg_list;
+			/* Points to the template argument list as originally
+			   written. */
   a_special_function_kind
 		special_kind;
 			/* If this entry is for an enk_routine node that is
@@ -7549,15 +7553,14 @@ typedef struct a_template_arg {
 			/* TRUE if the template argument is a deduced array
 			   bound whose type is not yet known. */
   a_bit_field	explicitly_specified:1;
-			/* TRUE, for a variable or function template
-			   argument list, if the argument was explicitly
-			   specified.  When a reference is being processed,
-			   this flag is set only for those arguments that
-			   were explicitly specified for that reference.
+			/* TRUE, for a template argument list, if the argument
+			   was explicitly specified.  When a reference is being
+			   processed, this flag is set only for those arguments
+			   that were explicitly specified for that reference.
 			   For a template argument list associated with an
-			   instance of the template, this flag is set if
-			   any reference to the template explicitly
-			   specified the argument. */
+			   instance of the template, this flag is set if any
+			   reference to the template explicitly specified the
+			   argument. */
   a_bit_field	template_template_param_checked:1;
 			/* TRUE for template template arguments if the template
 			   parameter list of the argument template has already
@@ -9271,6 +9274,13 @@ typedef struct a_typeref_type_supplement {
 			   should result in a substitution failure on the
 			   type, even if the argument is not used in the
 			   eventual type. */
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+  a_name_qualifier_ptr
+		name_qualifier;
+			/* For types written with a nested name specifier
+                           (i.e., the trk_name_qualifier kind), this points to
+                           the name qualifier. */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
@@ -9553,6 +9563,11 @@ enum a_typeref_kind : a_byte {
                            take a single type "argument" and "return" a
                            suitably-modified type. */
   trk_remove_reference, /* GCC 13.1.0 "type-returning type trait". */
+  trk_template_arg_list,
+                        /* A typeref representing the originally written
+                           template argument list. */
+  trk_name_qualifier,   /* A typeref representing the nested name specifier of
+                           the type as written. */
 };
 
 /*
@@ -10617,6 +10632,10 @@ typedef struct a_type {
 		has_typename_prefix:1;
 			/* TRUE if this typeref represents a splice with an
 			   explicit "typename" keyword. */
+      a_bit_field
+		is_global_qualified_name:1;
+			/* TRUE if this typeref represents a type written using
+			   a global namespace qualifier. */
     } typeref;
     /* When kind == tk_ptr_to_member: */
     struct {

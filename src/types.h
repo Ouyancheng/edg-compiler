@@ -56,6 +56,28 @@ this routine should not be used when checking type qualifiers.
 }  /* skip_typerefs */
 
 
+INLINE a_type_ptr skip_lexical_typerefs(a_type_ptr type_ptr)
+/*
+Strip any typeref entries that store information about the lexical form of the
+type as written in the source code (i.e., trk_template_arg_list and
+trk_name_qualifier).
+*/
+{
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+  while (type_is(type_ptr, tk_typeref) &&
+         (is_typeref_kind(type_ptr, trk_template_arg_list) ||
+          is_typeref_kind(type_ptr, trk_name_qualifier))) {
+    type_ptr = type_ptr->variant.typeref.type;
+#if EXPENSIVE_CHECKING
+    check_assertion_str(type_ptr != NULL,
+                        "skip_lexical_typerefs: NULL referenced type");
+#endif /* EXPENSIVE_CHECKING */
+  }  /* while */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+  return type_ptr;
+}  /* skip_lexical_typerefs */
+
+
 /*
 This macro is equivalent to skip_typerefs.  It exists for compatibility
 purposes because skip_typerefs previously was a macro making use of
@@ -605,7 +627,9 @@ clang/GNU type-returning type builtin.
              !is_typeref_kind(tp, trk_is_deduced_class) &&
              !is_typeref_kind(tp, trk_for_type_attributes) &&
              !is_typeref_kind(tp, trk_is_alias) &&
-             !is_typeref_kind(tp, trk_is_template_alias);
+             !is_typeref_kind(tp, trk_is_template_alias) &&
+             !is_typeref_kind(tp, trk_template_arg_list) &&
+             !is_typeref_kind(tp, trk_name_qualifier);
   } else {
     result = is_typeref_kind((tp), trk_is_decltype) ||
              is_typeref_kind((tp), trk_is_splice) ||

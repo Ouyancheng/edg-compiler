@@ -5927,7 +5927,7 @@ expression that was used to select expr (NULL if no selector was used).
 #if IA64_ABI
     if (emulate_gnu_abi_bugs && name_reference != NULL &&
         name_reference->qualifier != NULL &&
-        name_reference->qualifier->qualifier.class_type ==
+        skip_typerefs(name_reference->qualifier->qualifier.class_type) ==
                                                        scp_parent_class(scp)) {
       /* For items (that were qualified in the source) like p.B::A::m, GNU
          mangles the field as "sr1A1m"; emulate that here.  Note that such a

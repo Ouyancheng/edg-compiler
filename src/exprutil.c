@@ -6082,11 +6082,38 @@ If no_rewrite is TRUE (default is FALSE), that rewrite doesn't happen.
 
   if (operand->name_reference_set) {
     if (is_routine_node(node)) {
+      if (operand->name_reference.is_template_id) {
+        a_name_reference_ptr  nrp = &operand->name_reference;
+        a_template_arg_ptr    list1 = node_routine(node)->template_arg_list;
+        a_template_arg_ptr    list2 = nrp->orig_template_arg_list;
+        if (!record_form_of_name_reference ||
+            are_template_args_lexically_identical(
+                                  list1, list2, nrp->num_template_arguments)) {
+          /* As all explicitly specified template arguments are lexically
+             identical to the ones recorded in the routine node, there is no
+             need to add them to the name reference. */
+          nrp->orig_template_arg_list = NULL;
+        }  /* if */
+      }  /* if */
       node->variant.routine.name_reference =
                                   find_allocated_name_reference(
                                           &node_routine(node)->source_corresp,
                                           &operand->name_reference);
     } else if (is_variable_node(node)) {
+      if (operand->name_reference.is_template_id) {
+        a_name_reference_ptr  nrp = &operand->name_reference;
+        a_template_arg_ptr    list1 = node_variable(node)->template_info
+                                                         ->template_arg_list;
+        a_template_arg_ptr    list2 = nrp->orig_template_arg_list;
+        if (!record_form_of_name_reference ||
+            are_template_args_lexically_identical(
+                                  list1, list2, nrp->num_template_arguments)) {
+          /* As all explicitly specified template arguments are lexically
+             identical to the ones recorded in the variable node, there is no
+             need to add them to the name reference. */
+          nrp->orig_template_arg_list = NULL;
+        }  /* if */
+      }  /* if */
       node->variant.variable.name_reference =
                                   find_allocated_name_reference(
                                          &node_variable(node)->source_corresp,

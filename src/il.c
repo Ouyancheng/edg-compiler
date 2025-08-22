@@ -8670,7 +8670,8 @@ definition of the CC flags in il.h for more information.
 */
 {
   a_boolean        eq = FALSE;
-  a_type_ptr       cp1_type = cp1->type, cp2_type = cp2->type;
+  a_type_ptr       cp1_type = skip_lexical_typerefs(cp1->type),
+                   cp2_type = skip_lexical_typerefs(cp2->type);
   a_boolean        same_types = FALSE, strictly_identical;
   an_itf_flag_set  itf_options;
 
@@ -10474,7 +10475,7 @@ con->is_named_constant_definition flag.
 
   if (constant_is(con, ck_integer)) {
     /* The constant has an integral representation. */
-    a_type_ptr con_type = con->type;
+    a_type_ptr con_type = skip_lexical_typerefs(con->type);
     if (con_type->kind == (a_type_kind)tk_integer) {
       /* The constant has an integral or enum type. */
       /* In C, enumerators have "int" type (but an affiliated type that
@@ -13780,6 +13781,7 @@ and reuse an existing entry if possible.
                               /*instantiate_nonreal=*/FALSE,
                               /*do_not_create=*/FALSE,
                               /*in_substitution=*/FALSE);
+    free_template_arg_list(arg_list);
     ptr = type_symbol_type(sym);
     complete_type_is_needed(ptr);
     /* Remember the existence of this C++/CX box type by putting a pointer to

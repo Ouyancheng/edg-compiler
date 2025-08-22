@@ -2072,7 +2072,7 @@ Return TRUE if the given type is a class type or a handle to a class type.
   if (is_immediate_class_type(tp)) {
     result = TRUE;
   } else if (is_handle_ptr(tp)) {
-    tp = tp->variant.pointer.type;
+    tp = skip_typerefs(tp->variant.pointer.type);
     result = is_immediate_class_type(tp);
   } else {
     result = FALSE;
@@ -3408,8 +3408,9 @@ template template argument, return a class template placeholder type based on
 the template template argument.  Otherwise, return tp.
 */
 {
-  a_symbol_ptr  orig_ct_sym = tp->variant.template_param.extra_info
-                                ->constraint.class_template_symbol,
+  a_symbol_ptr  orig_ct_sym = skip_typerefs_not_typedefs_or_type_operators(tp)
+                                            ->variant.template_param.extra_info
+                                            ->constraint.class_template_symbol,
                 new_ct_sym;
 
   new_ct_sym = template_argument_if_template_template_param(orig_ct_sym);
@@ -7558,6 +7559,8 @@ for more information.
   /* First, check if the types are the same.  This repeats the test in the
      identical_types macro, but it needs to be done here, too, since this
      function is called directly when the flags must be specified. */
+  type_1 = skip_lexical_typerefs(type_1);
+  type_2 = skip_lexical_typerefs(type_2);
 check_typerefs:
   if (type_1 == type_2) {
     identical = TRUE;

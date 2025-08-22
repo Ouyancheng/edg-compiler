@@ -39741,6 +39741,13 @@ type_identifier_case:
                (list_init_enabled && ntoken == tok_lbrace))) {
             /* In C++, a functional-notation type conversion. */
             a_type_ptr cast_type = type_symbol_type(sym_ptr);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+            if (record_form_of_name_reference) {
+              cast_type = make_typeref_with_lexical_information(
+                                                         cast_type,
+                                                         &locator_for_curr_id);
+            }  /* if */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
             if (microsoft_bugs && locator.is_qualified_name &&
                 !locator.is_file_scope_qualified_name) {
               /* The Microsoft compiler allows typename to be used in many
@@ -51885,6 +51892,8 @@ is TRUE if the expression is the immediate operand of an "&" operator.
                                            /*prototype_allowed=*/FALSE,
                                            /*is_use=*/TRUE,
                                            /*diagnose=*/FALSE);
+              free_template_arg_list(expl_templ_arg_list);
+              expl_templ_arg_list = NULL;
             }  /* if */
           } else if (is_nontype_template_param_symbol(fund_sym)) {
             /* A dependent construct.  Represent it generically with a
@@ -53748,7 +53757,7 @@ element of aggregate class type dest_type (as a whole; not just a field of it).
   a_boolean  result;
 
   check_assertion(is_expression_component(icp) &&
-                  is_immediate_class_type(dest_type));
+                  is_class_struct_union_type(dest_type));
   if (C_mode()) {
     result = types_are_compatible_ignoring_qualifiers(
                                operand_of_arg_list_elem(icp)->type, dest_type);

@@ -2522,7 +2522,8 @@ by octl.
         }  /* if */
         octl->output_str("auto", octl);
       } else if (is_typeref_kind(type, trk_is_deduced_class)) {
-        a_type_ptr      instance = type->variant.typeref.type;
+        a_type_ptr      instance = skip_lexical_typerefs(
+                                                   type->variant.typeref.type);
         a_template_ptr  templ;
         check_assertion(instance != NULL && is_immediate_class_type(instance));
         templ = class_type_supp(instance)->assoc_template;
@@ -2832,10 +2833,10 @@ Given a type pointer, skip any top level dealiasable typedefs and return the
 resulting type.
 */
 {
-  a_type_ptr result = type;
+  a_type_ptr result = type != NULL ? skip_lexical_typerefs(type) : NULL;
 
   while (typedef_should_be_dealiased(result, octl)) {
-    result = result->variant.typeref.type;
+    result = skip_lexical_typerefs(result->variant.typeref.type);
   }  /* while */
   return result;
 }  /* skip_dealiasable_typedefs */

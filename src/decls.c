@@ -18755,6 +18755,7 @@ The value of that expression is the number of elements in the tuple.
   tap = alloc_template_arg((a_templ_arg_kind)tak_type);
   tap->variant.type = tp;
   ts_inst_sym = find_class_template_instance(ts_sym, &tap);
+  free_template_arg_list(tap);
   if (ts_inst_sym == NULL ||
       !symbol_is(ts_inst_sym, sk_class_or_struct_tag)) {
     goto done;
@@ -18858,6 +18859,7 @@ errors occur, return an error type.
   tap->next = alloc_template_arg(tak_type);
   tap->next->variant.type = tp;
   te_inst_sym = find_class_template_instance(te_sym, &tap);
+  free_template_arg_list(tap);
   if (te_inst_sym == NULL || !symbol_is(te_inst_sym, sk_class_or_struct_tag)) {
     if (diag_pos != NULL) {
       a_number_buffer  num_str(elem_idx);
@@ -21321,6 +21323,8 @@ type of the guide.
          template name used in the deduced type ("A" here) must be the same
          as the deduction guide itself and no cv-qualifiers are permitted. */
       rtp = skip_typerefs(rtp);
+    } else {
+      rtp = skip_lexical_typerefs(rtp);
     }  /* if */
     if (is_error_type(rtp)) {
       expect_error();

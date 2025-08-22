@@ -376,7 +376,8 @@ be written.
       (void)fprintf(f_display, ": ");
       if (type_name_type != NULL) {
         summarize_type(type_name_type);
-        if (entry_kind == iek_base_class) {
+        if (entry_kind == iek_base_class &&
+            ((a_base_class_ptr)entry_ptr)->derived_class != NULL) {
           (void)fprintf(f_display, " (in ");
           summarize_type(((a_base_class_ptr)entry_ptr)->derived_class);
           (void)fprintf(f_display, ")");
@@ -660,6 +661,10 @@ Display a_name_reference entry.
 #endif /* (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || ... */
   }  /* if */
   disp_long("num_template_arguments", ptr->num_template_arguments);
+  if (ptr->orig_template_arg_list != NULL) {
+    disp_template_arg_list("orig_template_arg_list",
+                           ptr->orig_template_arg_list);
+  }  /* if */
   disp_boolean("is_global_qualified_name",
                (a_boolean)ptr->is_global_qualified_name);
   disp_boolean("is_template_id", (a_boolean)ptr->is_template_id);
@@ -1981,6 +1986,15 @@ Display the indicated typeref type supplement.
   if (ptr->template_arg_list != NULL) {
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
   }  /* if */
+  if (ptr->orig_template_arg_list != NULL) {
+    disp_template_arg_list("orig_template_arg_list",
+                           ptr->orig_template_arg_list);
+  }  /* if */
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+  if (ptr->name_qualifier != NULL) {
+    disp_ptr("qualifier", (char *)ptr->name_qualifier, iek_name_qualifier);
+  }  /* if */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
@@ -2187,6 +2201,8 @@ Display a typeref kind.
     case trk_remove_reference_t:       str = "remove_reference_t";       break;
     case trk_remove_restrict:          str = "remove_restrict";          break;
     case trk_remove_volatile:          str = "remove_volatile";          break;
+    case trk_template_arg_list:        str = "template_arg_list";        break;
+    case trk_name_qualifier:           str = "name_qualifier";           break;
     default:                           str = "**BAD TYPEREF KIND**";     break;
   }  /* switch */
   (void)fprintf(f_display, "%s\n", str);
@@ -2684,6 +2700,9 @@ Display the indicated type entry.
       }  /* if */
       if (ptr->variant.typeref.has_typename_prefix) {
         disp_boolean("has_typename_prefix", TRUE);
+      }  /* if */
+      if (ptr->variant.typeref.is_global_qualified_name) {
+        disp_boolean("is_global_qualified_name", TRUE);
       }  /* if */
       break;
     case tk_ptr_to_member:
@@ -8046,17 +8065,6 @@ Display the indicated instantiation-directive entry.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_instantiation_directive */
 
-
-static void disp_static_assertion(a_static_assertion_ptr sap)
-/*
-Display the indicated static assertion entry.
-*/
-{
-  disp_ptr("condition", (char*)sap->condition, iek_constant);
-  disp_ptr("string_literal", (char*)sap->string_literal, iek_constant);
-  disp_source_position("position", &sap->position);
-}  /* disp_static_assertion */
-
 #if GENERATE_LINKAGE_SPEC_BLOCKS
 
 static void disp_linkage_spec_block(a_linkage_spec_block_ptr lsbp)
@@ -8072,6 +8080,17 @@ Display the indicated entry.
 
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+static void disp_static_assertion(a_static_assertion_ptr sap)
+/*
+Display the indicated static assertion entry.
+*/
+{
+  disp_ptr("condition", (char*)sap->condition, iek_constant);
+  disp_ptr("string_literal", (char*)sap->string_literal, iek_constant);
+  disp_source_position("position", &sap->position);
+}  /* disp_static_assertion */
+
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
 static void disp_scope_orphaned_list_header(
@@ -8347,15 +8366,15 @@ This routine is called during IL walking.
           disp_instantiation_directive(
                                    (an_instantiation_directive_ptr)entry_ptr);
           break;
-        case iek_static_assertion:
-          disp_static_assertion((a_static_assertion_ptr)entry_ptr);
-          break;
 #if GENERATE_LINKAGE_SPEC_BLOCKS
         case iek_linkage_spec_block:
           disp_linkage_spec_block((a_linkage_spec_block_ptr)entry_ptr);
           break;
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        case iek_static_assertion:
+          disp_static_assertion((a_static_assertion_ptr)entry_ptr);
+          break;
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
         case iek_scope_orphaned_list_header:
           disp_scope_orphaned_list_header(

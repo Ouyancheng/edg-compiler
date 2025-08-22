@@ -16184,6 +16184,7 @@ module file.
                                        /*instantiation_nonreal=*/FALSE,
                                        /*do_not_create=*/FALSE,
                                        /*in_substitution=*/FALSE);
+        free_template_arg_list(arg_list);
         result = il_entry_for_symbol<a_type>(inst_sym);
         break;
       case templk_variable:
@@ -16191,6 +16192,7 @@ module file.
         inst_sym = find_template_variable(symbol_for(templ), &arg_list,
                                           /*prototype_allowed=*/TRUE,
                                           /*is_use=*/FALSE, /*diagnose=*/TRUE);
+        free_template_arg_list(arg_list);
         result = il_entry_for_symbol<a_variable>(inst_sym)->type;
         break;
       case templk_concept:

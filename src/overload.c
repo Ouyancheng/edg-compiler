@@ -29950,7 +29950,7 @@ appropriate, produce the "aggregate deduction candidate" (see N4885
        template and, if so, recursively check if an aggregate deduction
        candidate needs to be added. */
     proto_type = proto_sym->variant.type.ptr;
-    defining_type = proto_type->variant.typeref.type;
+    defining_type = skip_lexical_typerefs(proto_type->variant.typeref.type);
     if (is_immediate_class_type(defining_type) &&
         defining_type->variant.class_struct_union.is_template_class) {
       /* The defining-type-id names a class template. */

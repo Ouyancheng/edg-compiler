@@ -10890,6 +10890,7 @@ attributes are deprecated), but this code does add ATL::CComCoClass<class_type,
         /* Instantiate (if necessary) the class template with the specified
            template arguments. */
         sym = find_class_template_instance(sym, &template_arg_list);
+        free_template_arg_list(template_arg_list);
         check_assertion(sym != NULL &&
                         sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
         base_type = sym->variant.class_struct_union.type;
@@ -14542,10 +14543,10 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
     a_template_symbol_supplement_ptr  tssp;
     check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
     tssp = sym->variant.template_info;
-    /* Make sure the func_info flags are also recorded in the template
-       symbol supplement. */
-    tssp->variant.function.func_info.is_deleted = func_info->is_deleted;
-    tssp->variant.function.func_info.is_defaulted = func_info->is_defaulted;
+    /* Make sure the func_info flags are merged into the template symbol
+       supplement. */
+    tssp->variant.function.func_info.is_deleted |= func_info->is_deleted;
+    tssp->variant.function.func_info.is_defaulted |= func_info->is_defaulted;
     rp = tssp->variant.function.routine;
   }  /* if */
   if (func_info->is_deleted) {

@@ -9497,6 +9497,7 @@ describing the failure, or ec_no_error if there is no failure.
     a_symbol_ptr        instance;
     tap->variant.type = type;
     instance = find_class_template_instance(class_template, &tap);
+    free_template_arg_list(tap);
     if (instance == NULL || !is_type_symbol(instance)) {
       result = error_type();
     } else {
@@ -10127,6 +10128,7 @@ a nonstatic member function, P1 is the type of this.)
       p_tap = &(*p_tap)->next;
     }  /* for */ 
     traits_inst_sym = find_class_template_instance(traits_sym, &tap_list);
+    free_template_arg_list(tap_list);
     if (traits_inst_sym == NULL || !is_type_symbol(traits_inst_sym)) {
       expect_error();
       traits = NULL;

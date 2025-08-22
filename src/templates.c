@@ -2516,6 +2516,7 @@ This routine does the C++17 "at least as specialized" checking (see N4849,
                                         /*add_pack_descr=*/FALSE);
     /* Instantiate the invented class template on that argument list. */
     arg_sym = find_class_template_instance(invented_templ_sym, &arg_tap);
+    free_template_arg_list(arg_tap);
     /* Repeat this process for the parameter template.  Note that
        create_initial_template_arg_list is used to adjust the argument
        list (including possibly filling in defaults) based on the
@@ -2528,8 +2529,8 @@ This routine does the C++17 "at least as specialized" checking (see N4849,
                                            /*is_templ_templ_param_check=*/TRUE,
                                            &arg_templ_sym->decl_position);
     if (param_tap != NULL) {
-        param_sym = find_class_template_instance(invented_templ_sym,
-                                                 &param_tap);
+      param_sym = find_class_template_instance(invented_templ_sym, &param_tap);
+      free_template_arg_list(param_tap);
     }  /* if */
     pop_instantiation_scope_for_rescan();
     if (param_sym != NULL) {
@@ -9152,6 +9153,7 @@ dependent, A1<A2, A3> is returned.
                                            /*instantiate_nonreal=*/FALSE,
                                            /*do_not_create=*/FALSE,
                                            /*in_substitution=*/FALSE);
+    free_template_arg_list(new_template_arg_list);
     check_assertion(new_sym != NULL && is_type_symbol(new_sym));
     type = type_symbol_type(new_sym);
   }  /* if */
@@ -11381,6 +11383,64 @@ is dependent.
 }  /* determine_templ_arg_lists_to_use */
 
 
+a_boolean are_template_args_lexically_identical(a_template_arg_ptr  list1,
+                                                a_template_arg_ptr  list2,
+                               /* Defaulted: */ long                num_args)
+/*
+Return TRUE if the given template arguments lists are lexically identical.  If
+num_args is not -1, it specifies the number of arguments to compare.
+*/
+{
+  a_template_arg_ptr  tap1, tap2;
+  a_boolean           identical = TRUE;
+
+  begin_template_arg_list_traversal_simple(list1, &tap1);
+  begin_template_arg_list_traversal_simple(list2, &tap2);
+  while (identical && num_args != 0 && tap1 != NULL && tap2 != NULL) {
+    if (tap1->kind != tap2->kind ||
+        tap1->explicitly_specified != tap2->explicitly_specified) {
+      identical = FALSE;
+    } else {
+      switch (tap1->kind) {
+        case tak_type:
+          if (tap1->variant.type != tap2->variant.type) {
+            identical = FALSE;
+          }  /* if */
+          break;
+        case tak_nontype:
+          if (tap1->is_array_bound_of_unknown_type !=
+                                        tap2->is_array_bound_of_unknown_type) {
+            identical = FALSE;
+          } else if (tap1->is_array_bound_of_unknown_type) {
+            if (tap1->variant.integer_value != tap2->variant.integer_value) {
+              identical = FALSE;
+            }  /* if */
+          } else {
+            if (tap1->variant.constant != tap2->variant.constant) {
+              identical = FALSE;
+            }  /* if */
+          }  /* if */
+          break;
+        case tak_template:
+          if (tap1->variant.templ.ptr != tap2->variant.templ.ptr) {
+            identical = FALSE;
+          }  /* if */
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+    }  /* if */
+    advance_to_next_template_arg_simple(&tap1);
+    advance_to_next_template_arg_simple(&tap2);
+    if (num_args != -1) --num_args;
+  }  /* while */
+  if (num_args == -1 && (tap1 != NULL || tap2 != NULL)) {
+    identical = FALSE;
+  }  /* if */
+  return identical;
+}  /* are_template_args_lexically_identical */
+
+
 a_symbol_ptr find_template_class(
 			     a_symbol_ptr        template_sym,
                              a_template_arg_ptr  *new_list,
@@ -11400,10 +11460,10 @@ template).  Return the symbol that is found or newly created.
 *new_list points to the template argument list of the template class
 or alias to be found or created.  If a new template instance is created, the
 template argument list is attached to that new instance.  If an existing
-instance is found, the template argument list passed by the caller is
-discarded.  In either case, the pointer provided by the caller is set
-to NULL to prevent subsequent use of the argument list in case it has
-been freed.
+instance with lexically identical template arguments is found, the template
+argument list passed by the caller is discarded.  In either case, the
+pointer provided by the caller is set to NULL to prevent subsequent use of
+the argument list in case it has been freed.
 
 Note that this function does not fully instantiate a class template;
 rather, when it creates a class type entry, it is for an incomplete type.
@@ -11561,6 +11621,7 @@ use the current global value of the template template parameter.
         sym->is_error = TRUE;
         free_template_arg_list(*new_list);
       }  /* if */
+      *new_list = NULL;
       goto done;
     }  /* if */
   }  /* if */
@@ -11671,19 +11732,25 @@ use the current global value of the template template parameter.
     if (list_for_instantiation != new_list_without_local_types) {
       free_template_arg_list(new_list_without_local_types);
     }  /* if */
+    *new_list = NULL;
   } else {
-    /* We are reusing a class type that already exists, so *new_list will not
-       be used.  Return the entries to the available list for reuse.  Also
-       free a copy if one was made. */
-    if (list_copied) {
+    /* Return the entries of the new list without local types to the available
+       list for reuse if it is not used for instantiation. */
+    if (list_for_instantiation != new_list_without_local_types) {
       free_template_arg_list(new_list_without_local_types);
+      *new_list = list_for_instantiation;
     }  /* if */
-    free_template_arg_list(*new_list);
+    if (sym == NULL || !record_form_of_name_reference ||
+        are_template_args_lexically_identical(
+                               template_arg_list_for_symbol(sym), *new_list)) {
+      /* If the template arguments are lexically identical to the ones used for
+         the symbol, we don't need to keep track of it and can return it to the
+         available list for reuse. */
+      free_template_arg_list(*new_list);
+      *new_list = NULL;
+    }  /* if */
   }  /* if */
 done:
-  /* The list is cleared in all cases.  The caller cannot use the list
-     after we return because it may have been freed. */
-  *new_list = NULL;
   db_exit();
   return sym;
 }  /* find_template_class */
@@ -11976,11 +12043,9 @@ is TRUE, return a prototype instantiation if it matches the argument
 list.    is_use is TRUE if this a use (i.e., a reference from an expression
 context) rather than a declaration.  Return the symbol for the instance found.
 
-If a new template instance is created, the template argument list is
-attached to that new instance.  If an existing instance is found, the
-template argument list passed by the caller is discarded.  In either case,
-the pointer provided by the caller is set to NULL to prevent subsequent
-use of the argument list in case it has been freed.
+If a new template instance is created, the template argument list is attached
+to that new instance.  *new_templ_arg_list is set to (a copy of) the template
+argument list used for instantiation.
 
 If template constraints are not satisfied, return NULL.
 */
@@ -12060,6 +12125,7 @@ If template constraints are not satisfied, return NULL.
       free_template_arg_list(new_list_without_local_types);
     }  /* if */
     free_template_arg_list(*new_templ_arg_list);
+    *new_templ_arg_list = NULL;
     goto done;
   }  /* if */
   if (sym != NULL) {
@@ -12087,10 +12153,11 @@ If template constraints are not satisfied, return NULL.
       make_nonreal_variable_instance(var);
     }  /* if */
     record_instantiation(sym, tssp);
-    /* If the new list without local types was not used above, free it now. */
-    if (list_for_instantiation != new_list_without_local_types) {
-      free_template_arg_list(new_list_without_local_types);
+    if (*new_templ_arg_list != list_for_instantiation) {
+      free_template_arg_list(*new_templ_arg_list);
     }  /* if */
+    /* Return a copy of the actual list used for instantiation. */
+    *new_templ_arg_list = copy_template_arg_list(list_for_instantiation);
 #if DEBUG
     if (db_flag_is_set("instantiations")) {
       db_symbol(sym, "created: ", 2);
@@ -12104,18 +12171,17 @@ If template constraints are not satisfied, return NULL.
         !master_instance_of(tip)->already_instantiated) {
       instantiate_template_variable(tip, /*is_new=*/FALSE, is_use);
     }  /* if */
-    /* We are reusing a variable that already exists, so *new_templ_arg_list
-       list will not be used.  Return the entries to the available list.
-       Also free a copy if one was made. */
-    if (list_copied) {
-      free_template_arg_list(new_list_without_local_types);
+    /* Return the actual list used for instantiation. */
+    if (*new_templ_arg_list != list_for_instantiation) {
+      free_template_arg_list(*new_templ_arg_list);
+      *new_templ_arg_list = list_for_instantiation;
     }  /* if */
-    free_template_arg_list(*new_templ_arg_list);
+  }  /* if */
+  /* If the new list without local types was not used above, free it now. */
+  if (list_for_instantiation != new_list_without_local_types) {
+    free_template_arg_list(new_list_without_local_types);
   }  /* if */
 done:
-  /* The list is cleared in all cases.  The caller cannot use the list
-     after we return because it may have been freed. */
-  *new_templ_arg_list = NULL;
   return sym;
 }  /* find_template_variable */
 
@@ -14586,6 +14652,7 @@ will not be for a variable, but for a ck_template_param constant.)
       /* Constraints were not satisfied. */
       subst_fail(*copy_error);
     }  /* if */
+    free_template_arg_list(t_args);
   }  /* if */
   return sym;
 }  /* copy_template_variable_with_substitution */
@@ -15561,6 +15628,7 @@ new_type is not NULL, *new_type is set to NULL.
                                     /*instantiate_nonreal=*/FALSE,
                                     /*do_not_create=*/FALSE,
                                     /*in_substitution=*/TRUE);
+      free_template_arg_list(new_list);
     }  /* if */
   }  /* if */
 done:
@@ -16610,6 +16678,7 @@ a pointer over a reference type or creating an array of references.
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
+  type = skip_lexical_typerefs(type);
   if (type->source_corresp.is_class_member && type_is(type, tk_typeref)) {
     /* Normally copying a type such as A<T>::X won't result in a change if
        A<T> is a prototype instantiation and T is not replaced with a real
@@ -43284,6 +43353,7 @@ identical).
   ctws_state.orig_class_templ_params = orig_class_templ_params;
   tap = copy_template_arg_list(class_templ_args);
   return_type_sym = find_template_class_simple(orig_ct_sym, &tap);
+  free_template_arg_list(tap);
   return_type = type_symbol_type(return_type_sym);
   if (ctor_is_template) {
     orig_ctor_templ_params =
@@ -44072,7 +44142,7 @@ transformed for the alias template.
   alias_tssp = template_supplement_for_symbol(alias_sym);
   proto_sym = alias_tssp->variant.class_template.prototype_instantiation;
   proto_type = type_symbol_type(proto_sym);
-  def_type = proto_type->variant.typeref.type;
+  def_type = skip_lexical_typerefs(proto_type->variant.typeref.type);
   if (is_immediate_class_type(def_type) &&
       def_type->variant.class_struct_union.is_template_class) {
     /* The defining-type-id names a class template. */
@@ -44468,6 +44538,7 @@ corresponding symbol for a CLI array type and return it.
                                /*instantiate_nonreal=*/FALSE,
                                /*do_not_create=*/FALSE,
                                /*in_substitution=*/FALSE);
+  free_template_arg_list(arg_list);
   return result;
 }  /* make_cli_array_type */
 
