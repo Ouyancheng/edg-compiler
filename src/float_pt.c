@@ -1606,7 +1606,7 @@ float and 11 bits for _Float16).
     if (kind_is_16bit(kind) || kind == fk_float || kind == fk_std_float32) {
       byte_no = host_little_endian ? 2 : 1;
       bit = 0x20;
-    } else if (repr_is_double(kind)) {
+    } else if (num_mantissa_bits[(int)kind] == 53) {
       byte_no = host_little_endian ? 6 : 1;
       bit = 0x04;
     } else if (num_mantissa_bits[(int)kind] == 64) {
