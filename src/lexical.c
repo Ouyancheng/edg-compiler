@@ -24659,7 +24659,9 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			separator_warning_issued = FALSE;
   a_name_qualifier_ptr          name_qualifier = NULL;
   a_symbol_ptr			qualifier_template_sym = NULL;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   a_template_arg_ptr		orig_arg_list = NULL;
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 /* Macro used to determine whether we are processing the identifier in
    a Microsoft __if_exists or __if_not_exists directive. */
@@ -25166,7 +25168,9 @@ selection operator, in which case it points to the type of the left operand.
                                            start_seq_number, template_options,
                                            field_sel_type == NULL, &err);
       specific_sym = locator_for_curr_id.specific_symbol;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
       orig_arg_list = locator_for_curr_id.template_arg_list;
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
     }  /* if */
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
@@ -25360,7 +25364,9 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_type = NULL;
           qualifier_type_is_class = FALSE;
           qualifier_sym = NULL;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
           orig_arg_list = NULL;
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (qualifier_is_super) {
           /* The Microsoft __super qualifier. */
@@ -25375,7 +25381,9 @@ selection operator, in which case it points to the type of the left operand.
           record_potential_pack_reference(
                           qualifier_sym, &locator_for_curr_id.source_position);
         }  /* if */
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
         check_assertion(orig_arg_list == NULL);
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
         if (record_name_references_in_context()) {
           /* Create an entry that describes this qualifier.  Find a previously
              created entry if possible. */
@@ -25744,7 +25752,9 @@ selection operator, in which case it points to the type of the left operand.
                                                  start_seq_number, options,
                                                  /*is_name_start=*/FALSE,
                                                  &err);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
             orig_arg_list = locator_for_curr_id.template_arg_list;
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
             /* We can only now determine whether this template reference is
                followed by a "::".  If it is not, break out of the qualifier
                loop. */
