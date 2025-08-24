@@ -4,7 +4,8 @@ Version 6.8
 C++-generating back end: attributes dropped on class template declarations
 
 When using the C++-generating back end, attributes had been silently dropped
-on class template declarations.  For example (with --c++14):
+on class template declarations that are not definitions.  For example
+(with --c++14):
 
   template <class> struct [[deprecated]] A;
 
