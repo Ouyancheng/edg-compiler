@@ -1,5 +1,14 @@
 Version 6.8
 
+8/24/25  [EDGcpfe/28389]
+C++-generating back end: attributes dropped on class template declarations
+
+When using the C++-generating back end, attributes had been silently dropped
+on class template declarations.  For example (with --c++14):
+
+  template <class> struct [[deprecated]] A;
+
+
 8/21/25  [EDGcpfe/28088,EDGcpfe/28173]
 Abort in transfer_arg_operand_for_template_arg during substitution
 

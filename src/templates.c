@@ -26234,6 +26234,16 @@ friend_template_checks_done:
        is never done. */
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           decl_state->is_partial_specialization);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (!is_definition && attributes != NULL &&
+        !source_sequence_entries_disallowed) {
+      /* Add a secondary source sequence entry to attach attributes to a
+         class template declaration. */
+      a_src_seq_secondary_decl_ptr sssdp = secondary_src_seq_for_template(
+                                                decl_state->il_template_entry);
+      sssdp->attributes = attributes;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions) {
