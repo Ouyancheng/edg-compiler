@@ -1,5 +1,16 @@
 Version 6.8
 
+8/25/25  [EDGcpfe/28414]
+Consistency checking for floating point configurations
+
+The front end previously accepted invalid configurations in which the size
+specified for a floating point type is too small for the number of bits
+required for the specified mantissa and exponent values.  In configurations
+with CHECKING set to TRUE, the front end now tests these values for all
+floating point types during its start-up initialization and issues a
+catastrophic error if an inconsistency is found.
+
+
 8/24/25  [EDGcpfe/28389]
 C++-generating back end: attributes dropped on class template declarations
 

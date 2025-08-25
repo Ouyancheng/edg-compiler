@@ -27458,6 +27458,25 @@ re-initialized for each translation unit.
                                                             /*mask_width=*/5u);
 }  /* exprutil_trans_unit_init */
 
+#if CHECKING
+
+static a_targ_size_t exponent_bits(a_float_kind kind)
+/*
+Return the number of bits required for the exponent of the specified kind
+of floating point number.
+*/
+{
+  a_targ_size_t result = 0;
+  int           range = max_exponent[(int)kind] - min_exponent[(int)kind];
+
+  while (range > 0) {
+    ++result;
+    range >>= 1;
+  }  /* while */
+  return result;
+}  /* exponent_bits */
+
+#endif /* CHECKING */
 
 void exprutil_init(void)
 /* 
@@ -27567,6 +27586,17 @@ for each compilation.
   max_exponent[(int)fk_std_float64]  = 1024;
   max_exponent[(int)fk_std_float128] = 16384;
   max_exponent[(int)fk_last]         = 0;
+#if CHECKING
+  /* Ensure that the specified size for each type is large enough to hold
+     the specified number of mantissa + exponent bits. */
+  for (int k = (int)fk_float16; k < (int)fk_last; ++k) {
+    if (num_mantissa_bits[k] + exponent_bits((a_float_kind)k) >
+                                                 flt_type_size[k] * CHAR_BIT) {
+      a_const_char *type_name = float_kind_name((a_float_kind)k, C_mode());
+      str_catastrophe(ec_bad_flt_config, type_name);
+    }  /* if */
+  }  /* for */
+#endif /* CHECKING */
   /* Do initialization for overload.c: */
   overload_init();
 }  /* exprutil_init */

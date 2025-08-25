@@ -3572,6 +3572,7 @@ ec_insufficient_address_space;;"insufficient address space exists to process thi
 ec_undetermined_type;;"<undetermined type>"
 ec_undetermined_constant;;"<undetermined constant>"
 ec_undetermined_template;;"<undetermined template>"
+ec_bad_flt_config;;"the configured size of %s is too small for the specified number of mantissa + exponent bits"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
