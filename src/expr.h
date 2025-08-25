@@ -1088,6 +1088,11 @@ extern an_expr_node_ptr scan_expr_for_attribute(int  precedence);
 
 extern void scan_annotation_value(an_attribute_arg  *aap);
 
+extern
+a_type_ptr conditional_result_type(a_type     *tp2,
+                                   a_type     *tp3,
+                                   a_boolean  add_const_ref);
+
 extern an_init_component_ptr cache_expression(bool  immediate_context);
 
 typedef struct an_initializer_cache *an_initializer_cache_ptr;

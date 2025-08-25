@@ -15627,13 +15627,7 @@ DEFINE_type_transform(std_meta, type_remove_cvref,
 
 DEFINE_type_transform(std_meta, type_decay,
   ([&]{
-    if (is_reference_type(tp)) tp = skip_typerefs(type_pointed_to(tp));
-    if (is_array_type(tp)) {
-      tp = type_after_array_to_pointer_transformation(tp);
-    } else if (is_function_type(tp)) {
-      tp = make_pointer_type(tp);
-    }  /* if */
-    result_tp = tp;
+    result_tp = decay_type(tp);
   }))
 
 

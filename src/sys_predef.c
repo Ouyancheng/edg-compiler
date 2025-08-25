@@ -2324,6 +2324,10 @@ Enter predeclared symbols as required by the implementation.
       /* Create an alias template for "__type_pack_element". */
       make_type_pack_element_internal_template();
     }  /* if */
+    if (clangcpp_version_is(>=200000)) {
+      /* Create an alias template for "__builtin_common_type". */
+      make_builtin_common_type_internal_template();
+    }  /* if */
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {

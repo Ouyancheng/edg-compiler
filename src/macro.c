@@ -7651,7 +7651,9 @@ end_arg_expansion:;
            ((clangcpp_version_is(>=30900) &&
              (strcmp(builtin_name, "__type_pack_element") == 0 ||
               strcmp(builtin_name, "__is_signed") == 0 ||
-              strcmp(builtin_name, "__make_integer_seq") == 0)) ||
+              strcmp(builtin_name, "__make_integer_seq") == 0 ||
+              (clangcpp_version_is(>=200000) &&
+               strcmp(builtin_name, "__builtin_common_type") == 0))) ||
             (gnu_version_is(>=150000) &&
              strcmp(builtin_name, "__is_pointer") == 0)))) {
         /* Note: __type_pack_element, __is_signed, and __make_integer_seq are

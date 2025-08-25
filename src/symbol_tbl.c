@@ -8665,7 +8665,7 @@ void make_type_pack_element_internal_template(void)
 Creates a builtin alias template for "__type_pack_element" at the file scope.
 */
 {
-  /* Note that the target type of the alias template (i.e., "decltype(N)") is
+  /* Note that the target type of the alias template (i.e., "int") is
      arbitrary here as the template will be instantiated programatically (by
      instantiate_type_pack_element). */
   check_assertion(variadic_templates_enabled);
@@ -8682,6 +8682,41 @@ Creates a builtin alias template for "__type_pack_element" at the file scope.
       (a_namespace_ptr)NULL,
       /*is_metadata=*/FALSE);
 }  /* make_type_pack_element_internal_template */
+
+
+void make_builtin_common_type_internal_template(void)
+/*
+Create a builtin class template "__builtin_common_type" and a corresponding
+alias template "__builtin_common_type_alias" (both at file scope).  This is a
+Clang 20.0 feature, where __builtin_common_type is an alias template.  We use
+both a class template and an alias template because our default handling of an
+alias template would erase the alias too quickly.  Instead, we switch the class
+template to the alias template (in templates.c) once we have a nondependent
+template argument list.
+*/
+{
+  /* Note that the target type of the alias template (i.e., "void") is
+     arbitrary here as the template will be instantiated programatically (by
+     instantiate_builtin_common_type). */
+  check_assertion(variadic_templates_enabled);
+  symbol_for_builtin_common_type = make_internal_template(
+      "__builtin_common_type",
+      "template<template<class ... _Args> class _BaseTemplate,"
+      "         template<class _TypeMember> class _HasTypeMember,"
+      "         class _HasNoTypeMember, class ..._Ts>"
+      "  struct __builtin_common_type;",
+      (a_namespace_ptr)NULL,
+      /*is_metadata=*/FALSE);
+  symbol_for_builtin_common_type_alias = make_internal_template(
+      "__builtin_common_type_alias",
+      "template<template<class ... _Args> class _BaseTemplate,"
+      "         template<class _TypeMember> class _HasTypeMember,"
+      "         class _HasNoTypeMember, class ..._Ts>"
+      "  __internal_alias_decl __builtin_common_type_alias = void;",
+      (a_namespace_ptr)NULL,
+      /*is_metadata=*/FALSE);
+}  /* make_builtin_common_type_internal_template */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -19209,6 +19244,8 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(symbol_for_make_integer_seq_alias),
       pch_saved_var_array_elem(symbol_for_type_pack_element),
       pch_saved_var_array_elem(symbol_for_type_pack_element_alias),
+      pch_saved_var_array_elem(symbol_for_builtin_common_type),
+      pch_saved_var_array_elem(symbol_for_builtin_common_type_alias),
       pch_saved_var_array_elem(va_list_global_alias_has_been_created),
       pch_saved_var_array_elem(file_scope_symbols_are_on_inactive_list),
       pch_saved_var_array_elem(symbols_with_no_scope),
@@ -19297,6 +19334,8 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(symbol_for_make_integer_seq_alias);
   register_trans_unit_variable(symbol_for_type_pack_element);
   register_trans_unit_variable(symbol_for_type_pack_element_alias);
+  register_trans_unit_variable(symbol_for_builtin_common_type);
+  register_trans_unit_variable(symbol_for_builtin_common_type_alias);
   register_trans_unit_variable(va_list_global_alias_has_been_created);
 #if IA64_ABI
   register_trans_unit_variable(symbol_for_namespace_abi);
@@ -19351,6 +19390,8 @@ given translation unit.
   symbol_for_make_integer_seq_alias = NULL;
   symbol_for_type_pack_element = NULL;
   symbol_for_type_pack_element_alias = NULL;
+  symbol_for_builtin_common_type = NULL;
+  symbol_for_builtin_common_type_alias = NULL;
   va_list_global_alias_has_been_created = FALSE;
 #if IA64_ABI
   symbol_for_namespace_abi = NULL;

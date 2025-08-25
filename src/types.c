@@ -3583,17 +3583,7 @@ diagnostic in error cases.  error_pos is the position to use for diagnostics
       }  /* if */
       break;
     case trk_decay:
-      if (is_reference_type(tp)) {
-        tp = type_pointed_to(tp);
-      }  /* if */
-      if (is_array_type(tp)) {
-        result = make_pointer_type(array_element_type(tp));
-      } else if (is_function_type(tp)) {
-        result = make_pointer_type(tp);
-      } else {
-        result = remove_qualifiers(tp,
-                                   TQ_CONST | TQ_VOLATILE | TQ_RESTRICT);
-      }  /* if */
+      result = decay_type(tp);
       break;
     default:
       unexpected_condition();
@@ -3874,6 +3864,27 @@ return tp itself.
   return is_any_ptr_or_ref_type(tp) ? type_pointed_to(tp) : tp;
 }  /* skip_pointer_types */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_type_ptr decay_type(a_type_ptr  tp)
+/*
+Apply the transformation corresponding to std::decay_t.
+*/
+{
+  if (is_reference_type(tp)) {
+    tp = type_pointed_to(tp);
+  }  /* if */
+  if (is_array_type(tp)) {
+    tp = make_pointer_type(array_element_type(tp));
+  } else if (is_function_type(tp)) {
+    tp = make_pointer_type(tp);
+  } else {
+    tp = remove_qualifiers(tp, TQ_CONST | TQ_VOLATILE | TQ_RESTRICT);
+  }  /* if */
+  return tp;
+}  /* decay_type */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_type_ptr pm_member_type(a_type_ptr pm_type)
 /*
@@ -15120,6 +15131,49 @@ is a class type it caches the result in its class type supplement.
 }  /* ttt_post_is_error_type */
 
 
+static a_boolean type_is_in_namespace_std(a_type       *tp)
+/*
+Return TRUE if the given type is directly or indirectly declared in namespace
+std.
+*/
+{
+  a_scope    *parent_scope = tp->source_corresp.parent_scope;
+  a_boolean  result = FALSE;
+
+  if (parent_scope != NULL) {
+    while (parent_scope->parent != NULL) parent_scope = parent_scope->parent;
+    if ((scope_is(parent_scope, sck_namespace) ||
+         scope_is(parent_scope, sck_namespace_extension)) &&
+        parent_scope->variant.assoc_namespace->is_std) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* type_is_in_namespace_std */
+
+
+static a_boolean ttt_can_specialize_std_lib_template(
+                                          a_type_ptr  type_ptr,
+                                          a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr represents a
+typedef-name.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if ((is_immediate_class_type(type_ptr) ||
+       is_immediate_enum_type(type_ptr)) &&
+      !type_is_in_namespace_std(type_ptr)) {
+    /* Check that the type is not declared within member of namespace std. */
+    result = TRUE;
+    *force_end_of_traversal = TRUE;
+  }  /* if */
+  return result;
+}  /* ttt_can_specialize_std_lib_template */
+
+
 static a_boolean ttt_is_typedef_type(a_type_ptr  type_ptr,
                                      a_boolean   *force_end_of_traversal)
 /*
@@ -16758,6 +16812,24 @@ and those formed via alias-declaration syntax.
   result = traverse_type_tree(type_ptr, ttt_is_typedef_type, ttt_flags);
   return result;
 }  /* is_or_contains_typedef_type */
+
+
+a_boolean can_specialize_std_lib_template(a_type_ptr  type_ptr)
+/*
+Return TRUE if the given type contains a class or enum type that does not
+belong to namespace std.  (I.e., it is a type that programmers might specialize
+a standard library template for.)
+*/
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_THIS_PARAM_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_SKIP_TYPEREFS |
+                                               TTT_TEMPLATE_ARGS |
+                                               TTT_EXCEPTION_SPECS);
+  return traverse_type_tree(type_ptr, ttt_can_specialize_std_lib_template,
+                            ttt_flags);
+}  /* can_specialize_std_lib_template */
 
 
 a_boolean is_template_dependent_type(a_type_ptr  type_ptr)

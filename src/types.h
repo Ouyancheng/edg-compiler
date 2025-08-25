@@ -403,6 +403,10 @@ type.  Otherwise, return tp.
   return tp;
 }  /* skip_reference_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
+extern a_type_ptr decay_type(a_type_ptr  tp);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 extern a_type_ptr pm_member_type(a_type_ptr pm_type);
 extern a_type_ptr pm_class_type(a_type_ptr pm_type);
 extern a_type_ptr f_underlying_type_of_derived_type(
@@ -1645,6 +1649,7 @@ extern a_boolean overload_distinguishable(a_symbol_ptr        old_sym_ptr,
                                           an_error_code       *err_code);
 extern a_boolean is_or_contains_error_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_typedef_type(a_type_ptr  type_ptr);
+extern a_boolean can_specialize_std_lib_template(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_local_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_unnamed_namespace_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_type_with_no_name_linkage(

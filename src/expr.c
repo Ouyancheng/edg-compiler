@@ -34619,7 +34619,9 @@ in that definition.
 
 static void scan_conditional_operator(an_operand             *operand_1,
                                       a_rescan_control_block *rcblock,
-                                      an_operand             *result)
+                                      an_operand             *result,
+                                      an_operand             *p_opnd2 = NULL,
+                                      an_operand             *p_opnd3 = NULL)
 /*
 Scan the "?" operator.  *operand_1 is the first operand.  The current
 token is the "?" operator.  Scan the second operand and third operands,
@@ -34627,11 +34629,12 @@ combine the three operands into an expression, and return an operand for
 that in *result.  If rcblock is non-NULL, redo semantic analysis on a
 previously-scanned expression, and return the result in *result (or an
 error indication in *rcblock).  operand_1 is expected to be NULL in
-that case.
+that case.  If p_opnd2 and p_opnd3 are non-NULL, do not scan tokens, but
+perform semantic analysis based on the three given operands (this is used
+to implement __builtin_common_type).
 */
 {
-  an_operand            local_operand_1, operand_2;
-  an_operand            operand_3;
+  an_operand            local_operand_1, operand_2, operand_3;
   a_source_position     colon_position;
   a_source_position     question_position;
   a_token_sequence_number
@@ -34666,7 +34669,8 @@ that case.
   a_boolean             suppress_class_temp_optimization = FALSE;
   a_boolean             microsoft_rvalue_temp_bug =
                                 ms_rvalue_temp_in_cond_operator_bug_enabled();
-  an_expr_operator_kind op = (an_expr_operator_kind)eok_question;
+  an_expr_operator_kind op = eok_question;
+  a_boolean             no_parse = rcblock != NULL || p_opnd2 != NULL;
 
   db_enter(4, "scan_conditional_operator");
 
@@ -34692,13 +34696,17 @@ that case.
     /* Normal, non-rescan, processing. */
     question_position = pos_curr_token;
     question_tok_seq_number = curr_token_sequence_number;
-    /* Skip the "?" token. */
-    (void)get_token();
-    /* Recognize the binary form "x ? : y" accepted in GNU C and C++ mode. */
-    is_gnu_two_operand_form = (gnu_mode && curr_token == tok_colon);
+    if (p_opnd2 != NULL) {
+      check_assertion(p_opnd3 != NULL);
+    } else {
+      /* Skip the "?" token. */
+      (void)get_token();
+      /* Recognize the binary form "x ? : y" accepted in GNU C and C++ mode. */
+      is_gnu_two_operand_form = (gnu_mode && curr_token == tok_colon);
+    }  /* if */
   }  /* if */
 
-  if (rcblock == NULL && is_gnu_two_operand_form) {
+  if (!no_parse && is_gnu_two_operand_form) {
     /* In the binary form, the second operand is omitted and instead the
        value of the first operand is used.  Make a copy before the
        first operand is converted to bool.  Variables might change
@@ -34762,7 +34770,9 @@ that case.
     }  /* if */
   }  /* if */
 
-  if (rcblock == NULL && !is_gnu_two_operand_form) {
+  if (p_opnd2 != NULL) {
+    copy_operand(p_opnd2, &operand_2);
+  } else if (rcblock == NULL && !is_gnu_two_operand_form) {
     /* Scan the second operand.   Evaluate the expression if the first
        operand is non-constant or a non-zero constant, and if we are currently
        evaluating expressions. */
@@ -34785,7 +34795,10 @@ that case.
     expr_stack->nested_construct_depth--;
   }  /* if */
 
-  if (rcblock == NULL) {
+  if (p_opnd3 != NULL) {
+    colon_position = pos_curr_token;
+    copy_operand(p_opnd3, &operand_3);
+  } else if (rcblock == NULL) {
     /* Save the position of the (expected) colon. */
     colon_position = pos_curr_token;
 
@@ -35645,6 +35658,99 @@ error_exit:
                        &question_position);
   db_exit();
 }  /* scan_conditional_operator */
+
+
+static void make_declval_opnd(an_operand  *opnd,
+                              a_type      *tp)
+/*
+Store in *opnd a dummy operand of the given type (similar to the result of
+std::declval<T>()).
+*/
+{
+  complete_type_is_needed(tp);
+  if (is_void_type(tp)) {
+    a_constant_ptr  cp = local_constant();
+    clear_constant(cp, ck_void);
+    cp->type = tp;
+    make_constant_operand(cp, opnd);
+    release_local_constant(&cp);
+  } else if (is_incomplete_type(skip_array_types(tp))) {
+    make_error_operand(opnd);
+  } else {
+    a_boolean  make_lvalue = FALSE;
+    if (is_lvalue_reference_type(tp)) {
+      make_lvalue = TRUE;
+      tp = type_pointed_to(tp);
+    } else if (is_rvalue_reference_type(tp)) {
+      make_lvalue = FALSE;
+      tp = type_pointed_to(tp);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode) {
+      if (is_tracking_reference_type(tp)) {
+        make_lvalue = TRUE;
+        tp = type_pointed_to(tp);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
+    make_dummy_lvalue_operand(tp, opnd);
+    /* If we're not making an lvalue, we make an xvalue.  However, for
+       a function type we always make an lvalue. */
+    if (!make_lvalue && !is_function_type(tp)) {
+      conv_rvalue_reference_result_to_xvalue(opnd);
+    }  /* if */
+  }  /* if */
+}  /* make_declval_opnd */
+
+
+a_type_ptr conditional_result_type(a_type     *tp2,
+                                   a_type     *tp3,
+                                   a_boolean  add_const_ref)
+/*
+If tp2 and tp3 represent types T2 and T3, respectively return the type
+obtained from
+  decltype(false ? std::declval<T2>() : std::declval<T3>)
+if add_const_ref is FALSE and from
+  decltype(false ? std::declval<T2 const&>() : std::declval<T3 const&>)
+otherwise.
+*/
+{
+  a_type                  *result_tp;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+  a_memory_region_number  region_to_switch_back_to;
+  an_operand              false_opnd, opnd2, opnd3, result_opnd;
+  a_boolean               no_parens_matters;
+
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack(ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack->suppress_diagnostics = TRUE;
+  expr_stack->suppress_constexpr_call_folding = TRUE;
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  make_zero_operand(&false_opnd, bool_type());
+  if (add_const_ref) {
+    tp2 = make_reference_type(make_qualified_type(tp2, TQ_CONST));
+    tp3 = make_reference_type(make_qualified_type(tp3, TQ_CONST));
+  }  /* if */
+  make_declval_opnd(&opnd2, tp2);
+  make_declval_opnd(&opnd3, tp3);
+  if (!add_const_ref) {
+    conv_glvalue_to_prvalue(&opnd2);
+    conv_glvalue_to_prvalue(&opnd3);
+  }  /* if */
+  scan_conditional_operator(&false_opnd, (a_rescan_control_block*)NULL,
+                            &result_opnd, &opnd2, &opnd3);
+  result_tp = decltype_from_operand(&result_opnd, &no_parens_matters);
+  reclaim_fs_nodes_of_operand(&result_opnd);
+  switch_back_to_original_region(region_to_switch_back_to);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  if (is_error_type(result_tp)) {
+    result_tp = NULL;
+  }  /* if */
+  return result_tp;
+}  /* conditional_result_type */
 
 #if ASSIGNMENT_TO_THIS_ALLOWED
 
@@ -54932,37 +55038,14 @@ Return NULL if tp is an incomplete type or a reference to an incomplete type.
 */
 {
   an_arg_list_elem_ptr  result = NULL;
-  a_boolean             make_lvalue = FALSE;
-  an_operand            *arg_operand;
 
   complete_type_is_needed(tp);
   if (is_incomplete_type(skip_array_types(tp))) {
     /* Invalid type: Return NULL. */
-    goto done;
+  } else {
+    result = alloc_init_component(ick_expression);
+    make_declval_opnd(operand_of_arg_list_elem(result), tp);
   }  /* if */
-  if (is_lvalue_reference_type(tp)) {
-    make_lvalue = TRUE;
-    tp = type_pointed_to(tp);
-  } else if (is_rvalue_reference_type(tp)) {
-    make_lvalue = FALSE;
-    tp = type_pointed_to(tp);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode) {
-    if (is_tracking_reference_type(tp)) {
-      make_lvalue = TRUE;
-      tp = type_pointed_to(tp);
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
-  result = alloc_init_component((an_init_component_kind)ick_expression);
-  arg_operand = operand_of_arg_list_elem(result);
-  make_dummy_lvalue_operand(tp, arg_operand);
-  /* If we're not making an lvalue, we make an xvalue.  However, for
-     a function type we always make an lvalue. */
-  if (!make_lvalue && !is_function_type(tp)) {
-    conv_rvalue_reference_result_to_xvalue(arg_operand);
-  }  /* if */
-done:
   return result;
 }  /* make_declval_arg */
 
