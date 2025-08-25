@@ -1617,11 +1617,11 @@ float and 11 bits for _Float16).
       check_assertion(num_mantissa_bits[(int)kind] == 113);
       byte_no = host_little_endian ? 13 : 2;
       bit = 0x40;
+#else /* !HOST_FP_VALUE_IS_128BIT */
+      unexpected_condition();
+#endif /* HOST_FP_VALUE_IS_128BIT */
     }  /* if */
     value->bytes[byte_no] |= bit;
-#else /* !HOST_FP_VALUE_IS_128BIT */
-    unexpected_condition();
-#endif /* HOST_FP_VALUE_IS_128BIT */
   }  /* if */
   return !err && !fp_mode_dependent;
 }  /* make_fp_nan */
