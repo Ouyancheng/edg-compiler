@@ -2833,11 +2833,14 @@ Given a type pointer, skip any top level dealiasable typedefs and return the
 resulting type.
 */
 {
-  a_type_ptr result = type != NULL ? skip_lexical_typerefs(type) : NULL;
+  a_type_ptr result = type;
 
-  while (typedef_should_be_dealiased(result, octl)) {
-    result = skip_lexical_typerefs(result->variant.typeref.type);
-  }  /* while */
+  if (result != NULL) {
+    result = skip_lexical_typerefs(result);
+    while (typedef_should_be_dealiased(result, octl)) {
+      result = skip_lexical_typerefs(result->variant.typeref.type);
+    }  /* while */
+  }  /* if */
   return result;
 }  /* skip_dealiasable_typedefs */
 
