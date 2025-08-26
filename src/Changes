@@ -1,5 +1,17 @@
 Version 6.8
 
+8/26/25  [EDGcpfe/28412]
+Assertion failure in make_static_assert_string_for_output
+
+In cases where a static_assert is followed by preprocessor directives, an
+assertion failure (in make_static_assert_string_for_output) could occur and
+is now fixed.  For example, with --c++17:
+
+  static_assert(false, "a string")
+  #if defined(SOME_DEF)
+  #endif
+
+
 8/25/25  [EDGcpfe/28374]
 Clang compatibility: __builtin_common_type
 

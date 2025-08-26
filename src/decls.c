@@ -15334,7 +15334,7 @@ final token.
       syntax_error(ec_exp_string_literal);
       err = TRUE;
     } else {
-      error_string = &const_for_curr_token;
+      error_string = alloc_shareable_constant(&const_for_curr_token);
       (void)get_token();
     }  /* if */
   }  /* if */
@@ -15382,7 +15382,7 @@ final token.
     } else if (entry != NULL) {
       entry->condition = assert_con;
       if (error_string != NULL) {
-        entry->string_literal = alloc_shareable_constant(error_string);
+        entry->string_literal = error_string;
       }  /* if */
       entry->position = pos;
     }  /* if */
