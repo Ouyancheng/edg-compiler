@@ -1811,7 +1811,6 @@ extern a_boolean f_is_member_of_namespace_cli(a_source_correspondence  *scp);
 #define is_member_of_namespace_cli(ptr)                                      \
   (f_is_member_of_namespace_cli((a_source_correspondence*)ptr))
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define set_clrcall_convention_if_needed(rtp)  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

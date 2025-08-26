@@ -9307,6 +9307,7 @@ Returns the type of the Nth template argument in the pack.
 }  /* instantiate_type_pack_element */
 
 
+static
 a_type_ptr substitute_type_template(a_symbol           *type_template,
                                     a_template_arg     *t_args,
                                     a_source_position  *pos,
@@ -9340,7 +9341,6 @@ the substitution.
 }  /* substitute_type_template */
 
 
-
 static
 a_type_ptr compute_common_type(a_symbol   *base_template,
                                a_type     *tp1,
@@ -9352,7 +9352,7 @@ is represented by base_template, except for the final type adjustment implied
 by the Y and N parameters (those are handled by the caller).  Let D1 and D2 be
 the std::decay_t<T1> and std::decay_t<T2>, respectively.  If match_spec is
 TRUE, this computation will just look for a matching B<D1, D2> specialization,
-unless neither D1 nor D2 are a class or enumeration type.  If D1 and D2 are
+unless neither D1 nor D2 is a class or enumeration type.  If D1 and D2 are
 not identical to T1 and T2, the behavior is the same as if match_spec is TRUE.
 Otherwise, the result is obtained via a call to conditional_result_type (which
 simulates a conditional operator).  This mostly matches the semantics of
@@ -9414,11 +9414,11 @@ done:
 
 static a_type_ptr instantiate_builtin_common_type(a_template_arg_ptr t_args)
 /*
-Instantiate __builtin_common_type<Args> (where t_args represents the template
+Instantiate __builtin_common_type<Args>, where t_args represents the template
 arguments, and return the resulting type.
 */
 {
-  a_template_arg_ptr   tap = t_args;
+  a_template_arg_ptr   tap = t_args, tap2, tap3;
   a_template_ptr       base_template = NULL, has_type_member = NULL;
   a_type_ptr           has_no_type_member = NULL;
   a_type_ptr           tp1, tp2;
@@ -9438,34 +9438,41 @@ arguments, and return the resulting type.
   if (tap == NULL) {
     /* No argument types: Return has_no_type_member. */
     tp2 = NULL;
-  } else if (tap->next == NULL) {
-    /* One argument T: Return B<T, T>::type, where B is base_template. */
-    tp1 = tap->variant.type;
-    tp2 = compute_common_type(symbol_for(base_template), tp1, tp1,
-                              /*match_spec=*/TRUE);
-  } else if (tap->next->next == NULL) {
-    /* Two arguments <T, U>: Return a type that is either obtained from
-       B<T, U>::type or from a conditional operation false ? x : y, where
-       the operands x and y are built with the types T and U.  See
-       compute_common_type for details. */
-    tp1 = tap->variant.type;
-    tp2 = tap->next->variant.type;
-    tp2 = compute_common_type(symbol_for(base_template), tp1, tp2,
-                              /*match_spec=*/FALSE);
   } else {
-    /* More that two arguments: Repeatedly call compute_common_type. */
-    check_assertion(is_type_templ_arg(tap));
-    tp2 = tap->variant.type;
-    do {
-      advance_to_next_template_arg_simple(&tap);
-      if (tap != NULL) {
-        check_assertion(is_type_templ_arg(tap));
-        tp1 = tp2;
-        tp2 = tap->variant.type;
-      }  /* if */
-      tp2 = compute_common_type(symbol_for(base_template), tp1, tp2,
+    tap2 = tap;
+    advance_to_next_template_arg_simple(&tap2);
+    if (tap2 == NULL) {
+      /* One argument T: Return B<T, T>::type, where B is base_template. */
+      tp1 = tap->variant.type;
+      tp2 = compute_common_type(symbol_for(base_template), tp1, tp1,
                                 /*match_spec=*/TRUE);
-    } while (tap != NULL && tp2 != NULL);
+    } else {
+      tap3 = tap2;
+      advance_to_next_template_arg_simple(&tap3);
+      if (tap3 == NULL) {
+        /* Two arguments <T, U>: Return a type that is either obtained from
+           B<T, U>::type or from a conditional operation false ? x : y, where
+           the operands x and y are built with the types T and U.  See
+           compute_common_type for details. */
+        tp1 = tap->variant.type;
+        tp2 = tap2->variant.type;
+        tp2 = compute_common_type(symbol_for(base_template), tp1, tp2,
+                                  /*match_spec=*/FALSE);
+      } else {
+        /* More than two arguments: Repeatedly call compute_common_type. */
+        check_assertion(is_type_templ_arg(tap) && is_type_templ_arg(tap2));
+        tp2 = tap->variant.type;
+        tap = tap2;
+        do {
+          check_assertion(is_type_templ_arg(tap));
+          tp1 = tp2;
+          tp2 = tap->variant.type;
+          tp2 = compute_common_type(symbol_for(base_template), tp1, tp2,
+                                    /*match_spec=*/TRUE);
+          advance_to_next_template_arg_simple(&tap);
+        } while (tap != NULL && tp2 != NULL);
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (tp2 != NULL) {
     a_boolean  subst_error = FALSE;
@@ -11756,9 +11763,9 @@ use the current global value of the template template parameter.
       is_alias_template = TRUE;
     } else if (template_sym == symbol_for_builtin_common_type) {
       /* For non-dependent arguments to __builtin_common_type, substitute a
-         reference to the builtin alias __builtin_common_type_alias which will
-         invoke instantiate_builtin_common_type to programatically instantiate
-         the template. */
+         reference to the builtin alias __builtin_common_type_alias.  That will
+         cause invocation of instantiate_builtin_common_type, which in turn
+         will programmatically instantiate the alias template. */
       template_sym = symbol_for_builtin_common_type_alias;
       tssp = template_sym->variant.template_info;
       is_alias_template = TRUE;
@@ -15886,8 +15893,8 @@ template are satisfied (if not, *copy_error is set to TRUE).
       result_type = instantiate_type_pack_element(new_list);
       new_list = NULL;
     } else if (template_sym == symbol_for_builtin_common_type) {
-      /* This is the builtin alias template __builtin_common_type; the template
-         is instantiated programatically rather than by scanning the cache for
+      /* This is the builtin template __builtin_common_type; the template is
+         instantiated programatically rather than by scanning the cache for
          the template. */
       result_type = instantiate_builtin_common_type(new_list);
       new_list = NULL;

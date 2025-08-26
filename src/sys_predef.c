@@ -2325,8 +2325,8 @@ Enter predeclared symbols as required by the implementation.
       make_type_pack_element_internal_template();
     }  /* if */
     if (clangcpp_version_is(>=200000)) {
-      /* Create an alias template for "__builtin_common_type". */
-      make_builtin_common_type_internal_template();
+      /* Create class and alias templates for "__builtin_common_type". */
+      make_builtin_common_type_internal_templates();
     }  /* if */
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED

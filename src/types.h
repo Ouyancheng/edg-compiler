@@ -1649,7 +1649,6 @@ extern a_boolean overload_distinguishable(a_symbol_ptr        old_sym_ptr,
                                           an_error_code       *err_code);
 extern a_boolean is_or_contains_error_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_typedef_type(a_type_ptr  type_ptr);
-extern a_boolean can_specialize_std_lib_template(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_local_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_unnamed_namespace_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_type_with_no_name_linkage(

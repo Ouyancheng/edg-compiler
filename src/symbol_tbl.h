@@ -5243,7 +5243,7 @@ extern void make_make_integer_seq_internal_template(void);
 
 extern void make_type_pack_element_internal_template(void);
 
-extern void make_builtin_common_type_internal_template(void);
+extern void make_builtin_common_type_internal_templates(void);
 
 EXTERN_THREAD a_symbol_ptr
                 symbol_for_make_integer_seq;
@@ -5275,8 +5275,8 @@ EXTERN_THREAD a_symbol_ptr
 
 EXTERN_THREAD a_symbol_ptr
                 symbol_for_builtin_common_type;
-                        /* Symbol for "__builtin_common_type_alias", which is
-                           a builtin class template (used for cases where
+                        /* Symbol for "__builtin_common_type", which is a
+                           builtin class template (used for cases where
                            template arguments to __builtin_common_type are
                            dependent). */
 

@@ -35706,7 +35706,7 @@ a_type_ptr conditional_result_type(a_type     *tp2,
                                    a_type     *tp3,
                                    a_boolean  add_const_ref)
 /*
-If tp2 and tp3 represent types T2 and T3, respectively return the type
+If tp2 and tp3 represent types T2 and T3, respectively, return the type
 obtained from
   decltype(false ? std::declval<T2>() : std::declval<T3>)
 if add_const_ref is FALSE and from

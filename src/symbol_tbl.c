@@ -8684,7 +8684,7 @@ Creates a builtin alias template for "__type_pack_element" at the file scope.
 }  /* make_type_pack_element_internal_template */
 
 
-void make_builtin_common_type_internal_template(void)
+void make_builtin_common_type_internal_templates(void)
 /*
 Create a builtin class template "__builtin_common_type" and a corresponding
 alias template "__builtin_common_type_alias" (both at file scope).  This is a
@@ -8715,7 +8715,7 @@ template argument list.
       "  __internal_alias_decl __builtin_common_type_alias = void;",
       (a_namespace_ptr)NULL,
       /*is_metadata=*/FALSE);
-}  /* make_builtin_common_type_internal_template */
+}  /* make_builtin_common_type_internal_templates */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
