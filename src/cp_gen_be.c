@@ -6731,8 +6731,7 @@ put out nothing.
     gen_name_qualifier_list(nqp->previous_qualifier);
     if (nqp->is_class) {
       /* A class qualifier. */
-      a_type_ptr                  class_type = skip_lexical_typerefs(
-                                                    nqp->qualifier.class_type);
+      a_type_ptr                  class_type = nqp->qualifier.class_type;
       a_source_correspondence_ptr scp;
       an_il_entry_kind            kind;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
