@@ -35742,13 +35742,13 @@ otherwise.
   scan_conditional_operator(&false_opnd, (a_rescan_control_block*)NULL,
                             &result_opnd, &opnd2, &opnd3);
   result_tp = decltype_from_operand(&result_opnd, &no_parens_matters);
+  if (is_error_type(result_tp) || expr_stack->any_suppressed_error) {
+    result_tp = NULL;
+  }  /* if */
   reclaim_fs_nodes_of_operand(&result_opnd);
   switch_back_to_original_region(region_to_switch_back_to);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
-  if (is_error_type(result_tp)) {
-    result_tp = NULL;
-  }  /* if */
   return result_tp;
 }  /* conditional_result_type */
 
