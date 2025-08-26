@@ -7570,9 +7570,9 @@ for more information.
   /* First, check if the types are the same.  This repeats the test in the
      identical_types macro, but it needs to be done here, too, since this
      function is called directly when the flags must be specified. */
+check_typerefs:
   type_1 = skip_lexical_typerefs(type_1);
   type_2 = skip_lexical_typerefs(type_2);
-check_typerefs:
   if (type_1 == type_2) {
     identical = TRUE;
     goto done;

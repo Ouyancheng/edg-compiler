@@ -8149,6 +8149,7 @@ template parameter list.
       a_template_decl_info_ptr  aliased_tdip;
       a_type_ptr                aliased_type = type->variant.typeref.type;
 
+      aliased_type = skip_lexical_typerefs(aliased_type);
       if (is_immediate_class_type(aliased_type)) {
         aliased_templ = assoc_template_of(aliased_type);
         if (aliased_templ != NULL && aliased_templ->kind == templk_class) {

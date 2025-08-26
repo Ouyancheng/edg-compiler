@@ -2414,32 +2414,34 @@ through to entity_name_is_accessible.
   argp->access_being_checked = TRUE;
   switch (argp->kind) {
   case tak_type:
-    scp = &skip_typerefs_not_typedefs_or_type_operators(argp->variant.type)->
-                                                                source_corresp;
-    is_accessible = entity_name_is_accessible(scp, iek_type, ignore_context,
-                                              for_all_scopes);
-    if (!is_accessible && check_related_types) {
-      /* Check to see if this is a typedef whose underlying type is
-         accessible.  If so, the underlying type will be used instead of
-         the actual argument when putting out the template-id, so the
-         argument should be considered accessible for that purpose. */
-      if (type_is_typedef(argp->variant.type)) {
-        a_type_ptr tp = skip_typerefs(argp->variant.type);
-        is_accessible = entity_name_is_accessible(&tp->source_corresp,
-                                                  iek_type, ignore_context,
-                                                  for_all_scopes);
+    { a_type_ptr tp =
+              skip_typerefs_not_typedefs_or_type_operators(argp->variant.type);
+      scp = &tp->source_corresp;
+      is_accessible = entity_name_is_accessible(scp, iek_type, ignore_context,
+                                                for_all_scopes);
+      if (!is_accessible && check_related_types) {
+        /* Check to see if this is a typedef whose underlying type is
+           accessible.  If so, the underlying type will be used instead of
+           the actual argument when putting out the template-id, so the
+           argument should be considered accessible for that purpose. */
+        if (type_is_typedef(tp)) {
+          a_type_ptr utp = skip_typerefs(tp);
+          is_accessible = entity_name_is_accessible(&utp->source_corresp,
+                                                    iek_type, ignore_context,
+                                                    for_all_scopes);
+        }  /* if */
       }  /* if */
-    }  /* if */
-    if (!is_accessible && check_related_types) {
-      /* Check for an accessible typedef.  If there is one, it will be
-         used instead of the actual argument when putting out the
-         template-id, so the argument should be considered accessible for
-         that purpose. */
-      replace_inaccessible_type_with_accessible_typedef(
+      if (!is_accessible && check_related_types) {
+        /* Check for an accessible typedef.  If there is one, it will be
+           used instead of the actual argument when putting out the
+           template-id, so the argument should be considered accessible for
+           that purpose. */
+        replace_inaccessible_type_with_accessible_typedef(
                                                   &scp,
                                                   /*force_replacement=*/FALSE);
-      is_accessible = (scp != &argp->variant.type->source_corresp);
-    }  /* if */
+        is_accessible = (scp != &tp->source_corresp);
+      }  /* if */
+    }
     break;
   case tak_nontype:
     constant = argp->variant.constant;
