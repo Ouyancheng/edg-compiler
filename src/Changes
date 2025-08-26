@@ -1,5 +1,14 @@
 Version 6.8
 
+8/26/25  [EDGcpfe/27549]
+Microsoft compatibility: va_copy
+
+In configurations with DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE set to
+TRUE, the front end now includes va_copy among the built-in operators enabled
+in Microsoft modes when "#include <stdarg.h>" is encountered (when
+microsoft_version >= 1900).
+
+
 8/26/25  [EDGcpfe/28412]
 Assertion failure in make_static_assert_string_for_output
 

@@ -2514,6 +2514,7 @@ option values if they were not already set by a command line option.
   }  /* if */
   /* Set global variables that are independent of C or C++ mode. */
   if (microsoft_version >= 1900) {
+    va_copy_macro_allowed = TRUE;
     alignof_enabled = TRUE;
     binary_literals_allowed = TRUE;
     digit_separators_enabled = TRUE;
