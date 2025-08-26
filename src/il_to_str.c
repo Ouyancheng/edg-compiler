@@ -2530,8 +2530,10 @@ by octl.
         check_assertion(templ != NULL);
         form_name(&templ->source_corresp, iek_template, octl);
       } else {
-        check_assertion_str(typeref_is_typedef(type),
-                            "form_type_specifier: typeref is not typedef");
+        check_assertion_str(
+                           typeref_is_typedef(type) ||
+                           type->variant.typeref.kind == trk_template_arg_list,
+                           "form_type_specifier: unexpected typeref kind");
         form_name(&type->source_corresp, iek_type, octl);
       }  /* if */
       break;
@@ -3081,6 +3083,10 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                is_type_operator_to_be_rendered(type, octl)) {
       /* A decltype or typeof operator that should be rendered in its
          original form (instead of rendering the underlying type). */
+      break;
+    } else if (type->variant.typeref.kind == trk_template_arg_list) {
+      /* A typeref that gives an alternative template argument list for a
+         given occurrence of the type.  Do not step over it. */
       break;
     } else {
       /* Type qualifier typeref.  Accumulate the qualifiers. */

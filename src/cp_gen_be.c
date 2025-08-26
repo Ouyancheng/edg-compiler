@@ -4114,6 +4114,10 @@ a name.  Never generate a qualified name.
       scp = source_corresp_for_template_param(
                             &class_type_supp(tp)->assoc_template->coordinates);
       name = unmangled_name_of(scp);
+    } else if (type_is(tp, tk_typeref) &&
+               tp->variant.typeref.kind == trk_template_arg_list) {
+      /* Use the name of the template instance to which the typeref refers. */
+      name = unmangled_name_of(&tp->variant.typeref.type->source_corresp);
     }  /* if */
   }  /* if */
   if (name == NULL) {
@@ -6971,7 +6975,9 @@ successfully emitted.
         }  /* if */
         gen_bare_name(scp, entry_kind);
         if (nrp->is_template_id) {
-          gen_template_arguments(scp, entry_kind, nrp->num_template_arguments);
+          gen_template_arguments_full(scp, entry_kind,
+                                      nrp->num_template_arguments,
+                                      nrp->orig_template_arg_list);
         }  /* if */
       } else if (cp != NULL &&
                  cp->kind == (a_constant_repr_kind)ck_template_param &&
@@ -6987,8 +6993,19 @@ successfully emitted.
         gen_constant(cp, /*need_parens=*/FALSE);
         cp->variant.template_param.variant.destructor.unqualified =
                                                              saved_unqualified;
+      } else if (entry_kind == iek_variable &&
+                 nrp->orig_template_arg_list != NULL) {
+        /* This is an instance of a variable template specified with a
+           template argument list that differs from the one with which it
+           was instantiated.  Put out the bare name and the alternative
+           template argument list directly. */
+        gen_bare_name(scp, entry_kind);
+        gen_template_arguments_full(scp, entry_kind,
+                                    nrp->num_template_arguments,
+                                    nrp->orig_template_arg_list);
       } else {
-        /* Not a routine name. */
+        /* Neither a routine name nor the name of a variable template
+           instance with an alternative template argument list. */
         gen_unqualified_name(scp, entry_kind);
       }  /* if */
       if (need_closing_paren) {
@@ -22553,7 +22570,7 @@ this one is such a continuation.
     attributes = var->source_corresp.attributes;
     is_definition = TRUE;
     var->definition_has_been_put_out = TRUE;
-    var_type = skip_lexical_typerefs(var->declared_type);
+    var_type = var->declared_type;
 #if GNU_EXTENSIONS_ALLOWED
     marked_as_gnu_extension = var->source_corresp.marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
