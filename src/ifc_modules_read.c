@@ -891,6 +891,10 @@ type.
 Forward declarations of caching functions.
 */
 
+static a_boolean cache_edg_token_cache(
+                                   a_module_token_cache_ptr      cache,
+                                   an_ifc_edg_token_cache_offset cache_offset);
+
 static void cache_attrs(a_module_token_cache_ptr cache,
                         an_ifc_decl_index        decl_idx);
 
@@ -4599,12 +4603,11 @@ kind with the associated entity kind.
 }  /* parse_cached_partial_specialization */
 
 
-static char *parse_cached_using_declaration(
-                                           a_module_token_cache_ptr cache,
-                                           an_il_entry_kind         *kind)
+static char *parse_cached_nonmember_decl(a_module_token_cache_ptr cache,
+                                         an_il_entry_kind         *kind)
 /*
-Parse the tokens corresponding to a using declaration cache.  Return a pointer
-to the corresponding partial specialization entity and update *kind with the
+Parse the tokens corresponding to the non-member declaration in the given
+cache.  Return a pointer to the corresponding entity and update *kind with the
 associated entity kind.
 */
 {
@@ -4613,7 +4616,7 @@ associated entity kind.
 
 #if DEBUG
   if (db_flag_is_set("ifc_def")) {
-    fprintf(f_debug, "Reconstituted using declaration:\n");
+    fprintf(f_debug, "Reconstituted declaration:\n");
     db_tokens(cache);
     fprintf(f_debug, "\n---------------------\n");
   }  /* if */
@@ -4622,10 +4625,11 @@ associated entity kind.
     a_module_entity_rescan rescan(cache, &final_token);
 
     init_decl_parse_state(&dps);
+    dps.function_definition_allowed = TRUE;
     scan_nonmember_declaration(&dps, /*=*/NULL);
   }
   return get_parsed_entity(&dps, kind);
-}  /* parse_cached_using_declaration */
+}  /* parse_cached_nonmember_decl */
 
 #if DEBUG
 
@@ -8366,6 +8370,7 @@ context to help inform decisions about what to cache.
   cache_template_head_requires_clause(cache, chart_idx, cinfo);
 }  /* cache_template_head */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 /* FIXME: This code should be transitioned to an_ifc_func_param_context (and
    an_ifc_func_param_context updated in the process) to improve the overall
@@ -8673,6 +8678,7 @@ done:
   return result;
 }  /* add_function_def_parameters */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_constant_ptr load_enumerator_constant(an_ifc_expr_index expr_idx,
                                                a_type_ptr        enum_type)
@@ -9448,14 +9454,39 @@ in some cases there is no definition present after all and FALSE is returned
 instead.
 */
 {
-  a_boolean                             result = TRUE;
-  Opt<an_ifc_trait_function_definition> opt_itfd;
+  a_boolean result = TRUE;
 
   check_assertion(type_is(rp->type, tk_routine));
-  find_trait(&opt_itfd, decl_idx);
-  if (opt_itfd.has_value()) {
-    an_ifc_trait_function_definition itfd = *opt_itfd;
+  if (is_edg_authored(decl_idx)) {
+    Opt<an_ifc_edg_trait_function_definition> opt_edg_func_def;
 
+    find_trait(&opt_edg_func_def, decl_idx);
+    if (!opt_edg_func_def.has_value()) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+
+    /* A definition exists, mark that. */
+    func_info->is_definition = TRUE;
+    /* Add the tokens to the cache. */
+    an_ifc_edg_trait_function_definition
+            edg_func_def = *opt_edg_func_def;
+    an_ifc_edg_token_cache_offset
+            cache_offset = get_ifc_initializer(edg_func_def);
+    (void)cache_edg_token_cache(cache, cache_offset);
+  }
+  /* Do not add code here. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  else {
+    Opt<an_ifc_trait_function_definition> opt_itfd;
+
+    find_trait(&opt_itfd, decl_idx);
+    if (!opt_itfd.has_value()) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+
+    an_ifc_trait_function_definition itfd = *opt_itfd;
     /* A definition exists, mark that. */
     func_info->is_definition = TRUE;
     /* Add the parameters to the function info. */
@@ -9472,6 +9503,10 @@ instead.
       cache_expr(cache, initializers, /*cinfo=*/{});
     }  /* if */
     cache_stmt_brace_wrapped(cache, body, /*cinfo=*/{});
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+done:
+  if (result) {
 #if DEBUG
     if (db_flag_is_set("ifc_def")) {
       fprintf(f_debug, "Function body cache:\n");
@@ -9483,9 +9518,7 @@ instead.
     /* The IFC told us there would be a definition but none was written. */
     pos_error(ec_ifc_missing_function_definition,
               &rp->source_corresp.decl_position, rp->source_corresp.name);
-    result = FALSE;
   }  /* if */
-done:
   return result;
 }  /* cache_function_body */
 
@@ -11127,7 +11160,7 @@ private:
 an_ifc_template_spec_info::an_ifc_template_spec_info(
                                                    a_module_entity_ptr mep_val)
   : mep(mep_val)
-/*
+  /*
 Construct a new template spec info object for the template at the given IFC
 index.
 */
@@ -12256,6 +12289,7 @@ the information provided by the given IFC declaration.
   source_position_from_locus(&dps->start_pos, locus);
 }  /* apply_source_position */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean fill_in_routine_parameter_defaults(
                                                an_ifc_chart_index params,
@@ -12336,6 +12370,7 @@ done:
   return result;
 }  /* fill_in_routine_parameter_defaults */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void process_decl_to_il_entity(a_module_entity_ptr mep)
 /*
@@ -12461,7 +12496,18 @@ strongly preferred over calling this function directly.
         } else
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
         /* Do not add code here. */
-        {
+        if (is_edg_authored(idf)) {
+          a_module_token_cache cache;
+
+          cache_decl(&cache, decl_idx, /*cinfo=*/{});
+          if (!cache.is_valid()) {
+            goto invalid;
+          }  /* if */
+          il_entity = parse_cached_nonmember_decl(&cache, &kind);
+        }
+        /* Do not add code here. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        else {
           a_type_ptr         old_type;
           a_routine_ptr      rp;
           a_decl_parse_state dps;
@@ -12520,6 +12566,7 @@ strongly preferred over calling this function directly.
             goto invalid;
           }  /* if */
         }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
     case ifc_ds_decl_intrinsic:
@@ -13290,7 +13337,7 @@ strongly preferred over calling this function directly.
         if (!cache_direct_decl(&cache, using_decl, /*cinfo=*/{})) {
           goto invalid;
         }  /* if */
-        il_entity = parse_cached_using_declaration(&cache, &kind);
+        il_entity = parse_cached_nonmember_decl(&cache, &kind);
       }
       break;
     case ifc_ds_decl_reference:
@@ -21580,11 +21627,6 @@ Cache the class-key associated with the given IFC scope declaration
 }  /* cache_class_key */
 
 
-static a_boolean cache_edg_token_cache(
-                                   a_module_token_cache_ptr      cache,
-                                   an_ifc_edg_token_cache_offset cache_offset);
-
-
 static void cache_class_body_or_end_decl(a_module_token_cache_ptr cache,
                                          an_ifc_decl_index        decl_idx,
                                          const an_ifc_decl_scope  &decl,
@@ -22077,6 +22119,9 @@ function-like declaration.
   }  /* if */
   if (test_bitmask<ifc_ftb_explicit>(func_traits)) {
     cache_token(cache, tok_explicit);
+  }  /* if */
+  if (test_bitmask<ifc_ftb_inline>(func_traits)) {
+    cache_token(cache, tok_inline);
   }  /* if */
   if (test_bitmask<ifc_ftb_no_return>(func_traits)) {
     auto cache_fn = [cache]() {

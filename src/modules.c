@@ -2093,6 +2093,48 @@ otherwise, return an empty optional.
   return result;
 }  /* source_position_of */
 
+
+using an_entity_definition_map =
+                               Ptr_map<a_tagged_pointer, a_shared_token_cache>;
+                        /* The type for a map of tagged entities to the
+                           associated token cache describing their
+                           definition. */
+
+STATIC_THREAD an_entity_definition_map
+                *entity_to_definition_tokens;
+                        /* A map of an entity to the token cache representing
+                           its definition. */
+
+
+void save_function_definition_for_module_write(
+                                             a_routine_ptr              rp,
+                                             const a_shared_token_cache &token)
+/*
+Save the tokens composing the definition of the given function for use writing
+a module output file.
+*/
+{
+  entity_to_definition_tokens->map(make_tagged_ptr(rp), token);
+}  /* save_function_definition_for_module_write */
+
+
+a_shared_token_cache get_function_definition_for_module_write(a_routine_ptr rp)
+/*
+Get the tokens composing the definition of the given function for use writing a
+module output file.
+*/
+{
+  a_shared_token_cache cache = entity_to_definition_tokens->get(
+                                                          make_tagged_ptr(rp));
+
+  /* This function should only be called for functions that are expected to
+     have a definiton during module write out. */
+  check_assertion(create_module_unit &&
+                  is_routine_definition_exported_inline(rp) &&
+                  cache.ptr() != NULL);
+  return cache;
+}  /* get_function_definition_for_module_write */
+
 #if DEBUG
 
 void db_mep_stack()
@@ -2325,6 +2367,7 @@ Do one-time initialization of static variables defined in this file.
       pch_saved_var_array_elem(module_entity_scope_hash_table),
       pch_saved_var_array_elem(trans_unit_module_entity_scope),
       pch_saved_var_array_elem(module_entity_hash_table),
+      pch_saved_var_array_elem(entity_to_definition_tokens),
       pch_saved_var_array_elem(module_entity_stack),
       pch_saved_var_array_elem(known_modules),
       pch_saved_var_array_elem(modules_initialized_for_curr_tu),
@@ -2345,6 +2388,7 @@ Do one-time initialization of static variables defined in this file.
   register_trans_unit_variable(module_entity_scope_hash_table);
   register_trans_unit_variable(trans_unit_module_entity_scope);
   register_trans_unit_variable(module_entity_hash_table);
+  register_trans_unit_variable(entity_to_definition_tokens);
   register_trans_unit_variable(module_entity_stack);
   register_trans_unit_variable(known_modules);
   register_trans_unit_variable(modules_initialized_for_curr_tu);
@@ -2395,6 +2439,12 @@ translation unit.
   module_entity_stack = new_fe<a_module_entity_stack>();
   known_modules = NULL;
   modules_initialized_for_curr_tu = FALSE;
+  if (create_module_unit) {
+    entity_to_definition_tokens = new_fe<an_entity_definition_map>(
+                                                           /*mask_width=*/10u);
+  } else {
+    entity_to_definition_tokens = NULL;
+  }  /* if */
   ifc_modules_trans_unit_init();
 }  /* modules_trans_unit_init */
 

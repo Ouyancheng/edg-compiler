@@ -781,6 +781,8 @@ extern a_string module_full_name_of(a_module_ptr mod);
 
 extern a_string_view header_unit_name_of(a_module_ptr mod);
 
+extern a_boolean is_routine_definition_exported_inline(a_routine_ptr rp);
+
 /*
 Return TRUE if a dynamic_initializer is of a given kind.
 */

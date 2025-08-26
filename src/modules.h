@@ -824,6 +824,14 @@ the module entity rescan.
   }
 }  /* a_module_entity_rescan::~a_module_entity_rescan */
 
+
+extern void save_function_definition_for_module_write(
+                                            a_routine_ptr              rp,
+                                            const a_shared_token_cache &token);
+
+extern a_shared_token_cache get_function_definition_for_module_write(
+                                                             a_routine_ptr rp);
+
 #if DEBUG
 
 extern void db_tokens(a_module_token_cache_ptr cache);

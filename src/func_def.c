@@ -3046,7 +3046,21 @@ member declaration (allowed in Microsoft mode only).
                                                   iek_routine);
     }  /* if */
 #endif /* MODULE_ID_NEEDED */
+    a_boolean need_func_tokens_for_module =
+                          (create_module_unit &&
+                           is_routine_definition_exported_inline(routine_ptr));
+    if (need_func_tokens_for_module) {
+      push_lexical_state_stack();
+      begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+    }  /* if */
     scan_function_body(routine_ptr, func_info, flags);
+    if (need_func_tokens_for_module) {
+      end_caching_fetched_tokens();
+      save_function_definition_for_module_write(
+                       routine_ptr,
+                       shared_obj<a_token_cache>(*curr_lexical_state_cache()));
+      pop_lexical_state_stack();
+    }  /* if */
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
     /* Save the symbol associated with the most recent constructor or
        destructor for which a definition was supplied outside of the

@@ -5344,6 +5344,49 @@ declaration index of the class template declaration.
 }  /* an_ifc_il_map::enter_class_template */
 
 
+static INLINE an_ifc_function_traits_bitfield build_function_traits(
+                                                      an_ifc_module_file *file,
+                                                      a_routine_ptr      rp)
+/*
+Construct and return a new IFC function traits bitfield value for the given
+routine and module file.
+*/
+{
+  an_ifc_function_traits_bitfield_query
+          traits = (an_ifc_function_traits_bitfield_query)0;
+
+  if (rp->is_inline) {
+    traits = traits | ifc_ftb_inline;
+  }  /* if */
+  if (rp->is_constexpr) {
+    traits = traits | ifc_ftb_constexpr;
+  }  /* if */
+  if (rp->is_consteval) {
+    traits = traits | ifc_ftb_immediate;
+  }  /* if */
+  if (rp->is_explicit_constructor || rp->is_explicit_conversion_function) {
+    traits = traits | ifc_ftb_explicit;
+  }  /* if */
+  if (rp->is_virtual) {
+    traits = traits | ifc_ftb_virtual;
+  }  /* if */
+  if (rp->pure_virtual) {
+    traits = traits | ifc_ftb_pure_virtual;
+  }  /* if */
+  if (rp->is_defaulted || rp->compiler_generated) {
+    traits = traits | ifc_ftb_defaulted;
+  }  /* if */
+  if (rp->is_deleted) {
+    traits = traits | ifc_ftb_deleted;
+  }  /* if */
+  /* FIXME: Handle: NoReturn, HiddenFriend, and Constrained? */
+
+  an_ifc_function_traits_bitfield_storage
+          ifc_raw_traits = to_bitmask(file, traits);
+  return an_ifc_function_traits_bitfield(file, ifc_raw_traits);
+}  /* build_function_traits */
+
+
 an_ifc_decl_index an_ifc_il_map::enter_constructor(a_routine_ptr rp)
 /*
 Enter the given constructor (routine) into the IFC output state.  Return the
@@ -5380,7 +5423,12 @@ declaration index of the constructor declaration.
   an_ifc_chart_index
                 param_chart_idx = this->enter_routine_params(rp);
   set_ifc_chart(&func_decl, param_chart_idx);
-  /* FIXME: Set traits. */
+
+  /* Set the function traits. */
+  an_ifc_function_traits_bitfield
+                func_traits = build_function_traits(func_decl.get_file(),
+                                                    rp);
+  set_ifc_traits(&func_decl, func_traits);
   /* FIXME: Set specifiers. */
 
   /* Set the access specifier. */
@@ -5417,9 +5465,13 @@ declaration index of the destructor declaration.
   an_ifc_decl_index
                 scope_decl_idx = this->associate_entity_home_scope(rp);
   set_ifc_home_scope(&func_decl, scope_decl_idx);
-
   /* FIXME: Set eh_spec. */
-  /* FIXME: Set traits. */
+
+  /* Set the function traits. */
+  an_ifc_function_traits_bitfield
+                func_traits = build_function_traits(func_decl.get_file(),
+                                                    rp);
+  set_ifc_traits(&func_decl, func_traits);
   /* FIXME: Set specifiers. */
 
   /* Set the access specifier. */
@@ -5518,7 +5570,12 @@ declaration index of the free function declaration.
   an_ifc_chart_index
                 param_chart_idx = this->enter_routine_params(rp);
   set_ifc_chart(&func_decl, param_chart_idx);
-  /* FIXME: Set traits. */
+
+  /* Set the function traits. */
+  an_ifc_function_traits_bitfield
+                func_traits = build_function_traits(func_decl.get_file(),
+                                                    rp);
+  set_ifc_traits(&func_decl, func_traits);
   /* FIXME: Set specifiers. */
 
   /* Set the access specifier. */
@@ -5536,7 +5593,8 @@ declaration index of the free function declaration.
 
     this->output_state->alloc_decl_trait(result, &def_trait);
 
-    /* Create a token cache representation of the initializing constant. */
+    /* Create an IFC token cache corresponding to the front end template token
+       cache. */
     a_template_ptr
                 templ = rp->assoc_template;
     an_ifc_output_token_cache
@@ -5548,8 +5606,28 @@ declaration index of the free function declaration.
     /* Apply the initializer flag to indicate the presence of this
        definition. */
     properties = properties | ifc_rpb_initializer;
-  } else {
-    /* FIXME: Handle constexpr and inline functions. */
+  } else if (is_routine_definition_exported_inline(rp)) {
+    an_ifc_edg_trait_function_definition
+                def_trait;
+
+    this->output_state->alloc_decl_trait(result, &def_trait);
+
+    /* Create an IFC token cache corresponding to the saved front end
+       definition token cache. */
+    a_shared_token_cache
+                definition_cache =
+                                  get_function_definition_for_module_write(rp);
+    an_ifc_output_token_cache
+                init_token_cache;
+    this->enter_token_cache(&init_token_cache, definition_cache.ptr());
+
+    an_ifc_edg_token_cache_offset
+                token_cache_offset = this->output_state->alloc_token_cache(
+                                                             init_token_cache);
+    set_ifc_initializer(&def_trait, token_cache_offset);
+    /* Apply the initializer flag to indicate the presence of this
+       definition. */
+    properties = properties | ifc_rpb_initializer;
   }  /* if */
 
   an_ifc_reachable_properties_bitfield_storage
@@ -5650,14 +5728,52 @@ the declaration index of the member function declaration.
   an_ifc_chart_index
                 param_chart_idx = this->enter_routine_params(rp);
   set_ifc_chart(&func_decl, param_chart_idx);
-  /* FIXME: Set traits. */
+
+  /* Set the function traits. */
+  an_ifc_function_traits_bitfield
+                func_traits = build_function_traits(func_decl.get_file(),
+                                                    rp);
+  set_ifc_traits(&func_decl, func_traits);
   /* FIXME: Set specifiers. */
 
   /* Set the access specifier. */
   an_ifc_access_sort
                 ifc_access = access_specifier_of(type);
   set_ifc_access(&func_decl, ifc_access);
-  /* FIXME: Set properties. */
+
+  /* Apply the appropriate reachable property flags. */
+  an_ifc_reachable_properties_bitfield_query
+                properties = (an_ifc_reachable_properties_bitfield_query)0;
+  /* Flag that an initializer is present if relevant. */
+  if (is_routine_definition_exported_inline(rp)) {
+    an_ifc_edg_trait_function_definition
+                def_trait;
+
+    this->output_state->alloc_decl_trait(result, &def_trait);
+
+    /* Create an IFC token cache corresponding to the saved front end
+       definition token cache. */
+    a_shared_token_cache
+                definition_cache =
+                                  get_function_definition_for_module_write(rp);
+    an_ifc_output_token_cache
+                init_token_cache;
+    this->enter_token_cache(&init_token_cache, definition_cache.ptr());
+
+    an_ifc_edg_token_cache_offset
+                token_cache_offset = this->output_state->alloc_token_cache(
+                                                             init_token_cache);
+    set_ifc_initializer(&def_trait, token_cache_offset);
+    /* Apply the initializer flag to indicate the presence of this
+       definition. */
+    properties = properties | ifc_rpb_initializer;
+  }  /* if */
+  an_ifc_reachable_properties_bitfield_storage
+                ifc_raw_properties = to_bitmask(func_decl.get_file(),
+                                                properties);
+  an_ifc_reachable_properties_bitfield
+                ifc_properties(func_decl.get_file(), ifc_raw_properties);
+  set_ifc_properties(&func_decl, ifc_properties);
   return result;
 }  /* an_ifc_il_map::enter_member_function */
 

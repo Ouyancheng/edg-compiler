@@ -32086,6 +32086,16 @@ the angle brackets or quotes.
 }  /* header_unit_name_of */
 
 
+a_boolean is_routine_definition_exported_inline(a_routine_ptr rp)
+/*
+Return TRUE if the given routine's definition needs to be exported (as the
+routine is either inline or constexpr); otherwise, return FALSE.
+*/
+{
+  return rp->is_inline || rp->is_constexpr;
+}  /* is_routine_definition_exported_inline */
+
+
 /*
 Helper macro used by type_is_nonreal.  Return TRUE if type is a nonreal
 class, nonreal alias template instantiation, or template parameter type.

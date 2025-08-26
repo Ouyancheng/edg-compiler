@@ -2819,6 +2819,18 @@ is TRUE if the function being scanned is a constructor.
                        "prescan_function_definition:",
                        "curr_routine_fixup == NULL");
   curr_routine_fixup->function_body_token_cache = *token_cache;
+  if (create_module_unit) {
+    /* If creating a module unit, save a reference to this function's
+       definition so it can be retrieved when writing inline functions. */
+    a_routine_ptr rp = il_entry_for_symbol<a_routine>(
+                                                   curr_routine_fixup->symbol);
+
+    if (is_routine_definition_exported_inline(rp)) {
+      save_function_definition_for_module_write(
+                                rp,
+                                curr_routine_fixup->function_body_token_cache);
+    }  /* if */
+  }  /* if */
   db_exit();
   return success;
 }  /* prescan_function_definition */
