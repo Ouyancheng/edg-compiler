@@ -9023,10 +9023,42 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
            nested-name-qualifier is given by the trk_name_qualifier's type
            supplement, which might also be a template with an alternative
            template argument list. */
-        a_type_ptr qual = type->variant.typeref.type;
-        a_type_ptr inst = qual->variant.typeref.type;
-        gen_name_qualifier_list(
-                             qual->variant.typeref.extra_info->name_qualifier);
+        a_type_ptr           qual = type->variant.typeref.type;
+        a_type_ptr           inst = qual->variant.typeref.type;
+        a_name_qualifier_ptr nqp =
+                              qual->variant.typeref.extra_info->name_qualifier;
+        if (nqp != NULL) {
+          /* Use the specified qualifier.  If the topmost qualifier in the
+             list is at global scope, unconditionally prefix the qualifier
+             list with "::" whether it's actually needed or not. */
+          a_name_qualifier_ptr top = nqp;
+          while (top->previous_qualifier != NULL) {
+            top = top->previous_qualifier;
+          }  /* while */
+          if ((top->is_class &&
+               scope_is(top->qualifier.class_type->source_corresp.parent_scope,
+                        sck_file)) ||
+              scope_is(
+                     top->qualifier.namespace_ptr->source_corresp.parent_scope,
+                     sck_file)) {
+            write_tok_str("::");
+          }  /* if */
+          gen_name_qualifier_list(nqp);
+        } else if (scope_is(inst->source_corresp.parent_scope,
+                            sck_class_struct_union)) {
+          gen_class_qualifier(
+                         inst->source_corresp.parent_scope->variant.assoc_type,
+                         GN_NO_OPTIONS, /*need_closing_paren=*/NULL);
+        } else if (scope_is(inst->source_corresp.parent_scope,
+                            sck_namespace)) {
+          gen_namespace_qualifier(
+                    inst->source_corresp.parent_scope->variant.assoc_namespace,
+                    GN_NO_OPTIONS, /*need_closing_paren=*/NULL);
+        } else {
+          check_assertion(scope_is(inst->source_corresp.parent_scope,
+                                   sck_file));
+          write_tok_str("::");
+        }  /* if */
         gen_bare_name(&inst->source_corresp, iek_type);
       } else {
         /* A non-nested template. */
