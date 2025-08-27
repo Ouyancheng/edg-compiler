@@ -3437,7 +3437,9 @@ object X of type parent_type stored at parent_address (not necessarily a
 complete object).  Return the direct subobject of X that cap points to (or
 "into") via *p_field and *p_bcp (for field subobjects *p_bcp is set to NULL;
 for base class subobjects *p_field is set to NULL).  If cap points "one past
-the end" of a field subobject, that field is returned.
+the end" of a field subobject, that field is returned.  If no subobject is
+found (e.g., because we are in a union with no active field), both *p_field
+and *p_bcp are set to NULL.
 */
 {
   if (!type_is(parent_type, tk_union)) {
@@ -3485,7 +3487,6 @@ search_base_subobjects:
     /* Next search through direct base classes.  (If we got here, there must be
        some).  Start with nonvirtual bases. */
     bcp = base_classes_of(parent_type);
-    check_assertion(bcp != NULL);
     last_bcp = NULL;
     for (; bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual) {
@@ -3517,7 +3518,12 @@ search_base_subobjects:
         }  /* if */
       }  /* for */
     }  /* if */
-    check_assertion(last_bcp != NULL);
+    if (last_bcp == NULL) {
+      /* No subobject found. */
+      *p_field = NULL;
+      *p_bcp = NULL;
+      goto done;
+    }  /* if */
     type_size = value_bytes_for_type(ips, last_bcp->type, &okay);
     if (offset-sub_offset < type_size ||
         (offset-sub_offset == type_size && cannot_dereference(cap))) {
@@ -9048,9 +9054,13 @@ have identical internal representations).
           if (fp != NULL) {
             tp = skip_typerefs(fp->type);
             subobj_entry = (a_byte*)fp;
-          } else {
+          } else if (bcp != NULL) {
             tp = bcp->type;
             subobj_entry = (a_byte*)bcp;
+          } else {
+            /* No subobject found. */
+            tp = NULL;
+            goto done;
           }  /* if */
           get_mapped_byte_count(&persistent_map, subobj_entry, offset);
           paddr += offset;
@@ -9060,15 +9070,16 @@ have identical internal representations).
              past the end of one. */
           unexpected_condition();
         }  /* if */
-        if (type_is(tp, tk_array)) {
-          /* For an array, return its top-level element type (top-level in the
-             sense that for a multi-dimensional array we still produce an array
-             type, not the underlying array element type). */
-          tp = skip_typerefs(tp->variant.array.element_type);
-        }  /* if */
       } while (paddr != addr);
+      if (type_is(tp, tk_array)) {
+        /* For an array, return its top-level element type (top-level in the
+           sense that for a multi-dimensional array we still produce an array
+           type, not the underlying array element type). */
+        tp = skip_typerefs(tp->variant.array.element_type);
+      }  /* if */
     }  /* if */
   }  /* if */
+done:
   return tp;
 }  /* obj_type_at_address */
 
@@ -9098,7 +9109,7 @@ address).
     goto done;
   }  /* if */
   if (!in_live_set(&ips->live_set, src_cap->alloc_seq_number) ||
-      !in_live_set(&ips->live_set, src_cap->alloc_seq_number)) {
+      !in_live_set(&ips->live_set, dst_cap->alloc_seq_number)) {
     do_constexpr_fail(result);
     info_with_pos(ec_constexpr_access_to_expired_storage, &call_node->position,
                   ips);

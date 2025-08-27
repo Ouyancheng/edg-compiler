@@ -1,5 +1,14 @@
 Version 6.8
 
+7/21/25  [EDGcpfe/28264,EDGcpfe/28340]
+Abort in find_subobject_for_interpreter_address during constant memcpy/memmove
+
+In various situations involving the invocation of memcpy/memmove during
+constant evaluation (this is possible in GNU and Clang modes; see the entry for
+EDGcpfe/22879), the front end could abort with an internal error in
+find_subobject_for_interpreter_address (interpret.c).  This is now fixed.
+
+
 8/26/25  [EDGcpfe/27549]
 Microsoft compatibility: va_copy
 
@@ -612,16 +621,6 @@ Consider, in C++20 mode:
 
 Depending on the configuration, either or both of the variable declarations
 could trigger assertion failures.  That is now fixed.
-
-
-7/21/25  [EDGcpfe/28340]
-Abort in find_subobject_for_interpreter_address during constant memcpy/memmove
-
-In some situations involving a zero-length invocation of memcpy/memmove during
-constant evaluation (this is possible in GNU and Clang modes; see the entry for
-EDGcpfe/22879) where the source or destination address is that of a variant
-member, the front end could abort with an internal error in
-find_subobject_for_interpreter_address (interpret.c).  This is now fixed.
 
 
 7/21/25  [EDGcpfe/27056,EDGcpfe/28185,EDGcpfe/28343]
