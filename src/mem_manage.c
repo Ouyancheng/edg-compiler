@@ -232,7 +232,7 @@ allocation and generates a catastrophic error.
        To prevent this warning from being issued (and protect against these
        unlikely cases) the allocation size is checked explicitly before calling
        malloc.  */
-     catastrophe(ec_insufficient_address_space);
+     insufficient_address_space();
   }  /* if */
   if ((ptr = (char *)malloc((true_size_t)size_t_arg(size))) == NULL) {
     catastrophe(ec_out_of_memory);

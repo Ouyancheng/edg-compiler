@@ -340,6 +340,9 @@ EXTERN_THREAD a_boolean
 /*
 Error routines.
 */
+
+NORETURN extern void insufficient_address_space();
+
 #if CHECKING
 
 EXTERN_THREAD a_boolean

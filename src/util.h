@@ -40,6 +40,8 @@ extern char *alloc_general(sizeof_t size);
 extern void free_general(a_void_ptr ptr,
                          sizeof_t   size);
 
+NORETURN extern void insufficient_address_space();
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
@@ -739,6 +741,16 @@ as contiguous memory blocks to use this interface.
 {
   size_t num_bytes = num_to_copy * sizeof(an_Object_type);
 
+  if (num_bytes > PTRDIFF_MAX) {
+     /* Newer versions of GCC detect under -Wall when memcpy is called with a
+        size exceeding the maximum object size.  This warning is triggered for
+        some cases of (highly unlikely) user input driven allocations.
+
+        To prevent this warning from being issued (and protect against these
+        unlikely cases) the allocation size is checked explicitly before
+        calling memcpy. */
+     insufficient_address_space();
+  }  /* if */
   (void)memcpy(&(dest_array[0]), &(src_array[0]), num_bytes);
 }  /* copy_construct_elements */
 
@@ -857,6 +869,16 @@ as contiguous memory blocks to use this interface.
 {
   size_t num_bytes = num_to_move * sizeof(an_Object_type);
 
+  if (num_bytes > PTRDIFF_MAX) {
+     /* Newer versions of GCC detect under -Wall when memmove is called with a
+        size exceeding the maximum object size.  This warning is triggered for
+        some cases of (highly unlikely) user input driven allocations.
+
+        To prevent this warning from being issued (and protect against these
+        unlikely cases) the allocation size is checked explicitly before
+        calling memmove. */
+     insufficient_address_space();
+  }  /* if */
   (void)memmove(&(dest_array[0]), &(src_array[0]), num_bytes);
 }  /* move_elements */
 

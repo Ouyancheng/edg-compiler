@@ -3295,6 +3295,16 @@ static void general_diagnostic(
 			a_source_position	*other_pos,
 			a_diag_list_ptr		diag_list);
 
+
+NORETURN void insufficient_address_space()
+/*
+The program requires additional address space that it cannot acquire.  Write
+the given message and exit.
+*/
+{
+  catastrophe(ec_insufficient_address_space);
+}  /* insufficient_address_space */
+
 #if CHECKING
 
 STATIC_THREAD a_boolean
