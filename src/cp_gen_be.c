@@ -9013,22 +9013,32 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
       write_tok_str("__builtin_va_list");
     } else if (typeref_is_type_operator(type, /*include_intrinsics=*/TRUE)) {
       gen_type_operator(type);
-    } else if (type->variant.typeref.kind == trk_template_arg_list &&
-               type_is(type->variant.typeref.type, tk_typeref) &&
-               type->variant.typeref.type->variant.typeref.kind ==
+    } else if (type->variant.typeref.kind == trk_template_arg_list) {
+      /* The typeref specifies an alternative template argument list so we
+         must handle it specially here. */
+      if (type_is(type->variant.typeref.type, tk_typeref) &&
+          type->variant.typeref.type->variant.typeref.kind ==
                                                           trk_name_qualifier) {
-      /* A nested template with an alternative template argument list.  The
-         nested-name-qualifier is given by the trk_name_qualifier's type
-         supplement, which might also be a template with an alternative
-         template argument list. */
-      a_type_ptr qual = type->variant.typeref.type;
-      a_type_ptr inst = qual->variant.typeref.type;
-      gen_name_qualifier_list(
+        /* A nested template with an alternative template argument list.  The
+           nested-name-qualifier is given by the trk_name_qualifier's type
+           supplement, which might also be a template with an alternative
+           template argument list. */
+        a_type_ptr qual = type->variant.typeref.type;
+        a_type_ptr inst = qual->variant.typeref.type;
+        gen_name_qualifier_list(
                              qual->variant.typeref.extra_info->name_qualifier);
-      gen_bare_name(&inst->source_corresp, iek_type);
-      gen_template_arguments_full(
+        gen_bare_name(&inst->source_corresp, iek_type);
+      } else {
+        /* A non-nested template. */
+        gen_bare_name(&type->variant.typeref.type->source_corresp, iek_type);
+      }  /* if */
+      if (type->variant.typeref.extra_info->template_arg_list == NULL) {
+        write_tok_str("<>");
+      } else {
+        gen_template_arguments_full(
                           &type->source_corresp, iek_type, -1,
                           type->variant.typeref.extra_info->template_arg_list);
+      }  /* if */
     } else {
       int          truncate_pos = 0;
       a_const_char *nm = NULL;
