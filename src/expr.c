@@ -4088,7 +4088,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
     constructor_sym = select_overloaded_function(
                                         constructor_sym,
                                         /*is_template_id=*/FALSE,
-                                        (a_template_arg_ptr)NULL,
+                                        (a_template_arg_ptr*)NULL,
                                         /*have_selector=*/TRUE,
                                         (an_operand *)NULL,
                                         arg_list,
@@ -8095,11 +8095,13 @@ and bound_function_selector are expected to be NULL in that case.
     a_boolean            name_reference_was_saved = FALSE;
     a_name_reference     saved_name_reference = null_name_reference;
     an_overload_context  ovl_context = oc_default;
+    a_template_arg_ptr   template_arg_list;
     if (is_multi_subscript) {
       ovl_context = oc_multi_subscript;
     } else if (operand->is_microsoft_deferred_name) {
       ovl_context = oc_deferred;
     }  /* if */
+    template_arg_list = operand->template_arg_list;
     orig_operand = *operand;
     if (operand->name_reference_set) {
       /* We have recorded the form of reference of the function name.  Save
@@ -8112,7 +8114,7 @@ and bound_function_selector are expected to be NULL in that case.
     if (!select_and_prepare_to_call_overloaded_function(
                                           overloaded_function_symbol,
                                           (a_boolean)operand->is_template_id,
-                                          operand->template_arg_list,
+                                          &template_arg_list,
                                           operand->bound_function ||
                                                      try_surrogate_functions,
                                           bound_function_selector,
@@ -8134,6 +8136,7 @@ and bound_function_selector are expected to be NULL in that case.
       /* Some error, e.g., none of the overloaded functions matches the
          argument list. */
       make_error_operand(operand);
+      free_template_arg_list(template_arg_list);
     } else {
       /* Overload resolution was successful (including the case where
          the function is unknown because the arguments are dependent). */
@@ -8142,6 +8145,26 @@ and bound_function_selector are expected to be NULL in that case.
            function name. */
         operand->name_reference = saved_name_reference;
         operand->name_reference_set = TRUE;
+        if (operand->name_reference.is_template_id) {
+          /* Now that a specific function has been selected, any non-type
+             template arguments have been converted to the corresponding
+             parameter types.  Update the recorded template argument list. */
+          a_template_arg_ptr argp, argp_tail = NULL;
+          begin_template_arg_list_traversal_simple(template_arg_list,
+                                                   &argp);
+          for (; argp != NULL && argp->explicitly_specified;
+                 advance_to_next_template_arg_simple(&argp)) {
+            argp_tail = argp;
+          }  /* for */
+          /* Remove any trailing default template arguments. */
+          free_template_arg_list(argp);
+          if (argp_tail == NULL) {
+            template_arg_list = NULL;
+          } else {
+            argp_tail->next = NULL;
+          }  /* if */
+          operand->name_reference.orig_template_arg_list = template_arg_list;
+        }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (implicit_delegate_invocation) {
@@ -23668,7 +23691,7 @@ Return the matching operator "new" function symbol, if found.
     proj_function_symbol = select_overloaded_function(
                                         nps->operator_new_symbol,
                                         /*is_template_id=*/FALSE,
-                                        (a_template_arg_ptr)NULL,
+                                        (a_template_arg_ptr*)NULL,
                                         /*have_selector=*/FALSE,
                                         (an_operand *)NULL,
                                         nps->arg_list,
@@ -23701,7 +23724,7 @@ Return the matching operator "new" function symbol, if found.
       proj_function_symbol = select_overloaded_function(
                                         nps->operator_new_symbol,
                                         /*is_template_id=*/FALSE,
-                                        (a_template_arg_ptr)NULL,
+                                        (a_template_arg_ptr*)NULL,
                                         /*have_selector=*/FALSE,
                                         (an_operand *)NULL,
                                         nps->arg_list,
@@ -46324,7 +46347,7 @@ for-each (otherwise it's a range-based-for).
   if (select_and_prepare_to_call_overloaded_function(
                                       symbol,
                                       /*is_template_id=*/FALSE,
-                                      (a_template_arg_ptr)NULL,
+                                      (a_template_arg_ptr*)NULL,
                                       /*have_selector=*/TRUE,
                                       bound_function_selector,
                                       &arg_list,
@@ -48248,7 +48271,7 @@ This function is largely based on check_range_based_for_default_case.
     if (select_and_prepare_to_call_overloaded_function(
                                   symbol,
                                   /*is_template_id=*/FALSE,
-                                  (a_template_arg_ptr)NULL,
+                                  (a_template_arg_ptr*)NULL,
                                   /*have_selector=*/FALSE,
                                   (an_operand *)NULL,
                                   &arg_list,
@@ -49329,7 +49352,7 @@ Otherwise, return FALSE.
   if (select_and_prepare_to_call_overloaded_function(
                                   symbol_for(targ_rp),
                                   /*is_template_id=*/FALSE,
-                                  (a_template_arg_ptr)NULL,
+                                  (a_template_arg_ptr*)NULL,
                                   have_selector,
                                   have_selector ? &bound_func_selector
                                                 : (an_operand *)NULL,

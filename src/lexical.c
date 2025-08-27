@@ -23754,7 +23754,7 @@ describes the name specified by "locator".
       ++nrp->num_template_arguments;
       argp_tail = argp;
     }  /* for */
-    /* Remove any trailing default template arguments */
+    /* Remove any trailing default template arguments. */
     free_template_arg_list(argp);
     if (argp_tail == NULL) {
       locator->template_arg_list = NULL;

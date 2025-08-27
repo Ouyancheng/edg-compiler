@@ -11945,9 +11945,9 @@ use the current global value of the template template parameter.
     if (sym == NULL || !record_form_of_name_reference ||
         are_template_args_lexically_identical(
                                template_arg_list_for_symbol(sym), *new_list)) {
-      /* If the template arguments are lexically identical to the ones used for
-         the symbol, we don't need to keep track of it and can return it to the
-         available list for reuse. */
+      /* If the template arguments are lexically identical to those used for
+         the symbol, we don't need to keep track of them and can return them to
+         the available list for reuse. */
       free_template_arg_list(*new_list);
       *new_list = NULL;
     }  /* if */
@@ -22181,15 +22181,21 @@ structure.
      arguments were used. */
   if (!is_error_routine) {
     update_template_arg_usage_info(sym, *new_list, explicit_arg_list_present);
-  }  /* if */
-  if (tip != NULL || is_error_routine) {
-    /* We are reusing a template function that already exists, so *new_list
-       will not be used.  Return it to the available list for reuse. */
+    if (tip == NULL) {
+      *new_list = NULL;
+    } else if (are_template_args_lexically_identical(sym->variant.routine.ptr
+                                                        ->template_arg_list,
+                                                     *new_list)) {
+      /* If the template arguments are lexically identical to those used for
+         the symbol, we don't need to keep track of them and can return them to
+         the available list for reuse. */
+      free_template_arg_list(*new_list);
+      *new_list = NULL;
+    }  /* if */
+  } else {
     free_template_arg_list(*new_list);
+    *new_list = NULL;
   }  /* if */
-  /* The list is cleared in all cases.  The caller cannot use the list
-     after we return because it may have been freed. */
-  *new_list = NULL;
   db_exit();
   return sym;
 }  /* find_template_function */

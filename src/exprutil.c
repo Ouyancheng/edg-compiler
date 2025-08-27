@@ -6082,19 +6082,6 @@ If no_rewrite is TRUE (default is FALSE), that rewrite doesn't happen.
 
   if (operand->name_reference_set) {
     if (is_routine_node(node)) {
-      if (operand->name_reference.is_template_id) {
-        a_name_reference_ptr  nrp = &operand->name_reference;
-        a_template_arg_ptr    list1 = node_routine(node)->template_arg_list;
-        a_template_arg_ptr    list2 = nrp->orig_template_arg_list;
-        if (!record_form_of_name_reference ||
-            are_template_args_lexically_identical(
-                                  list1, list2, nrp->num_template_arguments)) {
-          /* As all explicitly specified template arguments are lexically
-             identical to the ones recorded in the routine node, there is no
-             need to add them to the name reference. */
-          nrp->orig_template_arg_list = NULL;
-        }  /* if */
-      }  /* if */
       node->variant.routine.name_reference =
                                   find_allocated_name_reference(
                                           &node_routine(node)->source_corresp,
@@ -23737,7 +23724,7 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
     if (!select_and_prepare_to_call_overloaded_function(
                                        getput_sym,
                                        /*is_template_id=*/FALSE,
-                                       (a_template_arg_ptr)NULL,
+                                       (a_template_arg_ptr*)NULL,
                                        have_selector,
                                        &selector,
                                        &arg_list,
@@ -23931,7 +23918,7 @@ to TRUE and *result becomes an error operand.
       if (!select_and_prepare_to_call_overloaded_function(
                                           accessor_sym,
                                           /*is_template_id=*/FALSE,
-                                          (a_template_arg_ptr)NULL,
+                                          (a_template_arg_ptr*)NULL,
                                           have_selector,
                                           &selector,
                                           &arg_list,
@@ -24169,7 +24156,7 @@ orig_operand to the function operand created before assembling the final call.
         !select_and_prepare_to_call_overloaded_function(
                                     member_sym,
                                     /*is_template_id=*/templ_arg_list != NULL,
-                                    templ_arg_list,
+                                    &templ_arg_list,
                                     /*have_selector=*/TRUE,
                                     selector_operand,
                                     &alep,
@@ -24284,7 +24271,7 @@ call.
   if (select_and_prepare_to_call_overloaded_function(
                                      sym,
                                      /*is_template_id=*/templ_arg_list != NULL,
-                                     templ_arg_list,
+                                     &templ_arg_list,
                                      /*have_selector=*/FALSE,
                                      (an_operand *)NULL,
                                      &alep,

@@ -1022,7 +1022,7 @@ extern a_boolean is_skipped_decltype_context(void);
 extern a_symbol_ptr select_overloaded_function(
                         a_symbol_ptr             overloaded_function_symbol,
                         a_boolean                is_template_id,
-                        a_template_arg_ptr       template_arg_list,
+                        a_template_arg_ptr       *template_arg_list,
                         a_boolean                have_selector,
                         an_operand               *bound_function_selector,
                         an_arg_list_elem_ptr     arg_list,
@@ -1166,7 +1166,7 @@ extern void adjust_overloaded_function_call_arguments(
 extern a_boolean select_and_prepare_to_call_overloaded_function(
                            a_symbol_ptr            overloaded_function_symbol,
                            a_boolean               is_template_id,
-                           a_template_arg_ptr      template_arg_list,
+                           a_template_arg_ptr      *template_arg_list,
                            a_boolean               have_selector,
                            an_operand              *bound_function_selector,
                            an_arg_list_elem_ptr    *arg_list,

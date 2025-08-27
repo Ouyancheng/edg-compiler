@@ -10959,7 +10959,7 @@ found by argument-dependent lookup and the second through ordinary lookup.)
 a_symbol_ptr select_overloaded_function(
                         a_symbol_ptr             overloaded_function_symbol,
                         a_boolean                is_template_id,
-                        a_template_arg_ptr       template_arg_list,
+                        a_template_arg_ptr       *template_arg_list,
                         a_boolean                have_selector,
                         an_operand               *bound_function_selector,
                         an_arg_list_elem_ptr     arg_list,
@@ -11162,7 +11162,7 @@ reprocess_with_notes:
     }  /* if */
     if (!dependent_call &&
         ((is_template_id &&
-          template_arg_list_is_dependent(template_arg_list)) ||
+          template_arg_list_is_dependent(*template_arg_list)) ||
          (ovl_context == oc_new_expression && !scope_stack_top().is_rescan))) {
       /* A call like f<T>(1), where the explicit template argument list
          includes dependent arguments or a call to an allocation function
@@ -11305,7 +11305,7 @@ in_instantiation:
                                init_list_ctor_arg_list == NULL;
       try_overloaded_function_match(overloaded_function_symbol,
                                     is_template_id,
-                                    template_arg_list,
+                                    is_template_id ? *template_arg_list : NULL,
                                     arg_list,
                                     init_list_ctor_arg_list,
                                     have_selector,
@@ -11410,7 +11410,8 @@ in_instantiation:
         function_symbol = slep->symbol;
         try_overloaded_function_match(function_symbol,
                                       is_template_id,
-                                      template_arg_list,
+                                      is_template_id ?
+                                                     *template_arg_list : NULL,
                                       arg_list,
                                       (an_arg_list_elem *)NULL,
                                       have_selector,
@@ -11580,8 +11581,9 @@ normal_no_function_matches:
         add_on_diag_for_skipped_inaccessible_function(inaccessible_match, dp);
       }  /* if */
     }  /* if */
-    if (template_arg_list != NULL && template_arg_list->arg_operand != NULL) {
-      an_operand  *operand = &template_arg_list->arg_operand->operand;
+    if (template_arg_list != NULL && *template_arg_list != NULL &&
+        (*template_arg_list)->arg_operand != NULL) {
+      an_operand  *operand = &(*template_arg_list)->arg_operand->operand;
       if (operand->ref_entries_list != NULL && expr_error_should_be_issued()) {
         record_operand_ref_entries(operand);
       }  /* if */
@@ -11654,6 +11656,10 @@ normal_no_function_matches:
     /* Prevent freeing of the arg_match_list when the candidate_functions
        list is freed. */
     candidate_functions->arg_matches = NULL;
+    if (template_arg_list != NULL) {
+      *template_arg_list = candidate_functions->template_arg_list;
+      candidate_functions->template_arg_list = NULL;
+    }  /* if */
     if (candidate_functions->init_list_ctor_case) {
       check_assertion(init_list_ctor_case != NULL);
       *init_list_ctor_case = TRUE;
@@ -15388,7 +15394,7 @@ overloaded operator cases.
 a_boolean select_and_prepare_to_call_overloaded_function(
                            a_symbol_ptr            overloaded_function_symbol,
                            a_boolean               is_template_id,
-                           a_template_arg_ptr      template_arg_list,
+                           a_template_arg_ptr      *template_arg_list,
                            a_boolean               have_selector,
                            an_operand              *bound_function_selector,
                            an_arg_list_elem_ptr    *arg_list,
@@ -30134,7 +30140,7 @@ set to TRUE and FALSE is returned.
     selected_sym = select_overloaded_function(
                                         guide_set,
                                         /*is_template_id=*/FALSE,
-                                        (a_template_arg_ptr)NULL,
+                                        (a_template_arg_ptr*)NULL,
                                         /*have_selector=*/TRUE,
                                         (an_operand *)NULL,
                                         initializer_alep,
