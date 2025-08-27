@@ -2408,6 +2408,7 @@ In-place construct a new shared object from the given objects using the given
 allocator.  This constructor should be used via the shared_obj factory
 function.
 */
+  : allocator(a)
 {
   an_allocation allocation = this->allocator.alloc(1);
 
