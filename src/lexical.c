@@ -23754,14 +23754,20 @@ describes the name specified by "locator".
       ++nrp->num_template_arguments;
       argp_tail = argp;
     }  /* for */
-    /* Remove any trailing default template arguments. */
-    free_template_arg_list(argp);
-    if (argp_tail == NULL) {
-      locator->template_arg_list = NULL;
-    } else {
-      argp_tail->next = NULL;
+    /* Only record the template arguments for variables.  For functions, we
+       need to wait until overload resolution has selected a specific
+       overload. */
+    if (!locator->is_error &&
+        symbol_is(locator->specific_symbol, sk_variable)) {
+      /* Remove any trailing default template arguments. */
+      free_template_arg_list(argp);
+      if (argp_tail == NULL) {
+        locator->template_arg_list = NULL;
+      } else {
+        argp_tail->next = NULL;
+      }  /* if */
+      nrp->orig_template_arg_list = locator->template_arg_list;
     }  /* if */
-    nrp->orig_template_arg_list = locator->template_arg_list;
   }  /* for */
 #if DEBUG
   if (db_flag_is_set("name_refs") && locator->symbol_header != NULL) {
