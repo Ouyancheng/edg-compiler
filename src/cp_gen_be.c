@@ -9005,14 +9005,30 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
     /* Replace the reference to this type by a reference to a
        generated typedef. */
     gen_temp_name((char *)type);
-  } else if (type->kind == (a_type_kind)tk_typeref) {
-    /* A typedef or decltype/typeof. */
+  } else if (type_is(type, tk_typeref)) {
+    /* A typedef, decltype/typeof, or alternative template argument list. */
     if (type->is_builtin_va_list && gcc_builtin_varargs_in_generated_code) {
       /* This is the "va_list" or "std::va_list" type, but render it using
          the name of the GNU predefined primitive. */
       write_tok_str("__builtin_va_list");
     } else if (typeref_is_type_operator(type, /*include_intrinsics=*/TRUE)) {
       gen_type_operator(type);
+    } else if (type->variant.typeref.kind == trk_template_arg_list &&
+               type_is(type->variant.typeref.type, tk_typeref) &&
+               type->variant.typeref.type->variant.typeref.kind ==
+                                                          trk_name_qualifier) {
+      /* A nested template with an alternative template argument list.  The
+         nested-name-qualifier is given by the trk_name_qualifier's type
+         supplement, which might also be a template with an alternative
+         template argument list. */
+      a_type_ptr qual = type->variant.typeref.type;
+      a_type_ptr inst = qual->variant.typeref.type;
+      gen_name_qualifier_list(
+                             qual->variant.typeref.extra_info->name_qualifier);
+      gen_bare_name(&inst->source_corresp, iek_type);
+      gen_template_arguments_full(
+                          &type->source_corresp, iek_type, -1,
+                          type->variant.typeref.extra_info->template_arg_list);
     } else {
       int          truncate_pos = 0;
       a_const_char *nm = NULL;
