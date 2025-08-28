@@ -554,9 +554,17 @@ Output the indicated template argument in the way described by octl.
           octl->output_str(error_text(ec_undetermined_constant), octl);
         } else {
           a_boolean        need_parens, saved_local_expr_ref;
-          an_expr_node_ptr expr;
-          an_expr_node_ptr saved_expr;
+          an_expr_node_ptr expr, saved_expr;
+          a_type_ptr       saved_type;
           check_assertion(con != NULL);
+          saved_type = con->type;
+          if (type_is(saved_type, tk_typeref) &&
+              saved_type->variant.typeref.qualifiers == TQ_CONST) {
+            /* Template parameters are implicitly const.  Temporarily drop
+               the const-qualification to better render some class-type
+               template arguments. */
+            con->type = saved_type->variant.typeref.type;
+          }  /* if */
           saved_expr = con->expr;
           saved_local_expr_ref = con->local_expr_ref;
           if (octl->suppress_expr_in_nontype_arg
@@ -654,6 +662,7 @@ Output the indicated template argument in the way described by octl.
           }  /* if */
           con->expr = saved_expr;
           con->local_expr_ref = saved_local_expr_ref;
+          con->type = saved_type;
         }  /* if */
         if (compiler_generated_node != NULL) {
           /* Restore the compiler_generated flag that was reset above. */

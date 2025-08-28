@@ -21505,6 +21505,15 @@ options.
               Dyn_array<a_boolean>  *record_used;
               con_copy = tap->variant.constant;
               copy_constant_for_rescan_if_needed(&con_copy, constant, options);
+              if (con_copy != NULL && constant_is(con_copy, ck_aggregate) &&
+                  !is_const_qualified_type(con_copy->type)) {
+                /* Referring to a template parameter of class type produces a
+                   const-qualified result. */
+                copy_constant(con_copy, constant);
+                constant->expr = NULL;
+                constant->type = make_qualified_type(constant->type, TQ_CONST);
+                con_copy = NULL;
+              }  /* if */
               record_used = ctws_state->record_used_arguments;
               if (record_used != NULL) {
                 /* Set a "used" marker for the position of the template

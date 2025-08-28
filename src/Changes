@@ -1,5 +1,26 @@
 Version 6.8
 
+8/28/25  [EDGcpfe/27917]
+Deduced constant template arguments of class type
+
+Consider, in C++20 mode:
+
+  struct S {
+    int f();  // Not const-qualified
+  };
+  template<auto V> int g() requires requires { V.f(); } = delete;
+  template<auto V> int g();
+  int r = g<S{}>();
+
+The deduction of V produces a value of class type, and that type ought to be
+const-qualified according to the standard (because the underlying model is
+that of a constexpr variable).  However, in this case, the front end failed to
+imbue const-ness on the V during substitution, which caused the requires-
+expression constraint to pass.  As a result, the deleted candidate was
+erroneously preferred in the call g<S{}>().  That is now fixed (the constrained
+candidate now fails the constraint, and thus the second candidate is selected).
+
+
 8/27/25  [EDGcpfe/28411]
 Abort on definition of enum type first declared in another namespace
 
