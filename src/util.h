@@ -747,8 +747,8 @@ as contiguous memory blocks to use this interface.
         some cases of (highly unlikely) user input driven allocations.
 
         To prevent this warning from being issued (and protect against these
-        unlikely cases) the allocation size is checked explicitly before
-        calling memcpy. */
+        unlikely cases) the byte count is checked explicitly before calling
+        memcpy. */
      insufficient_address_space();
   }  /* if */
   (void)memcpy(&(dest_array[0]), &(src_array[0]), num_bytes);
@@ -875,8 +875,8 @@ as contiguous memory blocks to use this interface.
         some cases of (highly unlikely) user input driven allocations.
 
         To prevent this warning from being issued (and protect against these
-        unlikely cases) the allocation size is checked explicitly before
-        calling memmove. */
+        unlikely cases) the byte count is checked explicitly before calling
+        memmove. */
      insufficient_address_space();
   }  /* if */
   (void)memmove(&(dest_array[0]), &(src_array[0]), num_bytes);
