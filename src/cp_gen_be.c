@@ -9041,10 +9041,20 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
          a_name_qualifier_ptr nqp =
                                trp->variant.typeref.extra_info->name_qualifier;
         if (nqp != NULL) {
-          /* Use the specified qualifier.  If the topmost qualifier in the
-             list is at file scope, unconditionally prefix the qualifier
-             list with "::" whether it's actually needed or not. */
+          /* Use the specified qualifier.  If the instance type is
+             dependent, prefix the output with the "typename" keyword.  If
+             the topmost qualifier in the list is at file scope,
+             unconditionally prefix the qualifier list with "::" whether
+             it's actually needed or not. */
           a_name_qualifier_ptr top = nqp;
+          a_boolean            dependent = FALSE;
+          if (is_template_param_or_nonreal_class_type(refp) ||
+              (refp->source_corresp.is_class_member &&
+               is_template_param_or_nonreal_class_type(
+                                                     parent_class_of(refp)))) {
+            write_tok_str("typename ");
+            dependent = TRUE;
+          }  /* if */
           while (top->previous_qualifier != NULL) {
             top = top->previous_qualifier;
           }  /* while */
@@ -9057,6 +9067,12 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
             write_tok_str("::");
           }  /* if */
           gen_name_qualifier_list(nqp);
+          if (dependent &&
+              name_has_template_arguments(&refp->source_corresp, iek_type,
+                                          /*arg_pgt=*/NULL, /*param_ptr=*/NULL,
+                                          /*insert_space=*/NULL)) {
+            write_tok_str("template ");
+          }  /* if */
         } else if (scope_is(refp->source_corresp.parent_scope,
                             sck_class_struct_union)) {
           gen_class_qualifier(
