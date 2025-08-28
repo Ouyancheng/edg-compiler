@@ -2531,9 +2531,10 @@ by octl.
         form_name(&templ->source_corresp, iek_template, octl);
       } else {
         check_assertion_str(
-                           typeref_is_typedef(type) ||
-                           type->variant.typeref.kind == trk_template_arg_list,
-                           "form_type_specifier: unexpected typeref kind");
+                         typeref_is_typedef(type) ||
+                         type->variant.typeref.kind == trk_template_arg_list ||
+                         type->variant.typeref.kind == trk_name_qualifier,
+                         "form_type_specifier: unexpected typeref kind");
         form_name(&type->source_corresp, iek_type, octl);
       }  /* if */
       break;
@@ -3084,9 +3085,11 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       /* A decltype or typeof operator that should be rendered in its
          original form (instead of rendering the underlying type). */
       break;
-    } else if (type->variant.typeref.kind == trk_template_arg_list) {
+    } else if (type->variant.typeref.kind == trk_template_arg_list ||
+               type->variant.typeref.kind == trk_name_qualifier) {
       /* A typeref that gives an alternative template argument list for a
-         given occurrence of the type.  Do not step over it. */
+         given occurrence of the type or that specifies the qualifiers used
+         in the reference to the type.  Do not step over it. */
       break;
     } else {
       /* Type qualifier typeref.  Accumulate the qualifiers. */

@@ -9013,23 +9013,35 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
       write_tok_str("__builtin_va_list");
     } else if (typeref_is_type_operator(type, /*include_intrinsics=*/TRUE)) {
       gen_type_operator(type);
-    } else if (type->variant.typeref.kind == trk_template_arg_list) {
-      /* The typeref specifies an alternative template argument list so we
-         must handle it specially here. */
-      if (type_is(type->variant.typeref.type, tk_typeref) &&
-          type->variant.typeref.type->variant.typeref.kind ==
-                                                          trk_name_qualifier) {
-        /* A nested template with an alternative template argument list.  The
-           nested-name-qualifier is given by the trk_name_qualifier's type
+    } else if (type->variant.typeref.kind == trk_template_arg_list ||
+               type->variant.typeref.kind == trk_name_qualifier) {
+      a_type_ptr         trp = type;
+      a_type_ptr         refp = trp->variant.typeref.type;
+      a_template_arg_ptr arg_list = NULL;
+      if (trp->variant.typeref.kind == trk_template_arg_list) {
+        /* This typeref specifies the form of the template argument list
+           specified in the reference; a null template argument list
+           implies an empty list, "<>", not that it was omitted. */
+        arg_list = trp->variant.typeref.extra_info->template_arg_list;
+        if (type_is(refp, tk_typeref) &&
+            refp->variant.typeref.kind == trk_name_qualifier) {
+          /* The target of the typeref specifies the qualifiers used in
+             the reference; if there were none, the target of the typeref
+             is the actual template instance. */
+          trp = refp;
+          refp = trp->variant.typeref.type;
+        }  /* if */
+      }  /* if */
+      if (trp->variant.typeref.kind == trk_name_qualifier) {
+        /* A nested template that was named with a qualified-id.  The
+           nested-name-specifier is given by the trk_name_qualifier's type
            supplement, which might also be a template with an alternative
            template argument list. */
-        a_type_ptr           qual = type->variant.typeref.type;
-        a_type_ptr           inst = qual->variant.typeref.type;
-        a_name_qualifier_ptr nqp =
-                              qual->variant.typeref.extra_info->name_qualifier;
+         a_name_qualifier_ptr nqp =
+                               trp->variant.typeref.extra_info->name_qualifier;
         if (nqp != NULL) {
           /* Use the specified qualifier.  If the topmost qualifier in the
-             list is at global scope, unconditionally prefix the qualifier
+             list is at file scope, unconditionally prefix the qualifier
              list with "::" whether it's actually needed or not. */
           a_name_qualifier_ptr top = nqp;
           while (top->previous_qualifier != NULL) {
@@ -9044,32 +9056,33 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
             write_tok_str("::");
           }  /* if */
           gen_name_qualifier_list(nqp);
-        } else if (scope_is(inst->source_corresp.parent_scope,
+        } else if (scope_is(refp->source_corresp.parent_scope,
                             sck_class_struct_union)) {
           gen_class_qualifier(
-                         inst->source_corresp.parent_scope->variant.assoc_type,
+                         refp->source_corresp.parent_scope->variant.assoc_type,
                          GN_NO_OPTIONS, /*need_closing_paren=*/NULL);
-        } else if (scope_is(inst->source_corresp.parent_scope,
+        } else if (scope_is(refp->source_corresp.parent_scope,
                             sck_namespace)) {
           gen_namespace_qualifier(
-                    inst->source_corresp.parent_scope->variant.assoc_namespace,
+                    refp->source_corresp.parent_scope->variant.assoc_namespace,
                     GN_NO_OPTIONS, /*need_closing_paren=*/NULL);
         } else {
-          check_assertion(scope_is(inst->source_corresp.parent_scope,
+          check_assertion(scope_is(refp->source_corresp.parent_scope,
                                    sck_file));
           write_tok_str("::");
         }  /* if */
-        gen_bare_name(&inst->source_corresp, iek_type);
-      } else {
-        /* A non-nested template. */
-        gen_bare_name(&type->variant.typeref.type->source_corresp, iek_type);
       }  /* if */
-      if (type->variant.typeref.extra_info->template_arg_list == NULL) {
-        write_tok_str("<>");
+      if (type->variant.typeref.kind == trk_template_arg_list) {
+        gen_bare_name(&refp->source_corresp, iek_type);
+        if (arg_list == NULL) {
+          write_tok_str("<>");
+        } else {
+          gen_template_arguments_full(
+                                    &trp->variant.typeref.type->source_corresp,
+                                    iek_type, -1, arg_list);
+        }  /* if */
       } else {
-        gen_template_arguments_full(
-                          &type->source_corresp, iek_type, -1,
-                          type->variant.typeref.extra_info->template_arg_list);
+        gen_unqualified_name(&refp->source_corresp, iek_type);
       }  /* if */
     } else {
       int          truncate_pos = 0;
