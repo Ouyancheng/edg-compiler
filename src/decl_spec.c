@@ -6318,7 +6318,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       /* Check for cases where the definition appears in an invalid
          namespace. */
       if (!microsoft_mode && !gpp_version_is(any_version) &&
-          sym_is_namespace_member(tag_sym) &&
+          tag_sym != NULL && sym_is_namespace_member(tag_sym) &&
           namespace_scope_should_be_pushed(tag_sym, &tag_position, &err,
                                              /*inline_namespace=*/FALSE) &&
           err) {
