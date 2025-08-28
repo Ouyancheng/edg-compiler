@@ -10427,6 +10427,11 @@ can only contain CLI interfaces.
           /* Get the type entry for the base class name. */
           check_assertion(sym != NULL);
           base_class_type = type_symbol_type(sym);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+          base_class_type = make_typeref_with_lexical_information(
+                                                         base_class_type,
+                                                         &locator_for_curr_id);
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
           base_class_type->source_corresp.referenced = TRUE;
         }  /* if */
         /* Be sure a type symbol was found and that it identifies a class. */
