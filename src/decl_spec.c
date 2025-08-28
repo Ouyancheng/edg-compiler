@@ -6320,7 +6320,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       if (!microsoft_mode && !gpp_version_is(any_version) &&
           tag_sym != NULL && sym_is_namespace_member(tag_sym) &&
           namespace_scope_should_be_pushed(tag_sym, &tag_position, &err,
-                                             /*inline_namespace=*/FALSE) &&
+                                           /*inline_namespace=*/FALSE) &&
           err) {
         /* Diagnose a case like:
              namespace N1 { enum class E; }
