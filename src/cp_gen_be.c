@@ -9059,7 +9059,8 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
             top = top->previous_qualifier;
           }  /* while */
           if ((top->is_class &&
-               scope_is(top->qualifier.class_type->source_corresp.parent_scope,
+               scope_is(skip_lexical_typerefs(top->qualifier.class_type)->
+                                                   source_corresp.parent_scope,
                         sck_file)) ||
               scope_is(
                      top->qualifier.namespace_ptr->source_corresp.parent_scope,
