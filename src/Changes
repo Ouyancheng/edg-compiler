@@ -1,6 +1,6 @@
 Version 6.8
 
-7/21/25  [EDGcpfe/28264,EDGcpfe/28340]
+8/27/25  [EDGcpfe/28264,EDGcpfe/28340]
 Abort in find_subobject_for_interpreter_address during constant memcpy/memmove
 
 In various situations involving the invocation of memcpy/memmove during
