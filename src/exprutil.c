@@ -24397,12 +24397,12 @@ otherwise.
           ampersand_pos = &orig_operand.ampersand_position;
         }  /* if */
 
-        /* The search list will be used or freed by find_template_function. */
         a_template_arg_ptr search_list = matching_arg_list.release();
         sym = find_template_function(matching_sym,
                                      &search_list,
                                      /*explicit_arg_list_present=*/TRUE,
                                      &orig_operand.position);
+        free_template_arg_list(search_list);
         check_assertion(sym != NULL && is_simple_function_symbol(sym));
         if (single_func_sym != NULL) *single_func_sym = sym;
         if (sym->kind == (a_symbol_kind)sk_member_function &&

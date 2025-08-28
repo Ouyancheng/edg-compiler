@@ -42367,7 +42367,7 @@ to NULL.
           instance_sym = find_template_function(op_sym, &tap,
                                       /*explicit_arg_list_present=*/TRUE,
                                       &pos_curr_token);
-          
+          free_template_arg_list(tap);
           if (sym == NULL) {
             sym = instance_sym;
           } else {
@@ -42524,6 +42524,7 @@ issue an error; otherwise, return TRUE.
       op_sym = find_template_function(op_sym, &templ_arg_list,
                                       /*explicit_arg_list_present=*/TRUE,
                                       &pos_curr_token);
+      free_template_arg_list(templ_arg_list);
     }  /* if */
   } else {
     check_assertion(op_sym != NULL);

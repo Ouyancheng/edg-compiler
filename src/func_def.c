@@ -2664,6 +2664,7 @@ instantiated.
                                           call_op_templ_sym, &templ_arg_list,
                                           /*explicit_arg_list_present=*/FALSE,
                                           &error_position);
+      free_template_arg_list(templ_arg_list);
       check_assertion(instance_sym != NULL &&
                       symbol_is(instance_sym, sk_member_function));
       call_op = instance_sym->variant.routine.ptr;
@@ -2687,6 +2688,7 @@ instantiated.
                                           entry_pt_templ_sym, &templ_arg_list,
                                           /*explicit_arg_list_present=*/FALSE,
                                           &error_position);
+      free_template_arg_list(templ_arg_list);
       check_assertion(instance_sym != NULL &&
                       symbol_is(instance_sym, sk_member_function));
       static_entry_pt = instance_sym->variant.routine.ptr;

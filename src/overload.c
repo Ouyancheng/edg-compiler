@@ -10982,7 +10982,7 @@ Determine which of the functions under overloaded_function_symbol should be
 called given an argument list arg_list.  The symbol may be an overloaded
 function, a simple member or nonmember function, or a projection symbol for
 one of those.  is_template_id is TRUE if the symbol has an associated explicit
-template argument list; if so, template_arg_list gives the list of arguments.
+template argument list; if so, *template_arg_list gives the list of arguments.
 If have_selector is TRUE, *bound_function_selector is a selector object.  Note
 that, for constructor calls, bound_function_selector can be NULL when
 have_selector is TRUE; we have a selector, but it's not available.  That's
@@ -15417,7 +15417,7 @@ Determine which of the functions under overloaded_function_symbol should be
 called given an argument list arg_list.  The symbol may be an overloaded
 function, a simple member or nonmember function, or a projection symbol for one
 of those.  is_template_id is TRUE if the symbol has an associated explicit
-template argument list; if so, template_arg_list gives the argument list.  If
+template argument list; if so, *template_arg_list gives the argument list.  If
 have_selector is TRUE, *bound_function_selector is a selector object.  Note
 that, for constructor calls, bound_function_selector can be NULL when
 have_selector is TRUE; we have a selector, but it's not available.  That's okay

@@ -3419,6 +3419,7 @@ NULL.
       result_sym = find_template_function(matching_sym, &matching_arg_list,
                                           (a_boolean)locator->is_template_id,
                                           &locator->source_position);
+      free_template_arg_list(matching_arg_list);
       if (ambiguous || matching_sym->ambiguous) {
         a_symbol_ptr  new_sym;
         /* Create a copy of the result_sym and mark that copy as ambiguous. */

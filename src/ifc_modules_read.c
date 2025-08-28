@@ -6948,6 +6948,7 @@ a NULL pointer is instead returned.
           result = find_template_function(result, &member_templ_args,
                                           /*explicit_arg_list_present=*/FALSE,
                                           &null_source_position);
+          free_template_arg_list(member_templ_args);
         }
         break;
       default:
@@ -7107,6 +7108,7 @@ error occurs, return NULL.
           result = find_template_function(templ_sym, &t_args,
                                           /*explicit_arg_list_present=*/TRUE,
                                           pos_hint.as_pos());
+          free_template_arg_list(t_args);
         } else {
           /* FIXME: Handle other template kinds. */
           a_string err_msg("Unhandled template kind for ",
@@ -16171,6 +16173,7 @@ module file.
                                            symbol_for(templ), &arg_list,
                                            /*explicit_arg_list_present=*/FALSE,
                                            &pos);
+          free_template_arg_list(arg_list);
           result = il_entry_for_symbol<a_routine>(inst_sym)->type;
         }
         break;

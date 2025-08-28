@@ -14908,6 +14908,7 @@ pointer to the resulting symbol, or NULL if an error occurred.
           sym = find_template_function(sym, &t_args,
                                        /*explicit_arg_list_present=*/TRUE,
                                        source_pos);
+          free_template_arg_list(t_args);
         } else {
           sym = NULL;
         }  /* if */
@@ -17918,14 +17919,13 @@ needed) and adjusts conv_func_type accordingly (i.e., eliminating the
                                     symbol_for(proto_call_rp->assoc_template);
     a_symbol_ptr   instance_sym;
     a_routine_ptr  instance_rp;
-    /* Copy the template argument list for the new instantiation (the copied
-       list will be freed by find_template_function if a matching instance
-       already exists). */
+    /* Copy the template argument list for the new instantiation. */
     templ_arg_list = copy_template_arg_list(templ_arg_list);
     instance_sym = find_template_function(call_op_template_sym,
                                           &templ_arg_list,
                                           /*explicit_arg_list_present=*/FALSE,
                                           &error_position);
+    free_template_arg_list(templ_arg_list);
     instance_rp = instance_sym->variant.routine.ptr;
     if (instance_rp->has_deducible_return_type) {
       a_type_ptr  dest_func_type;
@@ -17983,14 +17983,13 @@ needed) and adjusts entry_type accordingly (i.e., eliminating the
                                     symbol_for(proto_call_rp->assoc_template);
     a_symbol_ptr   instance_sym;
     a_routine_ptr  instance_rp;
-    /* Copy the template argument list for the new instantiation (the copied
-       list will be freed by find_template_function if a matching instance
-       already exists). */
+    /* Copy the template argument list for the new instantiation. */
     templ_arg_list = copy_template_arg_list(templ_arg_list);
     instance_sym = find_template_function(call_op_template_sym,
                                           &templ_arg_list,
                                           /*explicit_arg_list_present=*/FALSE,
                                           &error_position);
+    free_template_arg_list(templ_arg_list);
     instance_rp = instance_sym->variant.routine.ptr;
     if (instance_rp->has_deducible_return_type) {
       finalize_deduced_return_type(instance_rp, &error_position);
@@ -21045,6 +21044,8 @@ are ignored even in modes where such specifiers are part of that type.
           instance_sym = find_template_function(templ_sym, templ_arg_list,
                                                 explicit_arg_list != NULL,
                                                 &error_position);
+          free_template_arg_list(*templ_arg_list);
+          *templ_arg_list = NULL;
           instance_rp = instance_sym->variant.routine.ptr;
           if (instance_rp->has_deducible_return_type) {
             finalize_deduced_return_type(instance_rp, &error_position);
@@ -21256,7 +21257,7 @@ matches, a new argument list is returned in *new_arg_list.
     instance_sym = find_template_function(template_sym, &arg_list,
                                           /*explicit_arg_list_present=*/TRUE,
                                           &error_position);
-    check_assertion(arg_list == NULL);
+    free_template_arg_list(arg_list);
     if (instance_sym == NULL || !is_simple_function_symbol(instance_sym)) {
       unexpected_condition();
     } else {
@@ -22011,13 +22012,16 @@ a_symbol_ptr find_template_function(
                         a_source_position	*source_pos)
 /*
 templ_sym is a pointer to a symbol representing a function template and
-*new_list is a pointer to a linked list of template arg entries.  If
-*new_list is equivalent to the template arg list of a previous instantiation,
-return the symbol representing the latter and put the entries on *new_list
-back onto the available list.  Otherwise, create a new function instantiation
-entry, symbol, routine entry, etc., and return the new symbol; in that
-case *new_list is not disposed of but rather used in the resulting data
-structure.
+*new_list is a pointer to a linked list of template arg entries.
+
+If *new_list is equivalent to the template arg list of a previous
+instantiation, return the symbol representing the latter.  If *new_list is
+lexically identical to the template arguments of the previous instantiation (or
+record_form_of_name_reference is FALSE), put the entries on *new_list back onto
+the available list and set the pointer provided by the caller to NULL.
+Otherwise, create a new function instantiation entry, symbol, routine entry,
+etc., and return the new symbol; in that case *new_list is used in the
+resulting data structure and the pointer provided by the caller is set to NULL.
 */
 {
   a_symbol_ptr                      sym;
@@ -22183,7 +22187,8 @@ structure.
     update_template_arg_usage_info(sym, *new_list, explicit_arg_list_present);
     if (tip == NULL) {
       *new_list = NULL;
-    } else if (are_template_args_lexically_identical(sym->variant.routine.ptr
+    } else if (!record_form_of_name_reference ||
+               are_template_args_lexically_identical(sym->variant.routine.ptr
                                                         ->template_arg_list,
                                                      *new_list)) {
       /* If the template arguments are lexically identical to those used for
@@ -37170,6 +37175,7 @@ caller.
                               template_sym, &templ_arg_list,
                               (a_boolean)rout_ptr->expl_template_arg_list_used,
                               &null_source_position);
+      free_template_arg_list(templ_arg_list);
       result_tip = instance_sym->variant.routine.instance_ptr;
     } else {
      /* A member function of a class template or a static data member of a
