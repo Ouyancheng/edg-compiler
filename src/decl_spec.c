@@ -6310,9 +6310,27 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
+      err = FALSE;
       if (effective_decl_level != decl_scope_level) {
         class_of_which_a_member = NULL;
         access = (an_access_specifier)as_public;
+      }  /* if */
+      /* Check for cases where the definition appears in an invalid
+         namespace. */
+      if (!microsoft_mode && !gpp_version_is(any_version) &&
+          sym_is_namespace_member(tag_sym) &&
+          namespace_scope_should_be_pushed(tag_sym, &tag_position, &err,
+                                             /*inline_namespace=*/FALSE) &&
+          err) {
+        /* Diagnose a case like:
+             namespace N1 { enum class E; }
+             namespace N2 {
+               using N1::E;
+               enum class E { e };  // Invalid scope for definition.
+             }
+        */
+        tag_sym = NULL;
+        set_to_error_locator(locator);
       }  /* if */
     } else if (tag_sym != NULL && is_definition) {
       /* This is a definition of an enumeration that has previously been

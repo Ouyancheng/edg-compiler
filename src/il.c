@@ -11558,17 +11558,32 @@ When scope_level is NO_SCOPE_DEPTH, the scope is computed rather than
 determined directly.
 */
 {
-  a_scope_ptr                 sp;
-  a_scope_pointers_block_ptr  pointers_block;
+  a_scope_ptr                 sp = parent_scope_of(type_ptr);
+  a_scope_pointers_block_ptr  pointers_block = NULL;
   a_type_ptr                  tp, prev_tp;
 
-  /* Get a pointer to the scope entry. */
-  sp = get_scope_for_list(scope_level, &type_ptr->source_corresp,
-                          &pointers_block);
   if (sp == NULL) {
+    sp = get_scope_for_list(scope_level, &type_ptr->source_corresp,
+                            &pointers_block);
+  } else if (sp->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+    a_scope_stack_entry  *ssep = &scope_stack[sp->depth_in_scope_stack];
+    pointers_block = assoc_pointers_block_of(ssep);
+  } else {
+    if (scope_is(sp, sck_class_struct_union)) {
+      pointers_block = &class_symbol_supp(symbol_for(sp->variant.assoc_type))
+                        ->pointers_block;
+    } else {
+      check_assertion(scope_is(sp, sck_namespace) ||
+                      scope_is(sp, sck_namespace_extension));
+      pointers_block = &symbol_for(sp->variant.assoc_type)
+                        ->variant.namespace_info.extra_info
+                        ->pointers_block;
+      
+    }  /* if */
+  }  /* if */
+  if (sp == NULL || pointers_block == NULL) {
     /* May be an error case. */
   } else {
-    check_assertion(pointers_block != NULL);
     if (pointers_block->last_type == type_ptr) {
       /* It's already the last entry on the list. */
     } else {

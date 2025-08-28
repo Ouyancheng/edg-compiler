@@ -1,5 +1,22 @@
 Version 6.8
 
+8/27/25  [EDGcpfe/28411]
+Abort on definition of enum type first declared in another namespace
+
+Consider:
+
+  namespace N1 { enum class E; }
+  namespace N2 {
+    using N1::E;
+    enum class E { e };
+  }
+
+Previously, this aborted in move_to_end_of_types_list (il.c) with a null
+pointer indirection.  That is now fixed.  In GCC and Microsoft modes, the
+example above is now accepted.  In other modes, an error is now issued
+(defining E in N2 is not valid).
+
+
 8/27/25  [EDGcpfe/28264,EDGcpfe/28340]
 Abort in find_subobject_for_interpreter_address during constant memcpy/memmove
 

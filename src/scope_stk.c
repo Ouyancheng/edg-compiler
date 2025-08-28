@@ -2773,7 +2773,6 @@ the scope being pushed.
     case sck_file:
       /* Activate or reactivate the file scope. */
       sp = curr_translation_unit->primary_scope;
-      sp->depth_in_scope_stack = depth_scope_stack;
       switch_il_region(file_scope_region_number);
       ssep->il_memory_region = curr_il_region_number;
       break;
@@ -2787,7 +2786,6 @@ the scope being pushed.
         enclosing_region = get_enclosing_memory_region(assoc_routine);
         new_il_scope = TRUE;
         sp = new_function_scope(ssep->number, assoc_routine, enclosing_region);
-        sp->depth_in_scope_stack = depth_scope_stack;
       } else {
         a_function_def_number		number;
         a_function_def_descr_ptr	fddp;
@@ -2859,7 +2857,6 @@ the scope being pushed.
         sp->is_placeholder_scope = FALSE;
         sp->number = ssep->number;
       }  /* if */
-      sp->depth_in_scope_stack = depth_scope_stack;
       break;
     case sck_condition:
       /* Use the enclosing memory region. */
@@ -2880,7 +2877,6 @@ the scope being pushed.
       ssep->il_memory_region = file_scope_region_number;
       new_il_scope = TRUE;
       sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
-      sp->depth_in_scope_stack = depth_scope_stack;
       break;
     case sck_template_declaration:
       /* When prototype instantiations are recorded in the IL, IL scopes
