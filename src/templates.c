@@ -6596,6 +6596,25 @@ declaration (which could be for an explicit specialization, etc.).
 }  /* is_invalid_variable_template_type */
 
 
+static
+a_boolean cache_contains_requires_token(a_token_cache  *cache)
+/*
+Return TRUE if the given token cache contains a "requires" token.
+*/
+{
+  a_cached_token  *ctp = cache->first_token;
+  a_boolean       result = FALSE;
+
+  for (; ctp != NULL; ctp = ctp->next) {
+    if (ctp->token == tok_requires) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* cache_contains_requires_token */
+
+
 static void variable_template_prototype_instantiation(
                                           a_tmpl_decl_state_ptr  decl_state,
                                           a_symbol_ptr           template_sym)
@@ -6664,7 +6683,14 @@ user later during real instantiations.
     }  /* if */
   }  /* if */
   var_ptr->is_template_variable = TRUE;
-  if (!nonclass_prototype_instantiations && !tssp->is_variadic) goto done;
+  if (!nonclass_prototype_instantiations && !tssp->is_variadic &&
+      !cache_contains_requires_token(&cache_for_template(tssp)->tokens)) {
+    /* For variadic templates and templates containing requires-expressions a
+       prototype instantiation is needed to establish information needed for
+       pack expansion (in the case of variadic constructs) or substitution (in
+       the case of requires-expressions). */
+    goto done;
+  }  /* if */
   if (!is_variable_template) {
     /* Set the referencing namespace for the prototype instantiation. */
     tip = template_sym->variant.static_data_member.instance_ptr;

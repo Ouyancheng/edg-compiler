@@ -1,5 +1,18 @@
 Version 6.8
 
+8/28/25  [EDGcpfe/28244]
+Microsoft mode abort on instantiation of variable template containing a
+requires-expression
+
+Consider, in Microsoft C++20 mode:
+
+  template<auto N> constexpr bool vt = requires { N>0; };
+  static_assert(vt<42>);  // Previously aborted.  Now okay.
+
+Previously, this aborted with an internal error in get_expr_rescan_info
+(expr.c).  That is now fixed.
+
+
 8/28/25  [EDGcpfe/27917]
 Deduced constant template arguments of class type
 
