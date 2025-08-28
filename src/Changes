@@ -1,5 +1,20 @@
 Version 6.8
 
+8/28/25  [EDGcpfe/28422]
+GCC 12 compatibility: Lookup of identifiers in noexcept specifiers
+
+Consider:
+
+  struct S {
+    template<typename T> int f(T const &p) noexcept(noexcept(s = p));
+    int s;
+  };
+
+Previously, the identifier s was not found in GNU C++ modes, to match observed
+GCC behavior.  GCC appears to have fixed this lookup bug in GCC 12, and the
+front end now matches that when gnu_version >= 120000.
+
+
 8/28/25  [EDGcpfe/28244]
 Microsoft mode abort on instantiation of variable template containing a
 requires-expression

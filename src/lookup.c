@@ -3641,6 +3641,37 @@ routine.
 }  /* check_for_microsoft_hidden_template_bug */
 
 
+static a_boolean clang_pair_swap_hack_criterion(a_symbol_locator  *locator)
+/*
+Some versions of GCC have a bug for unqualified name lookup in exception
+specifications.  Clang emulates that bug specifically for the name "swap"
+appearing in the exception specification of a member of std::pair.  Return
+TRUE if the current context is std::pair and locator is for "swap".
+*/
+{
+  a_boolean  result = FALSE;
+
+  auto  name_is = [](a_symbol_header_ptr  hdr, a_const_char  *name) {
+                    return hdr != NULL && hdr->identifier != NULL &&
+                           strcmp(hdr->identifier, name) == 0;
+                  };
+  if (name_is(locator->symbol_header, "swap")) {
+    a_scope_stack_entry  *ssep = &scope_stack_top();
+    if (scope_is(ssep, sck_func_prototype) &&
+        scope_is(ssep-1, sck_class_reactivation) &&
+        scope_is(ssep-2, sck_template_instantiation) &&
+        name_is(ssep[-2].template_sym->header, "pair") &&
+        symbol_for_namespace_std != NULL &&
+        is_member_of_namespace(ssep[-2].template_sym,
+                               symbol_for_namespace_std) &&
+        seq_is_in_system_header(locator->source_position.seq)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* clang_pair_swap_hack_criterion */
+
+
 static
 a_symbol_ptr scope_stack_lookup(a_symbol_locator    *locator,
                                 a_lookup_state_ptr  lookup_state,
@@ -3667,7 +3698,7 @@ routine.
   a_scope_depth			curr_depth;
   a_scope_stack_entry_ptr	ssep = NULL;
   a_boolean			curr_scope_skipped = FALSE;
-  a_boolean			check_decl_seq_in_exception_spec;
+  a_boolean			check_decl_seq_in_exception_spec = FALSE;
 
   /* Work out from the innermost scope on the stack, and look at each
      scope.  If the scope is a class reactivation or a template
@@ -3680,8 +3711,14 @@ routine.
             locator->symbol_header->identifier, depth_of_initial_lookup_scope);
   }  /* if */
 #endif /* DEBUG */
-  check_decl_seq_in_exception_spec =
-                              gpp_mode && lookup_state->inclass_exception_spec;
+  if (lookup_state->inclass_exception_spec &&
+      (gpp_version_is(<120000) ||
+       (clang_mode && clang_pair_swap_hack_criterion(locator)))) {
+    /* Early versions of GCC have a bug in their lookup of unqualified names
+       appearing in noexcept specifiers.  Clang emulates that bug for a very
+       specific case in system headers. */
+    check_decl_seq_in_exception_spec = TRUE;
+  }  /*if */
   /* Loop through the scope stack until we reach the scope indicated by
      end_depth. */
   for (curr_depth = start_depth; curr_depth > end_depth;
@@ -4241,37 +4278,6 @@ for the accessor; otherwise return NULL.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean clang_pair_swap_hack_criterion(a_symbol_locator  *locator)
-/*
-Some versions of GCC have a bug for unqualified name lookup in exception
-specifications.  Clang emulates that bug specifically for the name "swap"
-appearing in the exception specification of a member of std::pair.  Return
-TRUE if the current context is std::pair and locator is for "swap".
-*/
-{
-  a_boolean  result = FALSE;
-
-  auto  name_is = [](a_symbol_header_ptr  hdr, a_const_char  *name) {
-                    return hdr != NULL && hdr->identifier != NULL &&
-                           strcmp(hdr->identifier, name) == 0;
-                  };
-  if (name_is(locator->symbol_header, "swap")) {
-    a_scope_stack_entry  *ssep = &scope_stack_top();
-    if (scope_is(ssep, sck_func_prototype) &&
-        scope_is(ssep-1, sck_class_reactivation) &&
-        scope_is(ssep-2, sck_template_instantiation) &&
-        name_is(ssep[-2].template_sym->header, "pair") &&
-        symbol_for_namespace_std != NULL &&
-        is_member_of_namespace(ssep[-2].template_sym,
-                               symbol_for_namespace_std) &&
-        seq_is_in_system_header(locator->source_position.seq)) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* clang_pair_swap_hack_criterion */
-
-
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                               an_id_lookup_options_set options)
 /*
@@ -4368,7 +4374,6 @@ after a call to this routine.
     if (lookup_state.inclass_exception_spec &&
         (gpp_version_is(<100000) ||
          (clang_mode && clang_pair_swap_hack_criterion(locator)))) {
-
       /* exception_spec_decl_seq is used in some g++ modes to limit visibility
          of names used in exception specification to those previously declared
          in a class.  Clang appears to emulate that behavior in system headers
