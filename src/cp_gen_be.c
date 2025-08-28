@@ -9013,6 +9013,7 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
       write_tok_str("__builtin_va_list");
     } else if (typeref_is_type_operator(type, /*include_intrinsics=*/TRUE)) {
       gen_type_operator(type);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
     } else if (type->variant.typeref.kind == trk_template_arg_list ||
                type->variant.typeref.kind == trk_name_qualifier) {
       a_type_ptr         trp = type;
@@ -9084,6 +9085,7 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
       } else {
         gen_unqualified_name(&refp->source_corresp, iek_type);
       }  /* if */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
     } else {
       int          truncate_pos = 0;
       a_const_char *nm = NULL;
