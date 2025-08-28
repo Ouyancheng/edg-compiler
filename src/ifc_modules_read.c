@@ -64,6 +64,9 @@ struct an_ifc_cache_info_zero_bits {
   a_bit_field   is_specialization:1;
                         /* TRUE if the entity being cached is a template
                            specialization. */
+  a_bit_field   is_instantiation:1;
+                        /* TRUE if the entity being cached is a template
+                           instantiation. */
   a_bit_field   inline_data_member_type:1;
                         /* TRUE if the entity being cached is a data member
                            with an anonymous inline type. */
@@ -3371,6 +3374,37 @@ Return the associated scope for the given declaration.
 }  /* get_home_scope */
 
 
+static a_scope_ptr get_enclosing_namespace_scope(an_ifc_decl_index decl_idx)
+/*
+Return the associated scope for the given declaration; otherwise, return NULL.
+*/
+{
+  a_scope_ptr       result = NULL;
+  an_ifc_decl_index home_scope_idx = get_ifc_home_scope(decl_idx);
+
+  while (!is_namespace_scope(home_scope_idx)) {
+    if (!validate(home_scope_idx) || !has_ifc_home_scope(home_scope_idx)) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_decl_index prev_home_scope_idx = home_scope_idx;
+    home_scope_idx = get_ifc_home_scope(home_scope_idx);
+    if (home_scope_idx == prev_home_scope_idx) {
+      /* Detect the unlikely case of a cycle. */
+      a_string err_msg("The enclosing namespace scope of ",
+                       index_to_str(decl_idx),
+                       " could not be resolved due to a cyclic relationship");
+
+      ifc_unexpected(module_of(decl_idx), err_msg);
+      goto invalid;
+    }  /* if */
+  }  /* if */
+  result = get_scope(home_scope_idx);
+invalid:
+  return result;
+}  /* get_enclosing_namespace_scope */
+
+
 static void issue_unsupported_construct_error(a_module_ptr      mod,
                                               a_const_char      *node,
                                               a_source_position *pos)
@@ -5158,33 +5192,56 @@ FALSE.
 
 
 template<typename an_ifc_Node_type>
-static a_boolean function_is_user_defined(const an_ifc_Node_type &node)
+static a_boolean function_is_user_defined(an_ifc_decl_index      decl_idx,
+                                          const an_ifc_Node_type &node)
 /*
-Return TRUE if the given function-like IFC declaration node has a definition
-that is not "= default" or "= delete"; otherwise, return FALSE.
+Return TRUE if the given function-like IFC declaration node (identified by
+decl_idx) has an importable definition that is not "= default" or "= delete";
+otherwise, return FALSE.
 */
 {
-  an_ifc_reachable_properties_bitfield properties = get_ifc_properties(node);
+  a_boolean result = FALSE;
 
   /* For the IFC to provide a function definition, the definition must be
      exported (marked by the presence of a reachable initializer property).
 
      The definition is exported for functions that are constexpr, consteval, or
      inline. */
-  return (test_bitmask<ifc_rpb_initializer>(properties) &&
-          !function_has_generated_definition(node));
+  if (!function_has_generated_definition(node)) {
+    an_ifc_reachable_properties_bitfield properties = get_ifc_properties(node);
+
+    if (test_bitmask<ifc_rpb_initializer>(properties)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (is_msvc_authored(node)) {
+        /* If this is a MSVC-authored function.*/
+        Opt<an_ifc_trait_function_definition> opt_itfd;
+
+        find_trait(&opt_itfd, decl_idx);
+        if (opt_itfd.has_value()) {
+          result = TRUE;
+        }  /* if */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not add code here. */
+      {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
 }  /* function_is_user_defined */
 
 
 template<typename an_ifc_Node_type>
-static a_boolean function_is_defined(const an_ifc_Node_type &node)
+static a_boolean function_is_defined(an_ifc_decl_index      decl_idx,
+                                     const an_ifc_Node_type &node)
 /*
-Return TRUE if the given function-like IFC declaration node has a definition;
-otherwise, return FALSE.
+Return TRUE if the given function-like IFC declaration node (identified by
+decl_idx) has a definition; otherwise, return FALSE.
 */
 {
   return (function_has_generated_definition(node) ||
-          function_is_user_defined(node));
+          function_is_user_defined(decl_idx, node));
 }  /* function_is_defined */
 
 
@@ -5218,7 +5275,7 @@ FALSE.
 {
   a_boolean result = FALSE;
 
-  if (function_is_user_defined(decl_node)) {
+  if (function_is_user_defined(decl_idx, decl_node)) {
     record_pending_ifc_function_body(rp, decl_idx);
     result = TRUE;
   }  /* if */
@@ -7963,6 +8020,54 @@ static void cache_type_second_part(a_module_token_cache_ptr cache,
                                    an_ifc_type_index        type,
                                    const an_ifc_cache_info  &cinfo);
 
+static void cache_placeholder_type(a_module_token_cache_ptr cache,
+                                   an_ifc_type_index        type)
+/*
+Cache the given placeholder type without unwrapping any elaboration on the
+type.
+*/
+{
+  switch (type.sort) {
+    case ifc_ts_type_placeholder:
+      { Opt<an_ifc_type_placeholder> opt_itp;
+
+        construct_node(&opt_itp, type);
+        if (!opt_itp.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_placeholder itp = *opt_itp;
+        an_ifc_type_basis_sort  basis = get_ifc_basis(itp);
+        if (basis == ifc_tbs_auto) {
+          cache_token(cache, tok_auto);
+        } else if (basis == ifc_tbs_decltype_auto) {
+          cache_token(cache, tok_decltype);
+          cache_token(cache, tok_lparen);
+          cache_token(cache, tok_auto);
+          cache_token(cache, tok_rparen);
+        } else {
+          a_string err_msg("Unexpected ", str_for(basis),
+                           " for ", str_for(type.sort));
+
+          ifc_unexpected(module_of(type), err_msg);
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    default:
+      { a_string err_msg("Unexpected ", str_for(type.sort));
+
+        ifc_unexpected(module_of(type), err_msg);
+      }
+      break;
+  }  /* switch */
+  goto done;
+invalid:
+  cache->invalidate();
+done:;
+}  /* cache_placeholder_type */
+
+
 static void cache_type(a_module_token_cache_ptr cache,
                        an_ifc_type_index        type,
                        const an_ifc_cache_info  &cinfo);
@@ -8370,315 +8475,6 @@ context to help inform decisions about what to cache.
   cache_template_head_requires_clause(cache, chart_idx, cinfo);
 }  /* cache_template_head */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-/* FIXME: This code should be transitioned to an_ifc_func_param_context (and
-   an_ifc_func_param_context updated in the process) to improve the overall
-   quality of IFC parameter handling. */
-
-static a_diagnostic_ptr start_rp_diag(
-                                   a_routine_ptr     rp,
-                                   an_error_severity error_severity = es_error)
-/*
-Start a new IFC validation diagnostic for the given routine pointer's
-associated function definition, with the given error severity.
-*/
-{
-  return pos_start_diagnostic(error_severity,
-                              ec_ifc_bad_function_definition,
-                              &rp->source_corresp.decl_position,
-                              rp->source_corresp.name);
-}  /* start_rp_diag */
-
-
-static void add_bad_parameter_count_info(a_diagnostic_ptr diag_ptr,
-                                         unsigned         chart_param_count,
-                                         unsigned         type_param_count)
-/*
-Add the corresponding diagnostic to the diagnostic pointer for mismatched IFC
-parameter counts between the IFC chart's parameter count and the type's
-parameter count.
-*/
-{
-  an_error_code error_code;
-
-  /* Make sure this is a diagnostic that needs issued. */
-  check_assertion(chart_param_count != type_param_count);
-  if (chart_param_count != 1 && type_param_count != 1) {
-    error_code = ec_ifc_bad_function_param_counts_multi_multi;
-  } else if (chart_param_count != 1) {
-    error_code = ec_ifc_bad_function_param_counts_multi_single;
-  } else {
-    error_code = ec_ifc_bad_function_param_counts_single_multi;
-  }  /* if */
-  add_diag_info(diag_ptr, error_code, chart_param_count, type_param_count);
-}  /* add_bad_parameter_count_info */
-
-
-static a_boolean check_parameter_counts(
-                               a_routine_ptr              rp,
-                               an_ifc_cardinality_storage chart_param_count,
-                               unsigned                   decl_param_count)
-/*
-Check for a mismatch between the number of parameters declared by the IFC
-parameter chart and the number of parameters declared by the type.  rp is the
-IL routine for which parameter counts are being checked.  chart_param_count is
-the number of parameters specified by the IFC function definition.
-decl_param_count is the number of parameters specified by the IL function
-type's parameters (which corresponds to the IFC declaration's parameter count
-information).  Return TRUE if the parameter counts match, return FALSE
-otherwise.
-*/
-{
-  a_boolean result = TRUE;
-
-  if (chart_param_count != decl_param_count) {
-    a_diagnostic_ptr diag_ptr = start_rp_diag(rp);
-
-    add_bad_parameter_count_info(diag_ptr, chart_param_count,
-                                 decl_param_count);
-    end_diagnostic(diag_ptr);
-    result = FALSE;
-  }  /* if */
-  return result;
-}  /* check_parameter_counts */
-
-
-static a_boolean is_bad_ifc_parameter(const an_ifc_decl_parameter &param)
-/*
-Given an IFC parameter, check to see if the parameter has defects that suggest
-it should be skipped.
-*/
-{
-  a_boolean     result = TRUE;
-  Opt<a_string> opt_name = name_from_index(get_ifc_name(param));
-
-  if (opt_name.has_value()) {
-    const a_string &name = *opt_name;
-
-    if (name != "this" && name != "__$ReturnUdt") {
-      result = FALSE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_bad_ifc_parameter */
-
-
-static a_boolean check_for_param_count_correction(
-                                        an_ifc_chart_unilevel icul,
-                                        unsigned              decl_param_count)
-/*
-Check to see if one or more of the parameters specified by icul is a bad
-(implicitly generated as part of the calling convention) parameter.  Return
-TRUE if dropping these parameters would correct a parameter count mismatch;
-otherwise, return FALSE.
-*/
-{
-  a_boolean                  valid_data = TRUE;
-  an_ifc_cardinality_storage used_param_count = 0;
-  a_decl_parameter_sequence  sequence(icul);
-
-  for (Indexed<an_ifc_decl_parameter> indexed_idp : sequence) {
-    if (!indexed_idp.has_value()) {
-      valid_data = FALSE;
-      break;
-    }  /* if */
-    if (is_bad_ifc_parameter(*indexed_idp)) {
-      continue;
-    }  /* if */
-    ++used_param_count;
-  }  /* for */
-  return valid_data && used_param_count == decl_param_count;
-}  /* check_for_param_count_correction */
-
-
-static a_boolean check_parameter_counts(
-                               a_routine_ptr         rp,
-                               an_ifc_chart_unilevel icul,
-                               a_param_type_ptr      params,
-                               a_boolean             *perform_param_correction)
-/*
-Check for a mismatch between the number of parameters declared by the IFC
-parameter chart and the number of parameters declared by the type.  rp is the
-IL routine for which parameter counts are being checked.  icul is the unilevel
-chart being considered that defines the definition's parameters.  params is the
-first param in the list of the function type's parameters (which corresponds to
-the IFC declaration's parameter count information).  perform_param_correction
-is a pointer to a boolean that will be set to TRUE if the parameter processing
-logic should check for bad parameters and omit them.  Return TRUE if the
-parameter counts are equivalent or a correction can be applied to make them
-equivalent; otherwise, return FALSE.
-*/
-{
-  a_boolean                  result = TRUE;
-  an_ifc_cardinality_storage chart_param_count = get_ifc_cardinality(icul);
-  unsigned                   decl_param_count = count_list_elements(params);
-
-  if (chart_param_count != decl_param_count) {
-    /* FIXME: This is a hack to work around an IFC defect. */
-    if (check_for_param_count_correction(icul, decl_param_count)) {
-      /* The front end has determined that dropping problematic parameters will
-         correct this mismatch.  Create a diagnostic warning about what's going
-         to happen. */
-      a_diagnostic_ptr diag_ptr = start_rp_diag(rp, es_warning);
-
-      add_bad_parameter_count_info(diag_ptr, chart_param_count,
-                                   decl_param_count);
-
-      a_decl_parameter_sequence sequence(icul);
-      General_allocator<char>   allocator;
-      for (Indexed<an_ifc_decl_parameter> indexed_idp : sequence) {
-        /* Already constructed by check_for_param_count_correction, which
-           fails if there was a problem. */
-        check_assertion(indexed_idp.has_value());
-        if (is_bad_ifc_parameter(*indexed_idp)) {
-          an_ifc_text_offset name_idx = get_ifc_name(*indexed_idp);
-          a_string           name = get_string_at_offset(name_idx);
-          an_ifc_index_type  relative_idx = get_relative_index(sequence,
-                                                               indexed_idp);
-
-          /* FIXME: Eventually this should be reworked so we don't allocate on
-             errors. */
-          add_diag_info(diag_ptr, ec_ifc_bad_function_param_name,
-                        name.to_allocated_storage(allocator), relative_idx);
-        }  /* if */
-      }  /* if */
-      end_diagnostic(diag_ptr);
-      *perform_param_correction = TRUE;
-    } else {
-      a_diagnostic_ptr diag_ptr = start_rp_diag(rp);
-
-      add_bad_parameter_count_info(diag_ptr, chart_param_count,
-                                   decl_param_count);
-      end_diagnostic(diag_ptr);
-      result = FALSE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* check_parameter_counts */
-
-
-static void add_function_def_parameter(
-                                    const an_ifc_decl_parameter &idp,
-                                    a_param_type_ptr            ptp,
-                                    a_func_info_block           *func_info,
-                                    a_param_id_ptr              *last_param_id)
-/*
-Add the given IFC parameter, using the associated parameter type pointer, to
-the given function info.  last_param_id is a pointer to the pointer for the
-latest addition to the parameter list; if said list is empty, the pointed to
-pointer should be NULL.
-*/
-{
-  a_source_position pos;
-
-  check_assertion(get_ifc_sort(idp) == ifc_ps_object);
-  source_position_from_locus(&pos, get_ifc_locus(idp));
-
-  Opt<a_string> opt_name = name_from_index(get_ifc_name(idp));
-  /* The caller should've already validated that this name is valid. */
-  check_assertion(opt_name.has_value());
-
-  const a_string   &name = *opt_name;
-  a_symbol_locator sym_loc;
-  clear_locator(&sym_loc, &pos);
-  (void)find_symbol(name.as_temp_characters(), name.length(), &sym_loc);
-  add_to_param_id_list(&sym_loc,
-                       make_qualified_type(ptp->type, ptp->qualifiers),
-                       &pos, (a_storage_class)sc_auto, func_info,
-                       (a_source_sequence_entry_ptr)NULL, last_param_id,
-                       ptp->is_pack_element);
-
-  /* Merge the parameter with the corresponding type information. */
-  a_param_id_ptr new_param_id = *last_param_id;
-  new_param_id->declared_type = ptp->type;
-  new_param_id->param_num = ptp->param_num;
-  if (ptp->is_pack_element) {
-    new_param_id->is_pack_element = TRUE;
-    if (ptp->is_parameter_pack) {
-      new_param_id->is_parameter_pack = TRUE;
-    }  /* if */
-  }  /* if */
-}  /* add_function_def_parameter */
-
-
-static a_boolean add_function_def_parameters(
-                             const an_ifc_trait_function_definition &itfd,
-                             a_routine_ptr                          rp,
-                             a_func_info_block                      *func_info)
-/*
-Add the parameters, for the given IFC function definition, and associated
-routine pointer, to the given function info.  Return TRUE if all parameters are
-added successfully, return FALSE otherwise.
-*/
-{
-  a_boolean          result = TRUE;
-  an_ifc_chart_index chart_params = get_ifc_parameters(itfd);
-  a_param_type_ptr   params = function_type_params(rp->type);
-
-  /* Parameters are represented as a uni-level IFC "chart" pointing to a
-     sequence of ifc_DeclSort_Parameter entries of kind
-     ifc_ParameterSort_Object.  Check for the parameter chart. */
-  if (chart_params.sort == ifc_cs_chart_unilevel) {
-    Opt<an_ifc_chart_unilevel> opt_icul;
-
-    construct_node(&opt_icul, chart_params);
-    /* Read the uni-level chart of parameters. */
-    if (!opt_icul.has_value()) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-
-    an_ifc_chart_unilevel icul = *opt_icul;
-    a_boolean             perform_param_correction = FALSE;
-    if (!check_parameter_counts(rp, icul, params, &perform_param_correction)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-    /* Ensure a function prototype scope exists in which sk_parameter
-       symbols can be accumulated. */
-    (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
-                     rp->type, (a_routine_ptr)NULL);
-
-    a_param_type_ptr  ptp = params;
-    func_info->scope_number = scope_stack_top().number;
-
-    a_param_id_ptr            last_param_id = nullptr;
-    a_decl_parameter_sequence sequence(icul);
-    for (Indexed<an_ifc_decl_parameter> indexed_idp : sequence) {
-      if (!indexed_idp.has_value()) {
-        result = FALSE;
-        goto done;
-      }  /* if */
-      /* FIXME: This is a hack to work around an IFC defect. */
-      if (perform_param_correction && is_bad_ifc_parameter(*indexed_idp)) {
-        continue;
-      }  /* if */
-      add_function_def_parameter(*indexed_idp, ptp, func_info, &last_param_id);
-      ptp = ptp->next;
-    }  /* for */
-    func_info->prototype_scope_symbols =
-                          assoc_pointers_block_of(&scope_stack_top())->symbols;
-    pop_scope();
-  } else if (chart_params.sort == ifc_cs_chart_none) {
-    /* The associated chart is empty, verify the type information also isn't
-       specifying parameters. */
-    if (!check_parameter_counts(rp, 0, count_list_elements(params))) {
-      result = FALSE;
-    }  /* if */
-  } else {
-    /* The associated chart index was set, but it wasn't a uni-level chart. */
-    a_diagnostic_ptr diag_ptr = start_rp_diag(rp);
-
-    add_diag_info(diag_ptr, ec_ifc_bad_function_param_wrong_chart);
-    end_diagnostic(diag_ptr);
-    result = FALSE;
-  }  /* if */
-done:
-  return result;
-}  /* add_function_def_parameters */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_constant_ptr load_enumerator_constant(an_ifc_expr_index expr_idx,
                                                a_type_ptr        enum_type)
@@ -9440,87 +9236,8 @@ return TRUE.
 }  /* has_routine_definition_from_ifc_module */
 
 
-static a_boolean cache_function_body(a_module_token_cache_ptr cache,
-                                     an_ifc_decl_index        decl_idx,
-                                     a_routine_ptr            rp,
-                                     a_func_info_block        *func_info)
-/*
-decl_idx points to the IFC representation of rp: That representation was
-already loaded previously and found to be associated with a definition in
-an ifc_trait_function_definition partition.  Load that IFC partition now and
-process it.  As part of this processing, the parameter names of rp are also
-loaded and *func_info is updated accordingly.  Normally, TRUE is returned, but
-in some cases there is no definition present after all and FALSE is returned
-instead.
-*/
-{
-  a_boolean result = TRUE;
-
-  check_assertion(type_is(rp->type, tk_routine));
-  if (is_edg_authored(decl_idx)) {
-    Opt<an_ifc_edg_trait_function_definition> opt_edg_func_def;
-
-    find_trait(&opt_edg_func_def, decl_idx);
-    if (!opt_edg_func_def.has_value()) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-
-    /* A definition exists, mark that. */
-    func_info->is_definition = TRUE;
-    /* Add the tokens to the cache. */
-    an_ifc_edg_trait_function_definition
-            edg_func_def = *opt_edg_func_def;
-    an_ifc_edg_token_cache_offset
-            cache_offset = get_ifc_initializer(edg_func_def);
-    (void)cache_edg_token_cache(cache, cache_offset);
-  }
-  /* Do not add code here. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  else {
-    Opt<an_ifc_trait_function_definition> opt_itfd;
-
-    find_trait(&opt_itfd, decl_idx);
-    if (!opt_itfd.has_value()) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-
-    an_ifc_trait_function_definition itfd = *opt_itfd;
-    /* A definition exists, mark that. */
-    func_info->is_definition = TRUE;
-    /* Add the parameters to the function info. */
-    if (!add_function_def_parameters(itfd, rp, func_info)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-
-    an_ifc_expr_index initializers = get_ifc_initializers(itfd);
-    an_ifc_stmt_index body = get_ifc_body(itfd);
-    /* Cache the mem-initializers if needed. */
-    if (!is_null_index(initializers)) {
-      cache_token(cache, tok_colon);
-      cache_expr(cache, initializers, /*cinfo=*/{});
-    }  /* if */
-    cache_stmt_brace_wrapped(cache, body, /*cinfo=*/{});
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-done:
-  if (result) {
-#if DEBUG
-    if (db_flag_is_set("ifc_def")) {
-      fprintf(f_debug, "Function body cache:\n");
-      db_tokens(cache);
-      fprintf(f_debug, "\n---------------------\n");
-    }  /* if */
-#endif /* DEBUG */
-  } else {
-    /* The IFC told us there would be a definition but none was written. */
-    pos_error(ec_ifc_missing_function_definition,
-              &rp->source_corresp.decl_position, rp->source_corresp.name);
-  }  /* if */
-  return result;
-}  /* cache_function_body */
+static void ensure_module_scope(a_scope_ptr              scope,
+                                a_module_scope_push_kind *scope_push_status);
 
 
 a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp)
@@ -9538,51 +9255,59 @@ definition.
 
   check_assertion(has_routine_definition_from_ifc_module(rp));
   if (ifc_function_bodies->can_be_processed(rp)) {
-    an_ifc_decl_index           ifb =
+    an_ifc_decl_index           decl_idx =
                               ifc_function_bodies->get_associated_ifc_decl(rp);
-    a_func_info_block           func_info;
     a_module_token_cache        def_cache;
-    a_decl_flag_set             flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
-    a_module_entity_stack_state mep_state(get_ifc_module_entity(ifb));
+    a_module_entity_ptr         mep = get_ifc_module_entity(decl_idx);
+    a_module_entity_stack_state mep_state(mep);
     a_diagnostic_suppression    diag_suppress(
-                                 &input_state_for(ifb)->suppressed_diagnostics,
-                                 !display_module_import_diagnostics);
+                            &input_state_for(decl_idx)->suppressed_diagnostics,
+                            !display_module_import_diagnostics);
 
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
-      a_string err_msg("Function def loading started for ", index_to_str(ifb));
+      a_string err_msg("Function def loading started for ",
+                       index_to_str(decl_idx));
 
       print(err_msg, f_debug);
     }  /* if */
 #endif /* DEBUG */
     ifc_function_bodies->mark_pending(rp);
-    clear_func_info(&func_info);
-    push_new_top_level_declaration();
-    if (cache_function_body(&def_cache, ifb, rp, &func_info)) {
-      if (def_cache.is_valid()) {
-        a_token_kind           expected_tok = tok_rbrace;
-        a_module_entity_rescan rescan(&def_cache, &expected_tok);
 
-        scan_function_body(rp, &func_info, flags);
-        if (curr_token == expected_tok) {
-          result = TRUE;
-          /* We have successfully loaded the definition. */
-          ifc_function_bodies->mark_finished(rp);
-        }  /* if */
+    a_module_scope_push_kind scope_push_status = mspk_unattempted;
+    a_scope_ptr              enclosing_ns_scope =
+                                       get_enclosing_namespace_scope(decl_idx);
+    if (enclosing_ns_scope == NULL) {
+      goto scope_load_failed;
+    }  /* if */
+    ensure_module_scope(enclosing_ns_scope, &scope_push_status);
+    cache_decl(&def_cache, decl_idx, /*cinfo=*/{});
+    if (def_cache.is_valid()) {
+      an_il_entry_kind kind;
+      char             *il_entity = parse_cached_nonmember_decl(&def_cache,
+                                                                &kind);
+
+      if (il_entity != NULL) {
+        /* We have successfully loaded the definition. */
+        mep->entity = canonicalize_tagged_ptr(kind, il_entity);
+        ifc_function_bodies->mark_finished(rp);
+        result = TRUE;
+        goto loaded_successfully;
       }  /* if */
     }  /* if */
-    pop_scope();
-    /* If this function failed to process successfully, mark the failure so we
-       don't reenter this branch. */
-    if (!result) {
-      ifc_function_bodies->mark_failure(rp);
-      diagnose_ifc_entity_part_load_failure(ec_ifc_definition_load_failure,
-                                            symbol_for(rp),
-                                            ifb);
+scope_load_failed:
+    ifc_function_bodies->mark_failure(rp);
+    diagnose_ifc_entity_part_load_failure(ec_ifc_definition_load_failure,
+                                          symbol_for(rp),
+                                          decl_idx);
+loaded_successfully:
+    if (scope_push_status != mspk_unattempted) {
+      pop_module_declaration_context(scope_push_status);
     }  /* if */
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
-      a_string err_msg("Function def loading done for ", index_to_str(ifb));
+      a_string err_msg("Function def loading done for ",
+                       index_to_str(decl_idx));
 
       print(err_msg, f_debug);
     }  /* if */
@@ -12256,27 +11981,6 @@ IFC declaration.
 
 
 template<typename an_ifc_Node_type>
-static void apply_func_decl_specifiers(a_decl_parse_state     *dps,
-                                       const an_ifc_Node_type &decl)
-/*
-Given a declaration parse state, apply the appropriate changes to the
-declaration parse state to parse a function declaration with the declaration
-specifiers of the given IFC declaration.
-*/
-{
-  an_ifc_function_traits_bitfield traits = get_ifc_traits(decl);
-
-  if (test_bitmask<ifc_ftb_immediate>(traits)) {
-    dps->dso_flags |= DSO_CONSTEVAL;
-  } else if (test_bitmask<ifc_ftb_constexpr>(traits)) {
-    dps->dso_flags |= DSO_CONSTEXPR;
-  } else if (test_bitmask<ifc_ftb_inline>(traits)) {
-    dps->dso_flags |= DSO_INLINE;
-  }  /* if */
-}  /* apply_func_decl_specifiers */
-
-
-template<typename an_ifc_Node_type>
 static void apply_source_position(a_decl_parse_state     *dps,
                                   const an_ifc_Node_type &decl)
 /*
@@ -12289,88 +11993,6 @@ the information provided by the given IFC declaration.
   source_position_from_locus(&dps->start_pos, locus);
 }  /* apply_source_position */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static a_boolean fill_in_routine_parameter_defaults(
-                                               an_ifc_chart_index params,
-                                               a_type_ptr         rout_type,
-                                               a_boolean          is_consteval)
-/*
-Fill in any parameter defaults for a routine with type rout_type.  The
-parameter type list must already be populated.  params is the chart index
-associated with the routine and contains the default argument information.  If
-the routine is a consteval routine, is_consteval is TRUE.  Return TRUE if
-successful, FALSE if any errors were encountered.
-*/
-{
-  a_routine_type_supplement_ptr rtsp = rout_type_supp(rout_type);
-  Opt<an_ifc_chart_unilevel>    opt_icu;
-  a_param_type_ptr              ptp = rtsp->param_type_list;
-  a_boolean                     result = TRUE;
-
-  if (is_null_index(params)) {
-    goto done;
-  }  /* if */
-  if (params.sort != ifc_cs_chart_unilevel) {
-    a_string err_msg("expected ", str_for(ifc_cs_chart_unilevel),
-                     " received ", str_for(params.sort));
-
-    ifc_unexpected(module_of(params), err_msg.as_temp_characters());
-    goto done;
-  }  /* if */
-  construct_node(&opt_icu, params);
-  if (opt_icu.has_value()) {
-    an_ifc_chart_unilevel     icu = *opt_icu;
-    a_decl_parameter_sequence sequence(icu);
-
-    for (Indexed<an_ifc_decl_parameter> indexed_param : sequence) {
-      if (ptp == NULL) {
-        /* This should only be possible to encounter when the function has
-           an ellipsis parameter. */
-        if ((get_relative_index(sequence, indexed_param) !=
-             (get_ifc_cardinality(icu) - 1)) || !rtsp->has_ellipsis) {
-          a_string err_msg("Unexpected parameter declaration for parameters "
-                           "specified by ", index_to_str(params));
-
-          ifc_unexpected(module_of(params), err_msg);
-        }  /* if */
-        break;
-      }  /* if */
-      if (!indexed_param.has_value()) {
-        result = FALSE;
-        goto done;
-      }  /* if */
-
-      /* FIXME: Should we issue a diagnostic or attempt to determine expression
-         equivalencies here if the parameter already has a default argument?
-         Due to the way that IFC handles these, duplicate expressions are very
-         possible. */
-      an_ifc_decl_parameter curr_param = *indexed_param;
-      if (has_default_arg_expr(curr_param)) {
-        ptp->has_default_arg = TRUE;
-
-        a_module_token_cache cache;
-        an_ifc_expr_index    initializer_expr =
-                                              get_default_arg_expr(curr_param);
-        cache_expr(&cache, initializer_expr, /*cinfo=*/{});
-        if (!cache.is_valid()) {
-          ptp->default_arg_expr = error_node();
-          result = FALSE;
-          continue;
-        }  /* if */
-
-        a_module_entity_rescan rescan(&cache);
-        scan_default_arg_expr(ptp, /*is_member_or_friend=*/FALSE,
-                              is_consteval);
-      }  /* if */
-      ptp = ptp->next;
-    }  /* for */
-  }  /* if */
-done:
-  return result;
-}  /* fill_in_routine_parameter_defaults */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void process_decl_to_il_entity(a_module_entity_ptr mep)
 /*
@@ -12496,77 +12118,17 @@ strongly preferred over calling this function directly.
         } else
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
         /* Do not add code here. */
-        if (is_edg_authored(idf)) {
+        {
           a_module_token_cache cache;
+          an_ifc_cache_info    cache_info;
 
-          cache_decl(&cache, decl_idx, /*cinfo=*/{});
+          cache_info.ignore_definition = TRUE;
+          cache_decl(&cache, decl_idx, cache_info);
           if (!cache.is_valid()) {
             goto invalid;
           }  /* if */
           il_entity = parse_cached_nonmember_decl(&cache, &kind);
-        }
-        /* Do not add code here. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        else {
-          a_type_ptr         old_type;
-          a_routine_ptr      rp;
-          a_decl_parse_state dps;
-          an_id_linkage_kind linkage_ptr;
-          a_symbol_ptr       ext_sym;
-
-          /* FIXME: There's a chicken-and-egg problem here when the return type
-             is deduced and requires access to the class scope (e.g., returning
-             a lambda declared within the function). */
-          /* Appropriately initialize the declaration parse state. */
-          init_decl_parse_state(&dps);
-
-          an_ifc_type_index type_idx = get_ifc_type(idf);
-          if (is_null_index(type_idx)) {
-            a_string err_msg("Unexpected missing type for ",
-                             index_to_str(decl_idx));
-
-            ifc_unexpected(module_of(decl_idx), err_msg);
-            goto invalid;
-          } else {
-            dps.type = type_for_type_index(type_idx);
-            if (is_error_type(dps.type)) {
-              goto invalid;
-            }  /* if */
-          }  /* if */
-          apply_linkage(&dps, idf);
-          apply_storage_class(&dps, idf);
-          apply_attributes(&dps, idf);
-          apply_source_position(&dps, idf);
-          apply_func_decl_specifiers(&dps, idf);
-
-          /* Update the scope stack. */
-          an_ifc_basic_specifiers_bitfield
-                             specifiers = get_ifc_specifiers(idf);
-          an_il_linkage_swap linkage_swap(specifiers);
-          an_ifc_access_sort access = get_ifc_access(idf);
-          an_il_access_swap  access_swap(access);
-          /* Begin the parse. */
-          a_func_info_block  func_info;
-          a_decl_pos_block   decl_pos_block;
-          clear_func_info(&func_info);
-          clear_decl_pos_block(&decl_pos_block);
-          decl_routine(&loc, &dps, &func_info, SRK_DECLARATION,
-                       &linkage_ptr, &old_type, &ext_sym, &decl_pos_block);
-          rp = dps.sym->variant.routine.ptr;
-          il_entity = (char *)rp;
-          kind = iek_routine;
-
-          an_ifc_function_traits_bitfield
-                             traits = get_ifc_traits(idf);
-          a_boolean          is_consteval =
-                                       test_bitmask<ifc_ftb_immediate>(traits);
-          if (!fill_in_routine_parameter_defaults(get_ifc_chart(idf),
-                                                  dps.type,
-                                                  is_consteval)) {
-            goto invalid;
-          }  /* if */
         }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
     case ifc_ds_decl_intrinsic:
@@ -13285,6 +12847,8 @@ strongly preferred over calling this function directly.
           }  /* if */
         }  /* if */
 
+        /* FIXME: Set an_ifc_cache_info to ignore definitions and then
+           lazily-load definitions for specializations. */
         an_ifc_cache_info cinfo;
         cache_decl_specialization(&cache, decl_idx, ids, cinfo);
         if (!cache.is_valid()) {
@@ -13597,13 +13161,15 @@ namespace {
 An enum used to identify different class member descriptor cases.
 */
 enum a_class_member_descriptor_kind {
-  cmdk_normal,  /* A normal descriptor (i.e., caching the given declaration
-                   index is sufficient). */
+  cmdk_normal,           /* A normal descriptor (i.e., caching the given
+                            declaration index is sufficient). */
+  cmdk_variable,         /* A variable or variable template declared in the
+                            class scope; the defintion must be emitted. */
   cmdk_inline_data_member_type
-                /* A descriptor representing a data member with an unnamed
-                   user-defined type (in terms of the IFC, this case is a
-                   merger of an anonymous IFC DeclScope and an IFC
-                   DeclField). */
+                         /* A descriptor representing a data member with an
+                            unnamed user-defined type (in terms of the IFC,
+                            this case is a merger of an anonymous IFC DeclScope
+                            and an IFC DeclField). */
 };
 
 /*
@@ -13651,6 +13217,10 @@ member descriptor into the given cache.
     cinfo.lexical_scope = class_idx;
     switch (class_mem.kind) {
       case cmdk_normal:
+        cinfo.ignore_definition = TRUE;
+        break;
+      case cmdk_variable:
+        /* FIXME: Lazily-loading the definition of these should be possible. */
         break;
       case cmdk_inline_data_member_type:
         cinfo.inline_data_member_type = TRUE;
@@ -13742,6 +13312,22 @@ member scope descriptor into the given cache.
       if (decl_name.is_empty()) {
         desc_kind = cmdk_inline_data_member_type;
       }  /* if */
+    } else if (mem_idx.sort == ifc_ds_decl_template) {
+      Opt<an_ifc_decl_template> opt_templ_decl;
+
+      construct_node(&opt_templ_decl, mem_idx);
+      if (!opt_templ_decl.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      an_ifc_decl_template templ_decl = *opt_templ_decl;
+      an_ifc_decl_index    entity_decl_idx =
+                                      get_ifc_decl(get_ifc_entity(templ_decl));
+      if (entity_decl_idx.sort == ifc_ds_decl_variable) {
+        desc_kind = cmdk_variable;
+      }  /* if */
+    } else if (mem_idx.sort == ifc_ds_decl_variable) {
+      desc_kind = cmdk_variable;
     }  /* if */
 
     a_class_member_descriptor mem_descr = {desc_kind, mem_idx};
@@ -21824,6 +21410,89 @@ type.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 template<typename an_ifc_Node_type>
+static a_boolean is_func_type_deduced_from_body(const an_ifc_Node_type &type)
+/*
+Return TRUE if the function type must be deduced from the function body;
+otherwise, return FALSE.
+*/
+{
+  a_boolean         result = FALSE;
+  an_ifc_type_index return_type = get_ifc_target(type);
+
+  if (return_type.sort == ifc_ts_type_placeholder) {
+    /* Change the assumption to TRUE. */
+    result = TRUE;
+
+    Opt<an_ifc_type_placeholder> opt_placeholder_type;
+    construct_node(&opt_placeholder_type, return_type);
+    if (opt_placeholder_type.has_value()) {
+      an_ifc_type_placeholder placeholder_type = *opt_placeholder_type;
+      an_ifc_type_index       elaboration =
+                                         get_ifc_elaboration(placeholder_type);
+
+      if (elaboration.sort == ifc_ts_type_fundamental) {
+        /* Fundamental types can always be expressed. */
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_func_type_deduced_from_body */
+
+
+template<typename an_ifc_Node_type>
+static a_boolean function_def_required(const an_ifc_Node_type &decl)
+/*
+Return TRUE if the function body must be cached; otherwise, return FALSE.
+*/
+{
+  a_boolean         result = FALSE;
+  an_ifc_type_index func_type_idx = get_ifc_type(decl);
+
+  switch (func_type_idx.sort) {
+    case ifc_ts_type_function:
+      { Opt<an_ifc_type_function> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_function func_type = *opt_func_type;
+        if (is_func_type_deduced_from_body(func_type)) {
+          result = TRUE;
+        }  /* if */
+      }
+      break;
+    case ifc_ts_type_method:
+    case ifc_ts_type_tor:
+      break;
+    default:
+      { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
+
+        ifc_unexpected(module_of(func_type_idx), err_msg);
+      }
+      break;
+  }  /* switch */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* function_def_required */
+
+
+template<>
+a_boolean function_def_required(const an_ifc_decl_destructor &decl)
+/*
+Return TRUE if the function body must be cached; otherwise, return FALSE.
+*/
+{
+  return FALSE;
+}  /* function_def_required */
+
+
+template<typename an_ifc_Node_type>
 static void cache_func_type_return_type(a_module_token_cache_ptr     cache,
                                         const an_ifc_Node_type       &type)
 /*
@@ -21832,7 +21501,11 @@ Cache the return type declarator for the given function-like type.
 {
   an_ifc_type_index return_type = get_ifc_target(type);
 
-  cache_type(cache, return_type, /*cinfo=*/{});
+  if (is_func_type_deduced_from_body(type)) {
+    cache_placeholder_type(cache, return_type);
+  } else {
+    cache_type(cache, return_type, /*cinfo=*/{});
+  }  /* if */
 }  /* cache_func_type_return_type */
 
 
@@ -22105,11 +21778,15 @@ function-like declaration at the given declaration index.
 
 
 template<typename an_ifc_Node_type>
-static void cache_func_decl_specifier_seq(a_module_token_cache_ptr cache,
-                                          const an_ifc_Node_type   &decl)
+static void cache_func_decl_specifier_seq(
+                                         a_module_token_cache_ptr     cache,
+                                         ARG_UNUSED an_ifc_decl_index decl_idx,
+                                         const an_ifc_Node_type       &decl,
+                                         const an_ifc_cache_info      &cinfo)
 /*
 Cache the non-vendor specific part of the decl-specifier-seq for the given
-function-like declaration.
+function-like declaration (identified by decl_idx).  cinfo contains information
+about the current cache context to help inform decisions about what to cache.
 */
 {
   an_ifc_function_traits_bitfield func_traits = get_ifc_traits(decl);
@@ -22120,7 +21797,13 @@ function-like declaration.
   if (test_bitmask<ifc_ftb_explicit>(func_traits)) {
     cache_token(cache, tok_explicit);
   }  /* if */
-  if (test_bitmask<ifc_ftb_inline>(func_traits)) {
+  if (test_bitmask<ifc_ftb_inline>(func_traits) && !cinfo.is_instantiation
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      && (!is_msvc_authored(decl) ||
+          function_def_cacheable(decl_idx, decl,
+                                 !is_null_index(cinfo.parameterizing_entity)))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      ) {
     cache_token(cache, tok_inline);
   }  /* if */
   if (test_bitmask<ifc_ftb_no_return>(func_traits)) {
@@ -22142,7 +21825,9 @@ static void cache_func_declarator_id(a_module_token_cache_ptr cache,
                                      const an_ifc_Node_type   &decl,
                                      const an_ifc_cache_info  &cinfo)
 /*
-Cache the declarator-id for the given function-like declaration.
+Cache the declarator-id for the given function-like declaration.  cinfo
+contains information about the current cache context to help inform decisions
+about what to cache.
 */
 {
   cache_declarator_qualifier(cache, decl, cinfo);
@@ -22157,7 +21842,8 @@ void cache_func_declarator_id(a_module_token_cache_ptr     cache,
                               const an_ifc_decl_destructor &decl,
                               const an_ifc_cache_info      &cinfo)
 /*
-Cache the declarator-id for the given destructor.
+Cache the declarator-id for the given destructor.  cinfo contains information
+about the current cache context to help inform decisions about what to cache.
 */
 {
   cache_declarator_qualifier(cache, decl, cinfo);
@@ -22189,6 +21875,38 @@ Cache the virt-specifier-seq for the given function-like declaration.
 
 
 template<typename an_ifc_Node_type>
+static a_boolean function_def_cacheable(
+                                       an_ifc_decl_index      decl_idx,
+                                       const an_ifc_Node_type &node,
+                                       a_boolean              is_parameterized)
+/*
+Return TRUE if the given function-like IFC declaration node (identified by
+decl_idx) has an importable definition that is not "= default" or "= delete";
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (function_has_generated_definition(node)) {
+    result = TRUE;
+  } else if (function_is_user_defined(decl_idx, node)) {
+    if (is_parameterized) {
+      result = TRUE;
+    } else {
+      an_ifc_function_traits_bitfield traits = get_ifc_traits(node);
+
+      if (test_bitmask<ifc_ftb_constexpr>(traits) ||
+          test_bitmask<ifc_ftb_immediate>(traits) ||
+          test_bitmask<ifc_ftb_inline>(traits)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* function_def_cacheable */
+
+
+template<typename an_ifc_Node_type>
 static void cache_func_body(a_module_token_cache_ptr cache,
                             an_ifc_decl_index        decl_idx,
                             const an_ifc_Node_type   &decl,
@@ -22196,25 +21914,17 @@ static void cache_func_body(a_module_token_cache_ptr cache,
 
 /*
 Cache the function-body for the given function-like declaration (identified by
-decl_idx).
-
-If the function is not parameterized (i.e., this is not the body for a
-function template) and the IFC provided a user-defined definition for said
-function, no definition will be cached; instead, one will be associated via
-finish_mep_processing.  cinfo contains information about the current cache
-context to help inform decisions about what to cache.
+decl_idx).  cinfo contains information about the current cache context to help
+inform decisions about what to cache.
 */
 {
-  check_assertion(function_is_defined(decl));
+  check_assertion(function_def_cacheable(
+                                 decl_idx, decl,
+                                 !is_null_index(cinfo.parameterizing_entity)));
   an_ifc_function_traits_bitfield traits = get_ifc_traits(decl);
 
-  if (function_is_user_defined(decl)) {
-    /* As noted above, in the case of a non-parameterized function, the
-       definition will be mapped into an IL map of lazily-loadable definitions.
-       However, in the case of an EDG-produced IFC, retrieve and cache the
-       function definition as part of the function template declaration. */
-    if (!is_null_index(cinfo.parameterizing_entity) &&
-        is_edg_authored(decl)) {
+  if (function_is_user_defined(decl_idx, decl)) {
+    if (is_edg_authored(decl)) {
       Opt<an_ifc_edg_trait_function_definition> opt_edg_func_def;
 
       find_trait(&opt_edg_func_def, decl_idx);
@@ -22233,9 +21943,29 @@ context to help inform decisions about what to cache.
         /* FIXME: Migrate to ec_ifc_missing_function_definition. */
         ifc_unexpected(module_of(decl), err_msg);
       }  /* if */
-    } else if (!cinfo.no_final_semicolon) {
-      cache_token(cache, tok_semicolon);
+    }
+    /* Do not add code here. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    else {
+      Opt<an_ifc_trait_function_definition> opt_itfd;
+
+      find_trait(&opt_itfd, decl_idx);
+      /* As function_is_user_defined checks for the trait, it's safe to assume
+         the trait is present here. */
+      check_assertion(opt_itfd.has_value());
+
+      an_ifc_trait_function_definition itfd = *opt_itfd;
+      an_ifc_expr_index                initializers =
+                                                    get_ifc_initializers(itfd);
+      an_ifc_stmt_index                body = get_ifc_body(itfd);
+      /* Cache the mem-initializers if needed. */
+      if (!is_null_index(initializers)) {
+        cache_token(cache, tok_colon);
+        cache_expr(cache, initializers, /*cinfo=*/{});
+      }  /* if */
+      cache_stmt_brace_wrapped(cache, body, /*cinfo=*/{});
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     if (test_bitmask<ifc_ftb_defaulted>(traits)) {
       cache_token(cache, tok_assign);
@@ -22270,7 +22000,15 @@ terminate the declaration.  cinfo contains information about the current cache
 context to help inform decisions about what to cache.
 */
 {
-  if (!cinfo.ignore_definition && function_is_defined(decl)) {
+  if (function_has_generated_definition(decl)) {
+    /* Deferring generated definitions does not make sense; they are always
+       cached (even in contexts where user provided definitions are not).  This
+       allows things like "= default" or "= delete" to work correctly. */
+    cache_func_body(cache, decl_idx, decl, cinfo);
+  } else if ((!cinfo.ignore_definition || function_def_required(decl)) &&
+             function_def_cacheable(
+                                decl_idx, decl,
+                                !is_null_index(cinfo.parameterizing_entity))) {
     cache_func_body(cache, decl_idx, decl, cinfo);
   } else if (!cinfo.no_final_semicolon) {
     cache_token(cache, tok_semicolon);
@@ -22725,6 +22463,26 @@ invalid:
 done:
   return result;
 }  /* an_ifc_func_param_context::get_param_type */
+
+
+static a_boolean is_bad_ifc_parameter(const an_ifc_decl_parameter &param)
+/*
+Given an IFC parameter, check to see if the parameter has defects that suggest
+it should be skipped.
+*/
+{
+  a_boolean     result = TRUE;
+  Opt<a_string> opt_name = name_from_index(get_ifc_name(param));
+
+  if (opt_name.has_value()) {
+    const a_string &name = *opt_name;
+
+    if (name != "this" && name != "__$ReturnUdt") {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_bad_ifc_parameter */
 
 
 static an_ifc_name_index get_name_from_chart(
@@ -24325,12 +24083,18 @@ this is needed.
           } else {
             cache_type(cache, elaboration, cinfo);
           }  /* if */
-        } else {
+        } else if (basis == ifc_tbs_decltype_auto) {
           check_assertion(basis == ifc_tbs_decltype_auto);
           cache_token(cache, tok_decltype);
           cache_token(cache, tok_lparen);
           cache_token(cache, tok_auto);
           cache_token(cache, tok_rparen);
+        } else {
+          a_string err_msg("Unexpected ", str_for(basis),
+                           " for ", str_for(type.sort));
+
+          ifc_unexpected(module_of(type), err_msg);
+          goto invalid;
         }  /* if */
       }
       break;
@@ -25365,6 +25129,7 @@ there is no offset/the offset is not needed.
 
       cache_type(cache, type_index, cinfo);
       offset = try_cache_class_attributes_from_body(cache, body);
+      cache_declarator_qualifier(cache, decl, cinfo);
       cache_name(cache, name);
     } else {
       /* Function or variable template. */
@@ -25424,7 +25189,7 @@ return FALSE.
           }  /* if */
 
           an_ifc_decl_function func_decl = *opt_func_decl;
-          if (function_is_defined(func_decl)) {
+          if (function_is_defined(decl_idx, func_decl)) {
             result = TRUE;
           }  /* if */
         }
@@ -25736,7 +25501,8 @@ current cache context to help inform decisions about what to cache.
   an_ifc_source_location      locus = get_ifc_locus(decl);
   an_ifc_source_position_hint pos_hint(cache, locus);
 
-  cinfo.is_specialization = TRUE;
+  cinfo.is_specialization = get_ifc_sort(decl) != ifc_ss_instantiation;
+  cinfo.is_instantiation = get_ifc_sort(decl) == ifc_ss_instantiation;
   if (is_instantiation) {
     /* If an explicit instantiation appeared in a module definition, that
        instantiation need not be done in client code (other than for inlining
@@ -25852,7 +25618,7 @@ current cache context to help inform decisions about what to cache.
         cache_attrs(cache, templated_decl_idx);
         cache_token(cache, tok_auto);
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
-        cache_func_decl_specifier_seq(cache, idf);
+        cache_func_decl_specifier_seq(cache, templated_decl_idx, idf, cinfo);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           cache_func_calling_convention(cache, idf);
@@ -25878,7 +25644,7 @@ current cache context to help inform decisions about what to cache.
         an_ifc_decl_method idm = *opt_idm;
         cache_attrs(cache, templated_decl_idx);
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
-        cache_func_decl_specifier_seq(cache, idm);
+        cache_func_decl_specifier_seq(cache, templated_decl_idx, idm, cinfo);
 
         an_ifc_name_index name_idx = get_ifc_name(idm);
         if (name_idx.sort != ifc_ns_name_conversion) {
@@ -25912,7 +25678,7 @@ current cache context to help inform decisions about what to cache.
         an_ifc_decl_constructor idc = *opt_idc;
         cache_attrs(cache, templated_decl_idx);
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
-        cache_func_decl_specifier_seq(cache, idc);
+        cache_func_decl_specifier_seq(cache, templated_decl_idx, idc, cinfo);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           cache_func_calling_convention(cache, idc);
@@ -25953,6 +25719,105 @@ places.
   cache_token(cache, tok_rbracket);
 }  /* cache_attr_fn */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static inline a_boolean is_attr_operand_a_string(an_ifc_attr_index attr_idx)
+/*
+Return TRUE if the given attribute's operand should be processed as if it were
+a string; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (attr_idx.sort == ifc_as_attr_basic) {
+    Opt<an_ifc_attr_basic> opt_basic_attr;
+
+    construct_node(&opt_basic_attr, attr_idx);
+    if (!opt_basic_attr.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_attr_basic    basic_attr = *opt_basic_attr;
+    an_ifc_nestable_word word = get_ifc_word(basic_attr);
+    an_ifc_word_category category = get_ifc_category(word);
+    if (category.sort != ifc_ws_source_identifier) {
+      goto done;
+    }  /* if */
+
+    an_ifc_source_identifier_category id = category.variant.source_identifier;
+    Opt<a_string> opt_name = get_source_identifier(module_of(word), id);
+    if (!opt_name.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    const a_string &name = *opt_name;
+    if (name == "deprecated" || name == "nodiscard") {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* is_attr_operand_a_string */
+
+
+static void cache_attr_as_string(a_module_token_cache_ptr cache,
+                                 an_ifc_attr_index        attr)
+/*
+Cache the given attribute as a string.
+*/
+{
+  switch (attr.sort) {
+    case ifc_as_attr_basic:
+      { Opt<an_ifc_attr_basic> opt_basic_attr;
+
+        construct_node(&opt_basic_attr, attr);
+        if (!opt_basic_attr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_attr_basic    basic_attr = *opt_basic_attr;
+        an_ifc_nestable_word word = get_ifc_word(basic_attr);
+        an_ifc_word_category category = get_ifc_category(word);
+        if (category.sort != ifc_ws_source_identifier) {
+          a_string err_msg("Unexpected word value ", str_for(category.sort),
+                           " while creating attribute string");
+
+          ifc_unexpected(module_of(attr), err_msg.as_temp_characters());
+          goto invalid;
+        }  /* if */
+
+        an_ifc_source_identifier_category id =
+                                            category.variant.source_identifier;
+        Opt<a_string> opt_name = get_source_identifier(module_of(word), id);
+        if (!opt_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name = *opt_name;
+        an_ifc_string  name_ifc_str(input_state_for(word), chk_char,
+                                    name.as_temp_characters(),
+                                    name.length() + 1);
+        cache_string_literal(cache, name_ifc_str);
+      }
+      break;
+    default:
+      { a_string err_msg("Unexpected attribute value ", index_to_str(attr),
+                         " while creating attribute string");
+
+        ifc_unexpected(module_of(attr), err_msg.as_temp_characters());
+      }
+      goto invalid;
+  }  /* switch */
+  goto done;
+invalid:
+  cache->invalidate();
+done:;
+}  /* cache_attr_as_string */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void cache_attr(a_module_token_cache_ptr cache,
                        an_ifc_attr_index        attr,
@@ -26051,9 +25916,22 @@ is responsible for ensuring that the brackets are cached appropriately.
 
         an_ifc_attr_called iac = *opt_iac;
         auto cache_fn = [cache, &iac]() {
-          cache_attr(cache, get_ifc_function(iac), /*cache_brackets=*/FALSE);
+          an_ifc_attr_index func_attr = get_ifc_function(iac);
+          an_ifc_attr_index arg_attr = get_ifc_arguments(iac);
+
+          cache_attr(cache, func_attr, /*cache_brackets=*/FALSE);
           cache_token(cache, tok_lparen);
-          cache_attr(cache, get_ifc_arguments(iac), /*cache_brackets=*/FALSE);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          a_boolean cache_as_str = is_attr_operand_a_string(func_attr);
+          if (cache_as_str) {
+            cache_attr_as_string(cache, arg_attr);
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not add code here. */
+          {
+            cache_attr(cache, arg_attr, /*cache_brackets=*/FALSE);
+          }  /* if */
           cache_token(cache, tok_rparen);
         };
         if (cache_brackets) {
@@ -26205,7 +26083,8 @@ about what to cache.
   }  /* if */
   /* Cache the access specifier if in class scope and access information is
      provided. */
-  if (!cinfo.no_access_specifier && has_ifc_access(decl)) {
+  if (!cinfo.no_access_specifier && !is_null_index(cinfo.lexical_scope) &&
+      has_ifc_access(decl)) {
     an_ifc_access_sort access = get_ifc_access(decl);
 
     if (has_ifc_home_scope(decl) && is_class_scope(get_ifc_home_scope(decl))) {
@@ -26516,12 +26395,14 @@ about what to cache.
       { an_ifc_decl_function idf;
 
         construct_node_prechecked(&idf, decl);
+
+        an_ifc_decl_index home_scope = get_ifc_home_scope(decl);
         cache_attrs(cache, decl);
         cache_func_vendor_decl_specifier_seq(cache, decl);
-        if (is_class_scope(get_ifc_home_scope(decl))) {
+        if (is_class_scope(home_scope) && home_scope == cinfo.lexical_scope) {
           cache_token(cache, tok_static);
         }  /* if */
-        cache_func_decl_specifier_seq(cache, idf);
+        cache_func_decl_specifier_seq(cache, decl, idf, cinfo);
         cache_token(cache, tok_auto);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
@@ -26541,7 +26422,7 @@ about what to cache.
         construct_node_prechecked(&idm, decl);
         cache_attrs(cache, decl);
         cache_func_vendor_decl_specifier_seq(cache, decl);
-        cache_func_decl_specifier_seq(cache, idm);
+        cache_func_decl_specifier_seq(cache, decl, idm, cinfo);
 
         an_ifc_name_index name_idx = get_ifc_name(idm);
         if (name_idx.sort != ifc_ns_name_conversion) {
@@ -26568,7 +26449,7 @@ about what to cache.
         construct_node_prechecked(&idc, decl);
         cache_attrs(cache, decl);
         cache_func_vendor_decl_specifier_seq(cache, decl);
-        cache_func_decl_specifier_seq(cache, idc);
+        cache_func_decl_specifier_seq(cache, decl, idc, cinfo);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           cache_func_calling_convention(cache, idc);
@@ -26599,7 +26480,7 @@ about what to cache.
         construct_node_prechecked(&idd, decl);
         cache_attrs(cache, decl);
         cache_func_vendor_decl_specifier_seq(cache, decl);
-        cache_func_decl_specifier_seq(cache, idd);
+        cache_func_decl_specifier_seq(cache, decl, idd, cinfo);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           cache_func_calling_convention(cache, idd);

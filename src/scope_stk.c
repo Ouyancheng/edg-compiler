@@ -2581,6 +2581,34 @@ returned in that pointer (otherwise the pointer is returned as NULL).
 
 #endif /* DO_IL_LOWERING */
 
+using a_saved_stmt_stack_stack = Dyn_array<a_struct_stmt_stack_state>;
+			/* The type used for a stack of saved stmt stack
+			   states. */
+
+STATIC_THREAD a_saved_stmt_stack_stack
+		*saved_stmt_stack_stack;
+			/* The stack of saved stmt stack states. */
+
+static void push_saved_stmt_scope_stack()
+/*
+*/
+{
+  saved_stmt_stack_stack->emplace_back();
+
+  a_struct_stmt_stack_state *state = &saved_stmt_stack_stack->back_elem();
+  new_struct_stmt_stack(state);
+}  /* push_saved_stmt_scope_stack */
+
+static void pop_saved_stmt_scope_stack()
+/*
+*/
+{
+  a_struct_stmt_stack_state *state = &saved_stmt_stack_stack->back_elem();
+
+  restore_struct_stmt_stack(state);
+  saved_stmt_stack_stack->pop_back();
+}  /* pop_saved_stmt_scope_stack */
+
 static a_memory_region_number get_enclosing_memory_region(
 						a_routine_ptr	assoc_routine)
 /*
@@ -2900,6 +2928,11 @@ the scope being pushed.
       /* Use the enclosing memory region. */
       ssep->il_memory_region = (ssep-1)->il_memory_region;
       sp = scope_to_reactivate;
+      break;
+    case sck_module_decl_import:
+      ssep->il_memory_region = file_scope_region_number;
+      sp = NULL;
+      push_saved_stmt_scope_stack();
       break;
     default:
       /* For scopes for which a new memory region is not begun, the associated
@@ -7971,7 +8004,8 @@ about the scope being popped.
   }  /* if */
   if (kind == (a_scope_kind)sck_namespace ||
       kind == (a_scope_kind)sck_namespace_extension ||
-      kind == (a_scope_kind)sck_file) {
+      kind == (a_scope_kind)sck_file ||
+      kind == (a_scope_kind)sck_module_decl_import) {
     /* Move routine entries as needed (and remove placeholder entries). */
     perform_scheduled_routine_moves();
   }  /* if */
@@ -10091,6 +10125,9 @@ being popped.
       /* Restore the state of any parameter pack parameters. */
       update_parameter_pack_symbol_values(pack_expansion_stack);
     }  /* if */
+  }  /* if */
+  if (kind == sck_module_decl_import) {
+    pop_saved_stmt_scope_stack();
   }  /* if */
   if (ssep->template_decl_info != NULL &&
       ssep->template_decl_info->pack_expansions != NULL) {
@@ -14180,6 +14217,7 @@ are handled in scope_stk_init.)
       pch_saved_var_array_elem(avail_function_shareable_constants_tables),
       pch_saved_var_array_elem(
                   function_body_processing_delayed_on_some_func_in_primary_il),
+      pch_saved_var_array_elem(saved_stmt_stack_stack),
 #if NEED_NAME_MANGLING
       pch_saved_var_array_elem(avail_collision_tables),
 #endif /* NEED_NAME_MANGLING */
@@ -14225,6 +14263,7 @@ are handled in scope_stk_init.)
                          depth_of_innermost_scope_that_affects_access_control);
   register_trans_unit_variable(num_classes_on_scope_stack);
   register_trans_unit_variable(pack_expansion_stack);
+  register_trans_unit_variable(saved_stmt_stack_stack);
   register_trans_unit_variable(call_op_to_lambda_map);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   register_trans_unit_variable(source_sequence_entries_disallowed);
@@ -14254,6 +14293,7 @@ given translation unit.
   num_classes_on_scope_stack = 0;
   pack_expansion_stack = NULL;
   c99_inline_definition_locators_to_check = NULL;
+  saved_stmt_stack_stack = new_fe<a_saved_stmt_stack_stack>();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Source sequence entries are always suppressed when compiling secondary
      translation units. */

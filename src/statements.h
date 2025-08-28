@@ -564,6 +564,25 @@ typedef struct a_struct_stmt_stack_state {
 			/* Saved pointer to tail of control flow list. */
 } a_struct_stmt_stack_state;
 
+namespace detail {
+
+/*
+The following specializations provide Is_trivially_copyable and
+Is_trivially_destructible support for a_struct_stmt_stack_state.
+*/
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_struct_stmt_stack_state> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_struct_stmt_stack_state> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* detail */
+
 extern void new_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 extern void restore_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 

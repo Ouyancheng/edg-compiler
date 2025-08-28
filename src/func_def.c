@@ -2048,7 +2048,7 @@ member declaration (allowed in some Microsoft modes only).
   a_symbol_ptr         sym = locator->specific_symbol;
   a_type_ptr           class_type = sym_parent_class(sym);
   a_routine_ptr        rp;
-  a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
+  a_scope_stack_entry  *ssep = &scope_stack[decl_scope_level];
   a_boolean            microsoft_out_of_class_redecl = ms_extensions &&
                                                   locator->is_class_member &&
                                                   curr_token == tok_semicolon;
