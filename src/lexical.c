@@ -20978,9 +20978,7 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
         arg_ptr->variant.templ.ptr = templ_ptr;
       }  /* if */
 arg_produced:
-      /* When is_nonreal is FALSE, we are scanning a concept or explicit
-         function template argument list. */
-      arg_ptr->explicitly_specified = !is_nonreal;
+      arg_ptr->explicitly_specified = TRUE;
       /* Link this entry on to the argument list. */
       if (arg_list == NULL) arg_list = arg_ptr;
       if (last_arg != NULL) last_arg->next = arg_ptr;
