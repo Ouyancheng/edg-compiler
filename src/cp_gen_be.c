@@ -6763,6 +6763,7 @@ put out nothing.
         class_type = class_type_supp(class_type)->proxy_of_type;
       }  /* if */
       scp = &class_type->source_corresp;
+      class_type = skip_lexical_typerefs(class_type);
       kind = (an_il_entry_kind)iek_type;
       if (is_immediate_class_type(class_type) &&
           class_type->variant.class_struct_union.is_nonreal_class &&
