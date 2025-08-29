@@ -3898,6 +3898,27 @@ End the writing of a preprocessing directive.
 }  /* end_pp_directive */
 
 
+static void gen_base_class_name(a_type_ptr tp)
+/*
+Put out the name of the given type for use in a base class specifier or a
+member initializer list.
+*/
+{
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+  if (type_is(tp, tk_typeref) &&
+      (tp->variant.typeref.kind == trk_template_arg_list ||
+       tp->variant.typeref.kind == trk_name_qualifier)) {
+    /* Use the special processing in gen_type_reference to handle these
+       typerefs. */
+    gen_type_reference(tp);
+  } else
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+  /* Do not insert code here. */
+  gen_name(&tp->source_corresp, iek_type, GN_BASE_SPECIFIER,
+           /*need_closing_paren=*/NULL);
+}  /* gen_base_class_name */
+
+
 static void gen_temp_name(char *ptr)
 /*
 Write a temporary name generated from the given IL pointer.
@@ -11316,13 +11337,11 @@ Put out the list of direct base classes of the class associated with ctsp
         /* Not a proxy. */
         base_type = bcp->type;
       }  /* if */
-      gen_name(&base_type->source_corresp, iek_type,
-               GN_BASE_SPECIFIER, (a_boolean *)NULL);
+      gen_base_class_name(base_type);
     } else
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     /* Do not insert code here. */
-    gen_name(&bcp->orig_type->source_corresp, iek_type,
-             GN_BASE_SPECIFIER, (a_boolean *)NULL);
+    gen_base_class_name(bcp->orig_type);
     if (bcp->is_pack_expansion) write_tok_str("...");
   }  /* for */
 }  /* gen_base_class_list */
@@ -23174,8 +23193,7 @@ a constructor.
               type->source_corresp.qualification_needed = FALSE;
               type->source_corresp.visible_as_unqualified_name = TRUE;
             }  /* if */
-            gen_name(&type->source_corresp, iek_type, GN_BASE_SPECIFIER,
-                     (a_boolean *)NULL);
+            gen_base_class_name(type);
             type->source_corresp.qualification_needed =
                                                     saved_qualification_needed;
             type->source_corresp.visible_as_unqualified_name =
@@ -23194,8 +23212,7 @@ a constructor.
               type->variant.class_struct_union.proxy_class) {
             type = class_type_supp(type)->proxy_of_type;
           }  /* if */
-          gen_name(&type->source_corresp, iek_type, GN_BASE_SPECIFIER,
-                   (a_boolean *)NULL);
+          gen_base_class_name(type);
           break;
         case cik_field:
           /* Initializing a nonstatic data member. */
