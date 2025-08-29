@@ -9069,6 +9069,7 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
              unconditionally prefix the qualifier list with "::" whether
              it's actually needed or not. */
           a_name_qualifier_ptr top = nqp;
+          a_boolean            need_global_qual = FALSE;
           a_boolean            dependent = FALSE;
           if (is_template_param_or_nonreal_class_type(refp) ||
               (refp->source_corresp.is_class_member &&
@@ -9080,16 +9081,20 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
           while (top->previous_qualifier != NULL) {
             top = top->previous_qualifier;
           }  /* while */
-          if ((top->is_class &&
-               !skip_lexical_typerefs(top->qualifier.class_type)->
-                                 variant.class_struct_union.is_nonreal_class &&
-               scope_is(skip_lexical_typerefs(top->qualifier.class_type)->
+          if ((top->is_class)) {
+            a_type_ptr class_type =
+                              skip_lexical_typerefs(top->qualifier.class_type);
+            if (!class_type->variant.class_struct_union.is_nonreal_class &&
+                class_type->source_corresp.parent_scope != NULL &&
+               scope_is(class_type->source_corresp.parent_scope, sck_file)) {
+              need_global_qual = TRUE;
+            }  /* if */
+          } else if (scope_is(top->qualifier.namespace_ptr->
                                                    source_corresp.parent_scope,
-                        sck_file)) ||
-              (!top->is_class &&
-               scope_is(
-                     top->qualifier.namespace_ptr->source_corresp.parent_scope,
-                     sck_file))) {
+                              sck_file)) {
+            need_global_qual = TRUE;
+          }  /* if */
+          if (need_global_qual) {
             write_tok_str("::");
           }  /* if */
           gen_name_qualifier_list(nqp);
