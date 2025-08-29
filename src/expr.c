@@ -4207,11 +4207,18 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
            can be used instead of a call.  The routine is not marked as
            called. */
         is_bitwise_copy = TRUE;
-        expr_reference_to_implicitly_invoked_function_full(
+        if (mandatory_copy_elision &&
+            is_a_prvalue(operand_of_arg_list_elem(eff_arg_list)) &&
+            special_kind_is(routine, sfk_constructor)) {
+          /* Under mandatory copy elision rules (C++17), an elided constructor
+             is not considered at all. */
+        } else {
+          expr_reference_to_implicitly_invoked_function_full(
                                     constructor_sym, source_pos,
                                     object_class_type, /*honor_virtual=*/FALSE,
                                     /*evaluated=*/FALSE,
                                     /*instantiate=*/FALSE);
+        }  /* if */
         optimized = TRUE;
       }  /* if */
     }  /* if */
