@@ -56618,7 +56618,7 @@ function operand: The selector is then returned in *bound_function_selector.
        operands. */
     while (any_more) {
       if (!first_time) {
-        scan_expr(result, PREC_CAST, EOPT_NO_OPTIONS);
+        scan_expr(result, PREC_LOWEST, EOPT_FOLD_EXPR_CONTEXT);
         check_assertion_or_expect_error(curr_token == op_token);
         (void)get_token();
         if (curr_token == tok_ellipsis) {

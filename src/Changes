@@ -1,5 +1,19 @@
 Version 6.8
 
+8/29/25  [EDGcpfe/28297]
+Spurious error on some fold-expressions
+
+Consider, in C++17 mode:
+
+  template<int ... Ns> struct S {
+    static auto f() { return (1 + Ns + ...); }
+  };
+  int r = S<1, 2, 3, 4>::f();
+
+This previously triggered an error in the instantiation of the fold expression.
+That is now fixed.
+
+
 8/29/25  [EDGcpfe/28200]
 Spurious diagnostic with deleted move constructor
 
