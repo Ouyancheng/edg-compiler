@@ -577,7 +577,7 @@ Output the indicated template argument in the way described by octl.
             con->expr = NULL;
             con->local_expr_ref = FALSE;
 #if BACK_END_IS_CP_GEN_BE
-          } else if (con->expr != NULL &&
+          } else if (con->expr != NULL && is_for_cp_gen_be(octl) &&
                      !(constant_is(con, ck_address) && con->implicit_cast)) {
             /* In most cases, we ensure the backing expression is
                suppressed in subsequent references to avoid the overhead of
