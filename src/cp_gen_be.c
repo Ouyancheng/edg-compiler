@@ -688,7 +688,8 @@ static void gen_name(a_source_correspondence *scp,
 static void gen_constant(a_constant_ptr constant,
                          a_boolean      need_parens);
 static void gen_type(a_type_ptr type);
-static void gen_type_reference(a_type_ptr type);
+static void gen_type_reference(a_type_ptr type,
+                               a_boolean  suppress_typename_kwd = FALSE);
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static a_boolean process_preprocessing_directives(void);
@@ -3910,7 +3911,7 @@ member initializer list.
        tp->variant.typeref.kind == trk_name_qualifier)) {
     /* Use the special processing in gen_type_reference to handle these
        typerefs. */
-    gen_type_reference(tp);
+    gen_type_reference(tp, /*suppress_typename_kwd=*/TRUE);
   } else
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   /* Do not insert code here. */
@@ -8978,10 +8979,13 @@ associated with the argument should be reactivated in such cases.
 }  /* gen_type_operator */
 
 
-static void gen_type_reference(a_type_ptr type)
+static void gen_type_reference(a_type_ptr type,
+                               a_boolean  suppress_typename_kwd)
 /*
 Generate a reference to the indicated type, which is a fundamental type, a
 tag, a typedef, or a dependent type.  A reference is not the definition.
+If suppress_typename_kwd is TRUE, do not put out a leading "typename"
+keyword that would be required in some contexts.
 */
 {
   a_type_ptr             orig_type;
@@ -9071,10 +9075,11 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
           a_name_qualifier_ptr top = nqp;
           a_boolean            need_global_qual = FALSE;
           a_boolean            dependent = FALSE;
-          if (is_template_param_or_nonreal_class_type(refp) ||
-              (refp->source_corresp.is_class_member &&
-               is_template_param_or_nonreal_class_type(
-                                                     parent_class_of(refp)))) {
+          if (!suppress_typename_kwd &&
+              (is_template_param_or_nonreal_class_type(refp) ||
+               (refp->source_corresp.is_class_member &&
+                is_template_param_or_nonreal_class_type(
+                                                    parent_class_of(refp))))) {
             write_tok_str("typename ");
             dependent = TRUE;
           }  /* if */

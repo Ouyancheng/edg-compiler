@@ -2544,6 +2544,10 @@ by octl.
                          type->variant.typeref.kind == trk_template_arg_list ||
                          type->variant.typeref.kind == trk_name_qualifier,
                          "form_type_specifier: unexpected typeref kind");
+        if (!octl->gen_compilable_code) {
+          /* Ensure diagnostic output has access to the names of types. */
+          type = skip_lexical_typerefs(type);
+        }  /* if */
         form_name(&type->source_corresp, iek_type, octl);
       }  /* if */
       break;
