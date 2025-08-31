@@ -4580,6 +4580,7 @@ defaulted.
     a_template_arg_ptr argp = NULL;
     a_template_arg_ptr prev_argp = NULL;
     long               min_arguments = num_arguments;
+    a_boolean          include_explicitly_specified = FALSE;
     if (entry_kind == iek_type) {
       a_type_ptr     tp = (a_type_ptr)scp;
       long           min_instance_args = num_arguments;
@@ -4627,6 +4628,10 @@ defaulted.
               goto end_of_routine;
             }  /* if */
           }  /* if */
+        } else if (!tp->has_been_declared) {
+          /* For the first reference to the instance, put out all arguments
+             that were explicitly specified. */
+          include_explicitly_specified = TRUE;
         } else if (ctsp->min_template_arguments >= 0) {
           /* This template instance has been referred to at some point in the
              source using default arguments; record the point in the argument
@@ -4636,7 +4641,11 @@ defaulted.
         }  /* if */
       } else if (tp->kind == (a_type_kind)tk_typeref) {
         a_typeref_type_supplement_ptr ttsp = tp->variant.typeref.extra_info;
-        if (ttsp->min_template_arguments >= 0) {
+        if (!tp->has_been_declared) {
+          /* For the first reference to the instance, put out all arguments
+             that were explicitly specified. */
+          include_explicitly_specified = TRUE;
+        } else if (ttsp->min_template_arguments >= 0) {
           /* Use the minimum number of explicit arguments by which this
              instance has been referred to. */
           min_instance_args = ttsp->min_template_arguments;
@@ -4668,7 +4677,8 @@ defaulted.
     if (tap == NULL) {
       /* There are no arguments. */
       num_arguments = 0;
-    } else if (num_arguments >= 0 || min_arguments >= 0) {
+    } else if (num_arguments >= 0 || min_arguments >= 0 ||
+               include_explicitly_specified) {
       /* We may use fewer arguments than are present in the full template
          argument list.  Scan through the list to identify the last
          argument to be used (prev_argp) and the first argument to be
@@ -4678,7 +4688,8 @@ defaulted.
       for (i = 0;
            argp != NULL;
            advance_to_next_template_arg_simple(&argp), ++i) {
-        if (i == num_arguments) {
+        if (i == num_arguments ||
+            (include_explicitly_specified && !argp->explicitly_specified)) {
           /* We have reached the first argument to be omitted. */
           break;
         } else if (min_arguments >= 0 && i >= min_arguments) {
