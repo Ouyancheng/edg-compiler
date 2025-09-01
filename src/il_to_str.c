@@ -3154,9 +3154,18 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       && !type->variant.pointer.is_pin_ptr
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                           ) {
-    a_type_ptr pointee = skip_dealiasable_typedefs(type->variant.pointer.type,
-                                                   octl);
+    a_type_ptr pointee;
 
+    if (is_for_cp_gen_be(octl) &&
+        type_is(type->variant.pointer.type, tk_typeref) &&
+        (type->variant.pointer.type->variant.typeref.kind ==
+                                                       trk_template_arg_list ||
+         type->variant.pointer.type->variant.typeref.kind ==
+                                                         trk_name_qualifier)) {
+      pointee = type->variant.pointer.type;
+    } else {
+      pointee = skip_dealiasable_typedefs(type->variant.pointer.type, octl);
+    }  /* if */
     /* Pointer or reference type. */
     form_type_first_part(pointee,
                          /*under_lhs_declarator=*/TRUE,

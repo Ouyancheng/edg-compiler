@@ -9032,10 +9032,11 @@ keyword that would be required in some contexts.
       /* Alias template specializations do not require a "typename"
          prefix unless they are members of dependent classes. */
     } else if (type_is(type, tk_typeref) &&
-      (type->variant.typeref.kind == trk_template_arg_list ||
-       type->variant.typeref.kind == trk_name_qualifier)) {
-      /* Alternative template argument lists and name qualifiers do not
-         require a "typename" keyword. */
+               (type->variant.typeref.kind == trk_template_arg_list ||
+                type->variant.typeref.kind == trk_name_qualifier) &&
+               !in_prototype_instantiation_context) {
+      /* Alternative template argument lists and name qualifiers only
+         require a "typename" keyword inside a template definition. */
     } else {
       /* Nonreal class types are dependent and must be prefixed by the
          "typename" keyword. */
@@ -21861,7 +21862,10 @@ output_functional_notation_cast_arguments:
       braced_init = FALSE;
       write_tok_ch('(');
       closing_parens_needed++;
-      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
+          !(type_is(init_entity_type, tk_typeref) &&
+            (init_entity_type->variant.typeref.kind == trk_template_arg_list ||
+             init_entity_type->variant.typeref.kind == trk_name_qualifier))) {
         /* Avoid type qualifiers, which would potentially cause problems. */
         gen_cast(skip_typerefs_not_typedefs(init_entity_type));
       } else {
