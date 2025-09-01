@@ -9531,6 +9531,7 @@ describing the failure, or ec_no_error if there is no failure.
     a_template_arg_ptr  tap = alloc_template_arg((a_templ_arg_kind)tak_type);
     a_symbol_ptr        instance;
     tap->variant.type = type;
+    tap->explicitly_specified = TRUE;
     instance = find_class_template_instance(class_template, &tap);
     free_template_arg_list(tap);
     if (instance == NULL || !is_type_symbol(instance)) {
@@ -10151,15 +10152,18 @@ a nonstatic member function, P1 is the type of this.)
        type of rp, and P1, P2, ... its parameters types. */
     tap_list = alloc_template_arg((a_templ_arg_kind)tak_type);
     tap_list->variant.type = rtp->variant.routine.return_type;
+    tap_list->explicitly_specified = TRUE;
     p_tap = &tap_list->next;
     if (routine_type_is_nonstatic_member_function(rtp)) {
       *p_tap = alloc_template_arg((a_templ_arg_kind)tak_type);
       (*p_tap)->variant.type = f_implicit_this_param_type_of(rtp);
+      (*p_tap)->explicitly_specified = TRUE;
       p_tap = &(*p_tap)->next;
     }  /* if */
     for (ptp = function_type_params(rtp); ptp != NULL; ptp = ptp->next) {
       *p_tap = alloc_template_arg((a_templ_arg_kind)tak_type);
       (*p_tap)->variant.type = ptp->type;
+      (*p_tap)->explicitly_specified = TRUE;
       p_tap = &(*p_tap)->next;
     }  /* for */ 
     traits_inst_sym = find_class_template_instance(traits_sym, &tap_list);
