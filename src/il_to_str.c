@@ -3887,7 +3887,13 @@ void form_type(a_type_ptr                            type,
 Output a string for a type.  Do the output in the way described by octl.
 */
 {
-  type = skip_dealiasable_typedefs(type, octl);
+  if (!(is_for_cp_gen_be(octl) && type_is(type, tk_typeref) &&
+        (type->variant.typeref.kind == trk_template_arg_list ||
+         type->variant.typeref.kind == trk_name_qualifier))) {
+    /* Preserve alternative template argument lists and name references in
+       the C++-generating back end. */
+    type = skip_dealiasable_typedefs(type, octl);
+  }  /* if */
   if (type == NULL) {
     check_assertion(!octl->gen_compilable_code);
     octl->output_str("<null-type>", octl);

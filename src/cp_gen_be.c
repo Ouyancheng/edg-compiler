@@ -4632,7 +4632,7 @@ defaulted.
           /* For the first reference to the instance, put out all arguments
              that were explicitly specified. */
           include_explicitly_specified = TRUE;
-        } else if (ctsp->min_template_arguments >= 0) {
+        } else if (templ_args == NULL && ctsp->min_template_arguments >= 0) {
           /* This template instance has been referred to at some point in the
              source using default arguments; record the point in the argument
              list beyond which default arguments can be used. */
@@ -4645,7 +4645,7 @@ defaulted.
           /* For the first reference to the instance, put out all arguments
              that were explicitly specified. */
           include_explicitly_specified = TRUE;
-        } else if (ttsp->min_template_arguments >= 0) {
+        } else if (templ_args == NULL && ttsp->min_template_arguments >= 0) {
           /* Use the minimum number of explicit arguments by which this
              instance has been referred to. */
           min_instance_args = ttsp->min_template_arguments;
@@ -9031,6 +9031,11 @@ keyword that would be required in some contexts.
                                 variant.class_struct_union.is_nonreal_class)) {
       /* Alias template specializations do not require a "typename"
          prefix unless they are members of dependent classes. */
+    } else if (type_is(type, tk_typeref) &&
+      (type->variant.typeref.kind == trk_template_arg_list ||
+       type->variant.typeref.kind == trk_name_qualifier)) {
+      /* Alternative template argument lists and name qualifiers do not
+         require a "typename" keyword. */
     } else {
       /* Nonreal class types are dependent and must be prefixed by the
          "typename" keyword. */
@@ -9086,11 +9091,7 @@ keyword that would be required in some contexts.
           a_name_qualifier_ptr top = nqp;
           a_boolean            need_global_qual = FALSE;
           a_boolean            dependent = FALSE;
-          if (!suppress_typename_kwd &&
-              (is_template_param_or_nonreal_class_type(refp) ||
-               (refp->source_corresp.is_class_member &&
-                is_template_param_or_nonreal_class_type(
-                                                    parent_class_of(refp))))) {
+          if (!suppress_typename_kwd && options == GN_DEPENDENT) {
             write_tok_str("typename ");
             dependent = TRUE;
           }  /* if */
@@ -17252,11 +17253,18 @@ static void gen_concept_id(an_expr_node_ptr expr)
 Render the given concept-id.
 */
 {
+  long num_arguments;
+  a_template_arg_ptr tap;
+
   check_assertion(node_is(expr, enk_concept_id));
   gen_name(&expr->variant.concept_id.concept_template->source_corresp,
            iek_template, GN_NO_OPTIONS, (a_boolean *)NULL);
-  gen_template_arguments_full((a_source_correspondence*)NULL, iek_none, -1L, 
-                              expr->variant.concept_id.args);
+  begin_template_arg_list_traversal_simple(expr->variant.concept_id.args,
+                                           &tap);
+  for (num_arguments = 0; tap != NULL && tap->explicitly_specified;
+       advance_to_next_template_arg_simple(&tap), ++num_arguments) { }
+  gen_template_arguments_full((a_source_correspondence*)NULL, iek_none,
+                              num_arguments, expr->variant.concept_id.args);
 }  /* gen_concept_id */
 
 
