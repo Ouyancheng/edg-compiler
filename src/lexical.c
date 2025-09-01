@@ -23414,7 +23414,7 @@ locator includes an original template argument list, return a new tk_typref
 entry with that template argument list and whose underlying type is tp.
 */
 {
-  if (locator->is_qualified_name) {
+  if (locator->is_global_qualified_name || locator->name_qualifier != NULL) {
     a_type_and_name_qualifier
                 hash_key{tp, locator->name_qualifier};
     a_type_ptr  *tp_in_table =
