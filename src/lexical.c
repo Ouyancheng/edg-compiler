@@ -21805,6 +21805,7 @@ Its value is unchanged if no errors are detected.
     }  /* if */
     arg_ptr = alloc_template_arg((a_templ_arg_kind)tak_type);
     arg_ptr->variant.type = argument_type;
+    arg_ptr->explicitly_specified = TRUE;
     /* Link this entry on to the argument list. */
     if (arg_list == NULL) arg_list = arg_ptr;
     if (last_arg != NULL) last_arg->next = arg_ptr;
