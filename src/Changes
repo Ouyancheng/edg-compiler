@@ -29,7 +29,7 @@ Consider, in C++17 mode:
   constexpr V k{makeV()};  // Previously an error.  Now okay.
 
 The front end previously issued an error claiming invocation of the deleted
-move constructor of V, even though that invocation is completely avoid in
+move constructor of V, even though that invocation is completely avoided in
 C++17 (through so-called "mandatory copy elision").  This is now fixed.
 
 
