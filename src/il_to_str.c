@@ -3781,8 +3781,8 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
          original form (instead of rendering the underlying type). */
       break;
     } else if (resolved_type == NULL &&
-               type->variant.typeref.kind == trk_template_arg_list ||
-               type->variant.typeref.kind == trk_name_qualifier) {
+               (type->variant.typeref.kind == trk_template_arg_list ||
+		type->variant.typeref.kind == trk_name_qualifier)) {
       /* Do not scan past alternative template arguments or a name
          qualifier. */
       break;
