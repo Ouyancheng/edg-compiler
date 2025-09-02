@@ -13400,11 +13400,15 @@ static void complete_definition_of_module_class(a_module_entity_ptr mep)
 Complete the definition of the class referred to by mep (if needed).
 */
 {
-  Opt<an_ifc_decl_scope>   opt_ids;
-  an_ifc_decl_index        decl_idx = decl_index_of(mep);
-  a_diagnostic_suppression diag_suppress(
+  Opt<an_ifc_decl_scope>     opt_ids;
+  an_ifc_decl_index          decl_idx = decl_index_of(mep);
+  a_diagnostic_suppression   diag_suppress(
                             &input_state_for(decl_idx)->suppressed_diagnostics,
                             !display_module_import_diagnostics);
+  /* Save the current token state. */
+  Value_saver<a_const_char*> saved_curr_source_line(&curr_source_line);
+  Value_saver<a_const_char*> saved_start_of_curr_token(&start_of_curr_token);
+  Value_saver<a_const_char*> saved_end_of_curr_token(&end_of_curr_token);
 
   construct_node(&opt_ids, decl_idx);
   /* FIXME: Error handling could be improved here. */
