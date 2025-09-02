@@ -3815,10 +3815,15 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
       && !type->variant.pointer.is_pin_ptr
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                           ) {
-    a_type_ptr pointee = skip_dealiasable_typedefs(type->variant.pointer.type,
-                                                   octl);
-
     /* Pointer or reference type. */
+    a_type_ptr pointee = type->variant.pointer.type;
+    if (!(is_for_cp_gen_be(octl) && type_is(pointee, tk_typeref) &&
+          (pointee->variant.typeref.kind == trk_template_arg_list ||
+           pointee->variant.typeref.kind == trk_name_qualifier))) {
+      /* Preserve alternative template argument lists and name references in
+         the C++-generating back end. */
+      pointee = skip_dealiasable_typedefs(pointee, octl);
+    }  /* if */
     form_type_second_part(pointee,
                           /*under_lhs_declarator=*/TRUE,
                           options, octl);
