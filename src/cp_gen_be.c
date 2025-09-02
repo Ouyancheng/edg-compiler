@@ -9091,10 +9091,8 @@ keyword that would be required in some contexts.
              it's actually needed or not. */
           a_name_qualifier_ptr top = nqp;
           a_boolean            need_global_qual = FALSE;
-          a_boolean            dependent = FALSE;
           if (!suppress_typename_kwd && options == GN_DEPENDENT) {
             write_tok_str("typename ");
-            dependent = TRUE;
           }  /* if */
           while (top->previous_qualifier != NULL) {
             top = top->previous_qualifier;
@@ -9116,7 +9114,7 @@ keyword that would be required in some contexts.
             write_tok_str("::");
           }  /* if */
           gen_name_qualifier_list(nqp);
-          if (dependent &&
+          if (options == GN_DEPENDENT &&
               name_has_template_arguments(&refp->source_corresp, iek_type,
                                           /*arg_pgt=*/NULL, /*param_ptr=*/NULL,
                                           /*insert_space=*/NULL)) {
