@@ -3780,6 +3780,12 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
       /* A decltype or typeof operator that should be rendered in its
          original form (instead of rendering the underlying type). */
       break;
+    } else if (resolved_type == NULL &&
+               type->variant.typeref.kind == trk_template_arg_list ||
+               type->variant.typeref.kind == trk_name_qualifier) {
+      /* Do not scan past alternative template arguments or a name
+         qualifier. */
+      break;
     } else {
       /* Type qualifier typeref.  Accumulate the qualifiers. */
       qualifiers |= type->variant.typeref.qualifiers;
