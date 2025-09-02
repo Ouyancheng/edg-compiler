@@ -11966,10 +11966,9 @@ case.
       /* P1152R4 (in C++20) deprecated using a volatile-qualified operand in a
          postfix increment/decrement expression. */
       an_error_severity sev = cpp20_mode ? es_warning : es_remark;
-      expr_pos_st_diagnostic(sev, ec_volatile_inc_dec_deprecated,
-                             &operand->position,
-                             is_increment ? "an increment" :
-                                            "a decrement");
+      expr_pos_diagnostic(sev, is_increment ? ec_volatile_inc_deprecated :
+                                              ec_volatile_dec_deprecated,
+                          &operand->position);
     }  /* if */
     if (!processed &&
         operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
@@ -12260,10 +12259,9 @@ and return the result in *result (or an error indication in *rcblock).
       /* P1152R4 (in C++20) deprecated using a volatile-qualified operand in a
          prefix increment/decrement expression. */
       an_error_severity sev = cpp20_mode ? es_warning : es_remark;
-      expr_pos_st_diagnostic(sev, ec_volatile_inc_dec_deprecated,
-                             &operand.position,
-                             is_increment ? "an increment" :
-                                            "a decrement");
+      expr_pos_diagnostic(sev, is_increment ? ec_volatile_inc_deprecated :
+                                              ec_volatile_dec_deprecated,
+                          &operand.position);
     }  /* if */
     if (!processed &&
         operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {

@@ -549,7 +549,7 @@ Output the indicated template argument in the way described by octl.
           /* The template argument is given by an expression operand (front
              end only). */
           check_assertion(!octl->gen_compilable_code);
-          octl->output_str("<expression>", octl);
+          octl->output_str(error_text(ec_quoted_expression), octl);
         } else if (con == NULL) {
           octl->output_str(error_text(ec_undetermined_constant), octl);
         } else {
@@ -982,7 +982,8 @@ The output includes template arguments on template classes.
     } else {
       /* For entities without names, use <unnamed>. */
       check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<unnamed", octl);
+      octl->output_str("<", octl);
+      octl->output_str(error_text(ec_unnamed), octl);
 #if DEBUG
       if (octl->debug_output) {
         octl->output_str("@", octl);
@@ -2226,7 +2227,7 @@ to indicate that a space will be needed after the attribute.
         break;
       }  /* if */
 #endif /* DEBUG */
-      unexpected_condition_str("form_type_specifier: bad vector kind");
+      unexpected_condition_str("form_vector_type_attribute: bad vector kind");
       break;
   }  /* switch */
   if (type->variant.vector.size_constant != NULL) {
@@ -2269,7 +2270,7 @@ by octl.
   switch (type->kind) {
     case tk_error:
       check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<error-type>", octl);
+      octl->output_str(error_text(ec_error_type), octl);
       break;
     case tk_void:
       octl->output_str("void", octl);
@@ -2700,7 +2701,7 @@ by octl.
       break;
     case tk_unknown:
       check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<unknown-type>", octl);
+      octl->output_str(error_text(ec_unknown_type), octl);
       break;
     default:
 #if DEBUG
@@ -3059,7 +3060,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 #endif /* DEBUG */
     check_assertion_str(!octl->gen_compilable_code,
                         "form_type_first_part: NULL type");
-    octl->output_str("<something>", octl);
+    octl->output_str(error_text(ec_something), octl);
     goto end_of_routine;
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
@@ -3911,7 +3912,7 @@ Output a string for a type.  Do the output in the way described by octl.
   }  /* if */
   if (type == NULL) {
     check_assertion(!octl->gen_compilable_code);
-    octl->output_str("<null-type>", octl);
+    octl->output_str(error_text(ec_null_type), octl);
   } else {
     a_boolean saved_type_context = octl->type_context;
     octl->type_context = TRUE;
@@ -6051,17 +6052,17 @@ for debug output).
 {
   switch (dip->kind) {
     case dik_none:
-      octl->output_str("<no-init>", octl);
+      octl->output_str(error_text(ec_no_init), octl);
       break;
     case dik_zero:
-      octl->output_str("<zero-init>", octl);
+      octl->output_str(error_text(ec_zero_init), octl);
       break;
     case dik_bitwise_copy:
       if (dip->variant.bitwise_copy.source != NULL) {
-        octl->output_str("bitwise copy of: ", octl);
+        octl->output_str(error_text(ec_bitwise_copy_of), octl);
         form_expression(dip->variant.bitwise_copy.source, octl);
       } else {
-        octl->output_str("<bitwise-copy>", octl);
+        octl->output_str(error_text(ec_bitwise_copy), octl);
       }  /* if */
       break;
     case dik_constant:
@@ -6070,13 +6071,13 @@ for debug output).
       form_constant(dip->variant.constant.ptr, /*need_parens=*/TRUE, octl);
       break;
     case dik_class_result_via_ctor:
-      octl->output_str("class result via ctor: ", octl);
+      octl->output_str(error_text(ec_class_result_via_ctor), octl);
       FALLTHROUGH
     case dik_expression:
       form_expression(dip->variant.expression, octl);
       break;
     case dik_constructor:
-      octl->output_str("<constructor-call>", octl);
+      octl->output_str(error_text(ec_constructor_call), octl);
       break;
     default:
       unexpected_condition_str("form_dynamic_init: bad kind");
@@ -6128,10 +6129,10 @@ on every expression.
          involves a local variable and is thus represented via the local
          expr node reference mechanism instead of as a direct expression
          node. */
-      octl->output_str("<NULL expression>", octl);
+      octl->output_str(error_text(ec_null_expression), octl);
     } else switch (expr->kind) {
       case enk_error:
-        octl->output_str("<error>", octl);
+        octl->output_str(error_text(ec_quoted_error), octl);
         break;
       case enk_operation:
         { an_expr_node_ptr      operand = expr->variant.operation.operands;
@@ -6243,7 +6244,7 @@ on every expression.
             octl->output_str("&", octl);
             form_unknown_lvalue_constant(con, octl);
           } else {
-            octl->output_str("<expression>", octl);
+            octl->output_str(error_text(ec_quoted_expression), octl);
           }  /* if */
         }
         break;
@@ -6258,7 +6259,7 @@ on every expression.
         { a_routine_ptr  rp = node_routine(expr);
           if (rp == NULL) {
             check_assertion(!octl->gen_compilable_code);
-            octl->output_str("<NULL routine>", octl);
+            octl->output_str(error_text(ec_null_routine), octl);
           } else {
             form_name(&rp->source_corresp, (an_il_entry_kind)iek_routine,
                       octl);
@@ -6287,7 +6288,7 @@ on every expression.
             form_type(expr->type, octl);
             octl->output_str("()", octl);
           } else {
-            octl->output_str("<expression>", octl);
+            octl->output_str(error_text(ec_quoted_expression), octl);
           }  /* if */
         }  /* if */
         break;
@@ -6295,7 +6296,7 @@ on every expression.
         if (expr->variant.type_operand.type != NULL) {
           form_type(expr->variant.type_operand.type, octl);
         } else {
-          octl->output_str("<default>", octl);
+          octl->output_str(error_text(ec_quoted_default), octl);
         }  /* if */
         break;
       case enk_builtin_operation:
@@ -6316,7 +6317,7 @@ on every expression.
 #endif /* DEBUG */
         /* Do not insert code here. */
         {
-          octl->output_str("<expression>", octl);
+          octl->output_str(error_text(ec_quoted_expression), octl);
         }  /* if */
         break;
       case enk_param_ref:
@@ -6329,18 +6330,20 @@ on every expression.
              preceding a trailing return type (presumably the most common
              cases), just give the parameter number.  Otherwise, also indicate
              how many "levels up" the function prototype scope is. */
-          octl->output_str("<parameter #", octl);
+          octl->output_str("<", octl);
+          octl->output_str(error_text(ec_parameter_number), octl);
           form_unsigned_num((a_host_large_unsigned)
                                             expr->variant.param_ref.param_num,
                             octl);
           if (expr->variant.param_ref.levels_up == 2) {
-            octl->output_str(" (one level up)", octl);
+            octl->output_str(error_text(ec_one_level_up), octl);
           } else if (expr->variant.param_ref.levels_up > 2) {
             octl->output_str(" (", octl);
             form_unsigned_num((a_host_large_unsigned)
                                           expr->variant.param_ref.levels_up-1,
                                octl);
-            octl->output_str(" levels up)", octl);
+            octl->output_str(error_text(ec_levels_up), octl);
+            octl->output_str(")", octl);
           }  /* if */
           octl->output_str(">", octl);
         }  /* if */
@@ -6371,7 +6374,7 @@ on every expression.
 #endif /* DEBUG */
         /* Do not insert code here. */
         {
-          octl->output_str("<expression>", octl);
+          octl->output_str(error_text(ec_quoted_expression), octl);
         }  /* if */
         break;
       case enk_concept_id:
@@ -6385,7 +6388,7 @@ on every expression.
         }
         break;
       default:
-        octl->output_str("<expression>", octl);
+        octl->output_str(error_text(ec_quoted_expression), octl);
         break;
     }  /* switch */
     if (expr != NULL && expr->is_pack_expansion) {
@@ -6423,7 +6426,7 @@ for debug output).
 
   check_assertion(!octl->gen_compilable_code &&
                   constant->kind == (a_constant_repr_kind)ck_dynamic_init);
-  octl->output_str("dynamic-init: ", octl);
+  octl->output_str(error_text(ec_dynamic_init), octl);
   dip = constant->variant.dynamic_init.ptr;
   form_dynamic_init(dip, octl);
 }  /* form_dynamic_init_constant */
@@ -6749,7 +6752,7 @@ precedence confusion.  Do the output in the way described by octl.
     case ck_error:
       check_assertion_str(!octl->gen_compilable_code,
                           "form_constant: error constant");
-      octl->output_str("<error-constant>", octl);
+      octl->output_str(error_text(ec_error_constant), octl);
       break;
 #if UPC_EXTENSIONS_ALLOWED
     case ck_upc_mythread:
@@ -7133,7 +7136,7 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
-      octl->output_str("<stack-offset-of: ", octl);
+      octl->output_str(error_text(ec_stack_offset_of), octl);
       form_name(&constant->variant.stack_offset.variable->source_corresp,
                 iek_variable, octl);
       if (constant->variant.stack_offset.offset != 0) {
@@ -7175,7 +7178,7 @@ precedence confusion.  Do the output in the way described by octl.
 #if DEBUG
             if (octl->debug_output) {
               /* Emit the constant (with an indication that it is implicit). */
-              octl->output_str("<implicit element> ", octl);
+              octl->output_str(error_text(ec_implicit_element), octl);
             } else
 #endif /* DEBUG */
             /* Do not insert code here. */
@@ -7200,7 +7203,7 @@ precedence confusion.  Do the output in the way described by octl.
       octl->output_str("<", octl);
       form_unsigned_num(
              (a_host_large_unsigned)constant->variant.init_repeat.count, octl);
-      octl->output_str(" repetitions of ", octl);
+      octl->output_str(error_text(ec_repetitions_of), octl);
       form_constant(constant->variant.init_repeat.constant,
                     /*need_parens=*/FALSE, octl);
       octl->output_str(">", octl);
@@ -7413,7 +7416,7 @@ do_sizeof_cases:
                This is appropriate in diagnostic and debugging output, but
                shouldn't make its way into generated code. */
             check_assertion(!octl->gen_compilable_code);
-            octl->output_str("<unnamed>", octl);
+            octl->output_str(error_text(ec_quoted_unnamed), octl);
           } else {
             octl->output_str(name, octl);
           }  /* if */

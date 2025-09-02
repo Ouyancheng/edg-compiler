@@ -2246,62 +2246,61 @@ static a_const_char *name_for_type_code(char type_code)
 Return a printable string describing a type code.
 */
 {
-  a_const_char *str;
+  an_error_code ec = ec_no_error;
 
   switch (type_code) {
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
     case PTRDIFF_T_TYPE_CODE:
-      str = "integer";
+      ec = ec_type_code_integer;
       break;
     case ENUM_TYPE_CODE:
-      str = "enum";
+      ec = ec_type_code_enum;
       break;
     case SCOPED_ENUM_TYPE_CODE:
-      str = "scoped enum";
+      ec = ec_type_code_scoped_enum;
       break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
-      str = "arithmetic";
+      ec = ec_type_code_arithmetic;
       break;
     case NONBOOL_ARITH_TYPE_CODE:
-      str = "non-bool arithmetic";
+      ec = ec_type_code_non_bool_arithmetic;
       break;
     case POINTER_TYPE_CODE:
-      str = "pointer";
+      ec = ec_type_code_pointer;
       break;
     case NULLPTR_TYPE_CODE:
-      str = "nullptr type";
+      ec = ec_type_code_nullptr_type;
       break;
     case HANDLE_TYPE_CODE:
-      str = "handle";
+      ec = ec_type_code_handle;
       break;
     case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
-      str = "handle-to-CLI-array";
+      ec = ec_type_code_handle_to_CLI_array;
       break;
     case POINTER_TO_OBJECT_TYPE_CODE:
-      str = "pointer-to-object";
+      ec = ec_type_code_pointer_to_object;
       break;
     case POINTER_TO_FUNCTION_TYPE_CODE:
-      str = "pointer-to-function";
+      ec = ec_type_code_pointer_to_function;
       break;
     case PTR_TO_MEMBER_TYPE_CODE:
-      str = "pointer-to-member";
+      ec = ec_type_code_pointer_to_member;
       break;
     case BOOL_TYPE_CODE:
-      str = "bool";
+      ec = ec_type_code_bool;
       break;
     case BOOL_EQUIVALENT_TYPE_CODE:
-      str = "bool-equivalent";
+      ec = ec_type_code_bool_equivalent;
       break;
     case CLASS_TYPE_CODE:
-      str = "class";
+      ec = ec_type_code_class;
       break;
     default:
-      str = "?";
       unexpected_condition_str("name_for_type_code: bad type code");
   }  /* switch */
-  return str;
+  return error_text(ec);
 }  /* name_for_type_code */
 
 
@@ -2407,7 +2406,8 @@ for the corresponding end_diagnostic call.
       } else if (kind == onk_question) {
         /* ?: -- funny because the operands considered are the second and
            third. */
-        buf.reset_to("expression ? ", name_for_type_code(pattern[0]), " : ",
+        buf.reset_to(error_text(ec_expression), " ? ",
+                     name_for_type_code(pattern[0]), " : ",
                      name_for_type_code(pattern[1]));
       } else {
         /* Binary operator. */

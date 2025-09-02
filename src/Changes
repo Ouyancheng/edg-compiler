@@ -1,5 +1,13 @@
 Version 6.8
 
+9/2/25   [EDGcpfe/28360]
+Message internationalization
+
+A number of previously-hard-coded English strings (used mainly for debugging
+purposes) have now been moved to error_msgs.txt so that they can more easily
+be translated into other languages.
+
+
 8/29/25  [EDGcpfe/28297]
 Spurious error on some fold-expressions
 
