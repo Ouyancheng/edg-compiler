@@ -21510,7 +21510,7 @@ options.
                 /* Referring to a template parameter of class type produces a
                    const-qualified result. */
                 copy_constant(con_copy, constant);
-                constant->expr = NULL;
+                constant->expr = copy_expr_tree(constant->expr, CE_NO_OPTIONS);
                 constant->type = make_qualified_type(constant->type, TQ_CONST);
                 con_copy = NULL;
               }  /* if */
@@ -23099,14 +23099,16 @@ Make a copy of an expression tree and return a pointer to it.  options is
 a set of options for the copy.
 */
 {
-  a_tree_copy_control_block cblock;
-  an_expr_node_ptr          expr_copy;
+  an_expr_node_ptr  expr_copy = NULL;
 
-  /* This is a wrapper around i_copy_expr_tree that initializes the
-     control block to be used for the entire copy. */
-  clear_tree_copy_control_block(&cblock);
-  expr_copy = i_copy_expr_tree(expr, options, &cblock);
-  done_with_tree_copy_control_block(&cblock);
+  if (expr != NULL) {
+    a_tree_copy_control_block  cblock;
+    /* This is a wrapper around i_copy_expr_tree that initializes the
+       control block to be used for the entire copy. */
+    clear_tree_copy_control_block(&cblock);
+    expr_copy = i_copy_expr_tree(expr, options, &cblock);
+    done_with_tree_copy_control_block(&cblock);
+  }  /* if */
   return expr_copy;
 }  /* copy_expr_tree */
 
