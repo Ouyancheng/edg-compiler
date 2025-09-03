@@ -9277,25 +9277,26 @@ definition.
     a_module_scope_push_kind scope_push_status = mspk_unattempted;
     a_scope_ptr              enclosing_ns_scope =
                                        get_enclosing_namespace_scope(decl_idx);
-    if (enclosing_ns_scope == NULL) {
-      goto scope_load_failed;
-    }  /* if */
-    ensure_module_scope(enclosing_ns_scope, &scope_push_status);
-    cache_decl(&def_cache, decl_idx, /*cinfo=*/{});
-    if (def_cache.is_valid()) {
-      an_il_entry_kind kind;
-      char             *il_entity = parse_cached_nonmember_decl(&def_cache,
-                                                                &kind);
+    if (enclosing_ns_scope != NULL) {
+      an_ifc_cache_info cache_info;
 
-      if (il_entity != NULL) {
-        /* We have successfully loaded the definition. */
-        mep->entity = canonicalize_tagged_ptr(kind, il_entity);
-        ifc_function_bodies->mark_finished(rp);
-        result = TRUE;
-        goto loaded_successfully;
+      ensure_module_scope(enclosing_ns_scope, &scope_push_status);
+      cache_info.ignore_default_arguments = TRUE;
+      cache_decl(&def_cache, decl_idx, cache_info);
+      if (def_cache.is_valid()) {
+        an_il_entry_kind kind;
+        char             *il_entity = parse_cached_nonmember_decl(&def_cache,
+                                                                  &kind);
+
+        if (il_entity != NULL) {
+          /* We have successfully loaded the definition. */
+          mep->entity = canonicalize_tagged_ptr(kind, il_entity);
+          ifc_function_bodies->mark_finished(rp);
+          result = TRUE;
+          goto loaded_successfully;
+        }  /* if */
       }  /* if */
     }  /* if */
-scope_load_failed:
     ifc_function_bodies->mark_failure(rp);
     diagnose_ifc_entity_part_load_failure(ec_ifc_definition_load_failure,
                                           symbol_for(rp),
@@ -21511,22 +21512,6 @@ Cache the return type declarator for the given function-like type.
     cache_type(cache, return_type, /*cinfo=*/{});
   }  /* if */
 }  /* cache_func_type_return_type */
-
-
-template<typename an_ifc_Node_type>
-static void cache_func_type_parameter_declaration_clause(
-                                           a_module_token_cache_ptr     cache,
-                                           const an_ifc_Node_type       &type)
-/*
-Cache the parameter-declaration-clause for the given function-like type.
-*/
-{
-  an_ifc_type_index source_params = get_ifc_source(type);
-
-  if (!is_null_index(source_params)) {
-    cache_type(cache, source_params, /*cinfo=*/{});
-  }  /* if */
-}  /* cache_func_type_parameter_declaration_clause */
 
 
 template<typename an_ifc_Node_type>
