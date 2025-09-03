@@ -3374,12 +3374,14 @@ Return the associated scope for the given declaration.
 }  /* get_home_scope */
 
 
-static a_scope_ptr get_enclosing_namespace_scope(an_ifc_decl_index decl_idx)
+static an_ifc_decl_index get_ifc_enclosing_namespace_scope(
+                                                    an_ifc_decl_index decl_idx)
 /*
-Return the associated scope for the given declaration; otherwise, return NULL.
+Return the associated IFC index for the scope of the given declaration.  If no
+enclosing namespace scope can be determined, return a null IFC index.
 */
 {
-  a_scope_ptr       result = NULL;
+  an_ifc_decl_index result;
   an_ifc_decl_index home_scope_idx = get_ifc_home_scope(decl_idx);
 
   while (!is_namespace_scope(home_scope_idx)) {
@@ -3399,10 +3401,10 @@ Return the associated scope for the given declaration; otherwise, return NULL.
       goto invalid;
     }  /* if */
   }  /* if */
-  result = get_scope(home_scope_idx);
+  result = home_scope_idx;
 invalid:
   return result;
-}  /* get_enclosing_namespace_scope */
+}  /* get_ifc_enclosing_namespace_scope */
 
 
 static void issue_unsupported_construct_error(a_module_ptr      mod,
@@ -9275,12 +9277,15 @@ definition.
     ifc_function_bodies->mark_pending(rp);
 
     a_module_scope_push_kind scope_push_status = mspk_unattempted;
+    an_ifc_decl_index        enclosing_ifc_ns_scope =
+                                   get_ifc_enclosing_namespace_scope(decl_idx);
     a_scope_ptr              enclosing_ns_scope =
-                                       get_enclosing_namespace_scope(decl_idx);
+                                             get_scope(enclosing_ifc_ns_scope);
     if (enclosing_ns_scope != NULL) {
       an_ifc_cache_info cache_info;
 
       ensure_module_scope(enclosing_ns_scope, &scope_push_status);
+      cache_info.lexical_scope = enclosing_ifc_ns_scope;
       cache_info.ignore_default_arguments = TRUE;
       cache_decl(&def_cache, decl_idx, cache_info);
       if (def_cache.is_valid()) {
@@ -21767,6 +21772,20 @@ function-like declaration at the given declaration index.
 
 
 template<typename an_ifc_Node_type>
+static a_boolean is_out_of_line_cache(const an_ifc_Node_type  &decl,
+                                      const an_ifc_cache_info &cinfo)
+/*
+Return TRUE if the given declaration is being cached out-of-line; otherwise,
+return FALSE.
+*/
+{
+  an_ifc_decl_index home_scope = get_ifc_home_scope(decl);
+
+  return home_scope != cinfo.lexical_scope;
+}  /* is_out_of_line_cache */
+
+
+template<typename an_ifc_Node_type>
 static void cache_func_decl_specifier_seq(
                                          a_module_token_cache_ptr     cache,
                                          ARG_UNUSED an_ifc_decl_index decl_idx,
@@ -21783,7 +21802,8 @@ about the current cache context to help inform decisions about what to cache.
   if (test_bitmask<ifc_ftb_virtual>(func_traits)) {
     cache_token(cache, tok_virtual);
   }  /* if */
-  if (test_bitmask<ifc_ftb_explicit>(func_traits)) {
+  if (test_bitmask<ifc_ftb_explicit>(func_traits) &&
+      !is_out_of_line_cache(decl, cinfo)) {
     cache_token(cache, tok_explicit);
   }  /* if */
   if (test_bitmask<ifc_ftb_inline>(func_traits) && !cinfo.is_instantiation
@@ -26384,11 +26404,10 @@ about what to cache.
       { an_ifc_decl_function idf;
 
         construct_node_prechecked(&idf, decl);
-
-        an_ifc_decl_index home_scope = get_ifc_home_scope(decl);
         cache_attrs(cache, decl);
         cache_func_vendor_decl_specifier_seq(cache, decl);
-        if (is_class_scope(home_scope) && home_scope == cinfo.lexical_scope) {
+        if (is_class_scope(get_ifc_home_scope(decl)) &&
+            !is_out_of_line_cache(decl, cinfo)) {
           cache_token(cache, tok_static);
         }  /* if */
         cache_func_decl_specifier_seq(cache, decl, idf, cinfo);
