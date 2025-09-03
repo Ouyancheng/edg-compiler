@@ -26,6 +26,7 @@ sys_predef.c -- System dependent predefined macros and assertions.
 #include "class_decl.h"
 #include "macro.h"
 #include "sys_predef.h"
+#include "builtin_defs.h"
 #if USE_X86_FUNCTION_MULTIVERSIONING
 #include "exprutil.h"
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
@@ -605,7 +606,7 @@ returned an error is issued (only if issue_error is TRUE).
   } else {
     /* The restriction string (if any) has already been found for non-user
        defined builtins. */
-    a_builtin_descr *bdp;
+    const a_builtin_descr *bdp;
     bdp = builtin_tables[sym_hdr->builtin_function_category] +
                                                sym_hdr->builtin_function_index;
     restrictions = builtin_condition_table[bdp->cond_index].restrictions;
@@ -749,7 +750,7 @@ symbol for the builtin function.
       builtin_type = builtin_function_type(budp->type_string, &pos_curr_token);
       builtin_kind = budp->kind;
     } else {
-      a_builtin_descr *bdp;
+      const a_builtin_descr *bdp;
       bdp = builtin_tables[sym_hdr->builtin_function_category] +
                                                sym_hdr->builtin_function_index;
       builtin_type = builtin_function_type_for_index(bdp->type_index);
@@ -884,8 +885,8 @@ create a symbol header entry for any builtin function that is enabled in the
 current emulation mode.
 */
 {
-  a_builtin_descr              *bdp;
-  a_builtin_user_descr         *budp;
+  const a_builtin_descr        *bdp;
+  const a_builtin_user_descr   *budp;
   a_builtin_function_index     i;
   a_builtin_function_category  function_category;
 
@@ -948,7 +949,7 @@ declare each function that is enabled in the current emulation mode as an
 overloadable builtin function.
 */
 {
-  a_builtin_descr              *bdp;
+  const a_builtin_descr *bdp;
 
   for (bdp = builtin_tables[bfc]; bdp->name != NULL; bdp++) {
     if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {

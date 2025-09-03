@@ -1,5 +1,12 @@
 Version 6.8
 
+9/3/25   [EDGcpfe/28170]
+Split builtin_kinds.h from builtin_defs.h
+
+To improve compilation times, the builtin function kinds have been split from
+builtin_defs.h into a separate builtin_kinds.h header.
+
+
 9/2/25   [EDGcpfe/28360]
 Message internationalization
 
