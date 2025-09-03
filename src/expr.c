@@ -26593,14 +26593,33 @@ called only in C++ mode.
                                          &conversion,
                                          &ctor_arg_conversion,
                                          &failed)) {
+          /* A user-defined conversion can be done. */
           /* If copy elision is mandated (C++17 and later) or in Cfront modes
              don't force a temporary for a cast of a class prvalue to the same
              class type, ignoring cv-qualifiers. */
           a_boolean  force_copy = !((mandatory_copy_elision &&
                                      conversion.should_elide_ctor) ||
                                     any_cfront_mode());
-          /* A user-defined conversion can be done. */
-          conversion.is_explicit_cast = TRUE;
+          a_routine  *top_conv_fn = conversion.routine;
+          a_type_qualifier_set
+                     tqs;
+          /* Two user-defined conversion functions may be involved here: The
+             top-level one (a constructor, typically) and, potentially, a
+             function to convert from the source operand to the constructor
+             parameter requirements.  If the top-level function is a copy
+             constructor that call may get elided eventually and thus we place
+             the "explicit cast" flag on the underlying conversion in that
+             case.  In other cases, there may not be an underlying conversion
+             or it may not be to the type mentioned by the cast. */
+          if (ctor_arg_conversion.routine != NULL && top_conv_fn != NULL &&
+              special_kind_is(top_conv_fn, sfk_constructor) &&
+              is_copy_constructor(top_conv_fn, parent_class_of(top_conv_fn),
+                                  &tqs, /*include_move_ctors=*/TRUE,
+                                  /*is_declarative_context=*/FALSE)) {
+            ctor_arg_conversion.is_explicit_cast = TRUE;
+          } else {
+            conversion.is_explicit_cast = TRUE;
+          }  /* if */
           /* Force the result to an rvalue because the cast is not
              to a reference type (otherwise, when a conversion function
              that returns a reference is used, the result would be a

@@ -1,5 +1,24 @@
 Version 6.8
 
+9/3/25   [EDGcpfe/28377]
+C++-generating back end: Rendering of casts in contexts with copy-elision
+
+Consider, in C++17 mode:
+
+  struct S { S(S const&); };
+  struct C { operator S() const; };
+  C get();
+  int main() {
+    S const s{static_cast<S>(get())};
+  }
+
+Previously, the explicit conversion in the initialization of s was lost in the
+output rendered by the C++-generating back end because the copy constructor
+invocation for the initialization of s is elided and the "explicit cast" flag
+was recorded on that invocation.  In some cases, the resulting code was no
+longer valid C++.  That is now fixed.
+
+
 9/3/25   [EDGcpfe/28170]
 Split builtin_kinds.h from builtin_defs.h
 
