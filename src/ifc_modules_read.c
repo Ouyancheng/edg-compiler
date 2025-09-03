@@ -37,6 +37,15 @@ ifc_modules_read.c -- IFC reading code.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+using an_ifc_decl_to_decl_map = Ptr_map<an_ifc_decl_index, an_ifc_decl_index>;
+                        /* The type of a table that maps one IFC declaration
+                           index to another IFC declaration index. */
+
+using an_ifc_decl_to_entity_map = Ptr_map<an_ifc_decl_index,
+                                          a_module_entity_ptr>;
+                        /* The type of a table that maps one IFC declaration
+                           index to a module entity. */
+
 namespace {
 
 /*
@@ -67,6 +76,9 @@ struct an_ifc_cache_info_zero_bits {
   a_bit_field   is_instantiation:1;
                         /* TRUE if the entity being cached is a template
                            instantiation. */
+  a_bit_field   is_friend:1;
+                        /* TRUE if the entity being cached is a friend
+                           declaration inside of a class body. */
   a_bit_field   inline_data_member_type:1;
                         /* TRUE if the entity being cached is a data member
                            with an anonymous inline type. */
@@ -248,6 +260,12 @@ struct an_ifc_input_state {
                            import decl.  Since modules are lazily added to this
                            list, it should not be assumed to be a complete
                            set. */
+  an_ifc_decl_to_entity_map
+                *hidden_friend_to_class = NULL;
+                        /* A hash table to map IFC declaration indices pointing
+                           to a hidden friend function declaration to the
+                           corresponding class in which the declaration
+                           lexically appears. */
   a_boolean     suppress_friend_token = FALSE;
                         /* Flag to indicate that a "friend" keyword should be
                            suppressed (typically because the friendship is
@@ -1197,14 +1215,7 @@ Return a hash value for the given IFC index.
 }  /* hash_ptr */
 
 
-using an_ifc_parameterized_entity_map = Ptr_map<an_ifc_decl_index,
-                                                an_ifc_decl_index>;
-                        /* The type of a table that maps IFC declaration
-                           indexes for parameterized entities to their
-                           corresponding parameterizing IFC declaration
-                           index. */
-
-STATIC_THREAD an_ifc_parameterized_entity_map
+STATIC_THREAD an_ifc_decl_to_decl_map
                 *ifc_parameterized_entities;
                         /* A hash table to map IFC declaration indexes for
                            parameterized entities to their corresponding
@@ -1955,6 +1966,16 @@ behavior can occur if it's associated with an IL entity.
 static inline an_ifc_decl_index decl_index_of(a_module_entry_locator locator);
 
 
+static inline an_ifc_decl_index decl_index_of(a_module_entity_ptr mep)
+/*
+Return the an_ifc_decl_index derived from the partition kind and file offset
+stored on the given module entity pointer.
+*/
+{
+  return decl_index_of(mep->locators[mep->primary_locator_idx]);
+}  /* decl_index_of */
+
+
 static inline uint32_t num_entries_in(an_ifc_input_state    *input_state,
                                       an_ifc_partition_kind partition)
 /*
@@ -1982,6 +2003,9 @@ input state; otherwise, return FALSE.
 {
   return num_entries_in(input_state, part_kind) > 0;
 }  /* is_partition_present */
+
+
+static a_boolean identifier_is_valid(a_const_char *id_start);
 
 
 static inline a_module_entity_ptr
@@ -2040,7 +2064,9 @@ cases.
       case ifc_ds_decl_scope:
         { Opt<a_string> opt_decl_name = name_of_decl(index);
 
-          if (opt_decl_name.has_value() && opt_decl_name->is_empty()) {
+          if (opt_decl_name.has_value() &&
+              (opt_decl_name->is_empty() ||
+               !identifier_is_valid(opt_decl_name->as_temp_characters()))) {
             /* FIXME: We currently do not merge these declarations across
                modules.  Instead just create a module entity and memoize (keyed
                on the IFC declaration index) it with the cache. */
@@ -2194,16 +2220,6 @@ stored on the given module entry locator.
                                                         ifc_info.offset);
 
   return an_ifc_decl_index{file, to_decl_sort(part_kind), part_index};
-}  /* decl_index_of */
-
-
-static inline an_ifc_decl_index decl_index_of(a_module_entity_ptr mep)
-/*
-Return the an_ifc_decl_index derived from the partition kind and file offset
-stored on the given module entity pointer.
-*/
-{
-  return decl_index_of(mep->locators[mep->primary_locator_idx]);
 }  /* decl_index_of */
 
 
@@ -5466,6 +5482,98 @@ template class; otherwise, return FALSE.
 
 #endif /* CHECKING */
 
+static a_boolean is_function_hidden_friend(const an_ifc_decl_function &decl)
+/*
+Return TRUE if the given function is a hidden friend; otherwise, return FALSE.
+*/
+{
+  an_ifc_function_traits_bitfield traits = get_ifc_traits(decl);
+
+  return test_bitmask<ifc_ftb_hidden_friend>(traits);
+}  /* is_function_hidden_friend */
+
+
+static a_boolean is_hidden_friend(an_ifc_decl_index decl_idx)
+/*
+Return TRUE if the declaration indexed by the given declaration index is a
+hidden friend function; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (decl_idx.sort == ifc_ds_decl_function) {
+    Opt<an_ifc_decl_function> opt_func_decl;
+
+    construct_node(&opt_func_decl, decl_idx);
+    if (opt_func_decl.has_value()) {
+      an_ifc_decl_function func_decl = *opt_func_decl;
+
+      if (is_function_hidden_friend(func_decl)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (decl_idx.sort == ifc_ds_decl_template) {
+    Opt<an_ifc_decl_template> opt_templ_decl;
+
+    construct_node(&opt_templ_decl, decl_idx);
+    if (opt_templ_decl.has_value()) {
+      an_ifc_decl_template templ_decl = *opt_templ_decl;
+      an_ifc_decl_index    entity_decl_idx =
+                                  get_ifc_decl(get_ifc_entity(templ_decl));
+
+      if (is_hidden_friend(entity_decl_idx)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_hidden_friend */
+
+
+static a_boolean is_hidden_friend(const an_ifc_decl_friend &friend_decl)
+/*
+Return TRUE if the given declaration is a hidden friend function; otherwise,
+return FALSE.
+*/
+{
+  a_boolean         result = FALSE;
+  an_ifc_expr_index friend_expr_id = get_ifc_entity(friend_decl);
+
+  if (friend_expr_id.sort == ifc_es_expr_named_decl) {
+    Opt<an_ifc_expr_named_decl> opt_named_decl_expr;
+
+    construct_node(&opt_named_decl_expr, friend_expr_id);
+    if (opt_named_decl_expr.has_value()) {
+      an_ifc_expr_named_decl named_decl_expr = *opt_named_decl_expr;
+      an_ifc_decl_index      named_decl_idx =
+                                       get_ifc_resolution(named_decl_expr);
+      if (is_hidden_friend(named_decl_idx)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_hidden_friend */
+
+
+static an_ifc_decl_index get_hidden_friend_decl_index(
+                                         const an_ifc_decl_friend &friend_decl)
+/*
+Return the declaration index of the hidden friend represented by the given
+friend declaration.  Note that the caller is responsible for checking if the
+given IFC friend declaration represents a hidden friend via is_hidden_friend.
+*/
+{
+  an_ifc_expr_index friend_expr_id = get_ifc_entity(friend_decl);
+  /* This should always hold per the logic in is_hidden_friend. */
+  check_assertion(friend_expr_id.sort == ifc_es_expr_named_decl);
+
+  an_ifc_expr_named_decl named_decl_expr;
+  construct_node_prechecked(&named_decl_expr, friend_expr_id);
+  return get_ifc_resolution(named_decl_expr);
+}  /* get_hidden_friend_decl_index */
+
+
 static void associate_symbol_with_declaration(an_ifc_decl_index decl_idx,
                                               a_symbol_ptr      sym)
 /*
@@ -5598,6 +5706,13 @@ index information to the given symbol.
                         get_home_scope(decl_idx) == NULL);
       }  /* if */
 #endif /* CHECKING */
+    } else if (is_hidden_friend(decl_idx)) {
+      a_scope_stack_entry_ptr ssep = &scope_stack[decl_scope_level];
+
+      while (ssep->kind != sck_file && ssep->kind != sck_namespace) {
+        ssep = &scope_stack[ssep->previous_scope];
+      }  /* if */
+      mep->scope = ssep->il_scope;
     } else {
       unexpected_condition_str("the given entity should've been processed by "
                                "process_declaration_to_il_entity instead of "
@@ -10766,8 +10881,6 @@ using the normal IFC modules function loading logic.
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
-namespace {
-
 using an_ifc_template_lookup_table = Ptr_multi_map<an_ifc_decl_index,
                                                    an_ifc_decl_index,
                                                    25>;
@@ -10780,7 +10893,6 @@ STATIC_THREAD an_ifc_template_lookup_table
                         /* A hash table to map IFC declaration indices to
                            corresponding front end symbols. */
 
-}  /* namespace */
 
 template<typename an_ifc_Node_type>
 static void associate_spec_with_template(an_ifc_decl_index      node_idx,
@@ -11351,6 +11463,10 @@ Note that templ must refer to the canonical template.
 }  /* load_template_specializations_from_ifc_module */
 
 
+static Opt<an_ifc_decl_index> get_class_declaring_hidden_friend(
+                                     an_ifc_decl_index hidden_friend_decl_idx);
+
+
 static inline Opt<an_ifc_decl_index>
 get_home_scope_if_class(an_ifc_decl_index decl_idx)
 /*
@@ -11362,7 +11478,9 @@ an empty optional.
   Opt<an_ifc_decl_index> result;
 
   if (validate(decl_idx)) {
-    if (has_ifc_home_scope(decl_idx)) {
+    if (is_hidden_friend(decl_idx)) {
+      result = get_class_declaring_hidden_friend(decl_idx);
+    } else if (has_ifc_home_scope(decl_idx)) {
       an_ifc_decl_index home_scope = get_ifc_home_scope(decl_idx);
 
       if (is_class_scope(home_scope)) {
@@ -11569,6 +11687,95 @@ invalid:
 done:
   return result;
 }  /* process_decl_prerequisites */
+
+
+static void ensure_ifc_hidden_friends_loaded(an_ifc_input_state *state)
+/*
+Allocate and populated the map of friends to their corresponding classes for
+this IFC input state if not already performed.
+*/
+{
+  if (state->hidden_friend_to_class == NULL &&
+      is_partition_present(state, ifc_pk_trait_friend)) {
+    uint32_t num_traits = num_entries_in(state, ifc_pk_trait_friend);
+
+    state->hidden_friend_to_class = new_fe<an_ifc_decl_to_entity_map>(
+                                                             /*mask_width*/4u);
+    for (uint32_t idx = 0; idx < num_traits; idx++) {
+      Opt<an_ifc_trait_friend>    opt_friend_trait;
+      an_ifc_partition_kind_index trait_idx{state->file, ifc_pk_trait_friend,
+                                            idx};
+
+      construct_node(&opt_friend_trait, trait_idx);
+      if (!opt_friend_trait.has_value()) {
+        continue;
+      }  /* if */
+
+      an_ifc_trait_friend     friend_trait = *opt_friend_trait;
+      an_ifc_decl_index       class_decl_idx = get_ifc_decl(friend_trait);
+      a_module_entity_ptr     class_mep =
+                                         get_ifc_module_entity(class_decl_idx);
+      an_ifc_sequence         friends = get_ifc_trait(friend_trait);
+      a_scope_member_sequence friend_sequence(friends);
+      for (Indexed<an_ifc_scope_member> indexed_scope_mem : friend_sequence) {
+        if (!indexed_scope_mem.has_value()) {
+          continue;
+        }  /* if */
+
+        an_ifc_scope_member scope_mem = *indexed_scope_mem;
+        an_ifc_decl_index   friend_decl_idx = get_ifc_index(scope_mem);
+        if (friend_decl_idx.sort != ifc_ds_decl_friend) {
+          continue;
+        }  /* if */
+
+        Opt<an_ifc_decl_friend> opt_friend_decl;
+        construct_node(&opt_friend_decl, friend_decl_idx);
+        if (!opt_friend_decl.has_value()) {
+          continue;
+        }  /* if */
+
+        an_ifc_decl_friend friend_decl = *opt_friend_decl;
+        if (!is_hidden_friend(friend_decl)) {
+          continue;
+        }  /* if */
+
+        an_ifc_decl_index hidden_friend_decl_idx =
+                                     get_hidden_friend_decl_index(friend_decl);
+        state->hidden_friend_to_class->map_or_replace(hidden_friend_decl_idx,
+                                                      class_mep);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* ensure_ifc_hidden_friends_loaded */
+
+
+static Opt<an_ifc_decl_index> get_class_declaring_hidden_friend(
+                                      an_ifc_decl_index hidden_friend_decl_idx)
+/*
+Return the declaration index of the class that declares the given hidden friend
+declaration.  If no declaring class can be determined, instead return an empty
+optional.
+*/
+{
+  /* This should have been checked by the caller. */
+  check_assertion(is_hidden_friend(hidden_friend_decl_idx));
+  an_ifc_input_state *input_state = input_state_for(hidden_friend_decl_idx);
+
+  ensure_ifc_hidden_friends_loaded(input_state);
+
+  an_ifc_decl_index   result;
+  a_module_entity_ptr class_decl_mep =
+              input_state->hidden_friend_to_class->get(hidden_friend_decl_idx);
+  if (class_decl_mep == NULL) {
+    a_string err_msg("Expected a class to reference the hidden friend ",
+                     index_to_str(hidden_friend_decl_idx));
+
+    ifc_unexpected(module_of(hidden_friend_decl_idx), err_msg);
+  } else {
+    result = decl_index_of(class_decl_mep);
+  }  /* if */
+  return result;
+}  /* get_class_declaring_hidden_friend */
 
 
 static a_boolean is_template_redeclarable(const an_ifc_decl_template &decl)
@@ -12094,17 +12301,18 @@ strongly preferred over calling this function directly.
       }
       break;
     case ifc_ds_decl_function:
-      { an_ifc_decl_function idf;
+      { an_ifc_decl_function func_decl;
 
-        construct_node_prechecked(&idf, decl_idx);
+        construct_node_prechecked(&func_decl, decl_idx);
 
         a_symbol_locator loc;
-        if (!init_decl_locator(idf, &loc)) {
+        if (!init_decl_locator(func_decl, &loc)) {
           goto invalid;
         }  /* if */
-        /* FIXME: lots more to do here. */
+        /* Hidden friends should be processed via the prerequisites system. */
+        check_assertion(!is_function_hidden_friend(func_decl));
 #if BUILTIN_FUNCTIONS_ENABLED
-        if (is_builtin_function(idf, &loc)) {
+        if (is_builtin_function(func_decl, &loc)) {
           /* This is a builtin function, trigger builtin processing. */
           a_symbol_ptr builtin_sym;
 
@@ -13124,41 +13332,25 @@ function template.  If sym is NULL, it is simply ignored.
 }  /* add_friend_to_class */
 
 
-static void add_ifc_friends_to_class(a_type_ptr         class_type,
-                                     an_ifc_decl_index  class_idx)
+static void add_ifc_friends_to_class(
+                                a_type_ptr                         class_type,
+                                const Dyn_array<an_ifc_decl_index> &il_friends)
 /*
-The given class_type associated with the given IFC declaration index has just
-been completed.  Record its associated friend entities.  This function is
-called after the class is completed because IFC "friend declarations" may
-include template definitions that rely on the completeness of the class type.
+The given class_type associated has just been completed.  Record the given
+associated friend entities that were not processed as part of the class
+definition.  This function is called after the class is completed because IFC
+"friend declarations" may include template definitions that rely on the
+completeness of the class type.
 */
 {
-  /* Check if there are friends. */
-  Opt<an_ifc_trait_friend>  opt_friends;
+  for (an_ifc_decl_index friend_decl_idx : il_friends) {
+    an_ifc_decl_friend friend_decl;
+    construct_node_prechecked(&friend_decl, friend_decl_idx);
 
-  find_trait(&opt_friends, class_idx);
-  if (opt_friends.has_value()) {
-    /* There are friends: Record them. */
-    an_ifc_sequence         friends = get_ifc_trait(*opt_friends);
-    a_scope_member_sequence sequence(friends);
-
-    for (Indexed<an_ifc_scope_member> indexed_scope_mem : sequence) {
-      if (!indexed_scope_mem.has_value()) {
-        continue;
-      }  /* if */
-
-      an_ifc_scope_member     scope_mem = *indexed_scope_mem;
-      an_ifc_decl_index       friend_decl_idx = get_ifc_index(scope_mem);
-      Opt<an_ifc_decl_friend> opt_df;
-      construct_node(&opt_df, friend_decl_idx);
-      if (opt_df.has_value()) {
-        an_ifc_decl_friend friend_decl = *opt_df;
-        an_ifc_expr_index  friend_id = get_ifc_entity(friend_decl);
-
-        add_friend_to_class(class_type, load_ifc_entity_ref(friend_id));
-      }  /* if */
-    }  /* for */
-  }  /* if */
+    an_ifc_expr_index friend_id = get_ifc_entity(friend_decl);
+    a_symbol_ptr      friend_sym = load_ifc_entity_ref(friend_id);
+    add_friend_to_class(class_type, friend_sym);
+  }  /* for */
 }  /* add_ifc_friends_to_class */
 
 namespace {
@@ -13170,12 +13362,15 @@ enum a_class_member_descriptor_kind {
   cmdk_normal,           /* A normal descriptor (i.e., caching the given
                             declaration index is sufficient). */
   cmdk_variable,         /* A variable or variable template declared in the
-                            class scope; the defintion must be emitted. */
-  cmdk_inline_data_member_type
+                            class scope; the definition must be emitted. */
+  cmdk_inline_data_member_type,
                          /* A descriptor representing a data member with an
                             unnamed user-defined type (in terms of the IFC,
                             this case is a merger of an anonymous IFC DeclScope
                             and an IFC DeclField). */
+  cmdk_hidden_friend,    /* A hidden friend declaration that must have its
+                            definition cached inline. */
+  cmdk_friend            /* A friend declaration that must be cached. */
 };
 
 /*
@@ -13215,41 +13410,59 @@ Cache the class member (of the class indexed by class_idx) for the given class
 member descriptor into the given cache.
 */
 {
-  auto cache_content = [class_idx, &class_mem](
-                                           a_module_token_cache *content_cache,
-                                           an_ifc_decl_index    decl_idx) {
-    an_ifc_cache_info cinfo;
+  an_ifc_cache_info cinfo;
 
-    cinfo.lexical_scope = class_idx;
-    switch (class_mem.kind) {
-      case cmdk_normal:
-        cinfo.ignore_definition = TRUE;
-        break;
-      case cmdk_variable:
-        /* FIXME: Lazily-loading the definition of these should be possible. */
-        break;
-      case cmdk_inline_data_member_type:
-        cinfo.inline_data_member_type = TRUE;
-        break;
-      default_is_unexpected();
-    }  /* switch */
+  cinfo.lexical_scope = class_idx;
+  switch (class_mem.kind) {
+    case cmdk_friend:
+      cinfo.is_friend = TRUE;
+      FALLTHROUGH
+    case cmdk_normal:
+      cinfo.ignore_definition = TRUE;
+      break;
+    case cmdk_variable:
+      /* FIXME: Lazily-loading the definition of these should be possible. */
+      break;
+    case cmdk_inline_data_member_type:
+      cinfo.inline_data_member_type = TRUE;
+      break;
+    case cmdk_hidden_friend:
+      cinfo.is_friend = TRUE;
+      break;
+    default_is_unexpected();
+  }  /* switch */
+
+  auto cache_content = [cinfo](a_module_token_cache *content_cache,
+                               an_ifc_decl_index    decl_idx) {
     cache_decl(content_cache, decl_idx, cinfo);
   };
-
-  cache_bound_entity(cache, class_mem.decl_idx, cache_content);
+  if (class_mem.kind == cmdk_friend) {
+    /* For friend function declarations that may or may not be the only
+       declaration of the function in this translation unit, do not associate
+       the symbol. */
+    cache_content(cache, class_mem.decl_idx);
+  } else {
+    cache_bound_entity(cache, class_mem.decl_idx, cache_content);
+  }  /* if */
 }  /* cache_class_member */
 
+using a_class_member_descriptor_array =
+                                Small_dyn_array<a_class_member_descriptor, 20>;
+                        /* The type used for an array of class member
+                           descriptors. */
 
-static void cache_class_members(a_module_token_cache_ptr      cache,
-                                an_ifc_decl_index             class_idx,
-                                const an_ifc_scope_descriptor &scope_desc)
+static a_boolean collect_class_members_in_scope(
+                                a_class_member_descriptor_array *class_members,
+                                an_ifc_decl_index               class_idx,
+                                const an_ifc_scope_descriptor   scope_descr)
 /*
-Cache the class members (of the class indexed by class_idx) for the given class
-member scope descriptor into the given cache.
+Add the class members (of the class indexed by class_idx) from the scope
+descriptor to the given array of class members.  If errors are encountered,
+return FALSE; otherwise, return TRUE.
 */
 {
-  Small_dyn_array<a_class_member_descriptor, 20> class_members;
-  a_scope_member_sequence                        sequence(scope_desc);
+  a_boolean               result = TRUE;
+  a_scope_member_sequence sequence(scope_descr);
 
   /* Traverse the scope members, clean up the data, and create a "plan" from it
      describing what needs to be cached (i.e., populate class_members). */
@@ -13294,9 +13507,9 @@ member scope descriptor into the given cache.
              (typically the anonymous type would appear immediately before the
              field, but there's no guarantee of that in the format) checking
              for a matching scope member and, if it exists, drop it. */
-          for (size_t i = class_members.length(); i > 0; --i) {
-            if (class_members[i - 1].decl_idx == type_decl) {
-              class_members.remove(i - 1);
+          for (size_t i = class_members->length(); i > 0; --i) {
+            if ((*class_members)[i - 1].decl_idx == type_decl) {
+              class_members->remove(i - 1);
               break;
             }  /* if */
           }  /* for */
@@ -13337,18 +13550,119 @@ member scope descriptor into the given cache.
     }  /* if */
 
     a_class_member_descriptor mem_descr = {desc_kind, mem_idx};
-    class_members.push_back(mem_descr);
+    class_members->push_back(mem_descr);
   }  /* for */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* collect_class_members_in_scope */
+
+
+static void collect_class_friends(
+                                a_class_member_descriptor_array *class_members,
+                                Dyn_array<an_ifc_decl_index>    *il_friends,
+                                an_ifc_decl_index               class_idx)
+/*
+Add any class member descriptors for friends of the given class to the given
+class member descriptors array.  Additionally, add any friends that should be
+loaded via add_ifc_friends_to_class to the il_friends list.
+*/
+{
+  Opt<an_ifc_trait_friend> opt_friends;
+
+  /* Check if there are friends and add any hidden friends to the "plan." */
+  find_trait(&opt_friends, class_idx);
+  if (opt_friends.has_value()) {
+    an_ifc_sequence         friends = get_ifc_trait(*opt_friends);
+    a_scope_member_sequence friend_sequence(friends);
+
+    for (Indexed<an_ifc_scope_member> indexed_scope_mem : friend_sequence) {
+      if (!indexed_scope_mem.has_value()) {
+        continue;
+      }  /* if */
+
+      an_ifc_scope_member     scope_mem = *indexed_scope_mem;
+      an_ifc_decl_index       friend_decl_idx = get_ifc_index(scope_mem);
+      Opt<an_ifc_decl_friend> opt_friend_decl;
+      construct_node(&opt_friend_decl, friend_decl_idx);
+      if (!opt_friend_decl.has_value()) {
+        continue;
+      }  /* if */
+
+      an_ifc_decl_friend friend_decl = *opt_friend_decl;
+      if (is_hidden_friend(friend_decl)) {
+        an_ifc_decl_index mem_decl_idx =
+                                     get_hidden_friend_decl_index(friend_decl);
+
+        class_members->push_back(a_class_member_descriptor{
+                                                      cmdk_hidden_friend,
+                                                      mem_decl_idx});
+      } else {
+        an_ifc_expr_index friend_expr_idx = get_ifc_entity(friend_decl);
+
+        if (friend_expr_idx.sort == ifc_es_expr_named_decl) {
+          /* While this is not a "hidden friend", it is still potentially
+             declared only as a friend in this translation unit; thus, the
+             declaration must be cached. */
+          Opt<an_ifc_expr_named_decl> opt_named_decl_expr;
+
+          construct_node(&opt_named_decl_expr, friend_expr_idx);
+          if (opt_named_decl_expr.has_value()) {
+            an_ifc_expr_named_decl named_decl_expr = *opt_named_decl_expr;
+            an_ifc_decl_index      mem_decl_idx =
+                                           get_ifc_resolution(named_decl_expr);
+
+            class_members->push_back(a_class_member_descriptor{cmdk_friend,
+                                                               mem_decl_idx});
+          }  /* if */
+        } else if (friend_expr_idx.sort == ifc_es_expr_template_id ||
+                   friend_expr_idx.sort == ifc_es_expr_template_reference) {
+          /* These expression kinds are handled via add_ifc_friends_to_class.
+             They differ from the other cases in that they never introduce an
+             entity that can only be found via ADL.
+
+             The following is an example of a friend declaration represented by
+             ifc_es_expr_template_id:
+
+               friend void f<>(S);
+
+             Similarly, the following is an example of a friend declaration
+             represented by ifc_es_expr_template_reference:
+
+               friend void Y<int>::f();
+
+           */
+          il_friends->push_back(friend_decl_idx);
+        } else {
+          a_string err_msg("Unexpected expression ",
+                           index_to_str(friend_expr_idx), 
+                           " representing the friend ",
+                           index_to_str(friend_decl_idx));
+
+          ifc_unexpected(module_of(friend_expr_idx), err_msg);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* collect_class_friends */
+
+
+static void cache_class_members(
+                          a_module_token_cache_ptr              cache,
+                          an_ifc_decl_index                     class_idx,
+                          const a_class_member_descriptor_array &class_members)
+/*
+Cache the class members (of the class indexed by class_idx) from the given
+class member scope descriptors into the given cache.
+*/
+{
   /* Execute the "plan" by caching the post processed scope member information
      (i.e., cache the computed class_members). */
   for (const a_class_member_descriptor &descriptor : class_members) {
     cache_class_member(cache, class_idx, descriptor);
   }  /* for */
-  goto done;
-invalid:
-  expect_error_str("expected errors for bad class member cache");
-  cache->invalidate();
-done:;
 }  /* cache_class_members */
 
 
@@ -13437,17 +13751,17 @@ Complete the definition of the class referred to by mep (if needed).
     }  /* if */
 #endif /* DEBUG */
 
-    an_ifc_scope_offset          class_members_idx = get_ifc_initializer(ids);
-    Opt<an_ifc_scope_descriptor> opt_class_members;
-    if (!is_null_index(class_members_idx)) {
-      construct_node(&opt_class_members, class_members_idx);
+    an_ifc_scope_offset          class_scope_offset = get_ifc_initializer(ids);
+    Opt<an_ifc_scope_descriptor> opt_class_scope;
+    if (!is_null_index(class_scope_offset)) {
+      construct_node(&opt_class_scope, class_scope_offset);
     }  /* if */
     if (!class_type->incomplete) {
       /* FIXME: The module entity pointers need to be mapped onto the existing
          IL declarations. */
-      if (opt_class_members.has_value()) {
+      if (opt_class_scope.has_value()) {
         a_diag_count_snapshot   diag_count_snapshot;
-        an_ifc_scope_descriptor class_members = *opt_class_members;
+        an_ifc_scope_descriptor class_scope = *opt_class_scope;
         a_string                err_msg("Class member mapping was required",
                                         " for ", index_to_str(decl_idx),
                                         " but is unimplemented");
@@ -13459,7 +13773,7 @@ Complete the definition of the class referred to by mep (if needed).
            abort. */
         ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
         mep->invalid = TRUE;
-        invalidate_failed_class_members(class_members, diag_count_snapshot);
+        invalidate_failed_class_members(class_scope, diag_count_snapshot);
       }  /* if */
     } else if (!is_null_index(initializer)) {
       a_template_decl_info_ptr    tdip;
@@ -13481,9 +13795,21 @@ Complete the definition of the class referred to by mep (if needed).
         cache_token(&cache, tok_colon);
         cache_type(&cache, base, /*cinfo=*/{});
       }  /* if */
-      if (opt_class_members.has_value()) {
-        an_ifc_scope_descriptor class_members = *opt_class_members;
 
+      /* Form an execute a "plan" describing the class members to be cached. */
+      a_class_member_descriptor_array class_members;
+      Dyn_array<an_ifc_decl_index>    il_friends;
+      if (opt_class_scope.has_value()) {
+        an_ifc_scope_descriptor class_scope = *opt_class_scope;
+
+        if (!collect_class_members_in_scope(&class_members, decl_idx,
+                                            class_scope)) {
+          cache.invalidate();
+        }  /* if */
+      }  /* if */
+      /* Collect information about the friends of this class. */
+      collect_class_friends(&class_members, &il_friends, decl_idx);
+      if (opt_class_scope.has_value() || !class_members.is_empty()) {
         cache_token(&cache, tok_lbrace);
         cache_class_members(&cache, decl_idx, class_members);
         cache_token(&cache, tok_rbrace);
@@ -13539,13 +13865,13 @@ Complete the definition of the class referred to by mep (if needed).
                                     /*is_template_specialization=*/FALSE,
                                     (a_template_ptr)NULL,
                                     (a_decl_pos_block_ptr)NULL);
-          if (opt_class_members.has_value()) {
-            an_ifc_scope_descriptor class_members = *opt_class_members;
+          if (opt_class_scope.has_value()) {
+            an_ifc_scope_descriptor class_scope = *opt_class_scope;
 
-            invalidate_failed_class_members(class_members, diag_snapshot);
+            invalidate_failed_class_members(class_scope, diag_snapshot);
           }  /* if */
         }
-        add_ifc_friends_to_class(class_type, decl_idx);
+        add_ifc_friends_to_class(class_type, il_friends);
         curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions--;
         process_deferred_class_fixups_and_instantiations(
@@ -14623,6 +14949,18 @@ return FALSE.
   if (in_get_home_scope) {
     /* A get_home_scope call is being processed; avoid infinite recursion. */
     result = FALSE;
+  } else if (decl_idx.sort == ifc_ds_decl_function) {
+    Opt<an_ifc_decl_function> opt_func_decl;
+
+    construct_node(&opt_func_decl, decl_idx);
+    if (opt_func_decl.has_value()) {
+      an_ifc_decl_function func_decl = *opt_func_decl;
+
+      /* Hidden friends should not be eager loaded. */
+      if (is_function_hidden_friend(func_decl)) {
+        result = FALSE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* can_be_eager_loaded */
@@ -14739,17 +15077,25 @@ to this function.
       }
       break;
     case ifc_ds_decl_function:
-      { Opt<an_ifc_decl_function> opt_idf;
+      { Opt<an_ifc_decl_function> opt_func_decl;
 
-        construct_node(&opt_idf, decl_idx);
-        if (!opt_idf.has_value()) {
+        construct_node(&opt_func_decl, decl_idx);
+        if (!opt_func_decl.has_value()) {
           goto invalid;
+        }  /* if */
+
+        an_ifc_decl_function func_decl = *opt_func_decl;
+        if (is_function_hidden_friend(func_decl)) {
+          /* Do not lazily-load hidden friends.  They will be loaded when the
+             associated class is loaded. */
+          goto done;
         }  /* if */
 
         a_symbol_locator loc;
-        if (!init_decl_locator(*opt_idf, &loc)) {
+        if (!init_decl_locator(func_decl, &loc)) {
           goto invalid;
         }  /* if */
+
         defer_symbol_creation(decl_idx, scope, &loc);
       }
       break;
@@ -14890,11 +15236,18 @@ to this function.
         }  /* if */
 
         an_ifc_decl_using_declaration using_decl = *opt_using_decl;
-        a_symbol_locator              loc;
-        if (!init_decl_locator(using_decl, &loc)) {
-          goto invalid;
-        }  /* if */
-        defer_symbol_creation(decl_idx, scope, &loc);
+        an_ifc_decl_index             resolution =
+                                                get_ifc_resolution(using_decl);
+        if (is_hidden_friend(resolution)) {
+          /* This should be made available later (if needed) via the friend
+             trait of the declaring class. */
+        } else {
+          a_symbol_locator              loc;
+          if (!init_decl_locator(using_decl, &loc)) {
+            goto invalid;
+          }  /* if */
+          defer_symbol_creation(decl_idx, scope, &loc);
+         }  /* if */
       }
       break;
     case ifc_ds_decl_variable:
@@ -21799,6 +22152,9 @@ about the current cache context to help inform decisions about what to cache.
 {
   an_ifc_function_traits_bitfield func_traits = get_ifc_traits(decl);
 
+  if (test_bitmask<ifc_ftb_hidden_friend>(func_traits) || cinfo.is_friend) {
+    cache_token(cache, tok_friend);
+  }  /* if */
   if (test_bitmask<ifc_ftb_virtual>(func_traits)) {
     cache_token(cache, tok_virtual);
   }  /* if */
@@ -23439,12 +23795,17 @@ decisions about what to cache.
           cache_type(cache, base, /*cinfo=*/{});
         }  /* if */
         if (!is_null_index(scope)) {
-          Opt<an_ifc_scope_descriptor> opt_class_members;
+          Opt<an_ifc_scope_descriptor> opt_class_scope;
 
-          construct_node(&opt_class_members, scope);
-          if (opt_class_members.has_value()) {
-            an_ifc_scope_descriptor class_members = *opt_class_members;
+          construct_node(&opt_class_scope, scope);
+          if (opt_class_scope.has_value()) {
+            an_ifc_scope_descriptor         class_scope = *opt_class_scope;
+            a_class_member_descriptor_array class_members;
 
+            if (!collect_class_members_in_scope(&class_members, decl_idx,
+                                                class_scope)) {
+              cache->invalidate();
+            }  /* if */
             cache_token(cache, tok_lbrace);
             cache_class_members(cache, decl_idx, class_members);
             cache_token(cache, tok_rbrace);
@@ -25136,6 +25497,9 @@ there is no offset/the offset is not needed.
       an_ifc_name_index     name = get_ifc_name(decl);
       an_ifc_sentence_index body = get_ifc_body(entity);
 
+      if (cinfo.is_friend) {
+        cache_token(cache, tok_friend);
+      }  /* if */
       cache_type(cache, type_index, cinfo);
       offset = try_cache_class_attributes_from_body(cache, body);
       cache_declarator_qualifier(cache, decl, cinfo);
@@ -25415,6 +25779,9 @@ about the current cache context to help inform decisions about what to cache.
             (void)cache_sentence(cache, body);
           }  /* if */
         };
+        if (cinfo.is_friend) {
+          cache_token(cache, tok_friend);
+        }  /* if */
         cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
                          cache_scope_fn);
       }
@@ -25542,12 +25909,15 @@ current cache context to help inform decisions about what to cache.
         if (!validate_is_class_type(get_ifc_type(ids))) {
           goto invalid;
         }  /* if */
+
         /* Reconstruct the templated declaration. */
         auto cache_name_fn = [cache, &decl, cinfo]() {
           cache_declarator_qualifier(cache, decl, cinfo);
           cache_simple_template_id(cache, decl);
         };
-
+        if (cinfo.is_friend) {
+          cache_token(cache, tok_friend);
+        }  /* if */
         if (is_instantiation) {
           auto cache_scope_fn = [cache]() {
             cache_token(cache, tok_semicolon);
@@ -25566,14 +25936,22 @@ current cache context to help inform decisions about what to cache.
                 cache_type(cache, base, cinfo);
               }  /* if */
 
-              an_ifc_scope_offset class_members_idx = get_ifc_initializer(ids);
-              if (!is_null_index(class_members_idx)) {
-                Opt<an_ifc_scope_descriptor> opt_class_members;
+              an_ifc_scope_offset class_scope_offset =
+                                                      get_ifc_initializer(ids);
+              if (!is_null_index(class_scope_offset)) {
+                Opt<an_ifc_scope_descriptor> opt_class_scope;
 
-                construct_node(&opt_class_members, class_members_idx);
-                if (opt_class_members.has_value()) {
-                  an_ifc_scope_descriptor class_members = *opt_class_members;
+                construct_node(&opt_class_scope, class_scope_offset);
+                if (opt_class_scope.has_value()) {
+                  an_ifc_scope_descriptor         class_scope =
+                                                              *opt_class_scope;
+                  a_class_member_descriptor_array class_members;
 
+                  if (!collect_class_members_in_scope(&class_members,
+                                                      templated_decl_idx,
+                                                      class_scope)) {
+                    cache->invalidate();
+                  }  /* if */
                   cache_token(cache, tok_lbrace);
                   cache_class_members(cache, templated_decl_idx,
                                       class_members);
@@ -25624,7 +26002,9 @@ current cache context to help inform decisions about what to cache.
         }  /* if */
 
         an_ifc_decl_function idf = *opt_idf;
-        cache_attrs(cache, templated_decl_idx);
+        if (!cinfo.is_friend) {
+          cache_attrs(cache, templated_decl_idx);
+        }  /* if */
         cache_token(cache, tok_auto);
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, templated_decl_idx, idf, cinfo);
@@ -25651,7 +26031,9 @@ current cache context to help inform decisions about what to cache.
         }  /* if */
 
         an_ifc_decl_method idm = *opt_idm;
-        cache_attrs(cache, templated_decl_idx);
+        if (!cinfo.is_friend) {
+          cache_attrs(cache, templated_decl_idx);
+        }  /* if */
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, templated_decl_idx, idm, cinfo);
 
@@ -25685,7 +26067,9 @@ current cache context to help inform decisions about what to cache.
         }  /* if */
 
         an_ifc_decl_constructor idc = *opt_idc;
-        cache_attrs(cache, templated_decl_idx);
+        if (!cinfo.is_friend) {
+          cache_attrs(cache, templated_decl_idx);
+        }  /* if */
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, templated_decl_idx, idc, cinfo);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -25932,7 +26316,9 @@ is responsible for ensuring that the brackets are cached appropriately.
           cache_token(cache, tok_lparen);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          a_boolean cache_as_str = is_attr_operand_a_string(func_attr);
+          a_boolean cache_as_str =
+                            (!is_at_least(input_state_for(func_attr), 0, 43) &&
+                                          is_attr_operand_a_string(func_attr));
           if (cache_as_str) {
             cache_attr_as_string(cache, arg_attr);
           } else
@@ -26092,8 +26478,8 @@ about what to cache.
   }  /* if */
   /* Cache the access specifier if in class scope and access information is
      provided. */
-  if (!cinfo.no_access_specifier && !is_null_index(cinfo.lexical_scope) &&
-      has_ifc_access(decl)) {
+  if (!cinfo.no_access_specifier && has_ifc_access(decl) &&
+      is_class_scope(cinfo.lexical_scope)) {
     an_ifc_access_sort access = get_ifc_access(decl);
 
     if (has_ifc_home_scope(decl) && is_class_scope(get_ifc_home_scope(decl))) {
@@ -26211,6 +26597,9 @@ about what to cache.
         }  /* if */
 
         const a_string &decl_name = *opt_decl_name;
+        if (cinfo.is_friend) {
+          cache_token(cache, tok_friend);
+        }  /* if */
         if (decl_name.is_empty()) {
           an_ifc_type_index   type = get_ifc_type(scope_decl);
           an_ifc_type_index   base = get_ifc_base(scope_decl);
@@ -26404,7 +26793,9 @@ about what to cache.
       { an_ifc_decl_function idf;
 
         construct_node_prechecked(&idf, decl);
-        cache_attrs(cache, decl);
+        if (!cinfo.is_friend) {
+          cache_attrs(cache, decl);
+        }  /* if */
         cache_func_vendor_decl_specifier_seq(cache, decl);
         if (is_class_scope(get_ifc_home_scope(decl)) &&
             !is_out_of_line_cache(decl, cinfo)) {
@@ -26428,7 +26819,9 @@ about what to cache.
       { an_ifc_decl_method idm;
 
         construct_node_prechecked(&idm, decl);
-        cache_attrs(cache, decl);
+        if (!cinfo.is_friend) {
+          cache_attrs(cache, decl);
+        }  /* if */
         cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, decl, idm, cinfo);
 
@@ -26455,7 +26848,9 @@ about what to cache.
       { an_ifc_decl_constructor idc;
 
         construct_node_prechecked(&idc, decl);
-        cache_attrs(cache, decl);
+        if (!cinfo.is_friend) {
+          cache_attrs(cache, decl);
+        }  /* if */
         cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, decl, idc, cinfo);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -26486,7 +26881,9 @@ about what to cache.
       { an_ifc_decl_destructor idd;
 
         construct_node_prechecked(&idd, decl);
-        cache_attrs(cache, decl);
+        if (!cinfo.is_friend) {
+          cache_attrs(cache, decl);
+        }  /* if */
         cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, decl, idd, cinfo);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -30758,7 +31155,7 @@ imported.
   ifc_input_states = new_fe<an_ifc_module_input_state_list>();
   entity_lookup_cache = new_fe<an_ifc_module_entity_lookup>(
                                                            /*mask_width=*/10u);
-  ifc_parameterized_entities = new_fe<an_ifc_parameterized_entity_map>(
+  ifc_parameterized_entities = new_fe<an_ifc_decl_to_decl_map>(
                                                            /*mask_width=*/10u);
   ifc_var_inits = new_fe<a_lazy_entity_part>();
   ifc_function_bodies = new_fe<a_lazy_entity_part>();

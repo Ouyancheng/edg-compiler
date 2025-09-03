@@ -2128,7 +2128,7 @@ module output file.
                                                           make_tagged_ptr(rp));
 
   /* This function should only be called for functions that are expected to
-     have a definiton during module write out. */
+     have a definition during module write out. */
   check_assertion(create_module_unit &&
                   is_routine_definition_exported_inline(rp) &&
                   cache.ptr() != NULL);
