@@ -26,7 +26,9 @@ sys_predef.c -- System dependent predefined macros and assertions.
 #include "class_decl.h"
 #include "macro.h"
 #include "sys_predef.h"
+#if BUILTIN_FUNCTIONS_ENABLED
 #include "builtin_defs.h"
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if USE_X86_FUNCTION_MULTIVERSIONING
 #include "exprutil.h"
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
