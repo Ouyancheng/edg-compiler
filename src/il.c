@@ -11575,7 +11575,7 @@ determined directly.
     } else {
       check_assertion(scope_is(sp, sck_namespace) ||
                       scope_is(sp, sck_namespace_extension));
-      pointers_block = &symbol_for(sp->variant.assoc_type)
+      pointers_block = &symbol_for(sp->variant.assoc_namespace)
                         ->variant.namespace_info.extra_info
                         ->pointers_block;
       
