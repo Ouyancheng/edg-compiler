@@ -2706,9 +2706,12 @@ Display the indicated type entry.
       }  /* if */
       break;
     case tk_ptr_to_member:
-      disp_ptr("class_of_which_a_member",
-               (char *)ptr->variant.ptr_to_member.class_of_which_a_member,
+      disp_ptr("class_of_which_a_member", (char *)pm_class_type(ptr),
                iek_type);
+      if (pm_class_type(ptr) != pm_orig_class_type(ptr)) {
+        disp_ptr("orig_class_of_which_a_member",
+                 (char *)pm_orig_class_type(ptr), iek_type);
+      }  /* if */
       disp_ptr("type", (char *)ptr->variant.ptr_to_member.type, iek_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ptr->variant.ptr_to_member.modifiers != PM_NONE) {

@@ -17296,7 +17296,7 @@ a pointer over a reference type or creating an array of references.
                  compilers appear to only do this in rescanning contexts.) */
               tp2 = skip_typerefs(tp2);
             }  /* if */
-            new_type = ptr_to_member_type(tp, tp2);
+            new_type = ptr_to_member_type(tp, tp2, tp2);
           }  /* if */
         }  /* if */
         break;

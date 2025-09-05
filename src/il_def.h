@@ -10646,6 +10646,11 @@ typedef struct a_type {
 			   end occasionally temporarily makes this point to a
 			   typeref until "type" is set). */
       a_type_ptr
+		orig_class_of_which_a_member;
+			/* Type of the class to which the member pointed to
+			   belongs, as specified; this might be the same as
+			   class_of_which_a_member or it might be a typeref. */
+      a_type_ptr
 		type;
 			/* Type of the member pointed to. */
 #if MICROSOFT_EXTENSIONS_ALLOWED

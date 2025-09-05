@@ -3909,13 +3909,24 @@ pm_type is a pointer-to-member type.  Return the class type pointed to.
 {
   a_type_ptr tp = skip_typerefs(pm_type);
 
-#if CHECKING
-  if (tp->kind != (a_type_kind)tk_ptr_to_member) {
-    internal_error("pm_class_type: not a pointer to member type");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_str(tp->kind == tk_ptr_to_member,
+                      "pm_class_type: not a pointer to member type");
   return tp->variant.ptr_to_member.class_of_which_a_member;
 }  /* pm_class_type */
+
+
+a_type_ptr pm_orig_class_type(a_type_ptr pm_type)
+/*
+pm_type is a pointer-to-member type.  Return the original class type pointed
+to.
+*/
+{
+  a_type_ptr tp = skip_typerefs(pm_type);
+
+  check_assertion_str(tp->kind == tk_ptr_to_member,
+                      "pm_orig_class_type: not a pointer to member type");
+  return tp->variant.ptr_to_member.orig_class_of_which_a_member;
+}  /* pm_orig_class_type */
 
 
 a_type_ptr f_underlying_type_of_derived_type(a_type_ptr  type,
@@ -13768,8 +13779,8 @@ type exists, return NULL.
 {
   a_type_ptr  result = NULL;
   a_type_ptr  upmft1 = skip_typerefs(pmft1), upmft2 = skip_typerefs(pmft2);
-  a_type_ptr  ctp1 = upmft1->variant.ptr_to_member.class_of_which_a_member,
-              ctp2 = upmft2->variant.ptr_to_member.class_of_which_a_member;
+  a_type_ptr  ctp1 = pm_class_type(upmft1),
+              ctp2 = pm_class_type(upmft2);
   a_type_ptr  uctp1 = skip_typerefs(ctp1), uctp2 = skip_typerefs(ctp2);
   a_type_ptr  stp1 = upmft1->variant.ptr_to_member.type,
               stp2 = upmft2->variant.ptr_to_member.type;
@@ -13783,7 +13794,7 @@ type exists, return NULL.
       /* If the class types are identical, we can pick either one and combine
          it with ftp (which has the less-restrictive exception
          specification). */
-      result = ptr_to_member_type(ftp, ctp1);
+      result = ptr_to_member_type(ftp, ctp1, pm_orig_class_type(upmft1));
     } else if (find_base_class_of(ctp1, ctp2) != NULL) {
       /* The result type has to be based on the first class type (ctp1).
          If ftp is from the second type, we have to adjust its this_class. */
@@ -13793,7 +13804,7 @@ type exists, return NULL.
         rout_type_supp(ftp)->this_class = uctp1;
         rout_type_supp(ftp)->has_this_param = TRUE;
       }  /* if */
-      result = ptr_to_member_type(ftp, ctp1);
+      result = ptr_to_member_type(ftp, ctp1, pm_orig_class_type(upmft1));
     } else if (find_base_class_of(ctp2, ctp1) != NULL) {
       if (ftp == stp1) {
         ftp = routine_type_without_this_class(ustp1,
@@ -13801,7 +13812,7 @@ type exists, return NULL.
         rout_type_supp(ftp)->this_class = uctp2;
         rout_type_supp(ftp)->has_this_param = TRUE;
       }  /* if */
-      result = ptr_to_member_type(ftp, ctp2);
+      result = ptr_to_member_type(ftp, ctp2, pm_orig_class_type(upmft2));
     }  /* if */
   }  /* if */
   return result;
@@ -13888,8 +13899,8 @@ cv-qualification signature is determined as follows:
     }  /* if */
   } else if (ustp1->kind == (a_type_kind)tk_ptr_to_member &&
              ustp2->kind == (a_type_kind)tk_ptr_to_member) {
-    a_type_ptr  ctp1 = ustp1->variant.ptr_to_member.class_of_which_a_member;
-    a_type_ptr  ctp2 = ustp2->variant.ptr_to_member.class_of_which_a_member;
+    a_type_ptr  ctp1 = pm_class_type(ustp1), octp1 = pm_orig_class_type(ustp1);
+    a_type_ptr  ctp2 = pm_class_type(ustp2), octp2 = pm_orig_class_type(ustp2);
     a_type_ptr  uctp1 = skip_typerefs(ctp1), uctp2 = skip_typerefs(ctp2);
     a_boolean   qualifiers_added;
     if (is_immediate_class_type(uctp1) && is_immediate_class_type(uctp2)) {
@@ -13910,10 +13921,10 @@ cv-qualification signature is determined as follows:
         if (identical_types(ctp1, ctp2) ||
             find_base_class_of(ctp1, ctp2) != NULL) {
           stp1 = make_qualified_type(stp1, get_type_qualifiers(stp2));
-          result = ptr_to_member_type(stp1, ctp1);
+          result = ptr_to_member_type(stp1, ctp1, octp1);
         } else if (find_base_class_of(ctp2, ctp1) != NULL) {
           stp2 = make_qualified_type(stp2, get_type_qualifiers(stp1));
-          result = ptr_to_member_type(stp2, ctp2);
+          result = ptr_to_member_type(stp2, ctp2, octp2);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -14758,9 +14769,11 @@ calling disentangle_default_args).
             } else if (same_entities(comp_elem, member_type_2)) {
               comp_type = base_type_2;
             } else {
-              comp_type = ptr_to_member_type_full(comp_elem,
-                                                  pm_class_type(base_type_1),
-                                                  modifiers);
+              comp_type = ptr_to_member_type_full(
+                                               comp_elem,
+                                               pm_class_type(base_type_1),
+                                               pm_orig_class_type(base_type_1),
+                                               modifiers);
             }  /* if */
           }  /* if */
           break;
@@ -18000,7 +18013,7 @@ make_new_type:
           /* Make a pointer-to-member type.  The current pointer-to-member type
              points to two types, so the new type is based on modified versions
              of one or both. */
-          new_type = ptr_to_member_type_full(tp, tp2, modifiers);
+          new_type = ptr_to_member_type_full(tp, tp2, tp2, modifiers);
         }  /* if */
       }
       break;

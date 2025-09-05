@@ -21918,7 +21918,8 @@ See http://msdn.microsoft.com/en-us/library/ms177195.aspx.
       func_type = copy_routine_type_with_param_types(dftype,
                                                   /*copy_default_args=*/FALSE);
       function_type_params(dftype) = ptp;
-      pm_type = ptr_to_member_type(func_type, type_pointed_to(param1_type));
+      pm_type = ptr_to_member_type(func_type, type_pointed_to(param1_type),
+                                   type_pointed_to(param1_type));
     }  /* if */
   }  /* if */
   return pm_type;
@@ -22169,7 +22170,7 @@ delegate initializer, given by rcblock->argument_list.
       } else if (object_operand != NULL) {
         /* There is an object operand, so the function can be from any
            class. */
-        needed_type = ptr_to_member_type(dftype, class_type);
+        needed_type = ptr_to_member_type(dftype, class_type, class_type);
       } else {
         /* There's no object.  See if a static member function matches. */
         a_boolean assume_static = FALSE;
@@ -22506,7 +22507,7 @@ delegate initializer, given by rcblock->argument_list.
       } else if (object_operand != NULL) {
         /* There is an object operand, so the function can be from any
            class. */
-        needed_type = ptr_to_member_type(dftype, class_type);
+        needed_type = ptr_to_member_type(dftype, class_type, class_type);
       } else {
         /* There's no object.  See if a static member function matches,
            or if the delegate is unbound and can match that way. */

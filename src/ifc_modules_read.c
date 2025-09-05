@@ -16809,7 +16809,7 @@ prefer type_for_type_index in other cases
         if (is_error_type(member_type)) {
           goto invalid;
         }  /* if */
-        result = ptr_to_member_type(member_type, scope_type);
+        result = ptr_to_member_type(member_type, scope_type, scope_type);
       }
       break;
     case ifc_ts_type_syntactic:

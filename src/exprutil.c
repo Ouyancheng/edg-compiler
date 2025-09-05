@@ -23114,7 +23114,8 @@ If arg_operand is non-NULL, it points to an operand for the argument.
     a_routine_ptr rout;
     check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
     rout = fund_sym->variant.routine.ptr;
-    ptr_type = ptr_to_member_type(rout->type, parent_class_of(rout));
+    ptr_type = ptr_to_member_type(rout->type, parent_class_of(rout),
+                                  parent_class_of(rout));
   } else {
     /* Nonmember function. */
    ptr_type = make_pointer_type(arg_type);

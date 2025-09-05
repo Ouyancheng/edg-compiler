@@ -1134,7 +1134,8 @@ the specifiers and declarator that formed the new type.
              something to *bottom_derived_type (as in other cases) but rather
              to change it from a "pointer-to-?" type to a "ptr-to-member"
              type pointing the class and routine type. */
-          tp = ptr_to_member_type(mft_rout_type, mft_class_type);
+          tp = ptr_to_member_type(mft_rout_type, mft_class_type,
+                                  mft_class_type);
           copy_type(tp, *bottom_derived_type);
           /* Change new_type_ptr and tkind to make it seem as if this were
              an ordinary ptr-to-member declaration. */
@@ -5605,6 +5606,7 @@ __w64 annotation, and __based variable specifiers).  The given type must be a
       } else {
         copy = ptr_to_member_type_full(pm_member_type(plain_type),
                                        pm_class_type(plain_type),
+                                       pm_orig_class_type(plain_type),
                                        ptr_mods->modifiers);
       }  /* if */
       /* Issue an error if this was preceded by __based. */
@@ -5883,7 +5885,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           if (is_member_function_typedef) {
             /* This is a proper use of a cfront member function typedef type
                -- to form a pointer-to-member type.  Do the transformation. */
-            complete_type = ptr_to_member_type(rout_type, class_type);
+            complete_type = ptr_to_member_type(rout_type, class_type,
+                                               class_type);
           } else {
             if (is_any_reference_type(temp_type)) {
               /* Type "pointer to reference to anything" is illegal. */
@@ -6039,10 +6042,12 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
+        a_type_ptr  lexical_class_type = class_type;
         /* A valid pointer-to-member declarator. */
         if (complete_type != NULL && !check_pm_member_type(complete_type)) {
           complete_type = error_type();
         }  /* if */
+        class_type = skip_typerefs_not_dependent_decltypes(class_type);
         if (gpp_mode ||
             (microsoft_mode && scope_is(&scope_stack_top(),
                                         sck_template_instantiation))) {
@@ -6061,16 +6066,16 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
               class_type = orig_type;
             }  /* if */
           }  /* if */
-        } else {
-          class_type = skip_typerefs_not_dependent_decltypes(class_type);
         }  /* if */
         if (complete_type == NULL) {
           /* We cannot create a valid pointer-to-member type yet: Create a
              partially-filled-in entry that will be completed by calling
              update_ptr_to_member_type later on. */
-          complete_type = make_partial_ptr_to_member_type(class_type);
+          complete_type = make_partial_ptr_to_member_type(class_type,
+                                                          lexical_class_type);
         } else {
-          complete_type = ptr_to_member_type(complete_type, class_type);
+          complete_type = ptr_to_member_type(complete_type, class_type,
+                                             lexical_class_type);
         }  /* if */
       }  /* if */
     }  /* if */

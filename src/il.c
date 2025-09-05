@@ -6148,7 +6148,7 @@ nonstatic member function indicated by routine.
   if (routine->is_template_function) {
     instantiate_exception_spec_if_needed(member_sym);
   }  /* if */
-  con->type = ptr_to_member_type(routine->type, member_class);
+  con->type = ptr_to_member_type(routine->type, member_class, member_class);
 }  /* set_ptr_to_member_function_constant */
 
 
@@ -6173,7 +6173,7 @@ nonstatic data member indicated by field.
   member_sym = ((a_symbol_ptr)field->source_corresp.assoc_info);
   check_assertion(member_sym != NULL && member_sym->is_class_member);
   member_class = sym_parent_class(member_sym);
-  con->type = ptr_to_member_type(field->type, member_class);
+  con->type = ptr_to_member_type(field->type, member_class, member_class);
 }  /* set_ptr_to_data_member_constant */
 
 
@@ -13103,8 +13103,7 @@ frequently-asked-for based types at the front of the list.
        prev_btlmp = btlmp, btlmp = btlmp->next) {
     if (btlmp->kind == kind) {
       tp = btlmp->based_type;
-      if (ptr_to_member &&
-          tp->variant.ptr_to_member.class_of_which_a_member != class_type) {
+      if (ptr_to_member && pm_orig_class_type(tp) != class_type) {
         /* Pointer-to-member parent class does not match class type -- keep
            looking. */
         tp = NULL;
@@ -13210,15 +13209,17 @@ is already an entry of the indicated kind on the list.
 }  /* add_based_type_list_member */
 
 
-a_type_ptr make_partial_ptr_to_member_type(a_type_ptr  class_type)
+a_type_ptr make_partial_ptr_to_member_type(a_type_ptr  class_type,
+                                           a_type_ptr  orig_class_type)
 /*
 Allocate and return a pointer-to-member type for members of the given class
 type.  The type produced must eventually be "completed" by a call to
 update_ptr_to_member_type (which records the member type).
-Ordinarily, the given type cannot be a typeref, but in GNU and Microsoft modes,
-an exception is made to emulate a peculiar behavior in template instantiation
-contexts; a later call to update_ptr_to_member_type will replace any typerefs
-by the underlying class type entry in such cases.
+Ordinarily, the given class_type cannot be a typeref, but in GNU and Microsoft
+modes, an exception is made to emulate a peculiar behavior in template
+instantiation contexts; a later call to update_ptr_to_member_type will replace
+any typerefs by the underlying class type entry in such cases.  orig_class_type
+points to the class type as specified, including any typerefs.
 */
 {
   a_type_ptr  result = alloc_type((a_type_kind)tk_ptr_to_member);
@@ -13228,6 +13229,7 @@ by the underlying class type entry in such cases.
                   class_type->variant.typeref.is_dependent_type_operator ||
                   gpp_mode || microsoft_mode);
   result->variant.ptr_to_member.class_of_which_a_member = class_type;
+  result->variant.ptr_to_member.orig_class_of_which_a_member = orig_class_type;
   return result;
 }  /* make_partial_ptr_to_member_type */
 
@@ -13330,6 +13332,7 @@ parameter, the associated proxy class is used instead).
 
 a_type_ptr ptr_to_member_type_full(a_type_ptr              member_type,
                                    a_type_ptr              class_type,
+                                   a_type_ptr              orig_class_type,
                                    a_pointer_modifier_set  modifiers)
 /*
 Return a pointer-to-member type, initializing its fields based on the specified
@@ -13339,6 +13342,7 @@ otherwise a new entry is allocated.  modifiers describes the pointer modifiers
 class_type must be both be non-NULL and should usually not be a typeref; an
 exception are certain template instantiation cases in GNU and Microsoft modes
 (where any class type qualifiers may be transferred to a member function type).
+orig_class_type points to the class type as specified, including any typerefs.
 */
 {
   a_type_ptr         tp;
@@ -13352,13 +13356,14 @@ exception are certain template instantiation cases in GNU and Microsoft modes
        stored in the based_types list of the member type, and the pointer
        can be reused. */
   tp = get_based_type(member_type, kind, TQ_NONE, modifiers,
-                      /*expl_mem_attr_implicit=*/FALSE, class_type,
+                      /*expl_mem_attr_implicit=*/FALSE, orig_class_type,
                       UPC_BLOCK_SIZE_NONE);
   if (tp == NULL) {
     /* No previously allocated entry: Allocate one. */
     tp = alloc_type((a_type_kind)tk_ptr_to_member);
     tp->variant.ptr_to_member.type = member_type;
     tp->variant.ptr_to_member.class_of_which_a_member = class_type;
+    tp->variant.ptr_to_member.orig_class_of_which_a_member = orig_class_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     tp->variant.ptr_to_member.modifiers = modifiers;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13434,7 +13439,7 @@ class_type.
      or leave the member type unchanged. */
   member_type = related_member_type(member_type, class_type);
   /* Make the pointer-to-member type. */
-  type = ptr_to_member_type(member_type, class_type);
+  type = ptr_to_member_type(member_type, class_type, class_type);
   return type;
 }  /* related_ptr_to_member_type */
 

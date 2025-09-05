@@ -1128,6 +1128,7 @@ destination type (this comes up in a Microsoft-mode extension).
                which the function is defined, not any derived class
                indicated in the projection symbol. */
             ptr_routine_type = ptr_to_member_type(routine_type,
+                                                  sym_parent_class(sym),
                                                   sym_parent_class(sym));
           } else {
             ptr_routine_type = make_pointer_type(routine_type);
@@ -1342,10 +1343,9 @@ is the source indefinite function operand.
     /* The operand is not a function designator, so make a pointer or
        pointer to member as the argument type. */
     if (routine_type_is_nonstatic_member_function(arg_type)) {
-      arg_type = ptr_to_member_type(
-                          arg_type,
-                          skip_typerefs(
-                            arg_type->variant.routine.extra_info->this_class));
+      a_type_ptr class_type = arg_type->variant.routine.extra_info->this_class;
+      arg_type = ptr_to_member_type(arg_type, skip_typerefs(class_type),
+                                    class_type);
     } else {
       arg_type = make_pointer_type(arg_type);
     }  /* if */
@@ -4319,10 +4319,9 @@ it is always NULL.
        consider that there is no such type as a "reference to member function",
        so there's no need to allow the possibility that the decay should
        not be done because the reference might bind directly. */
+    a_type_ptr  class_type = arg_type->variant.routine.extra_info->this_class;
     arg_operand = NULL;
-    arg_type = ptr_to_member_type(
-                             arg_type,
-                             arg_type->variant.routine.extra_info->this_class);
+    arg_type = ptr_to_member_type(arg_type, class_type, class_type);
   }  /* if */
   if (is_any_reference_type(param_type)) {
     /* The parameter has a reference type. */
@@ -9842,8 +9841,10 @@ type deduction.
               if (is_pointer_type(orig_type)) {
                 updated_type = make_pointer_type(updated_type);
               } else if (is_ptr_to_member_type(orig_type)) {
-                updated_type = ptr_to_member_type(updated_type,
-                                                  pm_class_type(orig_type));
+                updated_type = ptr_to_member_type(
+                                                updated_type,
+                                                pm_class_type(orig_type),
+                                                pm_orig_class_type(orig_type));
               }  /* if */
               tap->variant.type = updated_type;
             }  /* if */

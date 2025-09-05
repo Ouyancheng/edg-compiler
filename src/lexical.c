@@ -24615,6 +24615,7 @@ selection operator, in which case it points to the type of the left operand.
 */
 {
   a_type_ptr			qualifier_type = NULL;
+  a_type_ptr			qualifier_lexical_type = NULL;
   a_boolean     		is_file_scope_qualified_name = FALSE;
   a_boolean			is_global_qualified_name = FALSE;
   a_boolean     		is_qualified_name = FALSE;
@@ -25229,7 +25230,7 @@ selection operator, in which case it points to the type of the left operand.
         a_symbol_ptr	prev_qualifier_sym = qualifier_sym;
         a_boolean	invalid_qualifier_sym = FALSE;
         a_type_ptr      qualifier_sym_type;
-        a_type_ptr      qualifier_lexical_type = NULL;
+        qualifier_lexical_type = NULL;
         if (err ||
             (qualifier_sym == NULL && !qualifier_is_super &&
              !qualifier_is_decltype)) {
@@ -25925,7 +25926,9 @@ selection operator, in which case it points to the type of the left operand.
        tok_cli_typeid.  Note that in error cases, qualifier_type can be
        NULL for tok_ptr_to_member, but will be an error type (set above)
        for tok_cli_typeid cases. */
-    locator_for_curr_id.parent.class_type = qualifier_type;
+    locator_for_curr_id.parent.class_type = qualifier_lexical_type != NULL
+                                                       ? qualifier_lexical_type
+                                                       : qualifier_type;
     locator_for_curr_id.is_class_member = TRUE;
     /* Clear the is_template_id flag in the locator in case it was set before
        this was recognized to be ptr-to-member. */

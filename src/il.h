@@ -1755,14 +1755,17 @@ EXTERN void initialize_ordering_constants(void);
 extern void update_ptr_to_member_type(a_type_ptr  ptr_mem_type,
                                       a_type_ptr  member_type);
 
-extern a_type_ptr make_partial_ptr_to_member_type(a_type_ptr  class_type);
+extern a_type_ptr make_partial_ptr_to_member_type(a_type_ptr  class_type,
+                                                  a_type_ptr  orig_class_type);
 
-extern a_type_ptr ptr_to_member_type_full(a_type_ptr              member_type,
-                                          a_type_ptr              class_type,
-                                          a_pointer_modifier_set  modifiers);
+extern a_type_ptr ptr_to_member_type_full(
+                                       a_type_ptr              member_type,
+                                       a_type_ptr              class_type,
+                                       a_type_ptr              orig_class_type,
+                                       a_pointer_modifier_set  modifiers);
 
-#define ptr_to_member_type(tp, cp)                                           \
-  (EDG_QUAL ptr_to_member_type_full((tp), (cp), PM_NONE))
+#define ptr_to_member_type(tp, cp, orig_cp)                                  \
+  (EDG_QUAL ptr_to_member_type_full((tp), (cp), (orig_cp), PM_NONE))
 
 extern a_type_ptr related_ptr_to_member_type(a_type_ptr member_type,
                                              a_type_ptr class_type);
