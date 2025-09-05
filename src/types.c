@@ -3442,7 +3442,12 @@ diagnostic in error cases.  error_pos is the position to use for diagnostics
         an_integer_type_supplement_ptr  itsp;
         result = skip_typerefs(tp);
         itsp = integer_type_supp(result);
-        if (result->variant.integer.has_explicit_enum_base) {
+        if (result->incomplete) {
+          if (diagnostic_should_be_issued) {
+            pos_ty_error(ec_incomplete_type_not_allowed, error_pos, tp);
+          }  /* if */
+          result = error_type();
+        } else if (result->variant.integer.has_explicit_enum_base) {
           result = itsp->base_type;
 #if GNU_EXTENSIONS_ALLOWED
         } else if (itsp->underlying_type_should_use_unsigned) {
