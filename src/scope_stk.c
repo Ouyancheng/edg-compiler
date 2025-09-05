@@ -3479,6 +3479,7 @@ the scope being pushed.
     }  /* if */
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_template_instantiation ||
+        kind == (a_scope_kind)sck_module_decl_import ||
         kind == (a_scope_kind)sck_pragma) {
       /* When beginning a nested context, clear the expression stack. */
       expr_stack = NULL;

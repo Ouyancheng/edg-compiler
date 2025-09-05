@@ -1890,7 +1890,8 @@ Display the IL entry prefix of the given IL entry.
   if (entry == NULL) {
     fprintf(f_debug, "NULL pointer\n");
   } else {
-    an_il_entry_prefix_ptr prefix = &il_entry_prefix_of(entry);
+    an_il_entry_prefix_ptr prefix =
+                  (an_il_entry_prefix_ptr)(entry - SPACE_FOR_IL_ENTRY_PREFIX);
 
     if (prefix->file_scope) {
       fprintf(f_debug, "file_scope ");

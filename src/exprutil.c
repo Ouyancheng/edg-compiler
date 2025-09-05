@@ -8372,12 +8372,11 @@ entry).
 
   if (vp == NULL) {
     a_symbol_ptr  sym = make_template_param_object_sym(&error_position);
-    a_type_ptr    vtp = make_qualified_type(skip_typerefs(cp->type), TQ_CONST);
-    vp = make_variable(vtp, (a_storage_class)sc_unspecified,
-                       DEPTH_OF_FILE_SCOPE);
+    a_type_ptr    vtp = cp->type;
+    vp = make_variable(vtp, sc_unspecified, DEPTH_OF_FILE_SCOPE);
     vp->is_template_param_object = TRUE;
     vp->is_constexpr = TRUE;
-    vp->init_kind = (an_init_kind)initk_static;
+    vp->init_kind = initk_static;
     vp->initializer.constant = cp;
     mark_inline_variable(vp, /*is_definition=*/TRUE);
     set_source_corresp(&vp->source_corresp, sym);
@@ -8387,6 +8386,9 @@ entry).
   make_lvalue_variable_operand(vp, &pos_curr_token,
                                end_position_or_null(&end_pos_curr_token),
                                operand, (a_ref_entry_ptr)NULL);
+  operand->type = make_qualified_type(operand->type, TQ_CONST);
+  operand->is_id_expression = TRUE;
+  (void)make_node_from_operand(operand);
 }  /* make_template_param_object_operand */
 
 
@@ -8418,7 +8420,9 @@ The position of the current token will be used as the operand position.
     an_expr_node_ptr expr = alloc_node_for_constant(&constant);
     expr = add_ref_indirection_to_node(expr);
     make_glvalue_expression_operand(expr, operand);
-  } else if (constant_is(con_ptr, ck_aggregate) &&
+  } else if ((constant_is(con_ptr, ck_aggregate) ||
+              (constant_is(con_ptr, ck_template_param) &&
+               expr_stack->template_deduction_context)) &&
              sym->is_template_param) {
     /* A C++20 nontype template parameter instantiated with a class type
        constant.  Create a variable operand referring to the underlying
@@ -21943,7 +21947,8 @@ it might produce an error).
                                                        /*copy_for_reuse=*/TRUE,
                                                        &variable);
       if (con_expr_value != NULL) {
-        if (con_expr_value->kind == (a_constant_repr_kind)ck_template_param) {
+        con_expr_value->type = prvalue_node_type;
+        if (constant_is(con_expr_value, ck_template_param)) {
           /* This is a dependent reference to a variable.  Set up to create
              a tpck_expression constant for the expression below. */
           template_constant = TRUE;
@@ -22730,7 +22735,11 @@ cases so we don't do it here.
            of extracting a constant value. */
         change_some_ref_kinds(operand->ref_entries_list, SRK_USE,
                               (SRK_USE | SRK_CONST_VALUE_USE));
-        make_constant_operand(con_value, operand);
+        if (!is_error_constant(con_value)) {
+          make_constant_operand(con_value, operand);
+        } else {
+          make_error_operand(operand);
+        }  /* if */
       } else if (curr_expr_kind_is_traditional_const()) {
         /* An lvalue cannot be converted to an rvalue in a pre-C++11 constant
            expression. */

@@ -878,6 +878,7 @@ fields to default values.
       cp->variant.aggregate.first_constant = NULL;
       cp->variant.aggregate.last_constant  = NULL;
       cp->variant.aggregate.has_dynamic_init_component = FALSE;
+      cp->variant.aggregate.added_const_for_template_param = FALSE;
 #if DO_IL_LOWERING
       cp->variant.aggregate.field_or_base.field = NULL;
       cp->variant.aggregate.field_or_base.base = NULL;

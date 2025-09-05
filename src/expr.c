@@ -17241,6 +17241,15 @@ general_case:
       goto done;
     }  /* if */
     result = operand->type;
+    if (is_constant_operand(operand)) {
+      a_constant  *cp = &operand->variant.constant;
+      if (constant_is(cp, ck_aggregate) &&
+          cp->variant.aggregate.added_const_for_template_param) {
+        /* The "const" added on top of the type should not be reflected by
+           the decltype result. */
+        result = remove_qualifiers(result, TQ_CONST);
+      }  /* if */
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled && is_managed_nullptr_type(result)) {
       /* decltype applied to an expression producing a managed nullptr type
@@ -38869,6 +38878,24 @@ the result is not constant) set *fatal to TRUE.
 }  /* concept_id_value */
 
 
+static a_boolean in_current_memory_region(a_source_correspondence  *scp)
+/*
+Return TRUE if the IL entry with the given source correspondence is allocated
+in the current memory region.
+*/
+{
+  a_boolean  result = FALSE;
+  a_routine  *enclosing_rp = scp->enclosing_routine;
+
+  if (enclosing_rp != NULL) {
+    if (enclosing_rp->memory_region == curr_il_region_number) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* in_current_memory_region */
+
+
 static void scan_identifier(an_operand               *result,
                             a_local_expr_options_set local_options,
                             int                      prec_level,
@@ -39436,7 +39463,21 @@ variable:
                 ref_expr = add_ref_indirection_to_node(ref_expr);
                 make_glvalue_expression_operand(ref_expr, result);
               } else {
-                if (is_array_type(result->type)) {
+                 if (curr_expr_kind_is_const() &&
+                     in_current_memory_region(&var_ptr->source_corresp)) {
+                  /* The current context is a constant expression and therefore
+                     the storage of the variable won't really be used beyond
+                     that constant expression: Hence the variable need not be
+                     forced to a prvalue.  Unfortunately, memory region
+                     constraints currently force us to turn some uses into
+                     prvalues anyway.  E.g.:
+                       struct S { constexpr int f() {return 37;} };
+                       void g() {
+                         constexpr S s = {};
+                         struct B { int x[s.f()]; };
+                       }
+                     Here, s in s.f() is forced to a prvalue early. */
+                } else if (is_array_type(result->type)) {
                   conv_array_operand_to_pointer_operand(result);
                 } else {
                   conv_glvalue_to_prvalue(result);
@@ -51925,6 +51966,14 @@ is TRUE if the expression is the immediate operand of an "&" operator.
             make_error_operand(result);
             copy_operand_position(&eriep->saved_operand, result);
           }  /* if */
+        } else if (var->is_template_param_object) {
+          a_constant  *cp = var->initializer.constant;
+          a_symbol    *csp = symbol_for(cp);
+          if (csp != NULL && symbol_is(csp, sk_constant)) {
+            make_sym_constant_operand(csp, result);
+          } else {
+            make_constant_operand(cp, result);
+          }  /* if */
         } else {
           sym = symbol_for(var);
           if (var->source_corresp.is_local_to_function &&
@@ -52671,26 +52720,26 @@ set accordingly.
       *unary = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (expr->kind == (an_expr_node_kind)enk_throw) {
+  } else if (expr->kind == enk_throw) {
     operator_token = tok_throw;
     *unary = TRUE;
-  } else if (expr->kind == (an_expr_node_kind)enk_builtin_operation) {
+  } else if (expr->kind == enk_builtin_operation) {
     operator_token = operator_token_for_builtin_operator(
                                          expr->variant.builtin_operation.kind,
                                          unary);
-  } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
+  } else if (expr->kind == enk_param_ref) {
     /* A reference to a parameter name or "this" in the header of the
        function. */
     operator_token = tok_identifier;
-  } else if (expr->kind == (an_expr_node_kind)enk_braced_init_list) {
+  } else if (expr->kind == enk_braced_init_list) {
     /* A braced-init-list. */
     operator_token = tok_lbrace;
-  } else if (expr->kind == (an_expr_node_kind)enk_variable) {
+  } else if (expr->kind == enk_variable) {
     /* A variable reference: Rescannable if it is a variable template.  Also
        rescan local variables in contexts that aren't function signatures
        (specifically: requires-expressions). */
     a_variable_ptr  vp = node_variable(expr);
-    if (vp->is_template_variable ||
+    if (vp->is_template_variable || vp->is_template_param_object ||
         (vp->source_corresp.is_local_to_function &&
          !scope_is(&scope_stack_top(), sck_function_access))) {
       operator_token = tok_identifier;

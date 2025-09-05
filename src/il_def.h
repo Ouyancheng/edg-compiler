@@ -5208,6 +5208,11 @@ typedef struct a_constant {
 			/* TRUE if one of the constants on the list is a
 			   ck_dynamic_init entry, or a ck_aggregate entry with
 			   this flag set to TRUE. */
+      a_bit_field
+		added_const_for_template_param:1;
+			/* TRUE if the type of the constant was made "const"
+			   because it represents the use of a template
+			   parameter of class type. */
 #if DO_IL_LOWERING
       a_field_or_base
 		field_or_base;

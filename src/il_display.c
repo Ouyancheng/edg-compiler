@@ -1536,6 +1536,9 @@ display_constant_value:
       if (ptr->variant.aggregate.has_dynamic_init_component) {
         disp_boolean("has_dynamic_init_component", TRUE);
       }  /* if */
+      if (ptr->variant.aggregate.added_const_for_template_param) {
+        disp_boolean("added_const_for_template_param", TRUE);
+      }  /* if */
       break;
     case ck_init_repeat:
       (void)fprintf(f_display, "ck_init_repeat\n");
