@@ -9026,6 +9026,7 @@ keyword that would be required in some contexts.
       }  /* if */
     } else if (type_is(type, tk_typeref) &&
                type->variant.typeref.extra_info->template_arg_list != NULL &&
+               type->variant.typeref.kind != trk_template_arg_list &&
                !(type->source_corresp.is_class_member &&
                  parent_class_of(type)->
                                 variant.class_struct_union.is_nonreal_class)) {
