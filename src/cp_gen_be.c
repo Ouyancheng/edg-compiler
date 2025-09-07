@@ -21745,7 +21745,7 @@ when possible.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (use_func_notation_cast &&
-        !has_name_before_mangling(init_entity_type) &&
+        !has_name_before_mangling(skip_lexical_typerefs(init_entity_type)) &&
         !(dip->is_explicit_cast && braced_init) &&
         !(init_entity_type->kind == (a_type_kind)tk_typeref &&
           typeref_is_type_operator(init_entity_type,
