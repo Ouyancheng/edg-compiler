@@ -4899,7 +4899,7 @@ entity is a template class, add the template arguments.
       /* Handle alternative template argument lists specially. */
       if (templ_args_typeref->variant.typeref.extra_info->template_arg_list ==
                                                                         NULL) {
-        write_tok_str("<>");
+        write_tok_str("<> ");
       } else {
         gen_template_arguments_full(
             scp, iek_type, -1,
@@ -9184,7 +9184,7 @@ keyword that would be required in some contexts.
       if (type->variant.typeref.kind == trk_template_arg_list) {
         gen_bare_name(&refp->source_corresp, iek_type);
         if (arg_list == NULL) {
-          write_tok_str("<>");
+          write_tok_str("<> ");
         } else {
           gen_template_arguments_full(
                                     &trp->variant.typeref.type->source_corresp,
