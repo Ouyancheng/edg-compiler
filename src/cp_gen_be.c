@@ -4857,7 +4857,14 @@ entity is a template class, add the template arguments.
   /* The bare name is the unqualified name without the template arguments: */
   gen_bare_name(scp, entry_kind);
   if (il_header.source_language == sl_Cplusplus) {
-    if (entry_kind == (an_il_entry_kind)iek_constant) {
+    a_type_ptr templ_args_typeref = NULL;
+    if (entry_kind == iek_type) {
+      a_type_ptr tp = (a_type_ptr)scp;
+      if (type_is(tp, tk_typeref) &&
+          tp->variant.typeref.kind == trk_template_arg_list) {
+        templ_args_typeref = tp;
+      }  /* if */
+    } else if (entry_kind == iek_constant) {
       a_constant_ptr cp = (a_constant_ptr)scp;
       if (constant_is(cp, ck_template_param) &&
           tpck_is(cp, tpck_unknown_function) &&
@@ -4888,7 +4895,19 @@ entity is a template class, add the template arguments.
         }  /* if */
       }  /* if */
     }  /* if */
-    gen_template_arguments(scp, entry_kind, -1L);
+    if (templ_args_typeref != NULL) {
+      /* Handle alternative template argument lists specially. */
+      if (templ_args_typeref->variant.typeref.extra_info->template_arg_list ==
+                                                                        NULL) {
+        write_tok_str("<>");
+      } else {
+        gen_template_arguments_full(
+            scp, iek_type, -1,
+            templ_args_typeref->variant.typeref.extra_info->template_arg_list);
+      }  /* if */
+    } else {
+      gen_template_arguments(scp, entry_kind, -1L);
+    }  /* IF */
   }  /* if */
 }  /* gen_unqualified_name */
 
