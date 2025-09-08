@@ -6047,7 +6047,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         if (complete_type != NULL && !check_pm_member_type(complete_type)) {
           complete_type = error_type();
         }  /* if */
-        class_type = skip_typerefs_not_typedefs(class_type);
+        if (is_class_struct_union_type(class_type)) {
+          class_type = skip_typerefs(class_type);
+        }  /* if */
         if (gpp_mode ||
             (microsoft_mode && scope_is(&scope_stack_top(),
                                         sck_template_instantiation))) {
