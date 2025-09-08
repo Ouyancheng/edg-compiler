@@ -784,7 +784,8 @@ static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       is_stmt_expression);
 static void gen_cast(a_type_ptr type);
 static a_boolean is_expl_ctor_or_value_init(an_expr_node_ptr expr);
-static void gen_type_operator(a_type_ptr tp);
+static void gen_type_operator(a_type_ptr tp,
+                              a_boolean  from_name_qual_typeref = FALSE);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
                      a_boolean        obj_expr_of_mfunc_operator);
@@ -6753,15 +6754,18 @@ source sequence entry (NULL if no such reference was recorded).
 }  /* get_current_name_ref */
 
 
-static void gen_name_qualifier_list(a_name_qualifier_ptr nqp)
+static void gen_name_qualifier_list(
+                           a_name_qualifier_ptr nqp,
+                           a_boolean            from_name_qual_typeref = FALSE)
 /*
 Put out the list of name qualifiers indicated by nqp.  If nqp is NULL,
-put out nothing.
+put out nothing.  If from_name_qual_typeref is TRUE, the name qualifier list
+is from a trk_name_qualifier typeref.
 */
 {
   if (nqp != NULL) {
     /* Do a recursive call to put out the parent qualifier. */
-    gen_name_qualifier_list(nqp->previous_qualifier);
+    gen_name_qualifier_list(nqp->previous_qualifier, from_name_qual_typeref);
     if (nqp->is_class) {
       /* A class qualifier. */
       a_type_ptr                  class_type = nqp->qualifier.class_type;
@@ -6817,7 +6821,7 @@ put out nothing.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       if (decltype_type != NULL) {
         /* A decltype operator is the qualifier. */
-        gen_type_operator(decltype_type);
+        gen_type_operator(decltype_type, from_name_qual_typeref);
       } else
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       /* Do not insert code here. */
@@ -6825,7 +6829,7 @@ put out nothing.
         if (class_type->kind == (a_type_kind)tk_typeref &&
             typeref_is_type_operator(class_type,
                                      /*include_intrinsics=*/TRUE)) {
-          gen_type_operator(class_type);
+          gen_type_operator(class_type, from_name_qual_typeref);
         } else {
           gen_unqualified_name(scp, kind);
         }  /* if */
@@ -8845,13 +8849,18 @@ the same instance might not be).
 }  /* expr_has_enk_param_ref */
 
 
-static void gen_type_operator(a_type_ptr tp)
+static void gen_type_operator(a_type_ptr tp,
+                              a_boolean  from_name_qual_typeref)
 /*
 Emit a type operator (decltype, etc.) or type builtin construct.  If the
 argument to the construct has associated source sequence entries, the type
 previously had its definition_delayed flag set to TRUE (at which time those
 source sequence entries were skipped); the source sequence entries
-associated with the argument should be reactivated in such cases.
+associated with the argument should be reactivated in such cases.  If the
+operand of the type operator is an unusable expression (because of scope or
+access issues), the result type is put out directly instead of the type
+operator, except when from_name_qual_typeref is TRUE; in that case, the
+expression is presumed to be valid at this point in the translation unit.
 */
 {
   a_source_sequence_scan_state saved_state = null_source_sequence_scan_state;
@@ -8942,7 +8951,7 @@ associated with the argument should be reactivated in such cases.
          the underlying type. */
       operator_suppressed = TRUE;
     } else if (!tp->variant.typeref.is_dependent_type_operator &&
-               expr_is_unusable(expr)) {
+               !from_name_qual_typeref && expr_is_unusable(expr)) {
       /* The expression involves an inaccessible or out-of-scope name.
          Just put out the underlying type. */
       operator_suppressed = TRUE;
@@ -9114,7 +9123,7 @@ keyword that would be required in some contexts.
           if (need_global_qual) {
             write_tok_str("::");
           }  /* if */
-          gen_name_qualifier_list(nqp);
+          gen_name_qualifier_list(nqp, /*from_name_qual_typeref=*/TRUE);
           if (options == GN_DEPENDENT &&
               name_has_template_arguments(&refp->source_corresp, iek_type,
                                           /*arg_pgt=*/NULL, /*param_ptr=*/NULL,
