@@ -10210,7 +10210,7 @@ specified by arg_list.
       primary_tssp->variant.class_template.prototype_instantiation_complete) {
     result = TRUE;
     if (is_variadic_template_context()) {
-      /* If the derived class is variadic, the base class can not be
+      /* If the derived class is variadic, the base class cannot be
          instantiated if a template argument pack is specified for a non-pack
          parameter. */
       a_template_arg_ptr    tap;
