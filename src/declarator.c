@@ -6047,7 +6047,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         if (complete_type != NULL && !check_pm_member_type(complete_type)) {
           complete_type = error_type();
         }  /* if */
-        class_type = skip_typerefs_not_dependent_decltypes(class_type);
+        class_type = skip_typerefs_not_typedefs(class_type);
         if (gpp_mode ||
             (microsoft_mode && scope_is(&scope_stack_top(),
                                         sck_template_instantiation))) {
@@ -6066,6 +6066,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
               class_type = orig_type;
             }  /* if */
           }  /* if */
+        } else {
+          class_type = skip_typerefs_not_dependent_decltypes(class_type);
         }  /* if */
         if (complete_type == NULL) {
           /* We cannot create a valid pointer-to-member type yet: Create a
