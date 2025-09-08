@@ -1,5 +1,25 @@
 Version 6.8
 
+9/8/25   [EDGcpfe/26226,EDGcpfe/28416]
+Incorrect handling of some lifetimes for constexpr variable initializers
+
+Consider:
+
+  #include <initializer_list>
+  struct S {
+    constexpr S(std::initializer_list<int> lst): lst(lst) {}
+    std::initializer_list<int> lst;
+  };
+  int main() {
+    constexpr static std::initializer_list<int> li = {4};
+    constexpr S s{li};
+  }
+
+Previously, this failed because the front end failed to recognize the lifetime
+of the array underlying the li variable as having static storage.  That is now
+fixed.
+
+
 9/8/25   [EDGcpfe/24065,EDGcpfe/25677]
 Microsoft compatibility: pack expansions and Microsoft nonreal base classes
 

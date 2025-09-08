@@ -26997,16 +26997,10 @@ diagnostic in *ips.
               con->variant.address.kind = abk_constant;
             } else {
               con->variant.address.kind = abk_temporary;
-              if (!((cap->flags & CA_LIFETIME_EXTENDED) ||
-                    cap->alloc_seq_number == 0) ||
-                  (!ips->static_lifetime_init && !permit_local_temp)) {
+              if (cap->alloc_seq_number == 0) {
 #if BUILTIN_FUNCTIONS_ENABLED
                 if (is_object_storage_promotable(ips, cap->complete_object)) {
-                  /* The allocation sequence number should always represent
-                     static storage (i.e., be 0). */
-                  check_assertion(cap->alloc_seq_number == 0);
-                  con->variant.address.kind =
-                                            (an_address_base_kind)abk_constant;
+                  con->variant.address.kind = abk_constant;
                   /* If the current memory region isn't the file scope region
                      the allocated constant may be freed prematurely.  To avoid
                      this, switch to the file scope region, and recreate the
@@ -27026,16 +27020,14 @@ diagnostic in *ips.
                     }  /* if */
                   }  /* if */
                   cp->formed_from_promoted_storage = TRUE;
-                } else
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
-                /* Do not add code here. */
-                {
-                  /* The address of a temporary results in a dangling
-                     pointer. */
-                  do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_expiring_temporary,
-                                &ips->position, ips);
                 }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+              } else if (!(cap->flags & CA_LIFETIME_EXTENDED) ||
+                         (!ips->static_lifetime_init && !permit_local_temp)) {
+                /* The address of a temporary results in a dangling pointer. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_expiring_temporary,
+                              &ips->position, ips);
               }  /* if */
             }  /* if */
             con->variant.address.variant.constant = cp;
@@ -27902,9 +27894,10 @@ if the caller has determined that reinterpret_cast expressions can be folded
 (when FALSE, this function can still determine that they can be folded).
 */
 {
-  a_boolean             result = TRUE;
-  an_interpreter_state  ips;
-  a_byte                *result_storage = NULL;
+  a_boolean              result = TRUE;
+  an_interpreter_state   ips;
+  a_storage_stack_state  saved_stack_for_full_expr;
+  a_byte                 *result_storage = NULL;
 
   if (!in_front_end
 #if DO_IL_LOWERING
@@ -27962,6 +27955,15 @@ if the caller has determined that reinterpret_cast expressions can be folded
            such cases even for constexpr variables. */
         ips.allow_reinterpret_cast = TRUE;
       }  /* if */
+    } else if (vp->extends_lifetime) {
+      /* A reference variable that extends the lifetime of a temporary bound
+         to it.  Start a new stack non-extended temporaries in this expression
+         and keep a pointer to the original stack to allocate the lifetime-
+         extended temporary. */
+      save_storage_stack(&ips, saved_stack_for_full_expr);
+      init_constexpr_stack(&ips.storage_stack);
+      ips.storage_stack.set_alloc_seq(ips.curr_alloc_seq_number);
+      ips.extension_state = &saved_stack_for_full_expr;
     }  /* if */
     ips.is_variable_initializer = TRUE;
   } else {
