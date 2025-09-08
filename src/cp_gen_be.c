@@ -9030,6 +9030,7 @@ keyword that would be required in some contexts.
   a_type_ptr             orig_type;
   a_gen_name_options_set options = GN_NO_OPTIONS;
   a_type_ptr             poss_dep_type = NULL;
+  a_boolean              use_elab_type_spec = FALSE;
 
   if (is_immediate_class_type(type) &&
       type->variant.class_struct_union.proxy_class) {
@@ -9120,8 +9121,23 @@ keyword that would be required in some contexts.
              it's actually needed or not. */
           a_name_qualifier_ptr top = nqp;
           a_boolean            need_global_qual = FALSE;
+          if (is_tag_type(refp)) {
+            a_scope_ptr scope = parent_scope_of(refp);
+            if (scope != NULL) {
+              /* Push the scope in order to apply the hidden name
+                 information to see if the type is hidden in that scope and
+                 requires an elaborated type specifier. */
+              push_name_context(scope);
+              use_elab_type_spec = refp->elaborated_type_specifier_needed;
+              pop_name_context();
+            }  /* if */
+          }  /* if */
           if (!suppress_typename_kwd && options == GN_DEPENDENT) {
             write_tok_str("typename ");
+          }  /* if */
+          if (use_elab_type_spec) {
+            write_tok_str(tag_keyword(refp));
+            write_space();
           }  /* if */
           while (top->previous_qualifier != NULL) {
             top = top->previous_qualifier;
@@ -9207,7 +9223,6 @@ keyword that would be required in some contexts.
   } else if (is_tag_type(type) ||
              (type_is(type, tk_template_param) && !is_auto_type(type))) {
     /* A class, struct, union, enum, or dependent type. */
-    a_boolean use_elab_type_spec = FALSE;
     /* In C++, don't use "class X" instead of "X" unless that is required,
        e.g., because there's something else called "X" in the same scope. */
     if (!C_mode() && is_immediate_class_type(type) &&
