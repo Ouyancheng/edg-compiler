@@ -19090,6 +19090,24 @@ state) to cache.
 }  /* cache_string_literal */
 
 
+static inline void cache_string_literal(a_module_token_cache_ptr cache,
+                                        an_ifc_input_state       *input_state,
+                                        const a_string           &str)
+/*
+Add a tok_string_literal for the given string (from the given module input
+state) to cache.
+*/
+{
+  /* Create a fake "IFC string" to perform a cache of the given a_const_char*
+     (C-string).  As the IFC includes the null-terminator in its string literal
+     representations, add one to the strlen result to mimic this behavior. */
+  an_ifc_string ifc_str(input_state, chk_char, str.as_temp_characters(),
+                        str.length() + 1);
+
+  cache_string_literal(cache, ifc_str);
+}  /* cache_string_literal */
+
+
 static void cache_ud_literal(a_module_token_cache_ptr cache,
                              const an_ifc_string      &str,
                              a_const_char             *suffix,
@@ -26190,10 +26208,7 @@ Cache the given attribute as a string.
         }  /* if */
 
         const a_string &name = *opt_name;
-        an_ifc_string  name_ifc_str(input_state_for(word), chk_char,
-                                    name.as_temp_characters(),
-                                    name.length() + 1);
-        cache_string_literal(cache, name_ifc_str);
+        cache_string_literal(cache, input_state_for(word), name);
       }
       break;
     default:
@@ -26457,6 +26472,33 @@ decl_idx to the cache.
       cache_attr(cache, attr_idx, /*cache_brackets=*/TRUE);
     }  /* if */
   }  /* for */
+  /* Check for deprecation represented via the deprecated trait. */
+  if (has_ifc_specifiers(decl_idx)) {
+    an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl_idx);
+
+    if (test_bitmask<ifc_bsb_deprecated>(specifiers)) {
+      Opt<an_ifc_trait_deprecated> opt_deprecated_trait;
+
+      find_trait(&opt_deprecated_trait, decl_idx);
+      if (opt_deprecated_trait.has_value()) {
+        an_ifc_trait_deprecated deprecated_trait = *opt_deprecated_trait;
+        an_ifc_text_offset      text = get_ifc_trait(deprecated_trait);
+        a_string                text_str = get_string_at_offset(text);
+
+        cache_token(cache, tok_lbracket);
+        cache_token(cache, tok_lbracket);
+        cache_identifier(cache, "deprecated");
+        if (text_str.length() != 0) {
+          cache_token(cache, tok_lparen);
+          cache_string_literal(cache, input_state_for(deprecated_trait),
+                               text_str);
+          cache_token(cache, tok_rparen);
+        }  /* if */
+        cache_token(cache, tok_rbracket);
+        cache_token(cache, tok_rbracket);
+      }  /* if */
+    }  /* if */
+  }  /* if */
 }  /* cache_attrs */
 
 

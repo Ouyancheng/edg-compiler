@@ -548,6 +548,7 @@ INST_CONSTRUCT_NODE(an_ifc_edg_trait_function_definition,
                     an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_trait_function_definition,
                     an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_trait_deprecated, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_trait_deduction_guide, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_trait_msvc_decl_attrs, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_trait_msvc_func_params, an_ifc_partition_kind_index)
@@ -617,6 +618,8 @@ INST_CONSTRUCT_NODE_UN(an_ifc_edg_trait_class_template_definition,
 INST_CONSTRUCT_NODE_UN(an_ifc_edg_trait_function_definition,
                        an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE_UN(an_ifc_trait_function_definition,
+                       an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE_UN(an_ifc_trait_deprecated,
                        an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE_UN(an_ifc_trait_deduction_guide,
                        an_ifc_partition_kind_index)
