@@ -10196,21 +10196,38 @@ argument lists.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean can_be_ms_instantiated_nonreal_class(
-			a_template_symbol_supplement_ptr	primary_tssp)
+			a_template_symbol_supplement_ptr	primary_tssp,
+			a_template_arg_ptr			arg_list)
 /*
 Return TRUE if the current context and the template specified by primary_tssp
-can have a Microsoft mode nonreal instantiation.
+can have a Microsoft mode nonreal instantiation for the template argument list
+specified by arg_list.
 */
 {
   a_boolean	result = FALSE;
 
-  /* If the derived class is variadic, the base class is required to be
-     also because a pack expansion could leave us with an incomplete
-     argument list for the base class. */
-  if ((!is_variadic_template_context() || primary_tssp->is_variadic) &&
-      primary_tssp->partial_specializations == NULL &&
+  if (primary_tssp->partial_specializations == NULL &&
       primary_tssp->variant.class_template.prototype_instantiation_complete) {
     result = TRUE;
+    if (is_variadic_template_context()) {
+      /* If the derived class is variadic, the base class can not be
+         instantiated if a template argument pack is specified for a non-pack
+         parameter. */
+      a_template_arg_ptr    tap;
+      a_template_param_ptr  tpp = primary_tssp->cache.decl_info->parameters;
+
+      begin_template_arg_list_traversal_simple(arg_list, &tap);
+      while (result && tap != NULL && tpp != NULL) {
+        if (tap->is_pack && !tpp->is_pack) {
+          result = FALSE;
+        }  /* if */
+        advance_to_next_template_arg_simple(&tap);
+        tpp = tpp->next;
+      }  /* for */
+      if (tpp != NULL && !tpp->is_pack) {
+        result = FALSE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* can_be_ms_instantiated_nonreal_class */
@@ -10330,7 +10347,8 @@ a type in certain ways (see template_arg_list_is_dependent).
     class_type->variant.class_struct_union.is_nonreal_class = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ms_extensions && instantiate_nonreal &&
-        can_be_ms_instantiated_nonreal_class(primary_tssp)) {
+        can_be_ms_instantiated_nonreal_class(primary_tssp,
+                                             template_arg_list)) {
       /* In Microsoft mode, certain nonreal classes are instantiated
          like normal classes. */
       instantiate_nonreal_class = TRUE;
@@ -11278,16 +11296,18 @@ is the template of which sym is an instance.
 {
   a_symbol_ptr				primary_template_sym;
   a_template_symbol_supplement_ptr	primary_tssp;
+  a_template_symbol_supplement_ptr	tssp;
+  a_type_ptr				class_type;
+  a_template_arg_ptr			template_arg_list;
 
   primary_template_sym = primary_template_of(template_sym);
   primary_tssp = primary_template_sym->variant.template_info;
+  tssp = template_sym->variant.template_info;
+  class_type = type_symbol_type(sym);
+  template_arg_list = class_type_supp(class_type)->template_arg_list;
   /* Instantiated nonreal classes can only be created for certain types and
      in certain contexts. */
-  if (can_be_ms_instantiated_nonreal_class(primary_tssp)) {
-    a_template_symbol_supplement_ptr	tssp;
-    a_type_ptr				class_type;
-    tssp = template_sym->variant.template_info;
-    class_type = type_symbol_type(sym);
+  if (can_be_ms_instantiated_nonreal_class(primary_tssp, template_arg_list)) {
     tssp->variant.class_template.any_ms_instantiated_nonreal_classes = TRUE;
     class_type->variant.class_struct_union.
                                        is_ms_instantiated_nonreal_class = TRUE;

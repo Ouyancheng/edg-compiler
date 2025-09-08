@@ -1,5 +1,24 @@
 Version 6.8
 
+9/8/25   [EDGcpfe/24065,EDGcpfe/25677]
+Microsoft compatibility: pack expansions and Microsoft nonreal base classes
+
+In Microsoft mode, the front end emulates a Microsoft feature that finds
+certain names in dependent base classes.  That emulation could cause incorrect
+behavior when a pack is provided for a non-pack parameter in the template
+argument list of a dependent base class specifier.  For example, with --c++11
+--microsoft:
+
+  template<typename T, typename ...>
+  struct B {
+    template<typename U = T>  // Previously a spurious error.  Now okay.
+    void foo();
+  };
+  template<typename ... Ts>
+  struct D : B<Ts ...>
+  { };
+
+
 9/5/25   [EDGcpfe/28420]
 Complete-type requirement for __underlying_type
 
