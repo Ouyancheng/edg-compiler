@@ -21693,7 +21693,10 @@ when possible.
          arguments), so use the functional-notation form.  If there are
          extra cv-qualifiers on the entity type they must have been added
          by the context. */
-      if (!has_name_before_mangling(init_entity_type)) {
+      if (!has_name_before_mangling(init_entity_type) &&
+          !(type_is(init_entity_type, tk_typeref) &&
+            (init_entity_type->variant.typeref.kind == trk_template_arg_list ||
+             init_entity_type->variant.typeref.kind == trk_name_qualifier))) {
         init_entity_type =
                skip_typerefs_not_typedefs_or_type_operators(init_entity_type);
       }  /* if */
