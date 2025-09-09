@@ -10427,11 +10427,6 @@ can only contain CLI interfaces.
           /* Get the type entry for the base class name. */
           check_assertion(sym != NULL);
           base_class_type = type_symbol_type(sym);
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-          base_class_type = make_typeref_with_lexical_information(
-                                                         base_class_type,
-                                                         &locator_for_curr_id);
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
           base_class_type->source_corresp.referenced = TRUE;
         }  /* if */
         /* Be sure a type symbol was found and that it identifies a class. */
@@ -10529,6 +10524,12 @@ can only contain CLI interfaces.
                      variant.class_struct_union.has_zero_init_component = TRUE;
           }  /* if */
         }  /* if */
+        orig_base_class_type = skip_proxy_class(orig_base_class_type);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+        orig_base_class_type = make_typeref_with_lexical_information(
+                                                         orig_base_class_type,
+                                                         &locator_for_curr_id);
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ms_extensions) {
           if (interface_definition && !is_interface_like(base_class_type)) {
@@ -10571,7 +10572,7 @@ can only contain CLI interfaces.
                                                { (a_derivation_step_ptr)NULL,
                                                  (a_derivation_step_ptr)NULL },
                                                access);
-              bcp->orig_type = skip_proxy_class(orig_base_class_type);
+              bcp->orig_type = orig_base_class_type;
               bcp->direct = TRUE;
               bcp->direct_base_number = direct_base_number;
               bcp->decl_position = base_class_decl_pos;
@@ -10599,7 +10600,7 @@ can only contain CLI interfaces.
            base classes list. */
         new_direct_bcp = alloc_base_class();
         new_direct_bcp->type = base_class_type;
-        new_direct_bcp->orig_type = skip_proxy_class(orig_base_class_type);
+        new_direct_bcp->orig_type = orig_base_class_type;
         new_direct_bcp->derived_class = type_ptr;
         new_direct_bcp->decl_position = base_class_decl_pos;
         new_direct_bcp->direct = TRUE;
