@@ -1,5 +1,15 @@
 Version 6.8
 
+9/9/25   [EDGcpfe/28249,EDGcpfe/28426]
+C++26: Attribute [[indeterminate]]
+
+In C++26 mode, the front end now accepts the attribute [[indeterminate]] on
+declarations of block scope variables and function parameters.  Additionally,
+a_variable entries that have no explicit initializer and for which default
+initialization does not actually initialize the variable, now record this fact
+with a new "uninitialized" flag.
+
+
 9/9/25   [EDGcpfe/27845]
 Spurious instantiation of variable template initializer during substitution
 

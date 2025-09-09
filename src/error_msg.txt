@@ -3616,6 +3616,7 @@ ec_type_code_bool_equivalent;;"bool-equivalent"
 ec_type_code_class;;"class"
 ec_volatile_inc_deprecated;;"a volatile operand to an increment expression is deprecated"
 ec_volatile_dec_deprecated;;"a volatile operand to a decrement expression is deprecated"
+ec_indeterminate_not_on_first_decl;;"%n previously declared without the \"indeterminate\" attribute"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

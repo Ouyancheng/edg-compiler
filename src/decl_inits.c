@@ -6772,11 +6772,7 @@ FALSE is returned) for non-class objects.
   /* Default initialization is done only in C++ and only for variables and
      static data members. */
   if (C_dialect == C_dialect_cplusplus) {
-    if (sym->kind == (a_symbol_kind)sk_variable) {
-      var = sym->variant.variable.ptr;
-    } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-      var = sym->variant.static_data_member.variable;
-    }  /* if */
+    var = il_entry_for_symbol<a_variable>(sym);
   }  /* if */
   if (var != NULL) {
     if (is_class_template_placeholder_type(var->type)) {
@@ -7217,6 +7213,10 @@ FALSE is returned) for non-class objects.
          TRUE to avoid spurious diagnostics about uninitialized variables. */
       def_init_performed = TRUE;
     }  /* if */
+    if (!def_init_performed) var->uninitialized = TRUE;
+  } else {
+    /* In C mode, variables without an initializer are always uninitialized. */
+    var->uninitialized = TRUE;
   }  /* if */
   db_exit();
   return def_init_performed;

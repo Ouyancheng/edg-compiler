@@ -11692,7 +11692,8 @@ enable_microsoft_mode:
       case optk_cpp26_mode:
         /* Enable C++ features added as part of C++26.  The value used for
            std_version below is just a placeholder until the official value
-           (and standard name) is known. */
+           (and standard name) is known (also elsewhere, such as in attribute
+           descriptions). */
         std_version = 202600;
         set_C_dialect(C_dialect_cplusplus);
         break;

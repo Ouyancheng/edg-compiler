@@ -5356,7 +5356,8 @@ static constexpr an_attribute_support attribute_support_list[] = {
   { "noreturn",              "200809L",    "202202L" },
   { "reproducible",          "1",          "202207L" },
   { "unlikely",              "201803L",    "1"       },
-  { "unsequenced",           "1",          "202207L" }
+  { "unsequenced",           "1",          "202207L" },
+  { "indeterminate",         "202403:",    "1"       }
 };
 
 #define NUM_CPP_ATTRIBUTES (sizeof(attribute_support_list) / \

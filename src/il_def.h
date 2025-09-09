@@ -2921,6 +2921,7 @@ enum an_attribute_kind : a_byte {
   ak_likely,		/* "likely" (std). */
   ak_unlikely,		/* "unlikely" (std). */
   ak_no_unique_address,	/* "no_unique_address" (std). */
+  ak_indeterminate,	/* "indeterminate" (std). */
 
   /* Nonstandard attributes that do not require specific configuration
      flags. */
@@ -11391,6 +11392,10 @@ typedef struct a_variable {
 			   back end to allocate more storage for the variable
 			   than what is indicated by its type's size. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	uninitialized:1;
+			/* TRUE if the variable is defined without an
+			   initializer and default initialization has no
+			   effect. */
   a_bit_field	declared_with_auto_type_specifier:1;
 			/* TRUE if the variable's declaration contains the
 			   type specifier (not the storage class specifier)

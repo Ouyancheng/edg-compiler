@@ -250,6 +250,7 @@ static constexpr an_attr_descr known_attr_table[] = {
   { "unlikely", "", "c+(202002-|G(80300-))", ak_unlikely },
   { "no_unique_address", "", "c+(202002-|G(80300-)|C(90000-))",
     ak_no_unique_address },
+  { "indeterminate", "", "c+(202600-)", ak_indeterminate },
 
   /* C standard attributes (C23 and later).  Also accepted by default when
      gnu_version >= 100000 or microsoft_version >= 1934 (see the setting of
@@ -564,6 +565,7 @@ static an_attr_application_fn apply_maybe_unused_attr;
 static an_attr_application_fn apply_fallthrough_attr;
 static an_attr_application_fn apply_likely_attr;
 static an_attr_application_fn apply_no_unique_address_attr;
+static an_attr_application_fn apply_indeterminate_attr;
 
 /* Internal attributes. */
 static an_attr_application_fn apply_conditional_explicit;
@@ -705,6 +707,7 @@ STATIC_THREAD an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_likely, "l|s", apply_likely_attr },
   { ak_unlikely, "l|s", apply_likely_attr },
   { ak_no_unique_address, "d:-b!", apply_no_unique_address_attr },
+  { ak_indeterminate, "p|v:+a!", apply_indeterminate_attr },
   /* Nonstandard attributes. */
   { ak_enable_if, "t", apply_enable_if_attr },
   { ak_overloadable, "r", NO_APPL_FN },
@@ -5596,6 +5599,96 @@ Apply the "no_unique_address" attribute to the field and return that entity.
 #endif /* !IA64_ABI */
   return entity;
 }  /* apply_no_unique_address_attr */
+
+
+static void check_indeterminate_for_params(a_decl_parse_state_ptr  dps)
+/*
+Check constraints on the "indeterminate" attribute specified on the parameters
+in the given declaration.  (This function is set up as an end-of-declaration
+callback when applying a "indeterminate" attribute to a parameter.  So we know
+that the declaration involved a function declarator.)
+*/
+{
+  a_type_ptr  f_type = dps->declared_type;
+
+  if (is_at_least_one_error() && is_or_contains_error_type(dps->type)) {
+    /* Nothing to check. */
+  } else if (!type_is(f_type, tk_routine) ||
+             dps->storage_class == sc_typedef) {
+    /* Presumably the attribute was specified on a parameter that is not for
+       a function declaration: An error. */
+    a_param_type_ptr  ptp;
+    if (dps->is_deduction_guide){
+      /* For a deduction guide, the function type is stored in dps->type. */
+      f_type = dps->type;
+    }
+    /* Look for the function type that has the parameter with the attribute. */
+    while (!type_is(f_type, tk_routine)) {
+      f_type = underlying_type_of_derived_type(f_type);
+      check_assertion(f_type != NULL);
+    }  /* while */
+    /* In each parameter, check for the erroneous presence of the
+       [[indeterminate]] attribute. */
+    for (ptp = function_type_params(f_type); ptp != NULL; ptp = ptp->next) {
+      if (ptp->attributes != NULL) {
+        an_attribute_ptr  ap = find_attribute(ak_indeterminate,
+                                              ptp->attributes);
+        if (ap != NULL) {
+          report_bad_attribute_target(es_error, ap);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  } else if (dps->first_decl) {
+    /* Nothing to check. */
+  } else if (dps->prev_type == NULL || is_error_type(dps->prev_type)) {
+    /* In some unusual error cases, first_decl may be FALSE, but the type of
+       the preceding declaration is not available. */
+    expect_error();
+  } else {
+    a_type_ptr        orig_type = skip_typerefs(dps->prev_type);
+    a_param_type_ptr  ptp, orig_ptp;
+    ptp = function_type_params(dps->declared_type);
+    orig_ptp = function_type_params(orig_type);
+    for (; ptp != NULL; ptp = ptp->next, orig_ptp = orig_ptp->next) {
+      check_assertion(orig_ptp != NULL);
+      if (ptp->attributes != NULL) {
+        an_attribute_ptr  ap = find_attribute(ak_indeterminate,
+                                              ptp->attributes);
+        if (ap != NULL &&
+            (orig_ptp->attributes == NULL ||
+             !has_attr(ak_indeterminate, orig_ptp->attributes))) {
+          pos_sy_error(ec_indeterminate_not_on_first_decl, &ap->position,
+                       dps->sym);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* check_indeterminate_for_params */
+
+
+static char* apply_indeterminate_attr(ARG_UNUSED an_attribute_ptr ap,
+                                      char                        *entity,
+                                      an_il_entry_kind            entity_kind)
+/*
+Apply the "no_unique_address" attribute to the field and return that entity.
+*/
+{
+  a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+
+  if (entity_kind == iek_param_type) {
+    /* The constraints cannot be checked until the declarator containing this
+       parameter is fully processed. */
+    dps = dps->assoc_func_decl_state;
+    check_assertion(dps != NULL);
+    add_end_of_parse_action(check_indeterminate_for_params, dps,
+                            /*secondary_decls=*/FALSE);
+  } else if (entity_kind == iek_variable) {
+    /* Okay. */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return entity;
+}  /* apply_indeterminate_attr */
 
 
 static void deferred_check_enable_if_attr(a_decl_parse_state_ptr  dps)
