@@ -9087,7 +9087,8 @@ keyword that would be required in some contexts.
     gen_temp_name((char *)type);
   } else if (type_is(type, tk_typeref)) {
     /* A typedef, decltype/typeof, or alternative template argument list. */
-    if (type->is_builtin_va_list && gcc_builtin_varargs_in_generated_code) {
+    if (skip_lexical_typerefs(type)->is_builtin_va_list &&
+        gcc_builtin_varargs_in_generated_code) {
       /* This is the "va_list" or "std::va_list" type, but render it using
          the name of the GNU predefined primitive. */
       write_tok_str("__builtin_va_list");
