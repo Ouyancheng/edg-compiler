@@ -34,7 +34,7 @@ of the array underlying the li variable as having static storage.  That is now
 fixed.
 
 
-9/8/25   [EDGcpfe/24065,EDGcpfe/25677]
+9/8/25   [EDGcpfe/24065,EDGcpfe/24735,EDGcpfe/25677]
 Microsoft compatibility: pack expansions and Microsoft nonreal base classes
 
 In Microsoft mode, the front end emulates a Microsoft feature that finds
