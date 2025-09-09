@@ -18754,6 +18754,7 @@ The value of that expression is the number of elements in the tuple.
   /* Instantiate tuple_size<T> for T = tp. */
   tap = alloc_template_arg((a_templ_arg_kind)tak_type);
   tap->variant.type = tp;
+  tap->explicitly_specified = TRUE;
   ts_inst_sym = find_class_template_instance(ts_sym, &tap);
   free_template_arg_list(tap);
   if (ts_inst_sym == NULL ||
@@ -18855,9 +18856,11 @@ errors occur, return an error type.
   n_constant = local_constant();
   set_integer_constant(n_constant, (a_host_large_integer)elem_idx, n_int_kind);
   tap->variant.constant = alloc_shareable_constant(n_constant);
+  tap->explicitly_specified = TRUE;
   release_local_constant(&n_constant);
   tap->next = alloc_template_arg(tak_type);
   tap->next->variant.type = tp;
+  tap->next->explicitly_specified = TRUE;
   te_inst_sym = find_class_template_instance(te_sym, &tap);
   free_template_arg_list(tap);
   if (te_inst_sym == NULL || !symbol_is(te_inst_sym, sk_class_or_struct_tag)) {
