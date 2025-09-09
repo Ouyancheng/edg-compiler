@@ -5531,6 +5531,9 @@ are done in the il_to_str routines before this routine is called.
        instantiation, so leave it as visible. */
   } else if (in_template_argument_list &&
              !type->variant.typeref.is_dependent &&
+             !(type_is(type->variant.typeref.type, tk_typeref) &&
+               type->variant.typeref.type->variant.typeref.kind ==
+                                                         trk_name_qualifier) &&
              parent_class_or_null(type) != NULL
 #if GCC_BUILTIN_VARARGS
              && !type->is_builtin_va_list
@@ -5545,7 +5548,11 @@ are done in the il_to_str routines before this routine is called.
        accessibility or where it supplies a linkage specification.  The
        is_dependent flag is set for alias references that include dependent
        types.  These need to be preserved because they can affect SFINAE
-       processing. */
+       processing.  Also, member typedefs that refer to trk_name_qualifier
+       typerefs must be maintained because the name qualifier will be
+       relative to containing class, which is likely not the current
+       context and thus could result in incorrect generated code, with the
+       qualifier being inaccessible or out of scope. */
     a_type_ptr underlying_type =
       skip_typerefs_not_typedefs_or_type_operators(type->variant.typeref.type);
     a_boolean  for_all_scopes = TRUE;
