@@ -14890,9 +14890,15 @@ will not be for a variable, but for a ck_template_param constant.)
                                  templ_arg_list, templ_param_list,
                                  source_pos, options, copy_error, ctws_state);
     if (!*copy_error) {
+      a_variable  *vp = var_templ->prototype_instantiation.variable;
+      a_boolean   is_use = !(options & CTWS_NON_CONSTANT_EXPR) ||
+                           vp->declared_with_auto_type_specifier ||
+                           vp->declared_with_decltype_auto ||
+                           vp->declared_with_class_template_placeholder ||
+                           is_incomplete_array_type(vp->type);
       sym = find_template_variable(templ_sym, &t_args,
-                                   /*prototype_allowed=*/FALSE,
-                                   /*is_use=*/TRUE, /*diagnose=*/FALSE);
+                                   /*prototype_allowed=*/FALSE, is_use,
+                                   /*diagnose=*/FALSE);
     } else {
       sym = NULL;
     }  /* if */
@@ -15147,15 +15153,13 @@ parameters.
       new_const_type = NULL;
     }  /* if */
     tap->variant.constant =
-         copy_template_param_con_with_substitution(tap->variant.constant,
-                                                   templ_arg_list,
-                                                   templ_param_list,
-                                                   template_param_type,
-                                                   source_pos,
-                                                   options |
-                                                     CTWS_NONTYPE_TEMPLATE_ARG,
-                                                   copy_error,
-                                                   ctws_state);
+         copy_template_param_con_with_substitution(
+                                         tap->variant.constant, templ_arg_list,
+                                         templ_param_list, template_param_type,
+                                         source_pos,
+                                         ((options & ~CTWS_NON_CONSTANT_EXPR) |
+                                          CTWS_NONTYPE_TEMPLATE_ARG),
+                                         copy_error, ctws_state);
     if (*copy_error) goto done;
     if (new_const_type != NULL) {
       if (tpp->uses_auto) {

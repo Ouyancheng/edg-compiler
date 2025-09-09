@@ -1,5 +1,19 @@
 Version 6.8
 
+9/9/25   [EDGcpfe/27845]
+Spurious instantiation of variable template initializer during substitution
+
+Previously, substitution of a variable always triggered the instantiation of
+its initializer, even when the variable was used only in an unevaluated
+context.  For example, with --c++20:
+
+  template<typename T>
+  int c = sizeof(T);  // Previously a spurious error.  Now okay.
+  template<typename T>
+  constexpr bool v = requires { c<T>; };
+  static_assert(v<void>);
+
+
 9/8/25   [EDGcpfe/26226,EDGcpfe/28416]
 Incorrect handling of some lifetimes for constexpr variable initializers
 
