@@ -5670,7 +5670,8 @@ static char* apply_indeterminate_attr(ARG_UNUSED an_attribute_ptr ap,
                                       char                        *entity,
                                       an_il_entry_kind            entity_kind)
 /*
-Apply the "indeterminate" attribute to the field and return that entity.
+Apply the "indeterminate" attribute to a variable or parameter and return that
+entity.
 */
 {
   a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
