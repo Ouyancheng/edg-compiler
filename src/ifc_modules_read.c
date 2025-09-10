@@ -5714,9 +5714,9 @@ index information to the given symbol.
       }  /* if */
       mep->scope = ssep->il_scope;
     } else {
-      unexpected_condition_str("the given entity should've been processed by "
-                               "process_declaration_to_il_entity instead of "
-                               "using tok_ifc_decl");
+      expect_error_str("the given entity should've been processed by "
+                       "process_declaration_to_il_entity instead of using "
+                       "tok_ifc_decl");
     }  /* if */
     finish_mep_processing(mep);
   }  /* if */
@@ -7455,6 +7455,24 @@ NULL, and issue a diagnostic.
   }  /* if */
   return result;
 }  /* load_tok_ifc_decl_ref */
+
+
+static a_type_ptr process_ifc_type_in_curr_context(an_ifc_type_index type_idx);
+
+
+a_type_ptr load_tok_ifc_type_ref()
+/*
+The current token is tok_ifc_type_ref, which encodes a reference to a type.
+Load the corresponding IL type and return it.  If the entity could not be
+loaded, instead return an error type.
+*/
+{
+  a_lexical_ifc_index_reference
+                     *idx = &ifc_index_for_curr_token;
+  an_ifc_type_index  type_idx = from_lexical_index<an_ifc_type_index>(*idx);
+
+  return process_ifc_type_in_curr_context(type_idx);
+}  /* load_tok_ifc_type_ref */
 
 
 void scan_ifc_param_ref_expr(an_operand *result)
@@ -14117,6 +14135,12 @@ corresponding IFC identity (i.e., index) information.
         result = index_to_str(real_idx);
       }
       break;
+    case liik_type_index:
+      { auto real_idx = from_lexical_index<an_ifc_type_index>(idx);
+
+        result = index_to_str(real_idx);
+      }
+      break;
     default_is_unexpected();
   }  /* switch */
   return result;
@@ -14141,6 +14165,9 @@ any).
         break;
       case liik_expr_index:
         db_node_at_idx(from_lexical_index<an_ifc_expr_index>(ifc_idx));
+        break;
+      case liik_type_index:
+        db_node_at_idx(from_lexical_index<an_ifc_type_index>(ifc_idx));
         break;
       default_is_unexpected();
     }  /* switch */
@@ -16161,102 +16188,30 @@ done:
 }  /* are_template_args_compatible */
 
 
-static a_type_ptr type_for_template_id(const an_ifc_expr_template_id &templ_id)
+namespace {
+
 /*
-Return the type that corresponds to the provided ExprSort::TemplateId in the
-module file.
+This class uses the curiously recursive template pattern to implement multiple
+type loading implementations.  Derived classes should implement the following
+functions:
+
+  a_type_ptr load(an_ifc_type_index type_idx);
+  a_type_ptr load_syntactic(an_ifc_expr_index expr_idx);
+
 */
-{
-  /* Set an initial value to prevent warnings about an uninitialized read in
-     some configurations. */
-  a_type_ptr     result = NULL;
-  a_template_ptr templ = get_template_from_id_expr(templ_id);
-
-  if (templ != NULL && templ->kind != templk_none) {
-    a_symbol_ptr       template_sym = symbol_for(templ);
-    an_ifc_expr_index  arguments = get_ifc_arguments(templ_id);
-    a_template_arg_ptr arg_list =
-                          template_args_for_expr_list(template_sym, arguments);
-
-    if (arg_list == NULL) {
-      goto invalid;
-    }  /* if */
-
-    a_template_param_ptr param_list = templ_params_of(template_sym);
-    if (!are_template_args_compatible(arg_list, param_list)) {
-      an_ifc_expr_index primary = get_ifc_primary(templ_id);
-      a_string          err_msg("Unexpected usage of a template argument list "
-                                "that is incompatible with the associated "
-                                "template's template parameter list for "
-                                "expression ", index_to_str(primary));
-
-      ifc_unexpected(module_of(templ_id), err_msg.as_temp_characters());
-      goto invalid;
-    }  /* if */
-
-    a_symbol_ptr inst_sym;
-    switch (templ->kind) {
-      case templk_function:
-      case templk_member_function:
-        { an_ifc_source_location locus = get_ifc_locus(templ_id);
-          a_source_position      pos;
-
-          source_position_from_locus(&pos, locus);
-          inst_sym = find_template_function(
-                                           symbol_for(templ), &arg_list,
-                                           /*explicit_arg_list_present=*/FALSE,
-                                           &pos);
-          free_template_arg_list(arg_list);
-          result = il_entry_for_symbol<a_routine>(inst_sym)->type;
-        }
-        break;
-      case templk_class:
-      case templk_member_class:
-      case templk_member_enum:
-      case templk_template_template_param:
-        inst_sym = find_template_class(symbol_for(templ), &arg_list,
-                                       /*any_prototype_allowed=*/FALSE,
-                                       /*specific_prototype_allowed=*/NULL,
-                                       /*instantiation_nonreal=*/FALSE,
-                                       /*do_not_create=*/FALSE,
-                                       /*in_substitution=*/FALSE);
-        free_template_arg_list(arg_list);
-        result = il_entry_for_symbol<a_type>(inst_sym);
-        break;
-      case templk_variable:
-      case templk_static_data_member:
-        inst_sym = find_template_variable(symbol_for(templ), &arg_list,
-                                          /*prototype_allowed=*/TRUE,
-                                          /*is_use=*/FALSE, /*diagnose=*/TRUE);
-        free_template_arg_list(arg_list);
-        result = il_entry_for_symbol<a_variable>(inst_sym)->type;
-        break;
-      case templk_concept:
-        ifc_requirement(module_of(templ_id), arg_list == NULL,
-                        "expected no arguments to be specified for concepts");
-        result = templ->prototype_instantiation.constraint->type;
-        break;
-      case templk_none:
-        unexpected_condition();
-        break;
-      default_is_unexpected();
-    }  /* switch */
-    goto done;
-  }
-invalid:
-  result = error_type();
-done:
-  return result;
-}  /* type_for_template_id */
+template<typename a_Derived_type>
+struct Type_loader {
+  inline a_Derived_type* derived()
+    { return static_cast<a_Derived_type*>(this); }
+  inline a_type_ptr load_impl(an_ifc_type_index type_idx);
+};  /* Type_loader */
 
 
-static a_type_ptr process_ifc_type(an_ifc_type_index type_idx)
+template<typename a_Derived_type>
+a_type_ptr Type_loader<a_Derived_type>::load_impl(an_ifc_type_index type_idx)
 /*
 Return the type that corresponds to the specified IFC TypeIndex.  If there is
 no corresponding type, return an error type.
-
-This function is provided as part of the implementation of type_for_type_index,
-prefer type_for_type_index in other cases
 */
 {
   a_type_ptr result = NULL;
@@ -16319,7 +16274,7 @@ prefer type_for_type_index in other cases
                                                   /*allow_empty_list=*/FALSE,
                                                   /*ignore_suppression=*/TRUE);
         /* Form the IL type. */
-        result = type_for_type_index(pack);
+        result = this->derived()->load(pack);
 
         /* This is a bit of a hack: a token cache is created and rescanned
            containing an ellipsis.  This allows
@@ -16492,7 +16447,7 @@ prefer type_for_type_index in other cases
         an_ifc_type_qualified     itq = *opt_itq;
         an_ifc_type_index         unqualified = get_ifc_unqualified(itq);
         a_type_ptr                unqualified_ptr =
-                                              type_for_type_index(unqualified);
+                                            this->derived()->load(unqualified);
         an_ifc_qualifier_bitfield ifc_qualifiers = get_ifc_qualifiers(itq);
         a_type_qualifier_set      qualifiers = TQ_NONE;
         if (test_bitmask<ifc_qb_const>(ifc_qualifiers)) {
@@ -16516,7 +16471,7 @@ prefer type_for_type_index in other cases
         }  /* if */
 
         an_ifc_type_index pointee = get_ifc_pointee(*opt_itp);
-        result = make_pointer_type(type_for_type_index(pointee));
+        result = make_pointer_type(this->derived()->load(pointee));
       }
       break;
     case ifc_ts_type_lvalue_reference:
@@ -16528,7 +16483,7 @@ prefer type_for_type_index in other cases
         }  /* if */
 
         an_ifc_type_index referee = get_ifc_referee(*opt_itlr);
-        a_type_ptr        referee_il = type_for_type_index(referee);
+        a_type_ptr        referee_il = this->derived()->load(referee);
         if (is_error_type(referee_il)) {
           goto invalid;
         }  /* if */
@@ -16544,7 +16499,7 @@ prefer type_for_type_index in other cases
         }  /* if */
 
         an_ifc_type_index referee = get_ifc_referee(*opt_itrr);
-        result = make_rvalue_reference_type(type_for_type_index(referee));
+        result = make_rvalue_reference_type(this->derived()->load(referee));
       }
       break;
     case ifc_ts_type_array:
@@ -16559,7 +16514,7 @@ prefer type_for_type_index in other cases
         an_ifc_type_index element = get_ifc_element(ita);
         an_ifc_expr_index extent = get_ifc_extent(ita);
         result = alloc_type((a_type_kind)tk_array);
-        result->variant.array.element_type = type_for_type_index(element);
+        result->variant.array.element_type = this->derived()->load(element);
         if (is_null_index(extent)) {
           /* The array length isn't specified (i.e., this is the []
              incomplete-type case). */
@@ -16598,13 +16553,14 @@ prefer type_for_type_index in other cases
 
         an_ifc_type_method method_type = *opt_method_type;
         an_ifc_type_index  target = get_ifc_target(method_type);
-        a_type_ptr         return_type = type_for_type_index(target);
+        a_type_ptr         return_type = this->derived()->load(target);
         /* Create a routine type with no parameters to start. */
         result = make_routine_type(return_type);
 
         a_routine_type_supplement_ptr rtsp = rout_type_supp(result);
         an_ifc_type_index             scope = get_ifc_scope(method_type);
-        a_type_ptr                    scope_type = type_for_type_index(scope);
+        a_type_ptr                    scope_type =
+                                                  this->derived()->load(scope);
         rtsp->this_class = scope_type;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
@@ -16640,7 +16596,7 @@ prefer type_for_type_index in other cases
 
         an_ifc_type_function function_type = *opt_function_type;
         an_ifc_type_index    target = get_ifc_target(function_type);
-        a_type_ptr           return_type = type_for_type_index(target);
+        a_type_ptr           return_type = this->derived()->load(target);
         /* Create a routine type with no parameters to start. */
         result = make_routine_type(return_type);
 
@@ -16732,7 +16688,7 @@ prefer type_for_type_index in other cases
                 record_potential_pack_reference(sym, &null_source_position);
                 result = il_entry_for_symbol<a_type>(sym);
               } else {
-                result = type_for_type_index(get_ifc_type(param_decl));
+                result = this->derived()->load(get_ifc_type(param_decl));
               }  /* if */
             }
             break;
@@ -16832,13 +16788,13 @@ prefer type_for_type_index in other cases
         an_ifc_type_pointer_to_member
                           ptr_to_mem_type = *opt_ptr_to_mem_type;
         an_ifc_type_index scope_index = get_ifc_scope(ptr_to_mem_type);
-        a_type_ptr        scope_type = type_for_type_index(scope_index);
+        a_type_ptr        scope_type = this->derived()->load(scope_index);
         if (is_error_type(scope_type)) {
           goto invalid;
         }  /* if */
 
         an_ifc_type_index member_index = get_ifc_member(ptr_to_mem_type);
-        a_type_ptr        member_type = type_for_type_index(member_index);
+        a_type_ptr        member_type = this->derived()->load(member_index);
         if (is_error_type(member_type)) {
           goto invalid;
         }  /* if */
@@ -16854,36 +16810,7 @@ prefer type_for_type_index in other cases
         }  /* if */
 
         an_ifc_expr_index expr = get_ifc_expr(*opt_its);
-        switch (expr.sort) {
-          case ifc_es_expr_template_id:
-            { Opt<an_ifc_expr_template_id> opt_ieti;
-
-              construct_node(&opt_ieti, expr);
-              if (!opt_ieti.has_value()) {
-                goto invalid;
-              }  /* if */
-              result = type_for_template_id(*opt_ieti);
-            }
-            break;
-          default:
-            { a_module_token_cache cache;
-
-              /* Create a fake "typename-specifier" and use that to parse the
-                 type. */
-              cache_token(&cache, tok_typename);
-              cache_expr(&cache, expr, /*cinfo=*/{});
-              if (!cache.is_valid()) {
-                goto invalid;
-              }  /* if */
-
-              result = parse_typename_specifier_cache(module_of(type_idx),
-                                                      &cache);
-              if (result == NULL) {
-                goto invalid;
-              }  /* if */
-            }
-            break;
-        }  /* switch */
+        result = this->derived()->load_syntactic(expr);
       }
       break;
     case ifc_ts_type_typename:
@@ -16927,12 +16854,21 @@ done:
   }  /* if */
 #endif /* DEBUG */
   return result;
-}  /* process_ifc_type */
+}  /* Type_loader<a_Derived_type>::load_impl */
 
 
-static a_type_ptr type_for_type_index(an_ifc_type_index type_index)
 /*
-Return the type that corresponds to the specified TypeIndex.  If there is no
+This type loader attempts to load types in a context-independent way.
+*/
+struct a_context_free_type_loader : Type_loader<a_context_free_type_loader> {
+  inline a_type_ptr load(an_ifc_type_index type_idx);
+  inline a_type_ptr load_syntactic(an_ifc_expr_index expr_idx);
+};  /* a_context_free_type_loader */
+
+
+a_type_ptr a_context_free_type_loader::load(an_ifc_type_index type_index)
+/*
+Return the type that corresponds to the specified type index.  If there is no
 corresponding type, return an error type.
 */
 {
@@ -16945,7 +16881,7 @@ corresponding type, return an error type.
 
     result = ifc_type_cache->get_with_hash(type_index, type_hash);
     if (result == NULL) {
-      result = process_ifc_type(type_index);
+      result = this->derived()->load_impl(type_index);
 
       a_type_ptr existing_result =
                           ifc_type_cache->get_with_hash(type_index, type_hash);
@@ -16965,6 +16901,208 @@ corresponding type, return an error type.
   }  /* if */
   check_assertion(result != NULL);
   return result;
+}  /* a_context_free_type_loader::load */
+
+
+a_type_ptr a_context_free_type_loader::load_syntactic(
+                                                    an_ifc_expr_index expr_idx)
+/*
+Return the type that corresponds to the type represented by the provided
+expression in the module file.
+*/
+{
+  a_type_ptr result = NULL;
+
+  switch (expr_idx.sort) {
+    case ifc_es_expr_template_id:
+      { Opt<an_ifc_expr_template_id> opt_templ_id;
+
+        construct_node(&opt_templ_id, expr_idx);
+        if (!opt_templ_id.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        /* Set an initial value to prevent warnings about an uninitialized read
+           in some configurations. */
+        an_ifc_expr_template_id templ_id = *opt_templ_id;
+        a_template_ptr          templ = get_template_from_id_expr(templ_id);
+        if (templ == NULL || templ->kind == templk_none) {
+          goto invalid;
+        }  /* if */
+
+        a_symbol_ptr       template_sym = symbol_for(templ);
+        an_ifc_expr_index  arguments = get_ifc_arguments(templ_id);
+        a_template_arg_ptr arg_list = template_args_for_expr_list(template_sym,
+                                                                  arguments);
+        if (arg_list == NULL) {
+          goto invalid;
+        }  /* if */
+
+        a_template_param_ptr param_list = templ_params_of(template_sym);
+        if (!are_template_args_compatible(arg_list, param_list)) {
+          an_ifc_expr_index primary = get_ifc_primary(templ_id);
+          a_string          err_msg("Unexpected usage of a template argument "
+                                    "list that is incompatible with the "
+                                    "associated template's template parameter "
+                                    "list for expression ",
+                                    index_to_str(primary));
+
+          ifc_unexpected(module_of(templ_id), err_msg.as_temp_characters());
+          goto invalid;
+        }  /* if */
+
+        a_symbol_ptr inst_sym;
+        switch (templ->kind) {
+          case templk_function:
+          case templk_member_function:
+            { an_ifc_source_location locus = get_ifc_locus(templ_id);
+              a_source_position      pos;
+
+              source_position_from_locus(&pos, locus);
+              inst_sym = find_template_function(
+                                         symbol_for(templ), &arg_list,
+                                         /*explicit_arg_list_present=*/FALSE,
+                                         &pos);
+              free_template_arg_list(arg_list);
+              result = il_entry_for_symbol<a_routine>(inst_sym)->type;
+            }
+            break;
+          case templk_class:
+          case templk_member_class:
+          case templk_member_enum:
+          case templk_template_template_param:
+            inst_sym = find_template_class(symbol_for(templ), &arg_list,
+                                         /*any_prototype_allowed=*/FALSE,
+                                         /*specific_prototype_allowed=*/NULL,
+                                         /*instantiation_nonreal=*/FALSE,
+                                         /*do_not_create=*/FALSE,
+                                         /*in_substitution=*/FALSE);
+            free_template_arg_list(arg_list);
+            result = il_entry_for_symbol<a_type>(inst_sym);
+            break;
+          case templk_variable:
+          case templk_static_data_member:
+            inst_sym = find_template_variable(symbol_for(templ), &arg_list,
+                                              /*prototype_allowed=*/TRUE,
+                                              /*is_use=*/FALSE,
+                                              /*diagnose=*/TRUE);
+            free_template_arg_list(arg_list);
+            result = il_entry_for_symbol<a_variable>(inst_sym)->type;
+            break;
+          case templk_concept:
+            ifc_requirement(module_of(templ_id), arg_list == NULL,
+                            "expected no arguments to be specified for "
+                            "concepts");
+            result = templ->prototype_instantiation.constraint->type;
+            break;
+          case templk_none:
+            unexpected_condition();
+            break;
+          default_is_unexpected();
+        }  /* switch */
+      }
+      break;
+    default:
+      { a_module_token_cache cache;
+
+        /* Create a fake "typename-specifier" and use that to parse the
+           type. */
+        cache_token(&cache, tok_typename);
+        cache_expr(&cache, expr_idx, /*cinfo=*/{});
+        if (!cache.is_valid()) {
+          goto invalid;
+        }  /* if */
+
+        result = parse_typename_specifier_cache(module_of(expr_idx),
+                                                &cache);
+        if (result == NULL) {
+          goto invalid;
+        }  /* if */
+      }
+      break;
+  }  /* switch */
+  goto done;
+invalid:
+  result = error_type();
+done:
+  return result;
+}  /* a_context_free_type_loader::load_syntactic */
+
+
+/*
+This type loader attempts to load types in a context-dependent way.
+*/
+struct a_contextual_type_loader : Type_loader<a_contextual_type_loader> {
+  inline a_type_ptr load(an_ifc_type_index type_idx);
+  inline a_type_ptr load_syntactic(an_ifc_expr_index expr_idx);
+};  /* a_contextual_type_loader */
+
+
+a_type_ptr a_contextual_type_loader::load(an_ifc_type_index type_idx)
+/*
+Return the type that corresponds to the specified TypeIndex.  If there is no
+corresponding type, return an error type.
+*/
+{
+  if (is_null_index(type_idx)) {
+    return error_type();
+  } else {
+    return this->derived()->load_impl(type_idx);
+  }  /* if */
+}  /* a_contextual_type_loader::load */
+
+
+a_type_ptr a_contextual_type_loader::load_syntactic(an_ifc_expr_index expr_idx)
+/*
+Return the type that corresponds to the type represented by the provided
+expression in the module file.
+*/
+{ a_type_ptr           result;
+  a_module_token_cache cache;
+
+  /* Create a fake "typename-specifier" and use that to parse the
+     type. */
+  cache_token(&cache, tok_typename);
+  cache_expr(&cache, expr_idx, /*cinfo=*/{});
+  if (!cache.is_valid()) {
+    goto invalid;
+  }  /* if */
+
+  result = parse_typename_specifier_cache(module_of(expr_idx), &cache);
+  if (result == NULL) {
+    goto invalid;
+  }  /* if */
+  goto done;
+invalid:
+  result = error_type();
+done:
+  return result;
+}  /* a_contextual_type_loader::load_syntactic */
+
+}  /* namespace */
+
+static a_type_ptr process_ifc_type_in_curr_context(an_ifc_type_index type_idx)
+/*
+Return the type that corresponds to the specified TypeIndex.  If there is no
+corresponding type, return an error type.
+
+This function should be used when considering a type from the context where it
+appears lexically.
+*/
+{
+  return a_contextual_type_loader().load(type_idx);
+}  /* process_ifc_type_in_curr_context */
+
+
+static a_type_ptr type_for_type_index(an_ifc_type_index type_index)
+/*
+Return the type that corresponds to the specified TypeIndex.  If there is no
+corresponding type, return an error type.
+
+This function should be used when considering a type from an arbitrary context.
+*/
+{
+  return a_context_free_type_loader().load(type_index);
 }  /* type_for_type_index */
 
 
@@ -21806,17 +21944,69 @@ otherwise, return FALSE.
 
     Opt<an_ifc_type_placeholder> opt_placeholder_type;
     construct_node(&opt_placeholder_type, return_type);
-    if (opt_placeholder_type.has_value()) {
-      an_ifc_type_placeholder placeholder_type = *opt_placeholder_type;
-      an_ifc_type_index       elaboration =
-                                         get_ifc_elaboration(placeholder_type);
+    if (!opt_placeholder_type.has_value()) {
+      goto invalid;
+    }  /* if */
 
-      if (elaboration.sort == ifc_ts_type_fundamental) {
-        /* Fundamental types can always be expressed. */
-        result = FALSE;
+    an_ifc_type_placeholder placeholder_type = *opt_placeholder_type;
+    an_ifc_type_index       elaboration =
+                                         get_ifc_elaboration(placeholder_type);
+    if (elaboration.sort == ifc_ts_type_fundamental) {
+      Opt<an_ifc_type_fundamental> opt_fund_type;
+
+      construct_node(&opt_fund_type, elaboration);
+      if (!opt_fund_type.has_value()) {
+        goto invalid;
       }  /* if */
+
+      an_ifc_type_fundamental fund_type = *opt_fund_type;
+      an_ifc_type_basis_sort  basis = get_ifc_basis(fund_type);
+      switch (basis) {
+        case ifc_tbs_auto:
+        case ifc_tbs_decltype_auto:
+          /* These fundamental types are not well expressed by direct
+             reference. */
+          break;
+        case ifc_tbs_bool:
+        case ifc_tbs_char:
+        case ifc_tbs_double:
+        case ifc_tbs_float:
+        case ifc_tbs_int:
+        case ifc_tbs_nullptr:
+        case ifc_tbs_void:
+        case ifc_tbs_wchar_t:
+          /* These fundamental types can always be expressed by direct
+             reference. */
+          result = FALSE;
+          break;
+        case ifc_tbs_class:
+        case ifc_tbs_concept:
+        case ifc_tbs_ellipsis:
+        case ifc_tbs_empty:
+        case ifc_tbs_enum:
+        case ifc_tbs_function:
+        case ifc_tbs_interface:
+        case ifc_tbs_namespace:
+        case ifc_tbs_overload:
+        case ifc_tbs_segment_type:
+        case ifc_tbs_struct:
+        case ifc_tbs_typename:
+        case ifc_tbs_union:
+        case ifc_tbs_variable_template:
+          /* These fundamental types are not expected to appear here. */
+          { a_string err_msg("Unexpected fundamental type basis (",
+                             str_for(basis),
+                             ") for return type ",
+                             index_to_str(return_type));
+
+            ifc_unexpected(module_of(fund_type), err_msg);
+          }
+          goto invalid;
+        default_is_unexpected();
+      }  /* switch */
     }  /* if */
   }  /* if */
+invalid:
   return result;
 }  /* is_func_type_deduced_from_body */
 
@@ -21885,7 +22075,7 @@ Cache the return type declarator for the given function-like type.
   if (is_func_type_deduced_from_body(type)) {
     cache_placeholder_type(cache, return_type);
   } else {
-    cache_type(cache, return_type, /*cinfo=*/{});
+    cache_token_with_index(cache, tok_ifc_type_ref, return_type);
   }  /* if */
 }  /* cache_func_type_return_type */
 
@@ -23267,16 +23457,12 @@ context to help inform decisions about what to cache.
       }  /* if */
 
       an_ifc_type_index arg_type = param_context.get_param_type(i);
-      /* If the type couldn't be resolved, fail; this isn't reasonably
-         recoverable. */
-      if (is_null_index(arg_type)) {
-        goto invalid;
-      }  /* if */
+      if (is_variadic_parameter_declaration_clause_type(arg_type)) {
+        cache_token(cache, tok_ellipsis);
+      } else {
+        cache_token_with_index(cache, tok_ifc_type_ref, arg_type);
 
-      cache_type_first_part(cache, arg_type, cinfo);
-      if (!is_variadic_parameter_declaration_clause_type(arg_type)) {
         an_ifc_name_index name_idx = param_context.get_name(i);
-
         if (is_null_index(name_idx)) {
           a_string param_name("param_", i);
 
@@ -23285,7 +23471,6 @@ context to help inform decisions about what to cache.
           cache_name(cache, name_idx);
         }  /* if */
       }  /* if */
-      cache_type_second_part(cache, arg_type, cinfo);
       /* Cache the default argument if we're not ignoring default arguments in
          this context, and a default argument is found. */
       if (!cinfo.ignore_default_arguments) {
@@ -30884,6 +31069,16 @@ Return the corresponding lexical IFC index kind.
 {
   return liik_expr_index;
 }  /* get_lexical_ifc_kind<an_ifc_expr_index> */
+
+
+template<>
+a_lexical_ifc_index_kind get_lexical_ifc_kind<an_ifc_type_index>()
+/*
+Return the corresponding lexical IFC index kind.
+*/
+{
+  return liik_type_index;
+}  /* get_lexical_ifc_kind<an_ifc_type_index> */
 
 }  /* namespace */
 

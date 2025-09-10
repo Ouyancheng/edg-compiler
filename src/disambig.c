@@ -973,6 +973,7 @@ type_operator_case:
         type_specifier_seen = TRUE;
         prescan_type_operator(state, flags);
         break;
+      case tok_ifc_type_ref:
       case tok_decltype_construct:
         is_decl_specifier_token = TRUE;
         type_specifier_seen = TRUE;

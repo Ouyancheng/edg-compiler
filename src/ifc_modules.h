@@ -165,6 +165,8 @@ extern a_symbol_ptr load_tok_ifc_entity_ref();
 
 extern a_symbol_ptr load_tok_ifc_decl_ref();
 
+extern a_type_ptr load_tok_ifc_type_ref();
+
 extern void scan_ifc_param_ref_expr(an_operand *result);
 
 extern a_boolean import_ifc_module_file(a_module_import_decl_ptr midp);

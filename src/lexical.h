@@ -369,7 +369,8 @@ of the a_lexical_ifc_index_reference.
 */
 enum a_lexical_ifc_index_kind {
   liik_decl_index,      /* IFC DeclIndex. */
-  liik_expr_index       /* IFC ExprIndex. */
+  liik_expr_index,      /* IFC ExprIndex. */
+  liik_type_index       /* IFC TypeIndex. */
 };
 
 /*
@@ -1348,6 +1349,7 @@ EXTERN_CONSTINIT_ARRAY(an_opname_kind, opname_kind_for_token, tok_last + 1)
    onk_none,          /* tok_pending_ifc_expr  */
    onk_none,          /* tok_ifc_entity_ref */
    onk_none,          /* tok_ifc_decl_ref */
+   onk_none,          /* tok_ifc_type_ref */
    onk_none,          /* tok_ifc_param_ref */
    onk_none,          /* tok_ifc_decl */
    onk_none,          /* tok_unimplemented */

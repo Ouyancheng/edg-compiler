@@ -34,6 +34,7 @@ decl_spec.c -- Scanning of declaration specifiers.
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #include "statements.h"
+#include "ifc_modules.h"
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -11977,6 +11978,11 @@ process_enum_specifier:
         decl_specifiers_seen |= DS_TYPE;
         basic_type = bt_typedef;
         goto no_get_token;
+      case tok_ifc_type_ref:
+        *type_ptr = load_tok_ifc_type_ref();
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_typedef;
+        break;
       case tok_typename:
         /* A typename specifier.  The typename keyword is used to
 	   specify that the qualified name that follows the keyword is

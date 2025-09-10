@@ -3255,6 +3255,7 @@ Construct and return a shared token representing the current token.
   } else if (curr_token == tok_pending_ifc_expr ||
              curr_token == tok_ifc_entity_ref ||
              curr_token == tok_ifc_decl_ref ||
+             curr_token == tok_ifc_type_ref ||
              curr_token == tok_ifc_param_ref ||
              curr_token == tok_ifc_decl) {
     /* This token has an associated index. */

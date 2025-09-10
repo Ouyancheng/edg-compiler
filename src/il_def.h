@@ -1064,6 +1064,11 @@ enum a_token_kind : unsigned short {
                                tok_ifc_entity_ref that represents
                                an_ifc_decl_index rather than
                                an_ifc_expr_index.  */
+  tok_ifc_type_ref,         /* This is used to represent a resolved type
+                               (similar to a tok_decltype_construct).  However,
+                               the associated type is not converted from
+                               an_ifc_type_index into an IL type until the
+                               token is used during parsed. */
   tok_ifc_param_ref,        /* Generated when reading an IFC file to represent
                                an enk_param_ref representing a reference to a
                                parameter that is not yet available. */
@@ -1569,8 +1574,8 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, token_names, tok_last + 1)
    "cli typeid",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "decltype construct", "pending IFC expression",
-   "IFC entity ref", "IFC decl ref", "IFC param ref", "IFC decl",
-   "unimplemented",
+   "IFC entity ref", "IFC decl ref", "IFC type ref", "IFC param ref",
+   "IFC decl", "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",
    "^^", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",

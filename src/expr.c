@@ -43904,6 +43904,7 @@ handle_trapped_left_paren:
     case tok_typename:
     case tok_decltype:
     case tok_decltype_construct:
+    case tok_ifc_type_ref:
     case tok_underlying_type:
     case tok_add_lvalue_reference:
     case tok_add_pointer:
@@ -43953,6 +43954,9 @@ type_start:
                                              /*might_be_id_start=*/FALSE);
         } else if (curr_token == tok_decltype_construct) {
           cast_type = locator_for_curr_id.variant.decltype_type;
+          (void)get_token();
+        } else if (curr_token == tok_ifc_type_ref) {
+          cast_type = load_tok_ifc_type_ref();
           (void)get_token();
         } else if (curr_token == tok_auto) {
           cast_type = make_auto_type(&pos_curr_token, 
