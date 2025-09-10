@@ -9171,11 +9171,18 @@ keyword that would be required in some contexts.
             top = top->previous_qualifier;
           }  /* while */
           if ((top->is_class)) {
-            a_type_ptr class_type =
-                              skip_lexical_typerefs(top->qualifier.class_type);
-            if (!class_type->variant.class_struct_union.is_nonreal_class &&
-                class_type->source_corresp.parent_scope != NULL &&
-               scope_is(class_type->source_corresp.parent_scope, sck_file)) {
+            a_type_ptr                  class_type = skip_lexical_typerefs(
+                                                    top->qualifier.class_type);
+            a_source_correspondence_ptr scp;
+            if (class_type->variant.class_struct_union.is_nonreal_class &&
+                class_type_supp(class_type)->assoc_template != NULL) {
+              scp =
+                  &class_type_supp(class_type)->assoc_template->source_corresp;
+            } else {
+              scp = &class_type->source_corresp;
+            }  /* if */
+            if (scp->parent_scope != NULL &&
+               scope_is(scp->parent_scope, sck_file)) {
               need_global_qual = TRUE;
             }  /* if */
           } else if (scope_is(top->qualifier.namespace_ptr->
