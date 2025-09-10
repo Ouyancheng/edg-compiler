@@ -95,6 +95,16 @@ extern a_type_ptr skip_typerefs_not_typedefs_or_type_operators(
                                                          a_type_ptr type_ptr);
 extern a_type_ptr skip_nontemplate_typerefs(a_type_ptr type_ptr);
 
+/*
+This macro skips over a typeref that supplies cv-qualifiers or is "empty"
+(and not typedefs, type operators, alternative template arguments, name
+qualifiers, etc.).
+*/
+#define skip_qual_typeref(tp) (((tp)->variant.typeref.kind == trk_none &&     \
+                                (tp)->source_corresp.name == NULL)            \
+                                                 ? (tp)->variant.typeref.type \
+                                                 : (tp))
+
 EXPAND a_boolean is_error_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an error type.

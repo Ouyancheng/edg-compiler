@@ -8141,7 +8141,7 @@ which constant is the value.
         a_type_ptr cast_type = type != NULL ? type : constant->type;
         a_boolean  need_closing_paren = FALSE;
         /* Skip type qualifiers (which can be specified on the cast). */
-        cast_type = skip_typerefs_not_typedefs_or_type_operators(cast_type);
+        cast_type = skip_qual_typeref(cast_type);
         if (cast_type->kind == (a_type_kind)tk_array ||
             cast_type->kind == (a_type_kind)tk_pointer) {
           /* We cannot use a functional-notation cast with a type that uses
@@ -21736,13 +21736,7 @@ when possible.
          arguments), so use the functional-notation form.  If there are
          extra cv-qualifiers on the entity type they must have been added
          by the context. */
-      if (!has_name_before_mangling(init_entity_type) &&
-          !(type_is(init_entity_type, tk_typeref) &&
-            (init_entity_type->variant.typeref.kind == trk_template_arg_list ||
-             init_entity_type->variant.typeref.kind == trk_name_qualifier))) {
-        init_entity_type =
-               skip_typerefs_not_typedefs_or_type_operators(init_entity_type);
-      }  /* if */
+      init_entity_type = skip_qual_typeref(init_entity_type);
       use_func_notation_cast = TRUE;
     } else if (assoc_expr != NULL && assoc_expr->is_static_cast) {
       /* The source was a static_cast.  That's handled as a variant of the
@@ -21801,14 +21795,7 @@ when possible.
         use_func_notation_cast = TRUE;
         /*  If there are extra cv-qualifiers on the entity type they
             must have been added by the context. */
-        if (!has_name_before_mangling(init_entity_type) &&
-            !(type_is(init_entity_type, tk_typeref) &&
-              (init_entity_type->variant.typeref.kind ==
-                                                       trk_template_arg_list ||
-             init_entity_type->variant.typeref.kind == trk_name_qualifier))) {
-          init_entity_type =
-               skip_typerefs_not_typedefs_or_type_operators(init_entity_type);
-        }  /* if */
+        init_entity_type = skip_qual_typeref(init_entity_type);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (!use_func_notation_cast &&
