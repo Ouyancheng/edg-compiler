@@ -5349,6 +5349,7 @@ static constexpr an_attribute_support attribute_support_list[] = {
   { "carries_dependency",    "200809L",    "1"       },
   { "deprecated",            "201309L",    "201904L" },
   { "fallthrough",           "201603L",    "201910L" },
+  { "indeterminate",         "202403:",    "1"       },
   { "likely",                "201803L",    "1"       },
   { "maybe_unused",          "201603L",    "202106L" },
   { "no_unique_address",     "201803L",    "1"       },
@@ -5356,8 +5357,7 @@ static constexpr an_attribute_support attribute_support_list[] = {
   { "noreturn",              "200809L",    "202202L" },
   { "reproducible",          "1",          "202207L" },
   { "unlikely",              "201803L",    "1"       },
-  { "unsequenced",           "1",          "202207L" },
-  { "indeterminate",         "202403:",    "1"       }
+  { "unsequenced",           "1",          "202207L" }
 };
 
 #define NUM_CPP_ATTRIBUTES (sizeof(attribute_support_list) / \
