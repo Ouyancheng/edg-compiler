@@ -5605,7 +5605,7 @@ static void check_indeterminate_for_params(a_decl_parse_state_ptr  dps)
 /*
 Check constraints on the "indeterminate" attribute specified on the parameters
 in the given declaration.  (This function is set up as an end-of-declaration
-callback when applying a "indeterminate" attribute to a parameter.  So we know
+callback when applying an "indeterminate" attribute to a parameter.  So we know
 that the declaration involved a function declarator.)
 */
 {
@@ -5670,7 +5670,7 @@ static char* apply_indeterminate_attr(ARG_UNUSED an_attribute_ptr ap,
                                       char                        *entity,
                                       an_il_entry_kind            entity_kind)
 /*
-Apply the "no_unique_address" attribute to the field and return that entity.
+Apply the "indeterminate" attribute to the field and return that entity.
 */
 {
   a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
