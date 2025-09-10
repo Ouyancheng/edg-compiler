@@ -27957,9 +27957,9 @@ if the caller has determined that reinterpret_cast expressions can be folded
       }  /* if */
     } else if (vp->extends_lifetime) {
       /* A reference variable that extends the lifetime of a temporary bound
-         to it.  Start a new stack non-extended temporaries in this expression
-         and keep a pointer to the original stack to allocate the lifetime-
-         extended temporary. */
+         to it.  Start a new for stack non-extended temporaries in this
+         expression and keep a pointer to the original stack to allocate the
+         lifetime-extended temporary. */
       save_storage_stack(&ips, saved_stack_for_full_expr);
       init_constexpr_stack(&ips.storage_stack);
       ips.storage_stack.set_alloc_seq(ips.curr_alloc_seq_number);
