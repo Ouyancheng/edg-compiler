@@ -6772,7 +6772,11 @@ FALSE is returned) for non-class objects.
   /* Default initialization is done only in C++ and only for variables and
      static data members. */
   if (C_dialect == C_dialect_cplusplus) {
-    var = il_entry_for_symbol<a_variable>(sym);
+    if (sym->kind == (a_symbol_kind)sk_variable) {
+      var = sym->variant.variable.ptr;
+    } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+      var = sym->variant.static_data_member.variable;
+    }  /* if */
   }  /* if */
   if (var != NULL) {
     if (is_class_template_placeholder_type(var->type)) {
