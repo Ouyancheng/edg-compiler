@@ -7214,9 +7214,6 @@ FALSE is returned) for non-class objects.
       def_init_performed = TRUE;
     }  /* if */
     if (!def_init_performed) var->uninitialized = TRUE;
-  } else {
-    /* In C mode, variables without an initializer are always uninitialized. */
-    var->uninitialized = TRUE;
   }  /* if */
   db_exit();
   return def_init_performed;
