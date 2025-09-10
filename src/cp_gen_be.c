@@ -9130,14 +9130,34 @@ keyword that would be required in some contexts.
           a_name_qualifier_ptr top = nqp;
           a_boolean            need_global_qual = FALSE;
           if (is_tag_type(refp)) {
-            a_scope_ptr scope = parent_scope_of(refp);
-            if (scope != NULL) {
-              /* Push the scope in order to apply the hidden name
-                 information to see if the type is hidden in that scope and
-                 requires an elaborated type specifier. */
-              push_name_context(scope);
-              use_elab_type_spec = refp->elaborated_type_specifier_needed;
-              pop_name_context();
+            if (nqp->is_class) {
+              a_type_ptr qual_type = skip_typerefs(nqp->qualifier.class_type);
+              if (is_immediate_class_type(qual_type)) {
+                a_class_type_supplement_ptr ctsp = class_type_supp(qual_type);
+                if (ctsp->assoc_scope != NULL) {
+                  /* Push the scope in order to apply the hidden name
+                     information to see if the type is hidden in that scope and
+                     requires an elaborated type specifier. */
+                  push_name_context(ctsp->assoc_scope);
+                  use_elab_type_spec = refp->elaborated_type_specifier_needed;
+                  if (!use_elab_type_spec &&
+                      gcc_or_clang_is_generated_code_target &&
+                      refp->source_corresp.is_class_member &&
+                      refp->source_corresp.qualification_needed &&
+                      find_base_class_of(
+                               qual_type,
+                               skip_lexical_typerefs(parent_class_of(refp))) !=
+                                                                        NULL) {
+                    /* The g++ and clang compilers accept base class tag
+                       type member names hidden in derived classes if named
+                       in an elaborated type specifier, as if the base
+                       class member were declared in the derived class and
+                       hidden there by a non-type member name. */
+                    use_elab_type_spec = TRUE;
+                  }  /* if */
+                  pop_name_context();
+                }  /* if */
+              }  /* if */
             }  /* if */
           }  /* if */
           if (!suppress_typename_kwd && options == GN_DEPENDENT) {
