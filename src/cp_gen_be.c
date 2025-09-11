@@ -9183,7 +9183,12 @@ keyword that would be required in some contexts.
               scp =
                   &class_type_supp(class_type)->assoc_template->source_corresp;
             } else {
-              scp = &class_type->source_corresp;
+              if (class_type_supp(class_type)->proxy_of_type != NULL) {
+                scp =
+                   &class_type_supp(class_type)->proxy_of_type->source_corresp;
+              } else {
+                scp = &class_type->source_corresp;
+              }  /* if */
             }  /* if */
             if (scp->parent_scope != NULL &&
                scope_is(scp->parent_scope, sck_file)) {
