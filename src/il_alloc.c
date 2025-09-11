@@ -2172,8 +2172,9 @@ to default values.
       pte->alignment = 1;
       break;
     case tk_ptr_to_member:
-      pte->variant.ptr_to_member.class_of_which_a_member = NULL;
-      pte->variant.ptr_to_member.type                    = NULL;
+      pte->variant.ptr_to_member.class_of_which_a_member      = NULL;
+      pte->variant.ptr_to_member.orig_class_of_which_a_member = NULL;
+      pte->variant.ptr_to_member.type                         = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.ptr_to_member.modifiers = PM_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

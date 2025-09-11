@@ -1273,6 +1273,8 @@ handle_next_entry:
           case tk_ptr_to_member:
             remap_ptr(eptr->variant.ptr_to_member.class_of_which_a_member,
                       a_type_ptr, iek_type);
+            walk_ptr(eptr->variant.ptr_to_member.orig_class_of_which_a_member,
+                     a_type_ptr, iek_type);
             walk_ptr(eptr->variant.ptr_to_member.type, a_type_ptr, iek_type);
             break;
           case tk_routine:
