@@ -567,6 +567,8 @@ typedef struct a_struct_stmt_stack_state {
 extern void new_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 extern void restore_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 
+extern a_boolean at_end_of_statement_expression(void);
+
 extern a_boolean inside_statement_expression(void);
 
 extern a_boolean in_catch_clause(void);

@@ -25,6 +25,7 @@ statements.c -- Scanning of statements.
 
 /* Additional header files. */
 #include "decls.h"
+#include "decl_spec.h"
 #include "disambig.h"
 #include "expr.h"
 #include "exprutil.h"
@@ -240,6 +241,47 @@ Merge the reachability information from "reachability" into
   merged_reachability->suppress_unreachable_warning |=
                                     reachability->suppress_unreachable_warning;
 }  /* merge_reachability */
+
+
+a_boolean at_end_of_statement_expression(void)
+/*
+We are normally at a semicolon terminating an expression statement in a GNU
+statement expression.  Return TRUE if, ignoring attributes and semicolons, the
+next token is a right brace.  In GNU C++ mode, empty statements are not skipped
+(i.e., we return TRUE only if one or zero semicolons precede a right brace).
+*/
+{
+  a_boolean      result = FALSE, semicolon_seen = FALSE;
+  a_token_cache  cache;
+
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  for (;;) {
+    switch (curr_token) {
+      case tok_rbrace:
+        result = TRUE;
+        goto done;
+      case tok_semicolon:
+        if (semicolon_seen && gpp_version_is(any_version)) {
+          goto done;
+        }  /* if */
+        semicolon_seen = TRUE;
+        cache_curr_token(&cache);
+        (void)get_token();
+        break;
+      case tok_lbracket:
+        if (!std_attribute_tokens_next()) goto done;
+        FALLTHROUGH
+      case tok_attribute:
+        cache_attributes(&cache);
+        break;
+      default:
+        goto done;
+    }  /* switch */
+  }  /* for */
+done:
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* at_end_of_statement_expression */
 
 
 a_boolean inside_statement_expression(void)
@@ -5279,13 +5321,12 @@ the statement was preceded by the GNU C __extension__ keyword.
     /* The result of a GNU statement expression that requires nontrivial
        initialization or destruction semantics. */
     check_assertion(is_statement_expr && expr == NULL);
-    set_statement_kind(sp, (a_statement_kind)stmk_stmt_expr_result);
+    set_statement_kind(sp, stmk_stmt_expr_result);
     sp->variant.stmt_expr_result.dynamic_init = dip;
-  } else if (is_statement_expr &&
-             (curr_token == tok_rbrace || next_token() == tok_rbrace)) {
+  } else if (is_statement_expr && at_end_of_statement_expression()) {
     /* The result of a GNU statement expression: Turn the statement into an
        stmk_stmt_expr_result entry for easy identification. */
-    set_statement_kind(sp, (a_statement_kind)stmk_stmt_expr_result);
+    set_statement_kind(sp, stmk_stmt_expr_result);
   }  /* if */
   if (expr != NULL) {
     sp->expr = expr;

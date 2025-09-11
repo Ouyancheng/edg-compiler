@@ -28892,7 +28892,7 @@ already been consumed.
     a_statement_ptr     stmt, last_stmt;
     an_expr_node_ptr    expr;
     a_dynamic_init_ptr  dip = NULL;
-    check_assertion(sp->kind == (a_statement_kind)stmk_block);
+    check_assertion(sp->kind == stmk_block);
     /* The value of the expression is the value of the last statement
        in the block if it's an expression statement.  Otherwise, the
        expression is a void expression. */
@@ -28901,11 +28901,10 @@ already been consumed.
     for (stmt = sp->variant.block.statements;
          stmt != NULL;
          stmt = stmt->next) {
-      /* Remember the last statement. */
-      last_stmt = stmt;
+      /* Remember the last statement that is not an empty statement. */
+      if (stmt->kind != stmk_empty) last_stmt = stmt;
     }  /* for */
-    if (last_stmt != NULL &&
-        last_stmt->kind == (a_statement_kind)stmk_stmt_expr_result) {
+    if (last_stmt != NULL && last_stmt->kind == stmk_stmt_expr_result) {
       if (last_stmt->expr == NULL) {
         dip = last_stmt->variant.stmt_expr_result.dynamic_init;
         check_assertion(dip != NULL);
@@ -44660,10 +44659,7 @@ case, just process that expression.
   if (marked_as_gnu_extension) {
     mark_operand_as_gnu_extension(&result);
   }  /* if */
-  if (is_statement_expr &&
-      ((curr_token == tok_semicolon && next_token() == tok_rbrace) ||
-       /* Also handle the case where the semicolon was omitted. */
-       curr_token == tok_rbrace)) {
+  if (is_statement_expr && at_end_of_statement_expression()) {
     /* This is the last statement in a GNU statement expression.
        As such, it is the value of the expression. */
     result_of_stmt_expr = TRUE;

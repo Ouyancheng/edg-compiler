@@ -1,5 +1,21 @@
 Version 6.8
 
+9/10/25  [EDGcpfe/22258,EDGcpfe/28429]
+Trailing empty statements in GNU statement expressions
+
+In GNU C mode and in Clang C and C++ modes, trailing empty statements are now
+ignored when determining the result of a GNU statement expression.  For
+example:
+
+  int main() {
+    return ({ 42; ; });  // Now valid in GNU C modes and in Clang C and C++
+  }                      // modes.  Still an error in GNU C++ mode.
+
+Previously, this was an error because the final statement of the statement
+expression did not produce a result.  Now that final empty statement is
+ignored in various modes, which makes the case valid in those modes.
+
+
 9/9/25   [EDGcpfe/28249,EDGcpfe/28426]
 C++26: Attribute [[indeterminate]]
 

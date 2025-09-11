@@ -16078,18 +16078,26 @@ expression).  This routine is used in lowering both C and C++.
   a_boolean saved_inlining_enabled;
 #endif /* MINIMAL_INLINING */
   a_statement_ptr  block = expr->variant.statement;
-  a_statement_ptr  last, result_stmt = NULL;
+  a_statement_ptr  last, scout, result_stmt = NULL;
   a_variable_ptr   result_var = NULL;
 
-  check_assertion(block->kind == (a_statement_kind)stmk_block);
-  last = last_statement_in_block(block);
-  if (last != NULL && last->kind == (a_statement_kind)stmk_stmt_expr_result) {
+  check_assertion(block->kind == stmk_block);
+  /* Find the last statement in the block that is not an empty statement. */
+  scout = block->variant.block.statements;
+  if (scout != NULL) {
+    for (; scout != NULL; scout = scout->next) {
+      if (scout->kind != stmk_empty) last = scout;
+    }  /* for */
+    /* Trim the statement list after the last non-empty statement. */
+    if (last != NULL) last->next = NULL;
+  }  /* if */
+  if (last != NULL && last->kind == stmk_stmt_expr_result) {
     /* The GNU statement expression produces a value. */
     if (last->expr != NULL && is_void_type(last->expr->type)) {
       /* The "value" produced by this statement is "void", so there's no
          reason to treat this statement specially; turn it into a stmk_expr. */
       check_assertion(last->variant.stmt_expr_result.dynamic_init == NULL);
-      last->kind = (a_statement_kind)stmk_expr;
+      last->kind = stmk_expr;
     } else {
       result_stmt = last;
     }  /* if */
@@ -16124,25 +16132,24 @@ expression).  This routine is used in lowering both C and C++.
   inlining_enabled = saved_inlining_enabled;
 #endif /* MINIMAL_INLINING */
   if (result_stmt != NULL) {
-    if (result_stmt->kind == (a_statement_kind)stmk_block) {
+    if (result_stmt->kind == stmk_block) {
       /* Lowering changed the result statement into a block. */
       last = last_statement_in_block(result_stmt);
-      if (last->kind == (a_statement_kind)stmk_stmt_expr_result) {
+      if (last->kind == stmk_stmt_expr_result) {
         /* The block needs to return a value, so change it into a statement
            expression. */
         change_block_into_statement_expression(result_stmt);
-        check_assertion(result_stmt->kind == (a_statement_kind)stmk_expr);
+        check_assertion(result_stmt->kind == stmk_expr);
       }  /* if */
     } else {
       /* If it's not a block, it should be the original statement (and
          any dynamic initialization should have been lowered). */
-      check_assertion(result_stmt->kind ==
-                                     (a_statement_kind)stmk_stmt_expr_result &&
+      check_assertion(result_stmt->kind == stmk_stmt_expr_result &&
                       result_stmt->variant.stmt_expr_result.dynamic_init ==
                                                                          NULL);
     }  /* if */
     if (result_stmt->next != NULL &&
-        result_stmt->kind == (a_statement_kind)stmk_stmt_expr_result) {
+        result_stmt->kind == stmk_stmt_expr_result) {
       /* Statements have been added by lowering after the stmk_stmt_expr_result
          statement (that indicates the statement expression's result).
          The back end expects that the last statement in the statement
@@ -16163,7 +16170,7 @@ expression).  This routine is used in lowering both C and C++.
       result_expr = make_var_assignment_expr(result_var, result_stmt->expr);
       result_stmt->expr->result_is_not_used = FALSE;
       set_expr_result_not_used(result_expr);
-      set_statement_kind(result_stmt, (a_statement_kind)stmk_expr);
+      set_statement_kind(result_stmt, stmk_expr);
       result_stmt->expr = result_expr;
       /* Allocate a stmk_stmt_expr_result statement for the temporary and
          make it the last statement in the block. */

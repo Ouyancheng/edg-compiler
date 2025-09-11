@@ -9838,8 +9838,7 @@ Generate C for a statement.
       write_tok_ch(';');
       break;
     case stmk_stmt_expr_result:
-      check_assertion(statement->next == NULL &&
-                      statement->variant.stmt_expr_result.dynamic_init ==
+      check_assertion(statement->variant.stmt_expr_result.dynamic_init ==
                                                                          NULL);
       dump_expression(statement->expr);
       write_tok_ch(';');
