@@ -16078,7 +16078,7 @@ expression).  This routine is used in lowering both C and C++.
   a_boolean saved_inlining_enabled;
 #endif /* MINIMAL_INLINING */
   a_statement_ptr  block = expr->variant.statement;
-  a_statement_ptr  last, scout, result_stmt = NULL;
+  a_statement_ptr  last = NULL, scout, result_stmt = NULL;
   a_variable_ptr   result_var = NULL;
 
   check_assertion(block->kind == stmk_block);
