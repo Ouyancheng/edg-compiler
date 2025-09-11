@@ -9114,6 +9114,10 @@ keyword that would be required in some contexts.
           refp = trp->variant.typeref.type;
         }  /* if */
       }  /* if */
+      if (is_immediate_class_type(refp) &&
+          class_type_supp(refp)->proxy_of_type != NULL) {
+        refp = class_type_supp(refp)->proxy_of_type;
+      }  /* if */
       if (trp->variant.typeref.kind == trk_name_qualifier) {
         /* A nested template that was named with a qualified-id.  The
            nested-name-specifier is given by the trk_name_qualifier's type
