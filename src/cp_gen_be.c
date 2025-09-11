@@ -9178,8 +9178,11 @@ keyword that would be required in some contexts.
             a_type_ptr                  class_type = skip_lexical_typerefs(
                                                     top->qualifier.class_type);
             a_source_correspondence_ptr scp;
-            if (class_type->variant.class_struct_union.is_nonreal_class &&
-                class_type_supp(class_type)->assoc_template != NULL) {
+            if (!is_immediate_class_type(class_type)) {
+              scp = &class_type->source_corresp;
+            } else if (class_type->
+                                 variant.class_struct_union.is_nonreal_class &&
+                       class_type_supp(class_type)->assoc_template != NULL) {
               scp =
                   &class_type_supp(class_type)->assoc_template->source_corresp;
             } else {
