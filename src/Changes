@@ -1,5 +1,18 @@
 Version 6.8
 
+9/11/25  [EDGcpfe/434]
+C++-generating back end: member access expression in decltype(auto) initializer
+
+In a declaration in which the type is "decltype(auto)" and the initializer
+is a member access expression (e.g., "x.a" or "p->a"), the C++-generating
+back end previously incorrectly enclosed the initializer in parentheses,
+resulting in an incorrect type.  This is now fixed.  For example:
+
+  struct A { int i; };
+  A a;
+  decltype(auto) i5 = a.i;  // Previously generated as (a.i)
+
+
 9/10/25  [EDGcpfe/22258,EDGcpfe/28429]
 Trailing empty statements in GNU statement expressions
 
