@@ -11562,9 +11562,8 @@ static void determine_templ_arg_lists_to_use(
 new_list is a template argument list about to be used to find or create
 a class, alias, or variable template instance; is_alias_template is TRUE
 in the alias template case.  Depending on the arguments and the context,
-local and/or nonreal types are removed from the list (if
-record_form_of_name_reference is TRUE, any modifications are done on a
-copy of the list).  Values are returned in these parameters:
+local and/or nonreal types are removed from the list.  Values are returned
+in these parameters:
 
 *p_list_for_instantiation: This is the template argument list to be used
 to look for a prior instantiation, and do a new instantiation, if needed.
@@ -11579,7 +11578,6 @@ is dependent.
 {
   a_template_arg_ptr	new_list_without_local_types = NULL;
   a_template_arg_ptr	list_for_instantiation;
-  a_template_arg_ptr	stripped_list;
   a_boolean		orig_list_is_dependent = FALSE;
   a_boolean		stripped_list_is_dependent;
   a_boolean		list_copied = FALSE;
@@ -11593,16 +11591,11 @@ is dependent.
     orig_list_is_dependent = template_arg_list_is_dependent(
                                                  new_list_without_local_types);
   }  /* if */
-  if (record_form_of_name_reference) {
-    stripped_list = copy_template_arg_list(new_list);
-  } else {
-    stripped_list = new_list;
-  }  /* if */
   /* Remove any local or nonreal typedefs from the argument list. */
-  strip_types_from_template_arg_list(stripped_list, /*local_only=*/FALSE);
-  stripped_list_is_dependent = template_arg_list_is_dependent(stripped_list);
+  strip_types_from_template_arg_list(new_list, /*local_only=*/FALSE);
+  stripped_list_is_dependent = template_arg_list_is_dependent(new_list);
   if (new_list_without_local_types == NULL) {
-    new_list_without_local_types = stripped_list;
+    new_list_without_local_types = new_list;
     orig_list_is_dependent = stripped_list_is_dependent;
   }  /* if */
   if (is_alias_template ||
@@ -11612,17 +11605,13 @@ is dependent.
        contexts, use the original list to see if this refers to the
        prototype instantiation and also for any new instantiations done. */
     list_for_instantiation = new_list_without_local_types;
-    if (record_form_of_name_reference &&
-        stripped_list != new_list_without_local_types) {
-      free_template_arg_list(stripped_list);
-    }  /* if */
   } else {
     /* In other contexts, use what is now the list stripped of local
        and nonreal types. */
-    list_for_instantiation = stripped_list;
-    list_copied = stripped_list != new_list;
-    if (stripped_list != new_list_without_local_types) {
+    list_for_instantiation = new_list;
+    if (list_copied) {
       free_template_arg_list(new_list_without_local_types);
+      list_copied = FALSE;
     }  /* if */
   }  /* if */
   *p_list_for_instantiation = list_for_instantiation;
@@ -11760,7 +11749,7 @@ use the current global value of the template template parameter.
 {
   a_symbol_ptr				sym;
   a_symbol_ptr				prototype_sym;
-  a_template_arg_ptr			list_for_instantiation;
+  a_template_arg_ptr			stripped_list, list_for_instantiation;
   a_template_symbol_supplement_ptr	tssp;
   an_equiv_templ_arg_options_set	eta_options;
   a_boolean				is_alias_template;
@@ -11789,10 +11778,15 @@ use the current global value of the template template parameter.
   check_assertion(tssp->primary_template_sym == NULL);
   eta_options = eta_options_for_template(template_sym, tssp) |
                                         ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+  if (record_form_of_name_reference) {
+    stripped_list = copy_template_arg_list(*new_list);
+  } else {
+    stripped_list = *new_list;
+  }  /* if */
   /* This routine strips certain typerefs from the arguments and determines
      if the resulting list is dependent.  If list_copied is TRUE,
      list_for_instantiation points to a copy of the argument list. */
-  determine_templ_arg_lists_to_use(is_alias_template, *new_list,
+  determine_templ_arg_lists_to_use(is_alias_template, stripped_list,
                                    &list_for_instantiation, &list_copied,
                                    &dependent_arg_list);
   if (!dependent_arg_list) {
@@ -11823,7 +11817,7 @@ use the current global value of the template template parameter.
     } else if (!in_substitution &&
                !tssp->variant.class_template.invented_template &&
                !check_template_constraints(template_sym,
-                                           *new_list,
+                                           stripped_list,
                                            /*diagnose=*/TRUE)) {
       /* The template arguments do not satisfy the constraints.  Create a
          dummy symbol referring to an error type. */
@@ -11872,8 +11866,16 @@ use the current global value of the template template parameter.
                                    sym_parent_namespace(template_sym));
         }  /* if */
         sym->is_error = TRUE;
-        free_template_arg_list(*new_list);
       }  /* if */
+      /* Return the entries of any unused template argument lists to the
+         available list for reuse. */
+      if (record_form_of_name_reference) {
+        free_template_arg_list(stripped_list);
+      }  /* if */
+      if (list_copied) {
+        free_template_arg_list(list_for_instantiation);
+      }  /* if */
+      free_template_arg_list(*new_list);
       *new_list = NULL;
       goto done;
     }  /* if */
@@ -11973,26 +11975,33 @@ use the current global value of the template template parameter.
        instantiation routine if the type is already in the process of being
        instantiated (as determined by the NULL typeref type pointer). */
     if (is_alias_template) {
-      sym = instantiate_template_alias(template_sym, list_for_instantiation,
-                                       *new_list, sym);
-      *new_list = NULL;
+      sym = instantiate_template_alias(template_sym, stripped_list,
+                                       list_for_instantiation, sym);
     } else {
       sym = create_partial_instantiation_of_class(template_sym,
                                                   list_for_instantiation,
                                                   instantiate_nonreal,
                                                   dependent_arg_list);
-      if (!record_form_of_name_reference ||
-          are_template_args_lexically_identical(list_for_instantiation,
-                                                *new_list)) {
-        if (list_copied) {
-          free_template_arg_list(*new_list);
-        }  /* if */
-        *new_list = NULL;
+      if (list_copied) {
+        free_template_arg_list(stripped_list);
       }  /* if */
     }  /* if */
+    if (!record_form_of_name_reference ||
+        are_template_args_lexically_identical(list_for_instantiation,
+                                              *new_list)) {
+      /* If the actual template arguments are lexically identical to those used
+         for the instantiation, we don't need to keep track of them. */
+      if (record_form_of_name_reference) {
+        free_template_arg_list(*new_list);
+      }  /* if */
+      *new_list = NULL;
+    }  /* if */
   } else {
-    /* Return the entries of the new list without local types to the available
-       list for reuse if it is not used for instantiation. */
+    /* Return the entries of any unused template argument lists to the
+       available list for reuse. */
+    if (record_form_of_name_reference) {
+      free_template_arg_list(stripped_list);
+    }  /* if */
     if (list_copied) {
       free_template_arg_list(list_for_instantiation);
     }  /* if */
@@ -12001,6 +12010,7 @@ use the current global value of the template template parameter.
                                template_arg_list_for_symbol(sym), *new_list)) {
       /* If the template arguments are lexically identical to those used for
          the symbol, we don't need to keep track of them. */
+      free_template_arg_list(*new_list);
       *new_list = NULL;
     }  /* if */
   }  /* if */
@@ -12308,21 +12318,28 @@ If template constraints are not satisfied, return NULL.
   a_template_symbol_supplement_ptr	tssp;
   a_template_instance_ptr		tip = NULL;
   a_boolean				is_nonreal = FALSE;
-  a_template_arg_ptr			list_for_instantiation;
+  a_template_arg_ptr			stripped_list, list_for_instantiation;
   a_boolean				dependent_arg_list;
   a_boolean				list_copied;
 
   check_assertion(symbol_is(template_sym, sk_variable_template));
   template_sym = fundamental_symbol_of(template_sym);
   tssp = template_sym->variant.template_info;
+  if (record_form_of_name_reference) {
+    stripped_list = copy_template_arg_list(*new_templ_arg_list);
+  } else {
+    stripped_list = *new_templ_arg_list;
+  }  /* if */
   /* This routine strips certain typerefs from the arguments and determines
      if the resulting list is dependent.  If list_copied is TRUE,
      list_for_instantiation points to a copy of the argument list (and needs
      to be freed later). */
-  determine_templ_arg_lists_to_use(/*is_alias_template=*/FALSE,
-                                   *new_templ_arg_list,
+  determine_templ_arg_lists_to_use(/*is_alias_template=*/FALSE, stripped_list,
                                    &list_for_instantiation, &list_copied,
                                    &dependent_arg_list);
+  if (record_form_of_name_reference && list_copied) {
+    free_template_arg_list(stripped_list);
+  }  /* if */
   if (dependent_arg_list) {
     /* The instantiation is nonreal if any of its template arguments is
        dependent. */
