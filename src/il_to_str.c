@@ -3234,7 +3234,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     a_type_ptr mem_type = skip_dealiasable_typedefs(
                                               type->variant.ptr_to_member.type,
                                               octl);
-
+    a_type_ptr class_type = is_for_cp_gen_be(octl)
+                     ? type->variant.ptr_to_member.orig_class_of_which_a_member
+                     : type->variant.ptr_to_member.class_of_which_a_member;
     form_type_first_part(mem_type,
                          /*under_lhs_declarator=*/TRUE,
                          /*need_trailing_space=*/TRUE,
@@ -3252,9 +3254,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
          form_type_second_part. */
       octl->output_str("(", octl);
     }  /* if */
-    form_class_qualifier(type->variant.ptr_to_member.class_of_which_a_member,
-                         mem_type->kind != tk_routine,
-                         octl);
+    form_class_qualifier(class_type, mem_type->kind != tk_routine, octl);
     /* form_class_qualifier put out "::".  Add the final "*" here.  That's
        okay; it's a separate token. */
     octl->output_str("*", octl);
