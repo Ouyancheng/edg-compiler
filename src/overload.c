@@ -2394,7 +2394,7 @@ for the corresponding end_diagnostic call.
          Big enough for "pointer-to-member == pointer-to-member". */
       Small_string<100> buf;
       a_const_char      *pattern = cfp->operand_type_pattern;
-      a_const_char      *opname = opname_names[(int)kind];
+      a_const_char      *opname = opname_names[(int)cfp->opname_kind];
       if (pattern[1] == '\0' || pattern[1] == ';') {
         /* Unary operator. */
         buf.reset_to(opname, " ", name_for_type_code(pattern[0]));
