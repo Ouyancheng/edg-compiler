@@ -95,17 +95,6 @@ extern a_type_ptr skip_typerefs_not_typedefs_or_type_operators(
                                                          a_type_ptr type_ptr);
 extern a_type_ptr skip_nontemplate_typerefs(a_type_ptr type_ptr);
 
-/*
-This macro skips over a typeref that supplies cv-qualifiers or is "empty"
-(and not typedefs, type operators, alternative template arguments, name
-qualifiers, etc.).
-*/
-#define skip_qual_typeref(tp) ((type_is((tp), tk_typeref) &&                  \
-                                (tp)->variant.typeref.kind == trk_none && \
-                                (tp)->source_corresp.name == NULL)            \
-                                                 ? (tp)->variant.typeref.type \
-                                                 : (tp))
-
 EXPAND a_boolean is_error_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an error type.
@@ -656,6 +645,25 @@ clang/GNU type-returning type builtin.
   }  /* if */
   return result;
 }  /* typeref_is_type_operator */
+
+
+inline a_type_ptr skip_non_naming_typerefs(a_type_ptr tp)
+/*
+Skip over any typerefs that do not affect the naming of the underlying type
+(i.e., stop when a non-typeref type or a typedef, type operator,
+alternative template argument list, or name qualifier is found) and return
+the resulting type.
+*/
+{
+  while (type_is(tp, tk_typeref) &&
+         !(typeref_is_typedef(tp) ||
+           typeref_is_type_operator(tp) ||
+           is_typeref_kind(tp, trk_template_arg_list) ||
+           is_typeref_kind(tp, trk_name_qualifier))) {
+    tp = tp->variant.typeref.type;
+  }  /* while */
+  return tp;
+}  /* skip_non_naming_typerefs */
 
 
 inline a_boolean typeref_is_type_transforming_intrinsic(a_type_ptr  tp)
