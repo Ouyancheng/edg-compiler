@@ -22626,11 +22626,12 @@ handle_dynamic_init:
             write_tok_str(" = ");
             if (var->declared_with_decltype_auto &&
                 dip->kind == (a_dynamic_init_kind)dik_expression) {
-              an_expr_node_ptr expr = dip->variant.expression;
-              if (!(node_is(expr, enk_variable) ||
-                    (node_is(expr, enk_operation) &&
-                     (node_operator_is(expr, eok_dot_field) ||
-                      node_operator_is(expr, eok_points_to_field))))) {
+              an_expr_node_ptr init_expr =
+                                  skip_implicit_steps(dip->variant.expression);
+              if (!(node_is(init_expr, enk_variable) ||
+                    (node_is(init_expr, enk_operation) &&
+                     (node_operator_is(init_expr, eok_dot_field) ||
+                      node_operator_is(init_expr, eok_points_to_field))))) {
                 /* Add parens for a case like
                      decltype(auto) x = (y);
                    where omitting the parens would give the wrong type. */
