@@ -5585,18 +5585,20 @@ given the declaration.
   uintptr_t    hash = hash_ptr(decl_idx);
   a_symbol_ptr prev_sym = ifc_decl_lookup_table->get_with_hash(decl_idx, hash);
 
-  if (prev_sym != NULL) {
-    a_string_view prev_sym_str(prev_sym->header->identifier,
-                               prev_sym->header->identifier_length);
-    a_string_view sym_str(sym->header->identifier,
-                          sym->header->identifier_length);
-    a_string      err_msg("Unexpected redefinition of the associated symbol "
-                          "for ", index_to_str(decl_idx),
-                          " from \"", prev_sym_str, "\" to \"", sym_str, "\"");
+  if (prev_sym != sym) {
+    if (prev_sym != NULL) {
+      a_string_view prev_sym_str(prev_sym->header->identifier,
+                                 prev_sym->header->identifier_length);
+      a_string_view sym_str(sym->header->identifier,
+                            sym->header->identifier_length);
+      a_string      err_msg("Unexpected redefinition of the associated symbol "
+                            "for ", index_to_str(decl_idx), " from \"",
+                            prev_sym_str, "\" to \"", sym_str, "\"");
 
-    ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
+      ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
+    }  /* if */
+    ifc_decl_lookup_table->map_or_replace_with_hash(decl_idx, sym, hash);
   }  /* if */
-  ifc_decl_lookup_table->map_or_replace_with_hash(decl_idx, sym, hash);
 }  /* associate_symbol_with_declaration */
 
 
