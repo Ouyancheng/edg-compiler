@@ -14848,6 +14848,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
   a_scope_depth       depth;
 
+  if (!ips->is_constant_evaluated) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
   for (depth = depth_scope_stack;
        depth != NO_SCOPE_DEPTH;
        depth = scope_stack[depth].previous_scope) {
@@ -14872,6 +14876,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     }  /* if */
   }  /* for */
   check_assertion(depth != NO_SCOPE_DEPTH);
+done:
   return result;
 }  /* do_constexpr_std_meta_nearest_token_queuing_context */
 
@@ -14893,6 +14898,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
   a_scope_depth       depth;
 
+  if (!ips->is_constant_evaluated) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
   result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
   for (depth = depth_scope_stack;
        depth != NO_SCOPE_DEPTH;
@@ -14910,6 +14919,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     }  /* if */
   }  /* for */
   check_assertion(depth != NO_SCOPE_DEPTH);
+done:
   return result;
 }  /* do_constexpr_std_meta_nearest_class_or_namespace */
 
@@ -14931,6 +14941,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
   a_scope_depth       depth;
 
+  if (!ips->is_constant_evaluated) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
   result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
   for (depth = depth_scope_stack;
        depth != NO_SCOPE_DEPTH;
@@ -14944,6 +14958,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     }  /* if */
   }  /* for */
   check_assertion(depth != NO_SCOPE_DEPTH);
+done:
   return result;
 }  /* do_constexpr_std_meta_nearest_namespace */
 
