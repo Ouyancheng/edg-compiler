@@ -10734,11 +10734,12 @@ error type is used.
 #if EXPENSIVE_CHECKING
     if (!any_dependent_args) {
       /* Check that the type is not already on the instantiation list. */
-      check_new_class_instantiation(template_sym, tssp, template_arg_list);
+      check_new_class_instantiation(template_sym, tssp, orig_arg_list);
     }  /* if */
 #endif /* EXPENSIVE_CHECKING */
     /* Add the instantiation to the instantiations list for the template. */
-    add_instantiation(template_sym, tssp, instance_sym, template_arg_list);
+    add_instantiation(template_sym, tssp, instance_sym,
+                      orig_arg_list);
     set_alias_nonreal_flag(instance_sym, template_arg_list,
                            dependent_arg_list, any_dependent_args);
     if (instance_sym->is_class_member) {
@@ -10753,7 +10754,7 @@ error type is used.
     ttsp = type->variant.typeref.extra_info;
     ttsp->template_arg_list = template_arg_list;
     /* Copy the list to make sure it isn't shared with some other type. */
-    ttsp->orig_template_arg_list = orig_arg_list;
+    ttsp->orig_template_arg_list = copy_template_arg_list(orig_arg_list);
     {
       /* Record the template on which this is based.  Unlike classes, this
          refers to the subordinate template (X<int>::Y<T> rather than
