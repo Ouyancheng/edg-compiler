@@ -26521,11 +26521,11 @@ friend_template_checks_done:
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (!is_definition && attributes != NULL &&
         !source_sequence_entries_disallowed) {
-      /* Add a secondary source sequence entry to attach attributes to a
-         class template declaration. */
+      /* Add a secondary source sequence entry to attach a copy of the
+         attributes to a class template declaration. */
       a_src_seq_secondary_decl_ptr sssdp = secondary_src_seq_for_template(
                                                 decl_state->il_template_entry);
-      sssdp->attributes = attributes;
+      sssdp->attributes = copy_of_attributes_list(attributes);
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
