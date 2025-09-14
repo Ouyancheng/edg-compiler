@@ -9038,7 +9038,6 @@ keyword that would be required in some contexts.
   a_gen_name_options_set options = GN_NO_OPTIONS;
   a_type_ptr             poss_dep_type = NULL;
   a_boolean              use_elab_type_spec = FALSE;
-  a_name_qualifier_ptr   nqp;
 
   if (is_immediate_class_type(type) &&
       type->variant.class_struct_union.proxy_class) {
@@ -9050,14 +9049,6 @@ keyword that would be required in some contexts.
   } else if (type->source_corresp.is_class_member &&
              is_template_param_or_nonreal_class_type(parent_class_of(type))) {
     poss_dep_type = parent_class_of(type);
-  } else if (type_is(type, tk_typeref) &&
-             is_typeref_kind(type, trk_name_qualifier)) {
-    nqp = type->variant.typeref.extra_info->name_qualifier;
-    if (nqp->is_class &&
-        is_template_param_or_nonreal_class_type(skip_lexical_typerefs(
-                                                 nqp->qualifier.class_type))) {
-      poss_dep_type = nqp->qualifier.class_type;
-    }  /* if */
   }  /* if */
   if (poss_dep_type != NULL) {
     if (poss_dep_type->kind == tk_template_param) {
@@ -9132,7 +9123,8 @@ keyword that would be required in some contexts.
            nested-name-specifier is given by the trk_name_qualifier's type
            supplement, which might also be a template with an alternative
            template argument list. */
-        nqp = trp->variant.typeref.extra_info->name_qualifier;
+         a_name_qualifier_ptr nqp =
+                               trp->variant.typeref.extra_info->name_qualifier;
         if (nqp != NULL) {
           /* Use the specified qualifier.  If the instance type is
              dependent, prefix the output with the "typename" keyword.  If
