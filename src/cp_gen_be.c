@@ -9050,6 +9050,7 @@ keyword that would be required in some contexts.
   } else if (type->source_corresp.is_class_member &&
              is_template_param_or_nonreal_class_type(parent_class_of(type))) {
     poss_dep_type = parent_class_of(type);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   } else if (type_is(type, tk_typeref) &&
              is_typeref_kind(type, trk_name_qualifier)) {
     nqp = type->variant.typeref.extra_info->name_qualifier;
@@ -9058,6 +9059,7 @@ keyword that would be required in some contexts.
                                                  nqp->qualifier.class_type))) {
       poss_dep_type = nqp->qualifier.class_type;
     }  /* if */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   }  /* if */
   if (poss_dep_type != NULL) {
     if (poss_dep_type->kind == tk_template_param) {
