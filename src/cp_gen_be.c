@@ -9054,7 +9054,7 @@ keyword that would be required in some contexts.
   } else if (type_is(type, tk_typeref) &&
              is_typeref_kind(type, trk_name_qualifier)) {
     nqp = type->variant.typeref.extra_info->name_qualifier;
-    if (nqp->is_class &&
+    if (nqp != NULL && nqp->is_class &&
         is_template_param_or_nonreal_class_type(skip_lexical_typerefs(
                                                  nqp->qualifier.class_type))) {
       poss_dep_type = nqp->qualifier.class_type;
