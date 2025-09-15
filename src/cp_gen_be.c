@@ -9038,7 +9038,9 @@ keyword that would be required in some contexts.
   a_gen_name_options_set options = GN_NO_OPTIONS;
   a_type_ptr             poss_dep_type = NULL;
   a_boolean              use_elab_type_spec = FALSE;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   a_name_qualifier_ptr   nqp;
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
   if (is_immediate_class_type(type) &&
       type->variant.class_struct_union.proxy_class) {
