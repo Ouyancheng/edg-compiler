@@ -23272,6 +23272,9 @@ typedef struct a_type_and_name_qualifier {
   a_name_qualifier_ptr
                 name_qualifier;
                         /* The name qualifier. */
+  a_boolean     is_global_qualified_name;
+                        /* TRUE if the name was written using a global
+                           namespace qualifier. */
 } a_type_and_name_qualifier;
 
 /*
@@ -23304,7 +23307,8 @@ to a type and name qualifier pair.
   a_type_and_name_qualifier
                 *info = (a_type_and_name_qualifier*)key;
   a_hash_value  value = 31*hash_ptr(info->type) +
-                        hash_ptr(info->name_qualifier);
+                        hash_ptr(info->name_qualifier) +
+                        13*info->is_global_qualified_name;
   return value;
 }  /* hash_type_and_name_qualifier */
 
@@ -23321,7 +23325,10 @@ Return TRUE if the key matches the entry.
   a_type_ptr          entry_tp = (a_type_ptr)entry;
   a_boolean           result = info->type == entry_tp->variant.typeref.type &&
                                info->name_qualifier ==
-                                        typeref_supp(entry_tp)->name_qualifier;
+                                     typeref_supp(entry_tp)->name_qualifier &&
+                               info->is_global_qualified_name &&
+                                    entry_tp->variant.typeref
+                                                     .is_global_qualified_name;
   return result;
 }  /* compare_type_and_name_qualifier */
 
@@ -23416,7 +23423,8 @@ entry with that template argument list and whose underlying type is tp.
 {
   if (locator->is_global_qualified_name || locator->name_qualifier != NULL) {
     a_type_and_name_qualifier
-                hash_key{tp, locator->name_qualifier};
+                hash_key{tp, locator->name_qualifier,
+                         (a_boolean)locator->is_global_qualified_name};
     a_type_ptr  *tp_in_table =
                       (a_type_ptr*)hash_find(name_qualifier_typeref_hash_table,
                                              &hash_key, /*create=*/TRUE);
