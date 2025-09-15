@@ -9140,11 +9140,8 @@ keyword that would be required in some contexts.
         if (nqp != NULL) {
           /* Use the specified qualifier.  If the instance type is
              dependent, prefix the output with the "typename" keyword.  If
-             the topmost qualifier in the list is at file scope,
-             unconditionally prefix the qualifier list with "::" whether
-             it's actually needed or not. */
-          a_name_qualifier_ptr top = nqp;
-          a_boolean            need_global_qual = FALSE;
+             the original form of the name was globally qualified, prefix
+             the name with "::". */
           if (is_tag_type(refp)) {
             if (nqp->is_class) {
               a_type_ptr qual_type = skip_typerefs(nqp->qualifier.class_type);
@@ -9183,38 +9180,7 @@ keyword that would be required in some contexts.
             write_tok_str(tag_keyword(refp));
             write_space();
           }  /* if */
-          while (top->previous_qualifier != NULL) {
-            top = top->previous_qualifier;
-          }  /* while */
-          if ((top->is_class)) {
-            a_type_ptr                  class_type = skip_lexical_typerefs(
-                                                    top->qualifier.class_type);
-            a_source_correspondence_ptr scp;
-            if (!is_immediate_class_type(class_type)) {
-              scp = &class_type->source_corresp;
-            } else if (class_type->
-                                 variant.class_struct_union.is_nonreal_class &&
-                       class_type_supp(class_type)->assoc_template != NULL) {
-              scp =
-                  &class_type_supp(class_type)->assoc_template->source_corresp;
-            } else {
-              if (class_type_supp(class_type)->proxy_of_type != NULL) {
-                scp =
-                   &class_type_supp(class_type)->proxy_of_type->source_corresp;
-              } else {
-                scp = &class_type->source_corresp;
-              }  /* if */
-            }  /* if */
-            if (scp->parent_scope != NULL &&
-               scope_is(scp->parent_scope, sck_file)) {
-              need_global_qual = TRUE;
-            }  /* if */
-          } else if (scope_is(top->qualifier.namespace_ptr->
-                                                   source_corresp.parent_scope,
-                              sck_file)) {
-            need_global_qual = TRUE;
-          }  /* if */
-          if (need_global_qual) {
+          if (trp->variant.typeref.is_global_qualified_name) {
             write_tok_str("::");
           }  /* if */
           gen_name_qualifier_list(nqp, /*from_name_qual_typeref=*/TRUE);
@@ -9224,19 +9190,9 @@ keyword that would be required in some contexts.
                                           /*insert_space=*/NULL)) {
             write_tok_str("template ");
           }  /* if */
-        } else if (scope_is(refp->source_corresp.parent_scope,
-                            sck_class_struct_union)) {
-          gen_class_qualifier(
-                         refp->source_corresp.parent_scope->variant.assoc_type,
-                         GN_NO_OPTIONS, /*need_closing_paren=*/NULL);
-        } else if (scope_is(refp->source_corresp.parent_scope,
-                            sck_namespace)) {
-          gen_namespace_qualifier(
-                    refp->source_corresp.parent_scope->variant.assoc_namespace,
-                    GN_NO_OPTIONS, /*need_closing_paren=*/NULL);
-        } else {
-          check_assertion(scope_is(refp->source_corresp.parent_scope,
-                                   sck_file));
+        } else if (trp->variant.typeref.is_global_qualified_name) {
+          /* A name reference pointer can be NULL if only the global
+             qualifier "::" was used. */
           write_tok_str("::");
         }  /* if */
       }  /* if */
