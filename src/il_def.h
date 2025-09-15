@@ -9285,7 +9285,9 @@ typedef struct a_typeref_type_supplement {
 		name_qualifier;
 			/* For types written with a nested name specifier
                            (i.e., the trk_name_qualifier kind), this points to
-                           the name qualifier. */
+                           the name qualifier.  It is NULL for a global
+                           namespace qualifier (in which case
+                           is_global_qualified_name is also TRUE). */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   a_template_ptr
 		assoc_template;
