@@ -7,6 +7,7 @@ Ordinarily, the noexcept specifier of a function template is instantiated when
 the exception specification is needed.  However, for a friend function
 template, the instantiation was not always delayed when the enclosing class
 template was instantiated from within an explicit specialization declaration.
+For example:
 
   template<typename T> struct D {
     template<typename U>
