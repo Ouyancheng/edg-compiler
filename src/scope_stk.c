@@ -3174,7 +3174,8 @@ the scope being pushed.
     /* The class specialization flag is also set if the parent scope is
        a specialization scope (or nested within one). */
     if (kind != (a_scope_kind)sck_file) {
-      ssep->in_class_specialization |= (ssep-1)->in_class_specialization;
+      ssep->in_class_specialization |=
+                              previous_scope_of(ssep)->in_class_specialization;
     }  /* if */
     if (kind == (a_scope_kind)sck_template_instantiation) {
       /* is_instantiation_context is TRUE for all instantiation scopes except

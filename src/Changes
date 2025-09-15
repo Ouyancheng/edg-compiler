@@ -1,5 +1,23 @@
 Version 6.8
 
+9/15/25  [EDGcpfe/28425]
+Instantiation of friend function template noexcept specifier
+
+Ordinarily, the noexcept specifier of a function template is instantiated when
+the exception specification is needed.  However, for a friend function
+template, the instantiation was not always delayed when the enclosing class
+template was instantiated from within an explicit specialization declaration.
+
+  template<typename T> struct D {
+    template<typename U>
+    friend void f(D, U) noexcept(T::v);  // Previously an error.  Now okay.
+  };
+  template<typename> struct C;
+  template<> struct C<int> {
+    D<int> d;
+  };
+
+
 9/11/25  [EDGcpfe/434]
 C++-generating back end: member access expression in decltype(auto) initializer
 
