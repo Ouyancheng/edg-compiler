@@ -23326,7 +23326,7 @@ Return TRUE if the key matches the entry.
   a_boolean           result = info->type == entry_tp->variant.typeref.type &&
                                info->name_qualifier ==
                                      typeref_supp(entry_tp)->name_qualifier &&
-                               info->is_global_qualified_name &&
+                               info->is_global_qualified_name ==
                                     entry_tp->variant.typeref
                                                      .is_global_qualified_name;
   return result;
