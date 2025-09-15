@@ -16500,8 +16500,22 @@ no corresponding type, return an error type.
           goto invalid;
         }  /* if */
 
-        an_ifc_type_index referee = get_ifc_referee(*opt_itrr);
-        result = make_rvalue_reference_type(this->derived()->load(referee));
+        an_ifc_type_index referee_idx = get_ifc_referee(*opt_itrr);
+        a_type_ptr        referee = this->derived()->load(referee_idx);
+        referee = skip_typerefs(referee);
+        /* FIXME: This is a rough approximation of what's done in
+           pointer_declarator to handle forwarding references.  Do we need to
+           do more to validate that this is a legal? */
+        if (referee->kind != tk_typeref && is_any_reference_type(referee)) {
+          result = make_reference_to_reference(
+                                            referee, /*rvalue_ref=*/TRUE,
+                                            /*tracking_ref=*/FALSE,
+                                            /*qualifiers=*/TQ_NONE,
+                                            /*qual_pos=*/&null_source_position,
+                                            /*is_error=*/NULL);
+        } else {
+          result = make_rvalue_reference_type(referee);
+        }  /* if */
       }
       break;
     case ifc_ts_type_array:
