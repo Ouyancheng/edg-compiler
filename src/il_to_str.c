@@ -2847,12 +2847,17 @@ static inline a_type_ptr skip_dealiasable_typedefs(
                                     an_il_to_str_output_control_block_ptr octl)
 /*
 Given a type pointer, skip any top level dealiasable typedefs and return the
-resulting type.
+resulting type, except that if the output is for the C++-generating back end
+and the type is a trk_template_arg_list or trk_name_qualifier typeref,
+return the original type.
 */
 {
   a_type_ptr result = type;
 
-  if (result != NULL) {
+  if (result != NULL &&
+      !(is_for_cp_gen_be(octl) && type_is(result, tk_typeref) &&
+        (is_typeref_kind(result, trk_template_arg_list) ||
+         is_typeref_kind(result, trk_name_qualifier)))) {
     result = skip_lexical_typerefs(result);
     while (typedef_should_be_dealiased(result, octl)) {
       result = skip_lexical_typerefs(result->variant.typeref.type);
@@ -3155,18 +3160,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       && !type->variant.pointer.is_pin_ptr
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                           ) {
-    a_type_ptr pointee;
-
-    if (is_for_cp_gen_be(octl) &&
-        type_is(type->variant.pointer.type, tk_typeref) &&
-        (type->variant.pointer.type->variant.typeref.kind ==
-                                                       trk_template_arg_list ||
-         type->variant.pointer.type->variant.typeref.kind ==
-                                                         trk_name_qualifier)) {
-      pointee = type->variant.pointer.type;
-    } else {
-      pointee = skip_dealiasable_typedefs(type->variant.pointer.type, octl);
-    }  /* if */
+    a_type_ptr pointee =
+                   skip_dealiasable_typedefs(type->variant.pointer.type, octl);
     /* Pointer or reference type. */
     form_type_first_part(pointee,
                          /*under_lhs_declarator=*/TRUE,
@@ -3307,7 +3302,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       a_type_ptr return_type = skip_dealiasable_typedefs(
                                              type->variant.routine.return_type,
                                              octl);
-
       form_type_first_part(return_type,
                            /*under_lhs_declarator=*/FALSE,
                            /*need_trailing_space=*/TRUE,
@@ -3337,7 +3331,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     a_type_ptr elem_type = skip_dealiasable_typedefs(
                                               type->variant.array.element_type,
                                               octl);
-
     /* A qualifier on an array type shouldn't be possible, period. */
     check_assertion_str(qualifiers == TQ_NONE,
                         "form_type_first_part: qualifier on array type");
@@ -3816,14 +3809,8 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                           ) {
     /* Pointer or reference type. */
-    a_type_ptr pointee = type->variant.pointer.type;
-    if (!(is_for_cp_gen_be(octl) && type_is(pointee, tk_typeref) &&
-          (pointee->variant.typeref.kind == trk_template_arg_list ||
-           pointee->variant.typeref.kind == trk_name_qualifier))) {
-      /* Preserve alternative template argument lists and name references in
-         the C++-generating back end. */
-      pointee = skip_dealiasable_typedefs(pointee, octl);
-    }  /* if */
+    a_type_ptr pointee =
+                   skip_dealiasable_typedefs(type->variant.pointer.type, octl);
     form_type_second_part(pointee,
                           /*under_lhs_declarator=*/TRUE,
                           options, octl);
@@ -3832,7 +3819,6 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
     a_type_ptr mem_type = skip_dealiasable_typedefs(
                                               type->variant.ptr_to_member.type,
                                               octl);
-
     if (octl->gen_compilable_code && mem_type->kind != tk_routine &&
         !octl->suppress_ptr_to_data_member_parens) {
       /* When we put out the first part of the type, we added a "(" to
@@ -3908,13 +3894,7 @@ void form_type(a_type_ptr                            type,
 Output a string for a type.  Do the output in the way described by octl.
 */
 {
-  if (!(is_for_cp_gen_be(octl) && type_is(type, tk_typeref) &&
-        (type->variant.typeref.kind == trk_template_arg_list ||
-         type->variant.typeref.kind == trk_name_qualifier))) {
-    /* Preserve alternative template argument lists and name references in
-       the C++-generating back end. */
-    type = skip_dealiasable_typedefs(type, octl);
-  }  /* if */
+  type = skip_dealiasable_typedefs(type, octl);
   if (type == NULL) {
     check_assertion(!octl->gen_compilable_code);
     octl->output_str(error_text(ec_null_type), octl);
