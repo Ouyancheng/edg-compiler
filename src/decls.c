@@ -8086,6 +8086,13 @@ type entry if appropriate, otherwise using the indicated declared_type.
        likely different from that of previous declarations.  Hence, force the
        use of the type just parsed to correctly record that information. */
     use_routine_type = FALSE;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+  } else if (skip_typerefs(rout_type)->variant.routine.return_type !=
+                   skip_typerefs(declared_type)->variant.routine.return_type) {
+    /* When recording the form of name references, the return types need to be
+       identical. */
+    use_routine_type = FALSE;
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   } else if (routine_ptr->has_deducible_return_type) {
     /* Capture the "auto" or "decltype(auto)" return type (possibly including
        constraints) if applicable. */
