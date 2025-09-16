@@ -2646,6 +2646,8 @@ extern void rewrite_captured_variable_access(an_operand *opnd);
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand,
                                                a_boolean  no_rewrite = FALSE);
 
+extern void record_rescan_info_for_node(an_expr_node  *node);
+
 extern
 an_expr_node_ptr make_node_from_operand_for_expr_list(an_operand *operand);
 

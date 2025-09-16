@@ -6171,6 +6171,33 @@ If no_rewrite is TRUE (default is FALSE), that rewrite doesn't happen.
 }  /* make_node_from_operand */
 
 
+void record_rescan_info_for_node(an_expr_node  *node)
+/*
+If we are in an expression context that may need substitution and the given
+node has no rescan information yet, record that information now.
+*/
+{
+  if (expr_stack->possible_rescan_context &&
+      node->extra.rescan_info == NULL &&
+      !is_error_node(node)) {
+    /* Get rescan information recorded for this expression by going by way of
+       an operand. */
+    an_operand  operand;
+    make_expression_operand(node, &operand);
+#if EXPENSIVE_CHECKING
+    { an_expr_node_ptr result;
+      result = make_node_from_operand(&operand);
+      /* We should get the same expression back when we extract it, because
+	 we haven't really done anything. */
+      check_assertion(result == node);
+    }
+#else /* !EXPENSIVE_CHECKING */
+    (void)make_node_from_operand(&operand);
+#endif /* EXPENSIVE_CHECKING */
+  }  /* if */
+}  /* record_rescan_info_for_node */
+
+
 an_expr_node_ptr make_node_from_operand_for_expr_list(an_operand *operand)
 /*
 Return an expression node to represent the given operand, creating one
