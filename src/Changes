@@ -1,6 +1,6 @@
 Version 6.8
 
-9/15/25  [EDGcpfe/28425]
+9/15/25  [EDGcpfe/25760,EDGcpfe/28425]
 Instantiation of friend function template noexcept specifier
 
 Ordinarily, the noexcept specifier of a function template is instantiated when
