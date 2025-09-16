@@ -10223,7 +10223,7 @@ specified by arg_list.
         }  /* if */
         advance_to_next_template_arg_simple(&tap);
         tpp = tpp->next;
-      }  /* for */
+      }  /* while */
       if (tpp != NULL && !tpp->is_pack) {
         result = FALSE;
       }  /* if */
@@ -11527,7 +11527,7 @@ TRUE, issue a diagnostic explaining the failure.
         }  /* if */
       }  /* if */
       advance_to_next_template_arg(&tpp, &tap);
-    }  /* for */
+    }  /* while */
   }  /* if */
   if (!result) {
     /* Nothing more to check. */
