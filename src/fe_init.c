@@ -946,6 +946,10 @@ Install the keywords in the symbol table.
   if (c99_bool_is_keyword) {
     /* Enable keywords available in both C99 and GNU C mode. */
     enter_c23_keyword(tok_c99_bool, "_Bool", "bool");
+    if (c23_mode) {
+      enter_keyword(tok_false, "false");
+      enter_keyword(tok_true, "true");
+    }  /* if */
   }  /* if */
   if (gnu_mode) {
     /* In GNU C/C99/C++ modes, the availability of complex type operations is
