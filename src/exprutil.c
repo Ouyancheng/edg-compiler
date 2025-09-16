@@ -6188,7 +6188,7 @@ node has no rescan information yet, record that information now.
     { an_expr_node_ptr result;
       result = make_node_from_operand(&operand);
       /* We should get the same expression back when we extract it, because
-	 we haven't really done anything. */
+         we haven't really done anything. */
       check_assertion(result == node);
     }
 #else /* !EXPENSIVE_CHECKING */
