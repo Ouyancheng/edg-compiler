@@ -6153,8 +6153,11 @@ Display the indicated attribute entry.
     case ak_likely:              kind_name = "likely";              break;
     case ak_unlikely:            kind_name = "unlikely";            break;
     case ak_no_unique_address:   kind_name = "no_unique_address";   break;
+    case ak_indeterminate:       kind_name = "indeterminate";       break;
     case ak_enable_if:           kind_name = "enable_if";           break;
     case ak_overloadable:        kind_name = "overloadable";        break;
+    case ak_pass_object_size:    kind_name = "pass_object_size";    break;
+    case ak_diagnose_if:         kind_name = "diagnose_if";         break;
     case ak_unavailable:         kind_name = "unavailable";         break;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     /* Nonstandard attributes available in both GNU and Microsoft
@@ -6296,7 +6299,8 @@ Display the indicated attribute entry.
     case ak_annotation:          kind_name = "annotation";          break;
     case ak_conditional_explicit:kind_name = "conditional_explicit";break;
     case ak_pragma_pack_state:   kind_name = "pragma_pack_state";   break;
-    default:                     kind_name = "** BAD KIND **";      break;
+    case ak_last:                kind_name = "<last>";              break;
+    default_is_unexpected();
   }  /* switch */
   disp_name("kind");
   (void)fprintf(f_display, "%s\n", kind_name);
@@ -6306,8 +6310,10 @@ Display the indicated attribute entry.
     case af_std:                 family_name = "std";               break;
     case af_gnu:                 family_name = "gnu";               break;
     case af_ms_declspec:         family_name = "ms_declspec";       break;
-    case af_alignas:             family_name = "alignas";       break;
-    default:                     family_name = "** BAD FAMILY **";  break;
+    case af_alignas:             family_name = "alignas";           break;
+    case af_has_attribute:       family_name = "has_attribute";     break;
+    case af_last:                family_name = "<last>";            break;
+    default_is_unexpected();
   }  /* switch */
   disp_name("family");
   (void)fprintf(f_display, "%s\n", family_name);
@@ -6315,6 +6321,7 @@ Display the indicated attribute entry.
     case al_implicit:            loc_name = "implicit";             break;
     case al_prefix:              loc_name = "prefix";               break;
     case al_tag_name:            loc_name = "tag name";             break;
+    case al_post_tag_definition: loc_name = "post tag definition";  break;
     case al_base_specifier:      loc_name = "base specifier";       break;
     case al_specifier:           loc_name = "specifier";            break;
     case al_declarator_id:       loc_name = "declarator-id";        break;
@@ -6327,6 +6334,7 @@ Display the indicated attribute entry.
     case al_trailing_return:     loc_name = "trailing return";      break;
     case al_post_initializer:    loc_name = "post initializer";     break;
     case al_namespace:           loc_name = "namespace";            break;
+    case al_gnu_namespace:       loc_name = "gnu_namespace";        break;
     case al_label:               loc_name = "label";                break;
     case al_explicit:            loc_name = "explicit";             break;
     case al_enumerator:          loc_name = "enumerator";           break;
@@ -6337,7 +6345,9 @@ Display the indicated attribute entry.
     case al_module:              loc_name = "module";                break;
     case al_post_using_declarator:
                                  loc_name = "post_using_declarator"; break;
-    default:                     loc_name = "** BAD LOCATION **";   break;
+    case al_lambda_expression:   loc_name = "lambda_expression";     break;
+    case al_last:                loc_name = "<last>";                break;
+    default_is_unexpected();
   }  /* switch */
   disp_name("syntactic_location");
   (void)fprintf(f_display, "%s\n", loc_name);
