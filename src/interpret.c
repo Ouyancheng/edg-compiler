@@ -27909,7 +27909,7 @@ if the caller has determined that reinterpret_cast expressions can be folded
 (when FALSE, this function can still determine that they can be folded).
 */
 {
-  a_boolean              result = TRUE;
+  a_boolean              result = TRUE, saved_storage = FALSE;
   an_interpreter_state   ips;
   a_storage_stack_state  saved_stack_for_full_expr;
   a_byte                 *result_storage = NULL;
@@ -27979,6 +27979,7 @@ if the caller has determined that reinterpret_cast expressions can be folded
       init_constexpr_stack(&ips.storage_stack);
       ips.storage_stack.set_alloc_seq(ips.curr_alloc_seq_number);
       ips.extension_state = &saved_stack_for_full_expr;
+      saved_storage = TRUE;
     }  /* if */
     ips.is_variable_initializer = TRUE;
   } else {
@@ -28121,6 +28122,9 @@ if the caller has determined that reinterpret_cast expressions can be folded
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;
+  if (saved_storage) {
+    release_constexpr_stack(&saved_stack_for_full_expr);
+  }  /* if */
   release_interpreter_state(&ips);
 done:
   return result;
