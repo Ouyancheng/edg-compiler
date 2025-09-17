@@ -6130,7 +6130,9 @@ static void disp_attribute(an_attribute_ptr  ap)
 Display the indicated attribute entry.
 */
 {
-  a_const_char *kind_name, *family_name, *loc_name;
+  a_const_char *kind_name = "<unknown>",
+               *family_name = "<unknown>",
+               *loc_name = "<unknown>";
 
   switch (ap->kind) {
     case ak_unrecognized:        kind_name = "unrecognized";        break;
