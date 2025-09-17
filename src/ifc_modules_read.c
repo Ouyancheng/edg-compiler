@@ -8210,6 +8210,32 @@ static void cache_type(a_module_token_cache_ptr cache,
                        const an_ifc_cache_info  &cinfo);
 
 
+static void cache_type_reference(a_module_token_cache_ptr cache,
+                                 an_ifc_type_index        type_idx,
+                                 const an_ifc_cache_info  &cinfo)
+/*
+If possible, cache a tok_ifc_type_ref representing a reference to the type
+represented by the given type index, to the cache.  Otherwise, cache the tokens
+composing a reference to same type.  cinfo contains information about the
+current cache context to help inform decisions about what to cache.
+*/
+{
+  if (is_msvc_authored(type_idx) &&
+      !is_null_index(cinfo.parameterizing_entity)) {
+    /* MSVC sometimes wraps IFC syntactic types in other types when authoring
+       template type information.  This causes problems when trying to process
+       template parameter packs (as there is not at the time of writing
+       appropriate code to handle parameter packs in direct-to-IL synthesis).
+       Rather than traversing the type tree to look for a syntactic type simply
+       assume that any parameterized types authored by MSVC may fall into this
+       category. */
+    cache_type(cache, type_idx, cinfo);
+  } else {
+    cache_token_with_index(cache, tok_ifc_type_ref, type_idx);
+  }  /* if */
+}  /* cache_type_reference */
+
+
 static void cache_type_param_introducer(a_module_token_cache_ptr cache,
                                         an_ifc_expr_index        constraint,
                                         a_boolean                is_pack)
@@ -16776,12 +16802,15 @@ no corresponding type, return an error type.
         }  /* if */
 
         an_ifc_type_placeholder itp = *opt_itp;
+        an_ifc_type_index       elaboration = get_ifc_elaboration(itp);
         an_ifc_type_basis_sort  basis = get_ifc_basis(itp);
+        a_boolean               is_decltype_auto;
         switch (basis) {
           case ifc_tbs_auto:
+            is_decltype_auto = FALSE;
+            break;
           case ifc_tbs_decltype_auto:
-            result = make_auto_type(&null_source_position,
-                                    basis == ifc_tbs_decltype_auto);
+            is_decltype_auto = TRUE;
             break;
           default:
             { a_string err_msg("Unexpected ", str_for(basis),
@@ -16791,6 +16820,13 @@ no corresponding type, return an error type.
             }
             goto invalid;
         }  /* switch */
+        if (is_null_index(elaboration)) {
+          result = make_auto_type(&null_source_position,
+                                  is_decltype_auto);
+        } else {
+          result = this->derived()->load(elaboration);
+          result = add_placeholder_typeref(result, is_decltype_auto);
+        }  /* if */
       }
       break;
     case ifc_ts_type_pointer_to_member:
@@ -22080,10 +22116,13 @@ Return TRUE if the function body must be cached; otherwise, return FALSE.
 
 
 template<typename an_ifc_Node_type>
-static void cache_func_type_return_type(a_module_token_cache_ptr     cache,
-                                        const an_ifc_Node_type       &type)
+static void cache_func_type_return_type(a_module_token_cache_ptr cache,
+                                        const an_ifc_Node_type   &type,
+                                        const an_ifc_cache_info  &cinfo)
 /*
-Cache the return type declarator for the given function-like type.
+Cache the return type declarator for the given function-like type.  cinfo
+contains information about the current cache context to help inform decisions
+about what to cache.
 */
 {
   an_ifc_type_index return_type = get_ifc_target(type);
@@ -22091,7 +22130,7 @@ Cache the return type declarator for the given function-like type.
   if (is_func_type_deduced_from_body(type)) {
     cache_placeholder_type(cache, return_type);
   } else {
-    cache_token_with_index(cache, tok_ifc_type_ref, return_type);
+    cache_type_reference(cache, return_type, cinfo);
   }  /* if */
 }  /* cache_func_type_return_type */
 
@@ -22705,9 +22744,12 @@ Cache a token representing the calling convention for the given destructor.
 
 template<typename an_ifc_Node_type>
 static void cache_func_return_type(a_module_token_cache_ptr cache,
-                                   const an_ifc_Node_type   &decl)
+                                   const an_ifc_Node_type   &decl,
+                                   const an_ifc_cache_info  &cinfo)
 /*
 Cache the return type declarator for the given function-like declaration.
+cinfo contains information about the current cache context to help inform
+decisions about what to cache.
 */
 {
   an_ifc_type_index func_type_idx = get_ifc_type(decl);
@@ -22722,7 +22764,7 @@ Cache the return type declarator for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_function func_type = *opt_func_type;
-        cache_func_type_return_type(cache, func_type);
+        cache_func_type_return_type(cache, func_type, cinfo);
       }
       break;
     case ifc_ts_type_method:
@@ -22734,7 +22776,7 @@ Cache the return type declarator for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_method func_type = *opt_func_type;
-        cache_func_type_return_type(cache, func_type);
+        cache_func_type_return_type(cache, func_type, cinfo);
       }
       break;
     default:
@@ -23476,7 +23518,7 @@ context to help inform decisions about what to cache.
       if (is_variadic_parameter_declaration_clause_type(arg_type)) {
         cache_token(cache, tok_ellipsis);
       } else {
-        cache_token_with_index(cache, tok_ifc_type_ref, arg_type);
+        cache_type_reference(cache, arg_type, cinfo);
 
         an_ifc_name_index name_idx = param_context.get_name(i);
         if (is_null_index(name_idx)) {
@@ -23821,7 +23863,7 @@ call operator declaration (indexed by the given call_operator_idx).
 
     construct_node_prechecked(&method_decl, call_operator_idx);
     cache_token(cache, tok_arrow);
-    cache_func_return_type(cache, method_decl);
+    cache_func_return_type(cache, method_decl, /*cinfo=*/{});
   }  /* if */
 }  /* cache_lambda_return_type */
 
@@ -26236,7 +26278,7 @@ current cache context to help inform decisions about what to cache.
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idf,
                                              cinfo);
         cache_token(cache, tok_arrow);
-        cache_func_return_type(cache, idf);
+        cache_func_return_type(cache, idf, cinfo);
         cache_func_body_or_end_decl(cache, templated_decl_idx, idf, cinfo);
       }
       break;
@@ -26270,7 +26312,7 @@ current cache context to help inform decisions about what to cache.
                                              cinfo);
         if (name_idx.sort != ifc_ns_name_conversion) {
           cache_token(cache, tok_arrow);
-          cache_func_return_type(cache, idm);
+          cache_func_return_type(cache, idm, cinfo);
         }  /* if */
         cache_func_virt_specifier_seq(cache, idm);
         cache_func_body_or_end_decl(cache, templated_decl_idx, idm, cinfo);
@@ -27054,7 +27096,7 @@ about what to cache.
         cache_func_declarator_id(cache, idf, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idf, cinfo);
         cache_token(cache, tok_arrow);
-        cache_func_return_type(cache, idf);
+        cache_func_return_type(cache, idf, cinfo);
         cache_func_body_or_end_decl(cache, decl, idf, cinfo);
       }
       break;
@@ -27081,7 +27123,7 @@ about what to cache.
         cache_func_parameters_and_qualifiers(cache, decl, idm, cinfo);
         if (name_idx.sort != ifc_ns_name_conversion) {
           cache_token(cache, tok_arrow);
-          cache_func_return_type(cache, idm);
+          cache_func_return_type(cache, idm, cinfo);
         }  /* if */
         cache_func_virt_specifier_seq(cache, idm);
         cache_func_body_or_end_decl(cache, decl, idm, cinfo);
