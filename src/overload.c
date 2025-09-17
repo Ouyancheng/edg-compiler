@@ -201,7 +201,7 @@ have entered a substitution loop.  I.e., the last entry pushed onto the stack
 has a corresponding earlier entry.
 */
 {
-  a_boolean                       result = FALSE, hash_value_computed;
+  a_boolean                       result = FALSE, hash_value_computed = FALSE;
   a_substitution_stack_entry_ptr  ssep = substitution_stack;
   a_symbol_ptr                    sym = ssep->sym;
   a_template_arg_ptr              templ_args = ssep->templ_args;
@@ -209,22 +209,36 @@ has a corresponding earlier entry.
 
   if (templ_args == NULL) goto done;
   check_assertion(sym != NULL);
-  hash_value_computed = ssep->substitution_hash_computed;
-  if (hash_value_computed) hash_value = ssep->substitution_hash;
-  ssep->substitution_hash = hash_substitution(sym, templ_args);
   for (ssep = ssep->prev; ssep != NULL; ssep = ssep->prev) {
     if (ssep->sym == sym && ssep->templ_args != NULL) {
       /* Compute the substitution hashes if needed. */
       if (!hash_value_computed) {
-        hash_value = hash_substitution(sym, templ_args);
+        a_template_arg_ptr  subst_args;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+        subst_args = copy_template_arg_list(templ_args);
+#else /* !DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+        subst_args = templ_args;
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+        hash_value = hash_substitution(sym, subst_args);
         substitution_stack->substitution_hash = hash_value;
         substitution_stack->substitution_hash_computed = TRUE;
         hash_value_computed = TRUE;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+        free_template_arg_list(subst_args);
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
       }  /* if */
       if (!ssep->substitution_hash_computed) {
-        ssep->substitution_hash = hash_substitution(ssep->sym,
-                                                    ssep->templ_args);
+        a_template_arg_ptr  subst_args;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+        subst_args = copy_template_arg_list(ssep->templ_args);
+#else /* !DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+        subst_args = templ_args;
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+        ssep->substitution_hash = hash_substitution(ssep->sym, subst_args);
         ssep->substitution_hash_computed = TRUE;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+        free_template_arg_list(subst_args);
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
       }  /* if */
       if (ssep->substitution_hash == hash_value) {
         an_equiv_templ_param_options_set  eta_flags = ETA_EXACT_MATCH_REQUIRED;

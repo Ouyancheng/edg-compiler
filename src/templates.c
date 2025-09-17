@@ -22092,8 +22092,8 @@ resulting data structure and the pointer provided by the caller is set to NULL.
   a_symbol_ptr                      sym;
   a_template_symbol_supplement_ptr  tssp;
   a_template_instance_ptr           tip = NULL;
-  a_template_arg_ptr		    tap = *new_list;
-  a_boolean			    is_error_routine = FALSE;
+  a_template_arg_ptr                tap, list_for_instantiation;
+  a_boolean                         is_error_routine = FALSE;
 
   db_enter(3, "find_template_function");
   templ_sym = fundamental_symbol_of(templ_sym);
@@ -22110,6 +22110,14 @@ resulting data structure and the pointer provided by the caller is set to NULL.
      unnamed classes/enums.  In Microsoft mode, local class types are
      acceptable even though they have no linkage.  Variable-length arrays (as
      accepted e.g.  in GNU C++ mode) are not allowed either. */
+  if (record_form_of_name_reference) {
+    /* Make a copy of the original template argument list to preserve any local
+       typerefs. */
+    list_for_instantiation = copy_template_arg_list(*new_list);
+  } else {
+    list_for_instantiation = *new_list;
+  }  /* if */
+  tap = list_for_instantiation;
   while (tap != NULL) {
     if (is_type_templ_arg(tap)) {
       a_type_ptr	type = tap->variant.type;
@@ -22159,7 +22167,8 @@ resulting data structure and the pointer provided by the caller is set to NULL.
   }  /* while */
   { a_symbol_ptr	*hash_table_sym = NULL;
     /* Look for a previously created instantiation. */
-    hash_table_sym = find_instantiation(templ_sym, tssp, *new_list,
+    hash_table_sym = find_instantiation(templ_sym, tssp,
+                                        list_for_instantiation,
                                         /*create=*/FALSE);
     /* hash_table_sym will be NULL if no entry is found, otherwise it will
        point to the symbol in the hash table. */
@@ -22177,11 +22186,11 @@ resulting data structure and the pointer provided by the caller is set to NULL.
     a_routine_ptr	templ_rout;
     check_assertion(symbol_is(templ_sym, sk_function_template));
     templ_rout = templ_sym->variant.template_info->variant.function.routine;
-    if (template_arg_list_involves_error_entity(*new_list) ||
+    if (template_arg_list_involves_error_entity(list_for_instantiation) ||
         is_or_contains_error_type(templ_rout->type) ||
         (template_has_constraints(tssp->il_template_entry) &&
-         !template_arg_list_is_dependent(*new_list) &&
-         !check_template_constraints(templ_sym, *new_list,
+         !template_arg_list_is_dependent(list_for_instantiation) &&
+         !check_template_constraints(templ_sym, list_for_instantiation,
                                      !scope_stack_top().is_rescan))) {
       /* If the argument list or the type of the prototype instantiation
          contains an error entity, don't do the partial instantiation of
@@ -22194,14 +22203,15 @@ resulting data structure and the pointer provided by the caller is set to NULL.
                                              ? sym_parent_class(templ_sym)
                                              : NULL);
     } else {
-      sym = make_template_function(templ_sym, *new_list,
+      sym = make_template_function(templ_sym, list_for_instantiation,
                                    CTWS_IS_OVERLOAD_CANDIDATE,
                                    /*in_class_specialization=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cli_or_cx_enabled && tssp->is_generic) {
         /* Make sure the generic argument list satisfies the constraints
            of the generic. */
-        verify_generic_arg_list_satisfies_constraints(templ_sym, *new_list,
+        verify_generic_arg_list_satisfies_constraints(templ_sym,
+                                                      list_for_instantiation,
                                                       source_pos);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -22212,7 +22222,8 @@ resulting data structure and the pointer provided by the caller is set to NULL.
         a_routine_ptr      inh_ctor =
                                  ctor->friends_or_originator.inherited_routine;
         a_symbol_ptr       inh_sym = symbol_for(inh_ctor);
-        a_template_arg_ptr templ_arg_list = copy_template_arg_list(*new_list);
+        a_template_arg_ptr templ_arg_list =
+                                copy_template_arg_list(list_for_instantiation);
         a_param_type_ptr   ptp, inh_ptp;
 
         if (symbol_is(inh_sym, sk_member_function)) {
@@ -22222,6 +22233,7 @@ resulting data structure and the pointer provided by the caller is set to NULL.
         inh_sym = find_template_function(inh_sym, &templ_arg_list,
                                          explicit_arg_list_present,
                                          source_pos);
+        free_template_arg_list(templ_arg_list);
         check_assertion(symbol_is(inh_sym, sk_member_function));
         inh_ctor = inh_sym->variant.routine.ptr;
         ctor->friends_or_originator.inherited_routine = inh_ctor;
@@ -22246,20 +22258,23 @@ resulting data structure and the pointer provided by the caller is set to NULL.
   } else {
     sym = tip->instance_sym;
   }  /* if */
+  if (tip != NULL && *new_list != list_for_instantiation) {
+    free_template_arg_list(list_for_instantiation);
+  }  /* if */
   /* Update the flags that indicate whether any explicitly specified template
      arguments were used. */
   if (!is_error_routine) {
     update_template_arg_usage_info(sym, *new_list, explicit_arg_list_present);
-    if (tip == NULL) {
-      *new_list = NULL;
-    } else if (!record_form_of_name_reference ||
-               are_template_args_lexically_identical(sym->variant.routine.ptr
-                                                        ->template_arg_list,
-                                                     *new_list)) {
+    if (!record_form_of_name_reference ||
+        are_template_args_lexically_identical(sym->variant.routine.ptr
+                                                 ->template_arg_list,
+                                              *new_list)) {
       /* If the template arguments are lexically identical to those used for
          the symbol, we don't need to keep track of them and can return them to
          the available list for reuse. */
-      free_template_arg_list(*new_list);
+      if (tip != NULL) {
+        free_template_arg_list(*new_list);
+      }  /* if */
       *new_list = NULL;
     }  /* if */
   } else {
