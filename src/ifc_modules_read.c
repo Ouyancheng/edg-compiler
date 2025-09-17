@@ -8094,9 +8094,20 @@ FALSE.
         goto invalid;
       }  /* if */
 
-      an_ifc_expr_named_decl            named_decl = *opt_named_decl;
-      an_ifc_decl_index                 resolution =
-                                                get_ifc_resolution(named_decl);
+      an_ifc_expr_named_decl named_decl = *opt_named_decl;
+      an_ifc_decl_index      resolution = get_ifc_resolution(named_decl);
+      if (resolution.sort == ifc_ds_decl_reference) {
+        Opt<an_ifc_decl_reference> opt_ref_decl;
+
+        construct_node(&opt_ref_decl, resolution);
+        if (!opt_ref_decl.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_reference ref_decl = *opt_ref_decl;
+        resolution = get_ifc_index(ref_decl);
+      }  /* if */
+
       Opt<an_ifc_decl_default_argument> opt_default_arg_decl;
       construct_node(&opt_default_arg_decl, resolution);
       if (!opt_default_arg_decl.has_value()) {
@@ -8138,7 +8149,14 @@ Return the default argument expression for the given parameter.
        and this function should not have been called if invalid. */
     construct_node_prechecked(&named_decl, init_decl_expr);
 
-    an_ifc_decl_index            resolution = get_ifc_resolution(named_decl);
+    an_ifc_decl_index resolution = get_ifc_resolution(named_decl);
+    if (resolution.sort == ifc_ds_decl_reference) {
+      an_ifc_decl_reference ref_decl;
+
+      construct_node_prechecked(&ref_decl, resolution);
+      resolution = get_ifc_index(ref_decl);
+    }  /* if */
+
     an_ifc_decl_default_argument default_arg_decl;
     construct_node_prechecked(&default_arg_decl, resolution);
     result = get_ifc_initializer(default_arg_decl);
