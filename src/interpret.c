@@ -27972,7 +27972,7 @@ if the caller has determined that reinterpret_cast expressions can be folded
       }  /* if */
     } else if (vp->extends_lifetime) {
       /* A reference variable that extends the lifetime of a temporary bound
-         to it.  Start a new for stack non-extended temporaries in this
+         to it.  Start a new stack for non-extended temporaries in this
          expression and keep a pointer to the original stack to allocate the
          lifetime-extended temporary. */
       save_storage_stack(&ips, saved_stack_for_full_expr);
