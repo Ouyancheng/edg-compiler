@@ -1290,22 +1290,13 @@ Return TRUE if both of the given module entity keys reside in the same module
 or both reside in the global module; otherwise, return FALSE.
 */
 {
-  a_boolean    result = FALSE;
-  a_module_ptr true_module_a = skip_module_partitions(a.mod);
-  a_module_ptr true_module_b = skip_module_partitions(b.mod);
-
-  if (true_module_a == true_module_b) {
-    /* The same IL module is being used, these are definitely the same. */
-    result = TRUE;
-  } else if (true_module_a != NULL && true_module_b != NULL) {
-    if (true_module_a->kind == mk_header_unit &&
-        true_module_b->kind == mk_header_unit) {
-      /* These are both header units, and thus are the same module by virtue
-         of being part of the global module. */
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
+  /* The module here should already be stripped of any module partitions. */
+  check_assertion(a.mod == skip_module_partitions(a.mod) &&
+                  b.mod == skip_module_partitions(b.mod));
+  /* If the same IL module is being used (or both are using no IL module and
+     are thus part of the global module); these are definitely the same
+     module. */
+  return a.mod == b.mod;
 }  /* is_same_module_or_global_module */
 
 
@@ -1452,9 +1443,6 @@ into the hash table with a new module entity value (that is constructed with an
 initial representation derived from the key).
 */
 {
-  /* A module must be present, otherwise this module entity pointer is not
-     viable. */
-  check_assertion(key.mod != NULL);
   uintptr_t           hashed_key = hash_ptr(key);
   a_module_entity_ptr mep =
                            module_entity_hash_table->get_with_hash(key,

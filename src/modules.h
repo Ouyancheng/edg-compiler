@@ -32,7 +32,9 @@ information about the module entity across different BMIs.
 */
 struct a_module_entity {
   a_module_ptr  module_info;
-                        /* The module in which this entity is defined. */
+                        /* The module corresponding to the module-unit this
+                           entity is in the purview of; if NULL, the entity is
+                           in the purview of the global module. */
   a_symbol_header_ptr
                 sym_header;
                         /* The symbol header this entity is named by (if
@@ -157,7 +159,7 @@ pointer.  Return NULL if there isn't one.
   if (is_module_entity_globally_visible(mep)) {
     result = NULL;
   } else {
-    result = skip_module_partitions(mep->module_info);
+    result = mep->module_info;
   }  /* if */
   return result;
 }  /* lookup_module_for_mep */
@@ -275,12 +277,12 @@ the global module and any exported entities from imported modules).
   a_module_ptr        result = NULL;
   a_module_entity_ptr mep = curr_module_entity();
 
-  if (mep != NULL && mep->module_info->kind != mk_header_unit) {
+  if (mep != NULL && mep->module_info != NULL &&
+      mep->module_info->kind != mk_header_unit) {
     result = mep->module_info;
   } else if (trans_unit_module != NULL) {
     result = trans_unit_module;
   }   /* if */
-  result = skip_module_partitions(result);
   return result;
 }  /* curr_lookup_module */
 

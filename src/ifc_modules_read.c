@@ -1369,6 +1369,43 @@ Return the given IFC index value as a module entry locator.
 }  /* module_entry_locator_from_index */
 
 
+template<typename an_ifc_Index_type>
+static a_module_ptr get_module_with_purview_of(an_ifc_Index_type index)
+                                                                 DELETED_FN_DEF
+
+
+template<>
+inline a_module_ptr get_module_with_purview_of(an_ifc_decl_index index)
+/*
+Return the module that the given declaration index is in the purview of.  If
+the declaration is in the purview of the global module, NULL is returned.
+*/
+{
+  a_module_ptr result = skip_module_partitions(module_of(index));
+
+  if (result->kind == mk_header_unit) {
+    result = NULL;
+  } else if (has_ifc_specifiers(index) && validate(index)) {
+    an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(index);
+
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(specifiers)) {
+      result = NULL;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_module_with_purview_of */
+
+
+template<>
+inline a_module_ptr get_module_with_purview_of(an_ifc_macro_index index)
+/*
+Return NULL as all macros are in the purview of the global module.
+*/
+{
+  return NULL;
+}  /* get_module_with_purview_of */
+
+
 static inline a_module_entity_ptr
 get_ifc_basic_module_entity(an_ifc_decl_index index)
 /*
@@ -1381,7 +1418,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
   Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(index);
 
   if (opt_decl_name_sym.has_value()) {
-    a_module_ptr          mod = module_of(index);
+    a_module_ptr          mod = get_module_with_purview_of(index);
     a_module_entity_scope *mesp =
                         get_ifc_module_entity_scope(get_ifc_home_scope(index));
     a_symbol_header_ptr   decl_name_sym = *opt_decl_name_sym;
@@ -1403,7 +1440,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
   Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(index);
 
   if (opt_decl_name_sym.has_value()) {
-    a_module_ptr          mod = module_of(index);
+    a_module_ptr          mod = get_module_with_purview_of(index);
     a_module_entity_scope *mesp =
                         get_ifc_module_entity_scope(get_ifc_home_scope(index));
     a_symbol_header_ptr   decl_name_sym = *opt_decl_name_sym;
@@ -1688,7 +1725,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 
   if (opt_decl_name_sym.has_value()) {
     a_module_ptr
-                mod = module_of(index);
+                mod = get_module_with_purview_of(index);
     a_module_entity_scope
                 *mesp = get_ifc_module_entity_scope(get_ifc_home_scope(index));
     a_symbol_header_ptr
@@ -1730,7 +1767,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
   Opt<a_symbol_header_ptr> opt_decl_name_sym = get_name_symbol(index);
 
   if (opt_decl_name_sym.has_value()) {
-    a_module_ptr          mod = module_of(index);
+    a_module_ptr          mod = get_module_with_purview_of(index);
     a_module_entity_scope *mesp =
                         get_ifc_module_entity_scope(get_ifc_home_scope(index));
     a_symbol_header_ptr   decl_name_sym = *opt_decl_name_sym;
@@ -1814,7 +1851,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
                  isolation_scope(spec_decl);
     an_owned_template_arg_list
                  templ_args = create_templ_args_for_comparison(spec_decl);
-    a_module_ptr mod = module_of(index);
+    a_module_ptr mod = get_module_with_purview_of(index);
     a_module_entity_scope
                  *mesp =
                         get_ifc_module_entity_scope(get_ifc_home_scope(index));
@@ -1854,7 +1891,7 @@ get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
                  spec_decl = *opt_spec_decl;
     an_owned_template_arg_list
                  templ_args = create_templ_args_for_comparison(spec_decl);
-    a_module_ptr mod = module_of(index);
+    a_module_ptr mod = get_module_with_purview_of(index);
     a_module_entity_scope
                  *mesp =
                         get_ifc_module_entity_scope(get_ifc_home_scope(index));
@@ -1898,7 +1935,7 @@ This function is provided as part of the implementation of
 get_ifc_module_entity, prefer get_ifc_module_entity in other cases.
 */
 {
-  a_module_ptr        mod_ptr = module_of(index);
+  a_module_ptr        mod_ptr = get_module_with_purview_of(index);
   a_module_entity_ptr result = new_fe<a_module_entity>(mod_ptr);
 
   result->locators.push_back(module_entry_locator_from_index(index));
@@ -1955,7 +1992,7 @@ invocations.  Additionally, as this module entity is stack allocated surprising
 behavior can occur if it's associated with an IL entity.
 */
 {
-  a_module_ptr    mod_ptr = module_of(index);
+  a_module_ptr    mod_ptr = get_module_with_purview_of(index);
   a_module_entity result(mod_ptr);
 
   result.locators.push_back(module_entry_locator_from_index(index));
@@ -2073,7 +2110,7 @@ cases.
             if (cached_result != NULL) {
               result = cached_result;
             } else {
-              a_module_ptr mod_ptr = module_of(index);
+              a_module_ptr mod_ptr = get_module_with_purview_of(index);
 
               result = new_fe<a_module_entity>(mod_ptr);
             }  /* if */
@@ -2108,7 +2145,7 @@ cases.
         if (cached_result != NULL) {
           result = cached_result;
         } else {
-          a_module_ptr mod_ptr = module_of(index);
+          a_module_ptr mod_ptr = get_module_with_purview_of(index);
 
           result = new_fe<a_module_entity>(mod_ptr);
         }  /* if */
