@@ -10526,61 +10526,6 @@ attribute.
 }  /* conditional_explicit_specifier */
 
 
-static a_type_ptr insert_typeref_for_naming_if_needed(a_type_ptr  tp)
-/*
-If the current locator refers to an implicit projection symbol, create a
-typeref that refers to tp and has the parent type of the projection symbol.
-This is only done when record_form_of_name_reference is TRUE for the
-current scope stack entry.  That type can be used to correctly render
-qualifiers in the C++-generating back end.  For example:
-
-    struct B {
-    protected:
-      struct N { };
-    };
-    struct C: private B {
-    protected:
-      using B::N;
-    };
-    struct D: C { friend struct E; };
-    struct E {
-      D::N *n;  // Record that the form D::N is used.
-    };
-
-The projection created for D::N represents type B::N, but using "B::N" in E
-would not be valid (inaccessible).
-*/
-{
-  a_symbol_ptr  orig_sym = locator_for_curr_id.specific_symbol;
-  a_type_ptr    naming_type = tp;
-
-  if (symbol_is(orig_sym, sk_projection) &&
-      !orig_sym->variant.projection.is_using_decl &&
-      locator_for_curr_id.is_qualified_name &&
-      record_name_references_in_context()) {
-    naming_type = orig_sym->variant.projection.extra_info->naming_type;
-    if (naming_type == NULL) {
-      a_type_ptr  parent_type = orig_sym->parent.class_type;
-      naming_type = alloc_type((a_type_kind)tk_typeref);
-      set_parent_scope(&naming_type->source_corresp, iek_type,
-                       class_type_supp(parent_type)->assoc_scope);
-      set_source_corresp(&naming_type->source_corresp, orig_sym);
-      set_class_membership(orig_sym, &naming_type->source_corresp,
-                           parent_type);
-      naming_type->variant.typeref.type = skip_lexical_typerefs(tp);
-      naming_type->variant.typeref.added_to_record_name = TRUE;
-      add_to_types_list(naming_type, DEPTH_OF_FILE_SCOPE);
-      orig_sym->variant.projection.extra_info->naming_type = naming_type;
-    } else {
-      /* The saved type should match the one we are looking for. */
-      check_assertion (naming_type->variant.typeref.type ==
-                                                    skip_lexical_typerefs(tp));
-    }  /* if */
-  }  /* if */
-  return naming_type;
-}  /* insert_typeref_for_naming_if_needed */
-
-
 static a_boolean potential_type_ahead_heuristic(void)
 /*
 The current token is "auto" in a mode where it could either be a type specifier
@@ -12509,11 +12454,6 @@ general_identifier_case:
                      if we have a template-id. */
                   process_class_template_placeholder(
                                              state, skip_lexical_typerefs(tp));
-                } else {
-                  /* In some cases, a typeref is added to record the
-                     class name used when the symbol was named using
-                     a qualified name. */
-                  *type_ptr = insert_typeref_for_naming_if_needed(tp);
                 }  /* if */
               }  /* if */
             }  /* if */
