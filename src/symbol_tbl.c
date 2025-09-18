@@ -12235,6 +12235,14 @@ that can be called with zero arguments.
         an_error_code    err_code = ec_no_default_constructor;
         if (ctor_sym != NULL && is_ineligible(ctor_sym)) {
           err_code = ec_ineligible_default_constructor;
+        } else if (ctor_sym == NULL && no_explicit) {
+          /* Check for the case of an explicit defaulted trivial
+             constructor. */
+          a_class_symbol_supplement  *cssp;
+          cssp = class_symbol_supp(symbol_for(class_type));
+          if (has_explicit_trivial_default_ctor(cssp)) {
+            err_code = ec_default_constructor_is_explicit;
+          }  /* if */
         }  /* if */
         dp = pos_ty_start_error(err_code, err_pos, class_type);
         add_on_diag_for_skipped_inaccessible_function(inaccessible_match, dp);

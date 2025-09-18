@@ -1977,6 +1977,7 @@ the position at which diagnostics should be issued.
     /* It is an array of class objects. */
     a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(etype);
     if (has_trivial_default_constructor(cssp) &&
+        !has_explicit_trivial_default_ctor(cssp) &&
         (!exceptions_enabled || cssp->has_trivial_destructor)) {
       a_boolean  err = FALSE;
       if (!is_aggregate_type(etype)) {
@@ -1993,7 +1994,8 @@ the position at which diagnostics should be issued.
       /* No initializers needed for the remaining array elements. */
     } else {
       /* Initialization must be represented in the IL since it is not
-         trivial. */
+         trivial (or requires nontrivial handling, such as issuing an error
+         because the constructor is explicit). */
       a_constant_ptr  remainder_con;
       nontrivial = TRUE;
       partial_init_flag = FALSE;
@@ -2802,6 +2804,7 @@ members up to end_field, but not including end_field, should be initialized.
       a_class_symbol_supplement_ptr
                       cssp = symbol_supplement_for_class(btp);
       if (!has_trivial_default_constructor(cssp) ||
+          has_explicit_trivial_default_ctor(cssp) ||
           (exceptions_enabled && !cssp->has_trivial_destructor)) {
         /* Nontrivial initialization/destruction. */
         init_con = default_nontrivial_init_constant_for_aggr_member(
@@ -2858,10 +2861,10 @@ members up to end_field, but not including end_field, should be initialized.
       if (is_real_class_type(ftp)) {
         a_class_symbol_supplement  *cssp = symbol_supplement_for_class(ftp);
         if (!has_trivial_default_constructor(cssp) ||
+            has_explicit_trivial_default_ctor(cssp) ||
             (exceptions_enabled && has_nontrivial_destructor(cssp)) ||
             (!cssp->is_class_aggregate &&
-             class_type_supp(ftp)->anonymous_union_kind ==
-                                         (an_anonymous_union_kind)auk_field)) {
+             class_type_supp(ftp)->anonymous_union_kind == auk_field)) {
           /* A default constructor and/or a destructor must be called to
              initialize this field. */
           last_dyn_field = fp;
@@ -2904,7 +2907,7 @@ members up to end_field, but not including end_field, should be initialized.
         init_con = aggr_init_constant_from_field_initializer(
                                 fp, fp->initializer, aggr_type, is, diag_pos);
       } else {
-        if (ftp->kind == (a_type_kind)tk_array) {
+        if (type_is(ftp, tk_array)) {
           atp = ftp;
           ftp = underlying_array_element_type(ftp);
           ftp = skip_typerefs(ftp);
@@ -2914,13 +2917,13 @@ members up to end_field, but not including end_field, should be initialized.
              destructor may be involved. */
           a_class_symbol_supplement_ptr
                                       cssp = symbol_supplement_for_class(ftp);
-          if (class_type_supp(ftp)->anonymous_union_kind ==
-                                         (an_anonymous_union_kind)auk_field) {
+          if (class_type_supp(ftp)->anonymous_union_kind == auk_field) {
             /* Anonymous union types don't have their own constructors or
                destructors, but if they include a field with an initializer,
                their initialization is not simply value initialization. */
             init_con = implicit_init_anonymous_union_member(ftp, is, diag_pos);
           } else if (!has_trivial_default_constructor(cssp) ||
+                     has_explicit_trivial_default_ctor(cssp) ||
                      (exceptions_enabled && !cssp->has_trivial_destructor)) {
             /* Nontrivial initialization/destruction. */
             init_con = default_nontrivial_init_constant_for_aggr_member(

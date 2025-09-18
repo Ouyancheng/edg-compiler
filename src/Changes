@@ -1,5 +1,20 @@
 Version 6.8
 
+9/18/25  [EDGcpfe/23985]
+Diagnosing explicit default constructor uses for copy-initialization
+
+Consider:
+
+  struct E { explicit E() = default; };
+  struct X { E e; };
+  X x = {};  // Previously accepted.  Now an error.
+
+The front end previously ignored the fact that a trivial default constructor
+may not be eligible for certain initializations, and thus accepted the example
+above even though it requires a non-explicit default constructor.  This is now
+fixed: An error is issued.
+
+
 9/18/25  [EDGcpfe/28448]
 GNU/Clang compatibility: exception specification on __builtin_source_location
 

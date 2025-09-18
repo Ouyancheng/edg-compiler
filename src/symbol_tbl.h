@@ -7325,6 +7325,20 @@ Return TRUE if the given symbol is a deduction guide; otherwise, return FALSE.
      (cssp)->trivial_default_constructor != NULL ||                  \
      (cssp)->constructor == NULL)
 
+inline a_boolean has_explicit_trivial_default_ctor(
+                                             a_class_symbol_supplement  *cssp)
+/*
+Return TRUE if the trivial default constructor is "explicit" (that can happen
+if it is defined with "= default;").
+*/
+{
+   return cssp->trivial_default_constructor != NULL &&
+          cssp->trivial_default_constructor->variant.routine.ptr
+                                           ->is_explicit_constructor;
+}  /* has_explicit_trivial_default_ctor */
+
+
+
 /* Return TRUE if a symbol is a destructor symbol. */
 #define is_destructor_symbol(sym)                                     \
   is_special_function_symbol(sym,                                     \
