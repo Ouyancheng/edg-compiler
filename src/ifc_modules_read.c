@@ -16270,7 +16270,6 @@ done:
   return curr_arg == NULL && curr_param == NULL;
 }  /* are_template_args_compatible */
 
-
 namespace {
 
 /*
@@ -16280,6 +16279,8 @@ functions:
 
   a_type_ptr load(an_ifc_type_index type_idx);
   a_type_ptr load_syntactic(an_ifc_expr_index expr_idx);
+  a_type_ptr load_placeholder(an_ifc_type_index type_idx,
+                              a_boolean         is_decltype_auto);
 
 */
 template<typename a_Derived_type>
@@ -16875,13 +16876,8 @@ no corresponding type, return an error type.
             }
             goto invalid;
         }  /* switch */
-        if (is_null_index(elaboration)) {
-          result = make_auto_type(&null_source_position,
-                                  is_decltype_auto);
-        } else {
-          result = this->derived()->load(elaboration);
-          result = add_placeholder_typeref(result, is_decltype_auto);
-        }  /* if */
+        result = this->derived()->load_placeholder(elaboration,
+                                                   is_decltype_auto);
       }
       break;
     case ifc_ts_type_pointer_to_member:
@@ -16970,6 +16966,8 @@ This type loader attempts to load types in a context-independent way.
 struct a_context_free_type_loader : Type_loader<a_context_free_type_loader> {
   inline a_type_ptr load(an_ifc_type_index type_idx);
   inline a_type_ptr load_syntactic(an_ifc_expr_index expr_idx);
+  inline a_type_ptr load_placeholder(an_ifc_type_index type_idx,
+                                     a_boolean         is_decltype_auto);
 };  /* a_context_free_type_loader */
 
 
@@ -17136,12 +17134,27 @@ done:
 }  /* a_context_free_type_loader::load_syntactic */
 
 
+a_type_ptr a_context_free_type_loader::load_placeholder(
+                                 ARG_UNUSED an_ifc_type_index type_idx,
+                                            a_boolean         is_decltype_auto)
+/*
+Return the placeholder type that corresponds to the given IFC elaboration type
+in the module file.  If the placeholder type is a decltype(auto) type,
+is_decltype_auto should be TRUE.
+*/
+{
+  return make_auto_type(&null_source_position, is_decltype_auto);
+}  /* a_context_free_type_loader::load_placeholder */
+
+
 /*
 This type loader attempts to load types in a context-dependent way.
 */
 struct a_contextual_type_loader : Type_loader<a_contextual_type_loader> {
   inline a_type_ptr load(an_ifc_type_index type_idx);
   inline a_type_ptr load_syntactic(an_ifc_expr_index expr_idx);
+  inline a_type_ptr load_placeholder(an_ifc_type_index type_idx,
+                                     a_boolean         is_decltype_auto);
 };  /* a_contextual_type_loader */
 
 
@@ -17185,6 +17198,28 @@ invalid:
 done:
   return result;
 }  /* a_contextual_type_loader::load_syntactic */
+
+
+a_type_ptr a_contextual_type_loader::load_placeholder(
+                                            an_ifc_type_index type_idx,
+                                            a_boolean         is_decltype_auto)
+/*
+Return the placeholder type that corresponds to the given IFC elaboration type
+in the module file.  If the placeholder type is a decltype(auto) type,
+is_decltype_auto should be TRUE.
+*/
+{
+  a_type_ptr result;
+
+  if (is_null_index(type_idx)) {
+    result = make_auto_type(&null_source_position,
+                            is_decltype_auto);
+  } else {
+    result = this->derived()->load(type_idx);
+    result = add_placeholder_typeref(result, is_decltype_auto);
+  }  /* if */
+  return result;
+}  /* a_contextual_type_loader::load_placeholder */
 
 }  /* namespace */
 
