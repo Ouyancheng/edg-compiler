@@ -263,6 +263,7 @@ struct a_pp_token_descr;
 struct an_extracted_template_descr;
 struct a_removed_expr_descr;
 struct a_ud_literal_descr;
+struct an_unresolved_ud_literal_descr;
 struct a_lexical_ifc_index_reference;
 
 /*
@@ -282,6 +283,9 @@ enum a_token_extra_info_kind : a_byte {
   teik_asm_string,      /* Extra information for a Microsoft asm block. */
   teik_insert_string,   /* Extra information for an inserted token string. */
   teik_ud_lit,          /* Extra information for a user-defined literal. */
+  teik_unresolved_ud_lit,
+                        /* Extra information for a unresolved user-defined
+                           literal. */
   teik_ifc_index        /* Extra information for a pseudo-token referring to a
                            an IFC module node. */
 };
@@ -331,6 +335,10 @@ struct a_removed_expr_descr {
 Structure used to record information about a user-defined literal token.
 */
 struct a_ud_literal_descr {
+  INLINE a_ud_literal_descr() = default;
+  INLINE a_ud_literal_descr(const a_ud_literal_descr& other);
+  INLINE a_ud_literal_descr(a_ud_literal_descr&& other);
+  INLINE ~a_ud_literal_descr();
   a_constant_ptr
 		value_con;
 			/* Pointer to a constant entry (in front end
@@ -361,6 +369,36 @@ struct a_ud_literal_descr {
 			   find_literal_operator when repeating the operator
 			   lookup for a cached token. */
 };  /* a_ud_literal_descr */
+
+
+/*
+Structure used to record information about an unresolved user-defined literal
+token.
+*/
+struct an_unresolved_ud_literal_descr {
+  INLINE an_unresolved_ud_literal_descr() = default;
+  INLINE an_unresolved_ud_literal_descr(
+                                  const an_unresolved_ud_literal_descr& other);
+  INLINE an_unresolved_ud_literal_descr(
+                                       an_unresolved_ud_literal_descr&& other);
+  INLINE ~an_unresolved_ud_literal_descr();
+  a_constant_ptr
+		value_con;
+			/* Pointer to a constant entry (in front end
+			   storage) giving the value to be passed as the
+			   first argument to the literal operator
+			   designated by ud_lit_op_sym. */
+  a_constant_ptr
+		spelling_con;
+			/* Pointer to a ck_string constant entry (in front
+			   end storage) containing the characters of the
+			   token spelling with which the raw literal
+			   operator is to be invoked or the literal
+			   operator template is to be instantiated. */
+  a_symbol_locator
+		curr_id_locator;
+			/* The saved value of locator_for_curr_id. */
+};  /* an_unresolved_ud_literal_descr */
 
 
 /*
@@ -461,6 +499,8 @@ struct a_cached_token_base {
     { return this->is(teik_extracted_body); }
   INLINE a_boolean is_ud_literal() const
     { return this->is(teik_ud_lit); }
+  INLINE a_boolean is_unresolved_ud_literal() const
+    { return this->is(teik_unresolved_ud_lit); }
   INLINE a_boolean is_asm_string() const
     { return this->is(teik_asm_string); }
   INLINE a_boolean is_insert_string() const
@@ -512,6 +552,11 @@ struct a_cached_token_base {
     { return &this->extra_info.ud_lit; }
   INLINE const a_ud_literal_descr* get_ud_literal_descr() const
     { return &this->extra_info.ud_lit; }
+  INLINE an_unresolved_ud_literal_descr* get_unresolved_ud_literal_descr()
+    { return &this->extra_info.unresolved_ud_lit; }
+  INLINE const an_unresolved_ud_literal_descr*
+  get_unresolved_ud_literal_descr() const
+    { return &this->extra_info.unresolved_ud_lit; }
   INLINE char* get_asm_string()
     { return this->extra_info.asm_string; }
   INLINE a_const_char* get_asm_string() const
@@ -596,6 +641,11 @@ protected:
     a_ud_literal_descr
 		ud_lit; /* The extra information required to reconstruct a
 			   user-defined literal token. */
+    /* When extra_info_kind == teik_unresolved_ud_lit: */
+    an_unresolved_ud_literal_descr
+		unresolved_ud_lit;
+			/* The extra information required to reconstruct a
+			   unresolved user-defined literal token. */
     /* When extra_info_kind == teik_ifc_index: */
     a_lexical_ifc_index_reference
 		ifc_index;
@@ -656,15 +706,12 @@ Copy construct a new cached token base object from the given cached token base.
       this->extra_info.asm_string = other.extra_info.asm_string;
       break;
     case teik_ud_lit:
-      this->extra_info.ud_lit.value_con = alloc_cached_constant();
-      this->extra_info.ud_lit.spelling_con = alloc_cached_constant();
-      this->extra_info.ud_lit.op_sym = other.extra_info.ud_lit.op_sym;
-      this->extra_info.ud_lit.suffix = other.extra_info.ud_lit.suffix;
-      this->extra_info.ud_lit.type = other.extra_info.ud_lit.type;
-      copy_constant(other.extra_info.ud_lit.value_con,
-                    this->extra_info.ud_lit.value_con);
-      copy_constant(other.extra_info.ud_lit.spelling_con,
-                    this->extra_info.ud_lit.spelling_con);
+      new (&this->extra_info.ud_lit) a_ud_literal_descr(
+                                                      other.extra_info.ud_lit);
+      break;
+    case teik_unresolved_ud_lit:
+      new (&this->extra_info.unresolved_ud_lit) an_unresolved_ud_literal_descr(
+                                           other.extra_info.unresolved_ud_lit);
       break;
     case teik_ifc_index:
       new (&this->extra_info.ifc_index) a_lexical_ifc_index_reference(
@@ -717,12 +764,12 @@ Move construct a new cached token base object from the given cached token base.
       this->extra_info.asm_string = other.extra_info.asm_string;
       break;
     case teik_ud_lit:
-      this->extra_info.ud_lit.value_con = other.extra_info.ud_lit.value_con;
-      this->extra_info.ud_lit.spelling_con =
-                                          other.extra_info.ud_lit.spelling_con;
-      this->extra_info.ud_lit.op_sym = other.extra_info.ud_lit.op_sym;
-      this->extra_info.ud_lit.suffix = other.extra_info.ud_lit.suffix;
-      this->extra_info.ud_lit.type = other.extra_info.ud_lit.type;
+      new (&this->extra_info.ud_lit) a_ud_literal_descr(
+                                          move_from(&other.extra_info.ud_lit));
+      break;
+    case teik_unresolved_ud_lit:
+      new (&this->extra_info.unresolved_ud_lit) an_unresolved_ud_literal_descr(
+                               move_from(&other.extra_info.unresolved_ud_lit));
       break;
     case teik_ifc_index:
       new (&this->extra_info.ifc_index) a_lexical_ifc_index_reference(
@@ -764,8 +811,10 @@ Destroy the current cached token base object.
     case teik_asm_string:
       break;
     case teik_ud_lit:
-      free_cached_token_constant(this->extra_info.ud_lit.value_con);
-      free_cached_token_constant(this->extra_info.ud_lit.spelling_con);
+      this->extra_info.ud_lit.~a_ud_literal_descr();
+      break;
+    case teik_unresolved_ud_lit:
+      this->extra_info.unresolved_ud_lit.~an_unresolved_ud_literal_descr();
       break;
     case teik_ifc_index:
       this->extra_info.ifc_index.~a_lexical_ifc_index_reference();
@@ -1352,6 +1401,7 @@ EXTERN_CONSTINIT_ARRAY(an_opname_kind, opname_kind_for_token, tok_last + 1)
    onk_none,          /* tok_ifc_type_ref */
    onk_none,          /* tok_ifc_param_ref */
    onk_none,          /* tok_ifc_decl */
+   onk_none,          /* tok_unresolved_ud_literal*/
    onk_none,          /* tok_unimplemented */
    onk_subscript,     /* operator[] starts with tok_lbracket */
    onk_none,          /* tok_rbracket */
@@ -3505,6 +3555,80 @@ Destroy the current removed expression descriptor.
 {
   delete_fe(&this->cache);
 }  /* a_removed_expr_descr::~a_removed_expr_descr */
+
+
+a_ud_literal_descr::a_ud_literal_descr(const a_ud_literal_descr &other)
+/*
+Copy-construct a new user-defined literal descriptor from the given
+user-defined literal descriptor.
+*/
+  : value_con(alloc_cached_constant()), spelling_con(alloc_cached_constant()),
+    op_sym(other.op_sym), suffix(other.suffix), type(other.type)
+{
+  copy_constant(other.value_con, this->value_con);
+  copy_constant(other.spelling_con, this->spelling_con);
+}  /* a_ud_literal_descr::a_ud_literal_descr */
+
+
+a_ud_literal_descr::a_ud_literal_descr(a_ud_literal_descr &&other)
+/*
+Move-construct a new user-defined literal descriptor from the given
+user-defined literal descriptor.
+*/
+  : value_con(other.value_con), spelling_con(other.spelling_con),
+    op_sym(other.op_sym), suffix(other.suffix), type(other.type)
+{
+  other.value_con = NULL;
+  other.spelling_con = NULL;
+}  /* a_ud_literal_descr::a_ud_literal_descr */
+
+
+a_ud_literal_descr::~a_ud_literal_descr()
+/*
+Destroy the current user-defined literal descriptor.
+*/
+{
+  free_cached_token_constant(this->value_con);
+  free_cached_token_constant(this->spelling_con);
+}  /* a_ud_literal_descr::~a_ud_literal_descr */
+
+
+an_unresolved_ud_literal_descr::an_unresolved_ud_literal_descr(
+                                   const an_unresolved_ud_literal_descr &other)
+/*
+Copy-construct a new unresolved user-defined literal descriptor from the
+given unresolved user-defined literal descriptor.
+*/
+  : value_con(alloc_cached_constant()), spelling_con(alloc_cached_constant()),
+    curr_id_locator(other.curr_id_locator)
+{
+  copy_constant(other.value_con, this->value_con);
+  copy_constant(other.spelling_con, this->spelling_con);
+}  /* an_unresolved_ud_literal_descr::an_unresolved_ud_literal_descr */
+
+
+an_unresolved_ud_literal_descr::an_unresolved_ud_literal_descr(
+                                        an_unresolved_ud_literal_descr &&other)
+/*
+Move-construct a new unresolved user-defined literal descriptor from the
+given unresolved user-defined literal descriptor.
+*/
+  : value_con(alloc_cached_constant()), spelling_con(alloc_cached_constant()),
+    curr_id_locator(other.curr_id_locator)
+{
+  other.value_con = NULL;
+  other.spelling_con = NULL;
+}  /* an_unresolved_ud_literal_descr::an_unresolved_ud_literal_descr */
+
+
+an_unresolved_ud_literal_descr::~an_unresolved_ud_literal_descr()
+/*
+Destroy the current unresolved user-defined literal descriptor.
+*/
+{
+  free_cached_token_constant(this->value_con);
+  free_cached_token_constant(this->spelling_con);
+}  /* an_unresolved_ud_literal_descr::~an_unresolved_ud_literal_descr */
 
 namespace detail {
 

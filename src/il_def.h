@@ -1077,6 +1077,19 @@ enum a_token_kind : unsigned short {
                                token stream.  This token currently always
                                follows the class member declaration (including
                                the definition, if applicable). */
+  tok_unresolved_ud_literal,/* Token used during lexing of a user-defined
+                               literal to represent the incomplete token state
+                               during calls to find_literal_operator.  This
+                               allows cache_curr_token to properly persist the
+                               associated incomplete curr_token state if tokens
+                               need to be parsed during the call to
+                               find_literal_operator (e.g., because modules are
+                               loading new user-defined literal operator
+                               declarations from token caches).  This token
+                               should not appear unless a call to get_token is
+                               on the call stack; other appearances should be
+                               considered highly suspicious (and a probable
+                               bug). */
   tok_unimplemented         /* Token used to indicate keywords that are not
                                yet implemented. */,
   tok_last_complex_token = tok_unimplemented,
@@ -1575,7 +1588,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, token_names, tok_last + 1)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "decltype construct", "pending IFC expression",
    "IFC entity ref", "IFC decl ref", "IFC type ref", "IFC param ref",
-   "IFC decl", "unimplemented",
+   "IFC decl", "unresolved user-defined literal", "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",
    "^^", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",

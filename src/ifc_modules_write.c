@@ -4770,6 +4770,7 @@ a_token_kind for more information about IFC token serialization.
     case tok_string_literal:
     case tok_ud_literal:
     case tok_unimplemented:
+    case tok_unresolved_ud_literal:
     case tok_va_arg:
     case tok_va_end:
     case tok_va_start:
@@ -5088,6 +5089,11 @@ cache.
         /* FIXME: Implement these. */
         ifc_write_catastrophe();
         break;
+      case teik_unresolved_ud_lit:
+        /* This token state should never appear in a token cache that is to be
+           written to an IFC file; see the description of
+           tok_unresolved_ud_literal. */
+        unexpected_condition();
       default_is_unexpected();
     }  /* switch */
   }  /* for */

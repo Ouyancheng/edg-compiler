@@ -3054,8 +3054,10 @@ Free the given constant used by a cached token, i.e., to put it on the
 avail list to be reused.
 */
 {
-  (cp)->next = avail_cached_constants;
-  avail_cached_constants = (cp);
+  if (cp != NULL) {
+    (cp)->next = avail_cached_constants;
+    avail_cached_constants = (cp);
+  }  /* if */
 }  /* free_cached_token_constant */
 
 
@@ -3154,6 +3156,10 @@ Compute and return a hash code for the token.
     const a_ud_literal_descr *ud_lit_descr = this->get_ud_literal_descr();
 
     result = (uintptr_t)hash_constant(ud_lit_descr->spelling_con);
+  } else if (this->is_unresolved_ud_literal()) {
+    /* Hashing of this token is unexpected.  See the description of
+       tok_unresolved_ud_literal for more information. */
+    unexpected_condition();
   } else {
     /* For other tokens, just use the token kind. */
     result = (uintptr_t)this->get_kind();
@@ -3263,8 +3269,8 @@ Construct and return a shared token representing the current token.
     new (&extra_info.ifc_index) a_lexical_ifc_index_reference(
                                                      ifc_index_for_curr_token);
   } else if (curr_token == tok_ud_literal) {
-      /* Save the information needed to restore the user-defined literal
-         from the cache. */
+    /* Save the information needed to restore the user-defined literal from the
+       cache. */
     result->extra_info_kind = teik_ud_lit;
     extra_info.ud_lit.value_con = alloc_cached_constant();
     copy_constant(&const_for_curr_token,
@@ -3277,6 +3283,17 @@ Construct and return a shared token representing the current token.
                           ud_suffix_from_literal_operator_id(
                                 locator_for_curr_id.symbol_header->identifier);
     extra_info.ud_lit.type = ud_lit_type_for_curr_token;
+  } else if (curr_token == tok_unresolved_ud_literal) {
+    /* Save the information needed to restore the unresolved user-defined
+       literal from the cache. */
+    result->extra_info_kind = teik_unresolved_ud_lit;
+    extra_info.unresolved_ud_lit.value_con = alloc_cached_constant();
+    copy_constant(&const_for_curr_token,
+                  extra_info.unresolved_ud_lit.value_con);
+    extra_info.unresolved_ud_lit.spelling_con = alloc_cached_constant();
+    copy_constant(&const_with_curr_tok_spelling,
+                  extra_info.unresolved_ud_lit.spelling_con);
+    extra_info.unresolved_ud_lit.curr_id_locator = locator_for_curr_id;
   } else {
     /* No extra information needed for this token. */
   }  /* if */
@@ -3489,11 +3506,20 @@ function for most use cases and see it function for a description of the
 arguments.
 */
 {
-  a_shared_token result = build_cached_token(
+  a_shared_token              result = build_cached_token(
                                             tok_ud_literal,
                                             assign_new_token_sequence_number(),
                                             pos);
+  /* Save the current token state and mark this as a tok_unresolved_ud_literal
+     as find_literal_operator can mess with the current lexical state. */
+  a_tiny_scanning_token_cache cache;
+  a_const_char                *save_start_of_curr_token = start_of_curr_token;
+  a_const_char                *save_end_of_curr_token = end_of_curr_token;
 
+  /* Create a new lexical state for the rescan operation. */
+  push_lexical_state_stack();
+  cache_curr_token(cache.ptr());
+  curr_token = tok_unresolved_ud_literal;
   result->extra_info_kind = teik_ud_lit;
   result->extra_info.ud_lit.value_con = value_constant;
   result->extra_info.ud_lit.spelling_con = spelling_constant;
@@ -3510,6 +3536,17 @@ arguments.
                                            type,
                                            /*from_cache=*/FALSE,
                                            (a_diagnostic_ptr)NULL);
+  /* Rescan the original current token, discarding the current token state
+     (which is already copied into the given cache). */
+  rescan_cached_tokens(cache.ptr(), /*discard=*/TRUE);
+  /* Restore the start and end of the current token.  This ensures that this
+     function doesn't have an observable affect on parsing outside of the
+     cached tokens.  This must be done after the rescan as the rescan will wipe
+     out the start and end values. */
+  end_of_curr_token = save_end_of_curr_token;
+  start_of_curr_token = save_start_of_curr_token;
+  /* Return to the original lexical state. */
+  pop_lexical_state_stack();
   return result;
 }  /* a_token_factory::build_tok_ud_literal */
 
@@ -4741,6 +4778,14 @@ pragma entries, it is possible for there to be no actual token.
     make_literal_opname_locator(ud_descr->suffix, strlen(ud_descr->suffix),
                                 &locator_for_curr_id, &pos_curr_token);
     ud_lit_type_for_curr_token = ud_descr->type;
+  } else if (token->is_unresolved_ud_literal()) {
+    /* Restore const_for_curr_token and const_with_curr_tok_spelling. */
+    an_unresolved_ud_literal_descr *ud_descr =
+                                      token->get_unresolved_ud_literal_descr();
+
+    copy_constant(ud_descr->value_con, &const_for_curr_token);
+    copy_constant(ud_descr->spelling_con, &const_with_curr_tok_spelling);
+    locator_for_curr_id = ud_descr->curr_id_locator;
   } else if (token->is_ifc_reference()) {
     ifc_index_for_curr_token = token->get_ifc_index();
   }  /* if */
@@ -4914,9 +4959,15 @@ equivalent change.
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(token->get_constant(), &const_for_curr_token);
   } else if (token->is_ud_literal()) {
+    /* The value of curr_token is set to indicate to cache_curr_token (if
+       invoked by lookups triggered by find_literal_operator) that the current
+       token state is a partially resolved user-defined literal. */
+    Value_saver<a_token_kind> saved_curr_token(
+                                      &curr_token,
+                                      /*new_value=*/tok_unresolved_ud_literal);
+
     /* Restore const_for_curr_token and const_with_curr_tok_spelling. */
     const a_ud_literal_descr *ud_descr = token->get_ud_literal_descr();
-
     copy_constant(ud_descr->value_con, &const_for_curr_token);
     copy_constant(ud_descr->spelling_con, &const_with_curr_tok_spelling);
     /* Set up locator_for_curr_id and look up the symbol for the literal
@@ -4933,6 +4984,11 @@ equivalent change.
                                      /*from_cache=*/TRUE,
                                      (a_diagnostic_ptr)NULL);
     ud_lit_type_for_curr_token = ud_descr->type;
+  } else if (token->is_unresolved_ud_literal()) {
+    /* This token is not expected to appear in long-lived caches such as those
+       the reusable cache stack pulls from; see the description of
+       tok_unresolved_ud_literal for more information. */
+    unexpected_condition();
   } else if (token->is_ifc_reference()) {
     ifc_index_for_curr_token = token->get_ifc_index();
   }  /* if */
@@ -12737,25 +12793,35 @@ convert_literal_value:
         conv_float_literal(is_hex_fp_value, &err_code, &err_pos, &sev);
         *((char *)end_of_curr_token--) = saved_char;
       }  /* if */
+
+      /* A temporary variable must be used to store the type in case
+         find_literal_operator results in another user defined literal being
+         parsed while this one is still being constructed.  The value of
+         curr_token is set to indicate to cache_curr_token (if invoked by
+         lookups triggered by find_literal_operator) that the current token
+         state is a partially resolved user-defined literal. */
+      a_type_ptr new_ud_lit_type;
+      curr_token = tok_unresolved_ud_literal;
       if (is_error_constant(&const_for_curr_token)) {
         /* The literal overflowed/underflowed, which is not an error for
            raw literal operators and literal operator templates.
            Synthesize an appropriate type for the lookup. */
-        ud_lit_type_for_curr_token = (kind != k_float)
+        new_ud_lit_type = (kind != k_float)
                          ? integer_type((an_integer_kind)ik_unsigned_long_long)
                          : float_type((a_float_kind)fk_long_double);
       } else {
         /* Use the actual type of the literal. */
-        ud_lit_type_for_curr_token = const_for_curr_token.type;
+        new_ud_lit_type = const_for_curr_token.type;
       }  /* if */
       ud_lit_op_sym_for_curr_token =
                               find_literal_operator(canonical_id, id_len,
                                                     tentative_udl_lookup
                                                                   ? NULL
                                                                   : &start_pos,
-                                                    ud_lit_type_for_curr_token,
+                                                    new_ud_lit_type,
                                                     /*from_cache=*/FALSE,
                                                     (a_diagnostic_ptr)NULL);
+      ud_lit_type_for_curr_token = new_ud_lit_type;
       if (ud_lit_op_sym_for_curr_token == NULL && id_len <= 5 &&
           gnu_imaginary_literals_allowed && prefer_udl_over_imag_suffix) {
         /* g++ and clang treat something like 0.5il as a user-defined
@@ -14446,6 +14512,12 @@ kind or tok_error.  The token can be a normal or wide character constant.
           a_const_char *canonical_id =
                                 make_canonical_identifier(id_start, &id_len,
                                                           /*force_ucn=*/FALSE);
+
+          /* The value of curr_token is set to indicate to cache_curr_token (if
+             invoked by lookups triggered by find_literal_operator) that the
+             current token state is a partially resolved user-defined
+             literal. */
+          curr_token = tok_unresolved_ud_literal;
           ud_lit_op_sym_for_curr_token =
                        find_literal_operator(canonical_id, id_len, &start_pos,
                                              const_for_curr_token.type,
@@ -16055,6 +16127,10 @@ tok_ud_literal; otherwise, return tok_string_literal.
     if (user_defined_literals_enabled && ud_lit_suffix_buffer->size != 0  &&
         !suffix_mismatch) {
       /* Process the suffix. */
+      /* The value of curr_token is set to indicate to cache_curr_token (if
+         invoked by lookups triggered by find_literal_operator) that the
+         current token state is a partially resolved user-defined literal. */
+      curr_token = tok_unresolved_ud_literal;
       ud_lit_op_sym_for_curr_token =
                        find_literal_operator(ud_lit_suffix_buffer->buffer,
                                              ud_lit_suffix_buffer->size - 1,
@@ -28909,6 +28985,8 @@ Display a single cached token.
       s = "extracted-template-body";
     } else if (tok.is_ud_literal()) {
       s = "ud-literal";
+    } else if (tok.is_unresolved_ud_literal()) {
+      s = "unresolved ud-literal";
     } else if (tok.is_asm_string()) {
       s = "asm-string";
     } else if (tok.is_ifc_reference()) {
@@ -29051,6 +29129,7 @@ intentionally excludes some factors such as the token's sequence number.
       case teik_asm_string:
       case teik_insert_string:
       case teik_ud_lit:
+      case teik_unresolved_ud_lit:
       case teik_ifc_index:
         /* Currently no comparison is implement. */
         break;
