@@ -1,5 +1,15 @@
 Version 6.8
 
+9/18/25  [EDGcpfe/28448]
+GNU/Clang compatibility: exception specification on __builtin_source_location
+
+The signature for the __builtin_source_location builtin has been changed to
+be noexcept.  For example, with --clang_version=150000 --c++20:
+
+  #include <source_location>
+  static_assert(noexcept(__builtin_source_location()));  // No longer asserts.
+
+
 9/18/25  [EDGcpfe/28424]
 Spurious subsumption of disjunctive clauses in constraints
 
