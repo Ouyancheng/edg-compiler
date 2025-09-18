@@ -5380,6 +5380,9 @@ type of the variable to which it refers.
        compare the element type instead. */
     tp = array_element_type(tp);
     expected_type = array_element_type(expected_type);
+  } else if (vp->is_template_param_object) {
+    /* Uses of a template parameter object have an implicitly "const" type. */
+    expected_type = make_qualified_type(expected_type, TQ_CONST);
   } else if (!expr->is_lvalue) {
     /* Qualifiers are dropped on rvalues.  (We don't have to do this for
        types that fell into the preceding case because the lvalue-to-rvalue

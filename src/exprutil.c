@@ -8415,6 +8415,8 @@ entry).
                                operand, (a_ref_entry_ptr)NULL);
   operand->type = make_qualified_type(operand->type, TQ_CONST);
   operand->is_id_expression = TRUE;
+  check_assertion(is_expression_operand(operand));
+  operand->variant.expression->type = operand->type;
   (void)make_node_from_operand(operand);
 }  /* make_template_param_object_operand */
 
@@ -21004,8 +21006,7 @@ from being re-introduced once lowering has eliminated it).
   } else if (node->kind == (an_expr_node_kind)enk_typeid) {
     /* An rvalue for a typeid can be turned back into an lvalue. */
     possible = TRUE;
-    lvalue_type = make_qualified_type(lvalue_type,
-                                      (a_type_qualifier_set)TQ_CONST);
+    lvalue_type = make_qualified_type(lvalue_type, TQ_CONST);
   } else if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
     /* We don't expect this transformation to be done once the
        enk_object_lifetime has been added. */
@@ -22873,7 +22874,7 @@ The source positions in the operand are set to the current token position.
          are therefore immutable "in principle".  Model this by making the
          variable "const" but keeping the original type for the operand. */
       a_type_ptr  tp = temp_var->type;
-      temp_var->type = make_qualified_type(tp, (a_type_qualifier_set)TQ_CONST);
+      temp_var->type = make_qualified_type(tp, TQ_CONST);
     }  /* if */
   }  /* if */
   temp_var->initializer.constant = constant;
