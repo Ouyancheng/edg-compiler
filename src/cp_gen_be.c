@@ -6876,7 +6876,16 @@ is from a trk_name_qualifier typeref.
                                      /*include_intrinsics=*/TRUE)) {
           gen_type_operator(class_type, from_name_qual_typeref);
         } else {
-          gen_unqualified_name(scp, kind);
+          gen_bare_name(scp, kind);
+          if (has_alternative_templ_args) {
+            if (templ_args != NULL) {
+              gen_template_arguments_full(scp, kind, -1L, templ_args);
+            } else {
+              write_tok_str("<>");
+            }  /* if */
+          } else {
+            gen_template_arguments(scp, kind, -1L);
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
