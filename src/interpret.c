@@ -14265,6 +14265,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
         sym = find_template_variable(templ_sym, &t_args,
                                      /*prototype_allowed=*/TRUE,
                                      /*is_use=*/FALSE, /*diagnose=*/FALSE);
+        free_template_arg_list(t_args);
       }  /* if */
       if (sym == NULL ||
           !(symbol_is(sym, sk_variable) ||
@@ -14301,6 +14302,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
         sym = find_template_function(symbol_for(templ), &t_args,
                                      /*explicit_arg_list_present=*/FALSE,
                                      &call_node->position);
+        free_template_arg_list(t_args);
       }  /* if */
       if (sym == NULL ||
           !(symbol_is(sym, sk_routine) ||

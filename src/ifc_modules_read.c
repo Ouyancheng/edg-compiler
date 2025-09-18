@@ -6935,6 +6935,7 @@ a NULL pointer is instead returned.
                                        /*instantiation_nonreal=*/FALSE,
                                        /*do_not_create=*/FALSE,
                                        /*in_substitution=*/FALSE);
+          free_template_arg_list(member_templ_args);
         }
         break;
       case sk_function_template:
@@ -7104,6 +7105,7 @@ error occurs, return NULL.
                                        /*instantiate_nonreal=*/FALSE,
                                        /*do_not_create=*/FALSE,
                                        /*in_substitution=*/FALSE);
+          free_template_arg_list(t_args);
         } else if (symbol_is(templ_sym, sk_function_template)) {
           result = find_template_function(templ_sym, &t_args,
                                           /*explicit_arg_list_present=*/TRUE,
