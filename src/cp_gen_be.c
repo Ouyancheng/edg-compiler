@@ -6797,6 +6797,8 @@ is from a trk_name_qualifier typeref.
       a_type_ptr                  class_type = nqp->qualifier.class_type;
       a_source_correspondence_ptr scp;
       an_il_entry_kind            kind;
+      a_boolean                   has_alternative_templ_args = FALSE;
+      a_template_arg_ptr          templ_args = NULL;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       a_type_ptr                  decltype_type = NULL;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -6804,9 +6806,25 @@ is from a trk_name_qualifier typeref.
           class_type->variant.class_struct_union.proxy_class) {
         class_type = class_type_supp(class_type)->proxy_of_type;
       }  /* if */
+      if (type_is(class_type, tk_typeref) &&
+          is_typeref_kind(class_type, trk_template_arg_list)) {
+        has_alternative_templ_args = TRUE;
+        templ_args = class_type->variant.typeref.extra_info->template_arg_list;
+        class_type = class_type->variant.typeref.type;
+      }  /* if */
+      if (type_is(class_type, tk_typeref) &&
+          is_typeref_kind(class_type, trk_name_qualifier)) {
+        if (class_type->variant.typeref.extra_info->name_qualifier != NULL) {
+          gen_name_qualifier_list(class_type->variant.typeref.extra_info->
+                                                                name_qualifier,
+                                  /*from_name_qual_typeref=*/TRUE);
+        } else if (class_type->variant.typeref.is_global_qualified_name) {
+          write_tok_str(":: ");
+        }  /* if */
+        class_type = class_type->variant.typeref.type;
+      }  /* if */
       scp = &class_type->source_corresp;
-      class_type = skip_lexical_typerefs(class_type);
-      kind = (an_il_entry_kind)iek_type;
+      kind = iek_type;
       if (is_immediate_class_type(class_type) &&
           class_type->variant.class_struct_union.is_nonreal_class &&
           name_has_template_arguments(&class_type->source_corresp, iek_type,
@@ -6824,7 +6842,7 @@ is from a trk_name_qualifier typeref.
         scp = source_corresp_for_template_param(&class_type->
                                variant.template_param.extra_info->coordinates);
         check_assertion(scp != NULL);
-        kind = (an_il_entry_kind)iek_template_parameter;
+        kind = iek_template_parameter;
       } else if (is_immediate_class_type(class_type)) {
         decltype_type = decltype_typeref_from_proxy(class_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -6842,6 +6860,7 @@ is from a trk_name_qualifier typeref.
              reference instead of the type operator (which would be
              generated as an undeclared temp name). */
           scp = &class_type->variant.typeref.type->source_corresp;
+          kind = iek_type;
         }  /* if */
       }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
