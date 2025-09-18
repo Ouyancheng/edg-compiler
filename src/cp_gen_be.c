@@ -16409,7 +16409,7 @@ call.
 */
 {
   an_expr_node_ptr func_expr = skip_parens(expr->variant.operation.operands);
-  an_expr_node_ptr args = func_expr->next;
+  an_expr_node_ptr args = expr->variant.operation.operands->next;
   an_expr_node_ptr routine_node = NULL;
   a_boolean        processed = FALSE;
 
