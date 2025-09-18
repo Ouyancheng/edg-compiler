@@ -9034,7 +9034,7 @@ expression is presumed to be valid at this point in the translation unit.
     /* The operand is inaccessible or otherwise unusable.  Put out the
        resulting type itself instead of reconstituting the operator
        invocation. */
-    gen_type(tp->variant.typeref.type);
+    gen_type(skip_lexical_typerefs(tp->variant.typeref.type));
   }  /* if */
   if (tp->definition_delayed) {
     /* Restore the source sequence list position. */
