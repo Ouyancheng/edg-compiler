@@ -25419,6 +25419,7 @@ constraints).
         db_active_E1_constraint(chart, k+1);
       }  /* if */
     } else {
+      fprintf(f_debug, "@ %lu (base 0):\n", (unsigned long)(k - 1));
       db_expr_node(array[k - 1].expr, 2);
     }  /* if */
   }  /* if */
@@ -25452,6 +25453,7 @@ constraints).
         db_active_E2_constraint(chart, k+1);
       }  /* if */
     } else {
+      fprintf(f_debug, "@ %lu (base 0):\n", (unsigned long)(k - 1));
       db_expr_node(array[k - 1].expr, 2);
     }  /* if */
   }  /* if */
@@ -25789,21 +25791,6 @@ in OR nodes as needed to prepare for the next conjunctive clause.
           /* We're returning from the left child.  The next term is the first
              term of the right subtree. */
           prev_k = k;
-          if (*p_flipping) {
-            /* Consider (A || B) & (C || D).  If we get here with *p_flipping
-               still TRUE, it means the terms A || B have both been traversed
-               (that OR had its flag already set and the current term is B).
-               If the next term is C, we have to reset the OR flags for the
-               (A || B) subtree so that after we have produced the B & C
-               clause, we will restart from the A term to produce the A & D
-               and B & D clauses.  If the next term is D, that "reset" work is
-               wasted, but we have no cheap way to detect that (and it's not
-               that much work in the bigger picture).  Note that the "subtree"
-               to clear goes from k+1 (or prev_k) to constraint->link-1. */
-            while (++k < right_subtree) {
-              if (constraint->kind == CK_OR) constraint->flag = FALSE;
-            }  /* while */
-          }  /* if */
           k = first_disjunctive_clause_term(p_array, right_subtree);
           goto done;
         } else {
@@ -26054,6 +26041,13 @@ Return FALSE otherwise.
         if (last_conj_clause) break;
       }  /* for */
       if (last_disj_clause) break;
+      /* Reset the "common atomic expression" links for the next disjunctive
+         clause (the sets should only involve active terms). */
+      len = (uint32_t)array1.length();
+      for (i = 0; i<len; ++i) {
+        a_charted_constraint  *constraint = &array1[i];
+        if (constraint->kind == CK_ATOMIC) constraint->next = i + 1;
+      }
     }  /* for */
   }  /* if */
 done:
