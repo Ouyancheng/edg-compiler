@@ -1,6 +1,6 @@
 Version 6.8
 
-9/18/25  [EDGcpfe/23985]
+9/18/25  [EDGcpfe/19941,EDGcpfe/23985]
 Diagnosing explicit default constructor uses for copy-initialization
 
 Consider:
