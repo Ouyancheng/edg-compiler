@@ -1,5 +1,21 @@
 Version 6.8
 
+9/19/25  [EDGcpfe/28443]
+Constexpr ctor-initializers for bases containing only zero-length arrays
+
+Consider, in Clang or GCC C++17 (or earlier) mode:
+
+  struct E { int e[0]; };
+  struct D: E {
+    constexpr D() {}  // Previously an error.  Now okay.
+  };
+
+Previously, this triggered an error about a constexpr constructor having to
+initialize its direct base classes.  However, base classes with no data are
+not so constrained, and the front end now recognizes the case above as such:
+No error is issued for this case anymore.
+
+
 9/19/25  [EDGcpfe/28433]
 GCC-mode aborts or spurious errors with some specific identifiers
 
