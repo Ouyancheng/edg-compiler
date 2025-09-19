@@ -21467,8 +21467,10 @@ be entered.
       }  /* if */
     } else {
       /* The field's type is an array of nonclass elements. */
-      class_type->variant.class_struct_union.has_zero_init_component = TRUE;
-      class_state->has_proper_data = TRUE;
+      if (!has_any_zero_bound(member_type)) {
+        class_type->variant.class_struct_union.has_zero_init_component = TRUE;
+        class_state->has_proper_data = TRUE;
+      }  /* if */
     }  /* if */
   } else {
     if (!(unnamed_field && field->is_bit_field)) {
