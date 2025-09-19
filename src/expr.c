@@ -43049,19 +43049,21 @@ repeat_switch:
               curr_token = tok_is_pointer;
               scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                            &local_result);
+              break;
             } else if (strcmp(hdr->identifier, "__is_invocable") == 0) {
               curr_token = tok_is_invocable;
               scan_is_invocable(bok_is_invocable,
                                 (a_rescan_control_block *)NULL,
                                 &local_result);
+              break;
             } else if (strcmp(hdr->identifier,
                               "__is_nothrow_invocable") == 0) {
               curr_token = tok_is_nothrow_invocable;
               scan_is_invocable(bok_is_nothrow_invocable,
                                 (a_rescan_control_block *)NULL,
                                 &local_result);
+              break;
             }  /* if */
-            break;
           }  /* if */
           if (gcc_version_is(>=150000) && !strict_gnu &&
               strcmp(hdr->identifier, "nullptr") == 0) {
