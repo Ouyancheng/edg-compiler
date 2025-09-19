@@ -3327,22 +3327,22 @@ provide some additional ones over the basic ones implied for this case.
 
 
 static void scan_call_arguments(
-                           a_type_ptr               function_type,
-                           a_routine_ptr            routine,
-                           a_token_kind             closing_delim,
-                           a_boolean                already_after_left_delim,
-                           an_expr_node_ptr         *p_argument_list,
-                           a_boolean                return_raw_arguments,
-                           a_boolean                unknown_dependent_function,
-                           a_boolean                args_will_be_discarded,
-                           a_boolean                is_custom_ms_attr_arg_list,
-                           a_rescan_control_block   *rcblock,
-                           a_boolean                arg_list_supplied,
-                           an_arg_list_elem_ptr     supplied_arg_list,
-                           an_arg_list_elem_ptr     *p_arg_list,
-                           an_operand               *single_operand,
-                           a_boolean                *single_operand_returned,
-                           a_source_position        *closing_delim_position)
+                        a_type_ptr               function_type,
+                        a_routine_ptr            routine,
+                        a_token_kind             closing_delim,
+                        a_boolean                already_after_left_delim,
+                        an_expr_node_ptr         *p_argument_list,
+                        a_boolean                return_raw_arguments,
+                        a_boolean                *p_unknown_dependent_function,
+                        a_boolean                args_will_be_discarded,
+                        a_boolean                is_custom_ms_attr_arg_list,
+                        a_rescan_control_block   *rcblock,
+                        a_boolean                arg_list_supplied,
+                        an_arg_list_elem_ptr     supplied_arg_list,
+                        an_arg_list_elem_ptr     *p_arg_list,
+                        an_operand               *single_operand,
+                        a_boolean                *single_operand_returned,
+                        a_source_position        *closing_delim_position)
 /*
 Scan the arguments of a function call or C++23 subscript construct and return
 a list of argument expressions in *p_argument_list.  The type of the function
@@ -3351,8 +3351,11 @@ not known a priori (e.g., for an overloaded function case) or if this is called
 for a C++23 subscript construct (which is treated as an overloaded function
 case).  routine points to the routine being called; it's NULL if the specific
 function being called is not known, e.g., when calling through a pointer.
-unknown_dependent_function is TRUE if the function to be called is not
-known because it is specified by a template-dependent expression.
+*p_unknown_dependent_function is TRUE if the function to be called is not
+known because it is specified by a template-dependent expression.  This
+function might set *p_unknown_dependent_function to TRUE in some modes if it
+scans a template-dependent argument list in certain contexts; in that case,
+raw arguments are returned also (i.e., as if return_raw_arguments were TRUE).
 args_will_be_discarded is TRUE if the arguments will be discarded,
 e.g., because the function to be called is not known because of an error.
 The arguments are returned anyway, in case one wants to link them
@@ -3392,6 +3395,7 @@ to TRUE.
 */
 {
   an_arg_list_elem_ptr arg_list;
+  a_boolean            unknown_dependent_function;
   a_boolean            arg_list_allocated_locally = FALSE;
   an_arg_check_block   arg_block;
   a_boolean            scanning_source =(rcblock == NULL &&
@@ -3403,6 +3407,11 @@ to TRUE.
   db_enter(4, "scan_call_arguments");
   /* Allowing a call with incomplete return type doesn't propagate to calls
     in the arguments of the current call. */
+  if (p_unknown_dependent_function == NULL) {
+    unknown_dependent_function = FALSE;
+  } else {
+    unknown_dependent_function = *p_unknown_dependent_function;
+  }  /* if */
   saved_allow_call_with_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
   expr_stack->allow_call_with_incomplete_return_type = FALSE;
@@ -3461,6 +3470,16 @@ to TRUE.
     arg_block.closing_paren_position = pos_curr_token;
     if (closing_delim_position != NULL) {
       *closing_delim_position = pos_curr_token;
+    }  /* if */
+    if ((gpp_version_is(any_version) || clangcpp_version_is(any_version)) &&
+        routine != NULL && routine->source_corresp.is_class_member &&
+        scope_stack_top().in_prototype_instantiation &&
+        p_unknown_dependent_function != NULL &&
+        !unknown_dependent_function &&
+        arg_list_is_instantiation_dependent(arg_list)) {
+      arg_block.unknown_dependent_function = TRUE;
+      *p_unknown_dependent_function = TRUE;
+      return_raw_arguments = TRUE;
     }  /* if */
   }  /* if */
   if (single_operand != NULL && is_single_elem(arg_list) &&
@@ -3532,12 +3551,13 @@ specified, and return *dip set to NULL.
                                        !arg_list_supplied);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean         single_operand_returned;
+  a_boolean         unknown_dependent_function = TRUE;
 
   /* Scan the argument list. */
   scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
                       /*already_after_left_delim=*/TRUE,
                       &expr_arg_list, /*return_raw_arguments=*/FALSE,
-                      /*unknown_dependent_function=*/TRUE,
+                      &unknown_dependent_function,
                       /*args_will_be_discarded=*/FALSE,
                       is_custom_ms_attr_arg_list,
                       rcblock,
@@ -3603,7 +3623,7 @@ list given by supplied_arg_list (but do not free the list).
                         /*already_after_left_delim=*/TRUE,
                         &expr_arg_list,
                         /*return_raw_arguments=*/TRUE,
-                        /*unknown_dependent_function=*/FALSE,
+                        /*p_unknown_dependent_function=*/NULL,
                         /*args_will_be_discarded=*/TRUE,
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         rcblock,
@@ -3998,7 +4018,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   scan_call_arguments(routine_type, routine, tok_rparen,
                       /*already_after_left_delim=*/TRUE,
                       &arg_expr_list, overloaded_function_case,
-                      /*unknown_dependent_function=*/FALSE,
+                      /*p_unknown_dependent_function=*/NULL,
                       /*args_will_be_discarded=*/FALSE,
                       is_custom_ms_attr_arg_list,
                       rcblock, arg_list_supplied, supplied_arg_list,
@@ -7895,7 +7915,7 @@ and bound_function_selector are expected to be NULL in that case.
     scan_call_arguments(orig_routine_type, routine,
                         is_multi_subscript ? tok_rbracket : tok_rparen,
                         already_after_left_paren, &argument_list,
-                        return_raw_arguments, unknown_dependent_function,
+                        return_raw_arguments, &unknown_dependent_function,
                         /*args_will_be_discarded=*/is_error_operand(operand),
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         rcblock,
@@ -7904,6 +7924,15 @@ and bound_function_selector are expected to be NULL in that case.
                         &arg_list,
                         (an_operand *)NULL, (a_boolean *)NULL,
                         &closing_paren_position);
+    if (unknown_dependent_function && overloaded_function_symbol == NULL &&
+        routine != NULL) {
+      /* In some modes scanning a dependent call argument list during a
+         prototype instantiation will set unknown_dependent_function to TRUE.
+         Treat such cases using overload resolution as if the called function
+         were dependent. */
+      overloaded_function_case = TRUE;
+      overloaded_function_symbol = symbol_for(routine);
+    }  /* if */
     if (is_multi_subscript) {
       if (p_subscript != NULL && is_single_elem(arg_list) && !generic_array &&
           is_expression_component(arg_list)) {
@@ -7920,7 +7949,7 @@ and bound_function_selector are expected to be NULL in that case.
         if (rcblock == NULL) {
           (void)required_token(tok_rbracket, ec_exp_rbracket);
         }  /* if */
-        if (generic_array || arg_list_is_instantiation_dependent(arg_list)) {
+        if (generic_array || unknown_dependent_function) {
           template_multi_subscript_operation(eok_subscript, operand, arg_list,
                                              result, &operator_position,
                                              opening_paren_tok_seq_number,
@@ -19435,7 +19464,7 @@ This is allowed in both Microsoft C and C++ modes.
                         /*already_after_left_delim=*/FALSE,
                         &arg_list,
                         /*return_raw_arguments=*/FALSE,
-                        /*unknown_dependent_function=*/FALSE,
+                        /*p_unknown_dependent_function=*/NULL,
                         /*args_will_be_discarded=*/TRUE,
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         (a_rescan_control_block *)NULL,
@@ -22819,7 +22848,7 @@ placement and initializer from a rescan block for the operator.
     scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
                         /*already_after_left_delim=*/TRUE,
                         &dummy, /*return_raw_arguments=*/TRUE,
-                        /*unknown_dependent_function=*/FALSE,
+                        /*p_unknown_dependent_function=*/NULL,
                         /*args_will_be_discarded=*/FALSE,
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         rcblock,
@@ -22932,7 +22961,7 @@ in parentheses.
         scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
                             /*already_after_left_delim=*/TRUE,
                             &dummy, /*return_raw_arguments=*/TRUE,
-                            /*unknown_dependent_function=*/FALSE,
+                            /*p_unknown_dependent_function=*/NULL,
                             /*args_will_be_discarded=*/FALSE,
                             /*is_custom_ms_attr_arg_list=*/FALSE,
                             (a_rescan_control_block *)NULL,
@@ -24146,7 +24175,7 @@ parenthesized initializer was provided.
     scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
                         /*already_after_left_delim=*/TRUE, &dummy,
                         /*return_raw_arguments=*/TRUE,
-                        /*unknown_dependent_function=*/FALSE,
+                        /*p_unknown_dependent_function=*/NULL,
                         /*args_will_be_discarded=*/FALSE,
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         rcblock,
@@ -24279,7 +24308,7 @@ parenthesized initializer was provided.
     scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
                         /*already_after_left_delim=*/TRUE,
                         &dummy, /*return_raw_arguments=*/TRUE,
-                        /*unknown_dependent_function=*/FALSE,
+                        /*p_unknown_dependent_function=*/NULL,
                         /*args_will_be_discarded=*/FALSE,
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         rcblock,
@@ -42692,7 +42721,7 @@ passed).
     scan_call_arguments(rtp, rp, tok_rparen,
                         /*already_after_left_delim=*/FALSE,
                         &arg_list, /*return_raw_arguments=*/FALSE,
-                        /*unknown_dependent_function=*/FALSE,
+                        /*p_unknown_dependent_function=*/NULL,
                         /*args_will_be_discarded=*/FALSE,
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         (a_rescan_control_block*)NULL,

@@ -1,5 +1,23 @@
 Version 6.8
 
+9/19/25  [EDGcpfe/28023]
+GCC/Clang C++ compatibility: Invalid class member calls in templates
+
+Consider:
+
+  struct S { void f(); };
+  template<typename T> void f(S s, T t) {
+    s.f(t);  // Invalid.  Now accepted in more situations.
+  }
+
+The call s.f(t) can be resolved while parsing the template and is invalid since
+S::f takes no arguments.  Clang and GCC accept such cases, however.  The front
+end also accepted that case when prototype instantiations are deferred until
+their first use (often the default).  Now, the front accepts this in Clang and
+GCC C++ modes even when prototype instantiations are not deferred (e.g., they
+are normally not deferred when targeting the C++-generating back end).
+
+
 9/18/25  [EDGcpfe/19941,EDGcpfe/23985]
 Diagnosing explicit default constructor uses for copy-initialization
 
