@@ -6806,6 +6806,7 @@ is from a trk_name_qualifier typeref.
           class_type->variant.class_struct_union.proxy_class) {
         class_type = class_type_supp(class_type)->proxy_of_type;
       }  /* if */
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
       if (type_is(class_type, tk_typeref) &&
           is_typeref_kind(class_type, trk_template_arg_list)) {
         has_alternative_templ_args = TRUE;
@@ -6823,6 +6824,7 @@ is from a trk_name_qualifier typeref.
         }  /* if */
         class_type = class_type->variant.typeref.type;
       }  /* if */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
       scp = &class_type->source_corresp;
       kind = iek_type;
       if (is_immediate_class_type(class_type) &&
