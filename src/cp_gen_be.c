@@ -9112,7 +9112,9 @@ keyword that would be required in some contexts.
     } else if (type_is(type, tk_typeref) &&
                (type->variant.typeref.kind == trk_template_arg_list ||
                 type->variant.typeref.kind == trk_name_qualifier) &&
-               !in_prototype_instantiation_context) {
+               !(in_prototype_instantiation_context &&
+                 skip_lexical_typerefs(type)->
+                                             source_corresp.is_class_member)) {
       /* Alternative template argument lists and name qualifiers only
          require a "typename" keyword inside a template definition. */
     } else {
