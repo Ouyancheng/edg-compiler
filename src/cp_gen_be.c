@@ -9225,7 +9225,14 @@ keyword that would be required in some contexts.
         }  /* if */
       }  /* if */
       if (type->variant.typeref.kind == trk_template_arg_list) {
-        gen_bare_name(&refp->source_corresp, iek_type);
+        if (is_typeref_kind(trp, trk_name_qualifier)) {
+          /* Any needed qualifier has been emitted. */
+          gen_bare_name(&refp->source_corresp, iek_type);
+        } else {
+          /* Use the normal qualification provided by gen_name. */
+          gen_name(&refp->source_corresp, iek_type, GN_NO_TEMPLATE_ARGS,
+                   /*need_closing_paren=*/NULL);
+        }
         if (arg_list == NULL) {
           write_tok_str("<> ");
         } else {
