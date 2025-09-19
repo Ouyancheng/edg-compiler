@@ -3618,6 +3618,8 @@ ec_volatile_inc_deprecated;;"a volatile operand to an increment expression is de
 ec_volatile_dec_deprecated;;"a volatile operand to a decrement expression is deprecated"
 ec_indeterminate_not_on_first_decl;;"%n previously declared without the \"indeterminate\" attribute"
 ec_default_constructor_is_explicit;;"the default constructor for %t is explicit"
+ec_ifc_definition_load_failure;;"failed to load the definition of %n in %m"
+ec_ifc_initializer_load_failure;;"failed to load the initializer for %n in %m"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

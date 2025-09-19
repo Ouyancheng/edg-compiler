@@ -7217,6 +7217,25 @@ from a tok_ifc_entity_ref or tok_ifc_decl_ref).
 }  /* diagnose_ifc_entity_load_failure */
 
 
+template<typename an_ifc_Index_type>
+static void diagnose_ifc_entity_part_load_failure(an_error_code     error_code,
+                                                  a_symbol_ptr      entity_sym,
+                                                  an_ifc_Index_type idx)
+/*
+Emit an error for some portion of a lazily-loaded IFC entity failing to load.
+entity_sym is the symbol of the lazily-loaded entity.  idx is in the primary
+index identifying what is being loaded (typically the IFC index represented by
+the primary module entry locator).
+*/
+{
+  a_module_ptr     mod = module_of(idx);
+  a_diagnostic_ptr diag = start_error(error_code, entity_sym, mod);
+
+  add_partition_element_diag_info(diag, ec_ifc_entity_ref_failure_info, idx);
+  end_diagnostic(diag);
+}  /* diagnose_ifc_entity_part_load_failure */
+
+
 a_symbol_ptr load_tok_ifc_entity_ref()
 /*
 The current token is tok_ifc_entity_ref, which encodes a reference to some IFC
@@ -9385,6 +9404,9 @@ variable initializer.
       symbol_for(vp)->defined = TRUE;
     } else {
       ifc_var_inits->mark_failure(vp);
+      diagnose_ifc_entity_part_load_failure(ec_ifc_initializer_load_failure,
+                                            symbol_for(vp),
+                                            decl_idx);
     }  /* if */
     pop_module_declaration_context(scope_push_status);
 #if DEBUG
@@ -9519,6 +9541,9 @@ definition.
        don't reenter this branch. */
     if (!result) {
       ifc_function_bodies->mark_failure(rp);
+      diagnose_ifc_entity_part_load_failure(ec_ifc_definition_load_failure,
+                                            symbol_for(rp),
+                                            ifb);
     }  /* if */
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
@@ -11485,6 +11510,9 @@ must refer to the canonical template.
     } else {
       /* The definition failed to load. */
       ifc_template_definitions->mark_failure(templ);
+      diagnose_ifc_entity_part_load_failure(ec_ifc_definition_load_failure,
+                                            symbol_for(templ),
+                                            def_decl_idx);
     }  /* if */
     /* Restore the module declaration context stack; all other cleanup is RAII
        based. */
@@ -13882,6 +13910,8 @@ Complete the definition of the class referred to by mep (if needed).
           pop_template_instantiation_scope();
         }  /* if */
         free_template_decl_info(tdip);
+      } else {
+        mep->invalid = TRUE;
       }  /* if */
       pop_module_declaration_context(scope_push_status);
     }  /* if */
@@ -13932,6 +13962,9 @@ definition.
     pop_module_declaration_context(scope_push_status);
     if (def_mep->invalid) {
       ifc_tag_definitions->mark_failure(ty);
+      diagnose_ifc_entity_part_load_failure(ec_ifc_definition_load_failure,
+                                            symbol_for(ty),
+                                            def_idx);
     } else {
       ifc_tag_definitions->mark_finished(ty);
     }  /* if */
