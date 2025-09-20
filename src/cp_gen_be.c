@@ -685,6 +685,9 @@ static void gen_name(a_source_correspondence *scp,
                      an_il_entry_kind        entry_kind,
                      a_gen_name_options_set  options,
                      a_boolean               *need_closing_paren);
+static void gen_name_qualifier_list(
+                          a_name_qualifier_ptr nqp,
+                          a_boolean            from_name_qual_typeref = FALSE);
 static void gen_constant(a_constant_ptr constant,
                          a_boolean      need_parens);
 static void gen_type(a_type_ptr type);
@@ -5201,6 +5204,22 @@ in a pointer to data member type.  This is a wrapper for
 gen_class_qualifier, used as the output_class_qualifier function in the
 il_to_str output control block.  */
 {
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+  if (type_is(class_type, tk_typeref) &&
+      is_typeref_kind(class_type, trk_name_qualifier)) {
+    if (class_type->variant.typeref.extra_info->name_qualifier != NULL) {
+      gen_name_qualifier_list(class_type->variant.typeref.extra_info->
+                                                                name_qualifier,
+                              /*from_name_qual_typeref=*/TRUE);
+    } else if (class_type->variant.typeref.is_global_qualified_name) {
+      write_tok_str("::");
+    }  /* if */
+    gen_unqualified_name(&class_type->variant.typeref.type->source_corresp,
+                         iek_type);
+    write_tok_str(":: ");
+  } else
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+  /* Do not insert code here. */
   (void)gen_class_qualifier(class_type,
                             for_ptr_to_data_member ? GN_PTR_TO_DATA_MEMBER
                                                    : GN_NO_OPTIONS,
@@ -6781,8 +6800,8 @@ source sequence entry (NULL if no such reference was recorded).
 
 
 static void gen_name_qualifier_list(
-                           a_name_qualifier_ptr nqp,
-                           a_boolean            from_name_qual_typeref = FALSE)
+                                   a_name_qualifier_ptr nqp,
+                                   a_boolean            from_name_qual_typeref)
 /*
 Put out the list of name qualifiers indicated by nqp.  If nqp is NULL,
 put out nothing.  If from_name_qual_typeref is TRUE, the name qualifier list
