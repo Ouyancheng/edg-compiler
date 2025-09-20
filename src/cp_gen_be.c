@@ -1970,7 +1970,7 @@ or clang.
   a_boolean result = FALSE;
 
   check_assertion(type_is(type, tk_typeref));
-  if (type->variant.typeref.kind == trk_is_template_alias &&
+  if (is_typeref_kind(type, trk_is_template_alias) &&
       type->variant.typeref.is_nonreal) {
     a_template_arg_ptr tap;
     begin_template_arg_list_traversal_simple(
@@ -3911,8 +3911,8 @@ member initializer list.
 {
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   if (type_is(tp, tk_typeref) &&
-      (tp->variant.typeref.kind == trk_template_arg_list ||
-       tp->variant.typeref.kind == trk_name_qualifier)) {
+      (is_typeref_kind(tp, trk_template_arg_list) ||
+       is_typeref_kind(tp, trk_name_qualifier))) {
     /* Use the special processing in gen_type_reference to handle these
        typerefs. */
     gen_type_reference(tp, /*suppress_typename_kwd=*/TRUE);
@@ -4141,9 +4141,10 @@ a name.  Never generate a qualified name.
                             &class_type_supp(tp)->assoc_template->coordinates);
       name = unmangled_name_of(scp);
     } else if (type_is(tp, tk_typeref) &&
-               tp->variant.typeref.kind == trk_template_arg_list) {
-      /* Use the name of the template instance to which the typeref refers. */
-      name = unmangled_name_of(&tp->variant.typeref.type->source_corresp);
+               (is_typeref_kind(tp, trk_template_arg_list) ||
+                is_typeref_kind(tp, trk_name_qualifier))) {
+      /* Use the name of the type to which the typeref refers. */
+      name = unmangled_name_of(&skip_lexical_typerefs(tp)->source_corresp);
     }  /* if */
   }  /* if */
   if (name == NULL) {
@@ -4864,7 +4865,7 @@ entity is a template class, add the template arguments.
     if (entry_kind == iek_type) {
       a_type_ptr tp = (a_type_ptr)scp;
       if (type_is(tp, tk_typeref) &&
-          tp->variant.typeref.kind == trk_template_arg_list) {
+          is_typeref_kind(tp, trk_template_arg_list)) {
         templ_args_typeref = tp;
       }  /* if */
     } else if (entry_kind == iek_constant) {
@@ -5551,8 +5552,8 @@ are done in the il_to_str routines before this routine is called.
   } else if (in_template_argument_list &&
              !type->variant.typeref.is_dependent &&
              !(type_is(type->variant.typeref.type, tk_typeref) &&
-               type->variant.typeref.type->variant.typeref.kind ==
-                                                         trk_name_qualifier) &&
+               (is_typeref_kind(type->variant.typeref.type,
+                                trk_name_qualifier))) &&
              parent_class_or_null(type) != NULL
 #if GCC_BUILTIN_VARARGS
              && !type->is_builtin_va_list
@@ -9124,15 +9125,15 @@ keyword that would be required in some contexts.
       }  /* if */
     } else if (type_is(type, tk_typeref) &&
                type->variant.typeref.extra_info->template_arg_list != NULL &&
-               type->variant.typeref.kind != trk_template_arg_list &&
+               !is_typeref_kind(type, trk_template_arg_list) &&
                !(type->source_corresp.is_class_member &&
                  parent_class_of(type)->
                                 variant.class_struct_union.is_nonreal_class)) {
       /* Alias template specializations do not require a "typename"
          prefix unless they are members of dependent classes. */
     } else if (type_is(type, tk_typeref) &&
-               (type->variant.typeref.kind == trk_template_arg_list ||
-                type->variant.typeref.kind == trk_name_qualifier) &&
+               (is_typeref_kind(type, trk_template_arg_list) ||
+                is_typeref_kind(type, trk_name_qualifier)) &&
                !(in_prototype_instantiation_context &&
                  skip_lexical_typerefs(type)->
                                              source_corresp.is_class_member)) {
@@ -9159,18 +9160,18 @@ keyword that would be required in some contexts.
     } else if (typeref_is_type_operator(type, /*include_intrinsics=*/TRUE)) {
       gen_type_operator(type);
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-    } else if (type->variant.typeref.kind == trk_template_arg_list ||
-               type->variant.typeref.kind == trk_name_qualifier) {
+    } else if (is_typeref_kind(type, trk_template_arg_list) ||
+               is_typeref_kind(type, trk_name_qualifier)) {
       a_type_ptr         trp = type;
       a_type_ptr         refp = trp->variant.typeref.type;
       a_template_arg_ptr arg_list = NULL;
-      if (trp->variant.typeref.kind == trk_template_arg_list) {
+      if (is_typeref_kind(trp, trk_template_arg_list)) {
         /* This typeref specifies the form of the template argument list
            specified in the reference; a null template argument list
            implies an empty list, "<>", not that it was omitted. */
         arg_list = trp->variant.typeref.extra_info->template_arg_list;
         if (type_is(refp, tk_typeref) &&
-            refp->variant.typeref.kind == trk_name_qualifier) {
+            is_typeref_kind(refp, trk_name_qualifier)) {
           /* The target of the typeref specifies the qualifiers used in
              the reference; if there were none, the target of the typeref
              is the actual template instance. */
@@ -9182,7 +9183,7 @@ keyword that would be required in some contexts.
           class_type_supp(refp)->proxy_of_type != NULL) {
         refp = class_type_supp(refp)->proxy_of_type;
       }  /* if */
-      if (trp->variant.typeref.kind == trk_name_qualifier) {
+      if (is_typeref_kind(trp, trk_name_qualifier)) {
         /* A nested template that was named with a qualified-id.  The
            nested-name-specifier is given by the trk_name_qualifier's type
            supplement, which might also be a template with an alternative
@@ -9247,7 +9248,7 @@ keyword that would be required in some contexts.
           write_tok_str("::");
         }  /* if */
       }  /* if */
-      if (type->variant.typeref.kind == trk_template_arg_list) {
+      if (is_typeref_kind(type, trk_template_arg_list)) {
         if (is_typeref_kind(trp, trk_name_qualifier)) {
           /* Any needed qualifier has been emitted. */
           gen_bare_name(&refp->source_corresp, iek_type);
@@ -21973,8 +21974,8 @@ output_functional_notation_cast_arguments:
       closing_parens_needed++;
       if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
           !(type_is(init_entity_type, tk_typeref) &&
-            (init_entity_type->variant.typeref.kind == trk_template_arg_list ||
-             init_entity_type->variant.typeref.kind == trk_name_qualifier))) {
+            (is_typeref_kind(init_entity_type, trk_template_arg_list) ||
+             is_typeref_kind(init_entity_type, trk_name_qualifier)))) {
         /* Avoid type qualifiers, which would potentially cause problems. */
         gen_cast(skip_typerefs_not_typedefs(init_entity_type));
       } else {
