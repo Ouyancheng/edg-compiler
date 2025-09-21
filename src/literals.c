@@ -625,8 +625,8 @@ ll_check:
            allow literals of those types.  Clang appears to fall back to
            unsigned long long (after issuing an error), whereas GCC falls back
            to int (after issuing a warning). */
-        *err_code = ec_integer_too_large;
-        *err_pos = start_of_curr_token;
+        pos_diagnostic(clang_mode ? es_discretionary_error : es_warning,
+                       ec_integer_too_large, &error_position);
         kind = clang_mode ? (an_integer_kind)ik_unsigned_long_long
                           : (an_integer_kind)ik_int;
         goto kind_established;
@@ -688,8 +688,7 @@ kind_established:;
                                                   *start_of_curr_token == '0');
   }  /* if */
 wrapup:
-  if (*err_code != ec_no_error &&
-      !(gnu_version_is(any_version) && *err_code == ec_integer_too_large)) {
+  if (*err_code != ec_no_error) {
     /* Return an error constant. */
     set_error_constant(&const_for_curr_token);
   }  /* if */

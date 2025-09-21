@@ -12864,15 +12864,6 @@ convert_literal_value:
     }  /* if */
     /* Check for errors detected. */
     if (err_code != ec_no_error) {
-#if INT128_EXTENSIONS_ALLOWED
-      if (err_code == ec_integer_too_large && int128_extensions_enabled) {
-        if (gnu_version_is(any_version)) {
-          sev = es_warning;
-        } else if (clang_version_is(any_version)) {
-          sev = es_discretionary_error;
-        }  /* if */
-      }  /* if */
-#endif /* INT128_EXTENSIONS_ALLOWED */
       diagnostic_at_line_pos(sev, err_code, err_pos);
     }  /* if */
   }  /* if */
