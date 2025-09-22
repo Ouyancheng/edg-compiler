@@ -38,7 +38,7 @@ Consider:
 
 This previously aborted with an internal error in extract_node_from_operand.
 Other very similar examples could erroneously trigger an error about a missing
-right parentheses.  A key element in this example is the fact that "id" is an
+right parenthesis.  A key element in this example is the fact that "id" is an
 identifier that sometimes has a special meaning to the front end (a relatively
 small set of such identifiers is listed in the initializer for the array
 intrinsic_names in symbol_tbl.c).  This regression -- introduced by the changes
