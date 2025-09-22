@@ -28,6 +28,9 @@ ifc_modules_write.c -- IFC writing code.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+NORETURN static void header_unit_catastrophe(
+                    an_error_code reason = ec_unsupported_header_unit_feature);
+
 using an_ifc_output_buffer = Dyn_array<a_byte, General_allocator>;
                         /* The type used to hold the in-memory bytes. */
 
@@ -1180,7 +1183,7 @@ Perform a sort on the trait contents now to correctly arrange the contents.
 
 
 NORETURN static void header_unit_catastrophe(
-                     an_error_code reason = ec_unsupported_header_unit_feature)
+                           /* Defaulted: */  an_error_code reason)
 /*
 Issue a catastrophic diagnostic that the header unit could not be created for
 the given reason and terminate the compilation.  This routine does not return.
