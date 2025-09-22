@@ -1182,23 +1182,6 @@ Perform a sort on the trait contents now to correctly arrange the contents.
 }  /* an_ifc_output_state::sort_trait_partition */
 
 
-NORETURN static void header_unit_catastrophe(
-                           /* Defaulted: */  an_error_code reason)
-/*
-Issue a catastrophic diagnostic that the header unit could not be created for
-the given reason and terminate the compilation.  This routine does not return.
-*/
-{
-  a_diagnostic_ptr diag = start_diagnostic(es_catastrophe,
-                                           ec_header_unit_creation_failure);
-
-  add_diag_info(diag, reason);
-  end_diagnostic(diag);
-  /* Avoid spurious warning.  The function above does not return. */
-  exit_compilation(es_internal_error);
-}  /* header_unit_catastrophe */
-
-
 using a_seq_number_key = uint32_t;
                         /* This type is used to key entries of a_seq_number in
                            the an_ifc_il_map::seq_number_map. */
@@ -1570,6 +1553,23 @@ private:
 };  /* an_ifc_il_map */
 
 }  /* namespace */
+
+NORETURN static void header_unit_catastrophe(
+                           /* Defaulted: */  an_error_code reason)
+/*
+Issue a catastrophic diagnostic that the header unit could not be created for
+the given reason and terminate the compilation.  This routine does not return.
+*/
+{
+  a_diagnostic_ptr diag = start_diagnostic(es_catastrophe,
+                                           ec_header_unit_creation_failure);
+
+  add_diag_info(diag, reason);
+  end_diagnostic(diag);
+  /* Avoid spurious warning.  The function above does not return. */
+  exit_compilation(es_internal_error);
+}  /* header_unit_catastrophe */
+
 
 static void dump_scope_recursively(an_ifc_il_map *il_map,
                                    a_scope_ptr   scope);
