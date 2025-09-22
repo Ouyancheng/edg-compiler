@@ -56,7 +56,8 @@ right parenthesis.  A key element in this example is the fact that "id" is an
 identifier that sometimes has a special meaning to the front end (a relatively
 small set of such identifiers is listed in the initializer for the array
 intrinsic_names in symbol_tbl.c).  This regression -- introduced by the changes
-for EDGcpfe/27970 -- is now fixed.
+for EDGcpfe/27970 (not yet in a release, but distributed to some customers as
+a patch) -- is now fixed.
 
 
 9/19/25  [EDGcpfe/28023]
