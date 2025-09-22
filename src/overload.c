@@ -26939,6 +26939,15 @@ will be an lvalue instead of the usual prvalue.
       } else if (reference_case) {
         /* Reference types. */
         if (is_cast) {
+          if ((conv_context & CCO_SINGLETON_BRACED_INIT) != 0) {
+            a_type  *underlying_type = type_pointed_to(dest_type);
+            if (any_qualifier_missing(underlying_type, operand.type)) {
+              if (expr_error_should_be_issued()) {
+                pos_ty2_error(ec_qualifier_dropped_in_ref_init,
+                              &operand.position, dest_type, operand.type);
+              }  /* if */
+            }  /* if */
+          }  /* if */
           cast_operand_for_reference_cast(&operand,
                                           dest_type,
                                           /*check_cast_access=*/TRUE,

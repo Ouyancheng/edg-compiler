@@ -1,5 +1,17 @@
 Version 6.8
 
+9/22/25  [EDGcpfe/28431]
+Missing diagnostic in reference conversion with brace-notation cast
+
+The front end previously failed to diagnose the following cast:
+
+  int const ic = 42;
+  using RI = int&;
+  RI ri = RI{ic};  // Previously silently accepted.  Now an error.
+
+That is now fixed.
+
+
 9/19/25  [EDGcpfe/28443]
 Constexpr ctor-initializers for bases containing only zero-length arrays
 
