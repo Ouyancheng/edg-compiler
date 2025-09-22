@@ -28,23 +28,6 @@ ifc_modules_write.c -- IFC writing code.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-NORETURN static void header_unit_catastrophe(
-                     an_error_code reason = ec_unsupported_header_unit_feature)
-/*
-Issue a catastrophic diagnostic that the header unit could not be created for
-the given reason and terminate the compilation.  This routine does not return.
-*/
-{
-  a_diagnostic_ptr diag = start_diagnostic(es_catastrophe,
-                                           ec_header_unit_creation_failure);
-
-  add_diag_info(diag, reason);
-  end_diagnostic(diag);
-  /* Avoid spurious warning.  The function above does not return. */
-  exit_compilation(es_internal_error);
-}  /* header_unit_catastrophe */
-
-
 using an_ifc_output_buffer = Dyn_array<a_byte, General_allocator>;
                         /* The type used to hold the in-memory bytes. */
 
@@ -1194,6 +1177,23 @@ Perform a sort on the trait contents now to correctly arrange the contents.
     delete_general(&output_partition);
   }  /* if */
 }  /* an_ifc_output_state::sort_trait_partition */
+
+
+NORETURN static void header_unit_catastrophe(
+                     an_error_code reason = ec_unsupported_header_unit_feature)
+/*
+Issue a catastrophic diagnostic that the header unit could not be created for
+the given reason and terminate the compilation.  This routine does not return.
+*/
+{
+  a_diagnostic_ptr diag = start_diagnostic(es_catastrophe,
+                                           ec_header_unit_creation_failure);
+
+  add_diag_info(diag, reason);
+  end_diagnostic(diag);
+  /* Avoid spurious warning.  The function above does not return. */
+  exit_compilation(es_internal_error);
+}  /* header_unit_catastrophe */
 
 
 using a_seq_number_key = uint32_t;
