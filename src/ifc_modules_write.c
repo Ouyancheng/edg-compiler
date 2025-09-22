@@ -28,21 +28,22 @@ ifc_modules_write.c -- IFC writing code.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-NORETURN static void header_unit_catastrophe(
-                     an_error_code reason = ec_unsupported_header_unit_feature)
+
+NORETURN static void ifc_write_catastrophe(
+                               an_error_code reason = ec_unsupported_il_to_ifc)
 /*
-Issue a catastrophic diagnostic that the header unit could not be created for
-the given reason and terminate the compilation.  This routine does not return.
+Issue a catastrophic diagnostic that an IFC file could not be created for the
+current translation unit for the given reason and terminate the compilation.
+This routine does not return.
 */
 {
-  a_diagnostic_ptr diag = start_diagnostic(es_catastrophe,
-                                           ec_header_unit_creation_failure);
+  a_diagnostic_ptr diag = start_catastrophe(ec_ifc_creation_failure);
 
   add_diag_info(diag, reason);
   end_diagnostic(diag);
   /* Avoid spurious warning.  The function above does not return. */
   exit_compilation(es_internal_error);
-}  /* header_unit_catastrophe */
+}  /* ifc_write_catastrophe */
 
 
 using an_ifc_output_buffer = Dyn_array<a_byte, General_allocator>;
@@ -797,7 +798,7 @@ Return the IFC architecture sort value corresponding to the current target.
       if (target_is_64_bits()) {
         result = ifc_as_hybrid_x86_arm64;
       } else {
-        header_unit_catastrophe();
+        ifc_write_catastrophe();
       }  /* if */
     } else if (target_is_64_bits()) {
       result = ifc_as_arm64;
@@ -805,7 +806,7 @@ Return the IFC architecture sort value corresponding to the current target.
       result = ifc_as_arm32;
     }  /* if */
   } else {
-    header_unit_catastrophe();
+    ifc_write_catastrophe();
   }  /* if */
   return result;
 }  /* get_target_ifc_architecture */
@@ -1676,12 +1677,12 @@ index for the type file.
         result = this->find_or_enter_type(underlying_type);
       } else {
         /* FIXME: Handle other kinds of typerefs. */
-        header_unit_catastrophe();
+        ifc_write_catastrophe();
       }  /* if */
       /* If the typeref adds qualifiers, add a qualifying type. */
       if (typeref_has_any_extended_qualifiers(type)) {
         /* FIXME: Handle the extended qualifiers. */
-        header_unit_catastrophe();
+        ifc_write_catastrophe();
       } else if (typeref_has_any_common_qualifiers(type)) {
         an_ifc_type_qualified
                 qualified_type;
@@ -1885,7 +1886,7 @@ the declaration index for the entered declaration.
       ifc_scope_type = this->find_or_enter_union_scope_type();
       break;
     default:
-      header_unit_catastrophe();
+      ifc_write_catastrophe();
       break;
   }  /* switch */
   set_ifc_type(&scope_decl, ifc_scope_type);
@@ -2162,7 +2163,7 @@ Return the declaration index for the routine.
     case sfk_static_constructor:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case sfk_udl_operator:
-      header_unit_catastrophe();
+      ifc_write_catastrophe();
       break;
     case sfk_last:
       /* sfk_last should not appear in the IL. */
@@ -2220,7 +2221,7 @@ state.  Return the declaration index for the template.
       }  /* if */
       break;
     case templk_concept:
-      header_unit_catastrophe();
+      ifc_write_catastrophe();
       break;
     case templk_function:
       result = this->enter_function_template(templ);
@@ -2232,7 +2233,7 @@ state.  Return the declaration index for the template.
     case templk_static_data_member:
     case templk_template_template_param:
     case templk_variable:
-      header_unit_catastrophe();
+      ifc_write_catastrophe();
       break;
     default_is_unexpected();
   }  /* switch */
@@ -2726,7 +2727,7 @@ for the float type.
     case fk_std_float64:
     case fk_std_float128:
     case fk_last:
-      header_unit_catastrophe();
+      ifc_write_catastrophe();
       break;
     default_is_unexpected();
   }  /* switch */
@@ -3120,7 +3121,7 @@ for the function type.
       case sfk_static_constructor:
   #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_udl_operator:
-        header_unit_catastrophe();
+        ifc_write_catastrophe();
         break;
       case sfk_last:
         /* sfk_last should not appear in the IL. */
@@ -3427,7 +3428,7 @@ state.  Return the EDG IFC template argument index for the template argument.
                 init_token_cache;
 
         if (templ_arg->is_array_bound_of_unknown_type) {
-          header_unit_catastrophe();
+          ifc_write_catastrophe();
         } else {
           an_ifc_edg_constant_index
                 ifc_constant =
@@ -3459,7 +3460,7 @@ state.  Return the EDG IFC template argument index for the template argument.
 
         if (templ_arg->variant.templ.substituted_param_template != NULL) {
           /* FIXME: What if anything needs done here? */
-          header_unit_catastrophe();
+          ifc_write_catastrophe();
         }  /* if */
 
         an_ifc_decl_index
@@ -3488,7 +3489,7 @@ state.  Return the EDG IFC template argument index for the template argument.
       }
       break;
     case tak_start_of_pack_expansion:
-      header_unit_catastrophe();
+      ifc_write_catastrophe();
       break;
     default_is_unexpected();
   }  /* switch */
@@ -3760,7 +3761,7 @@ the expr index for the constant.
   switch (cp->kind) {
     case ck_error:
     case ck_last:
-      header_unit_catastrophe();
+      ifc_write_catastrophe();
       break;
     case ck_integer:
       { const an_integer_value
@@ -3866,7 +3867,7 @@ the expr index for the constant.
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_void:
     case ck_reflection:
-      header_unit_catastrophe();
+      ifc_write_catastrophe();
       break;
     default_is_unexpected();
   } /* switch */
@@ -4812,7 +4813,7 @@ EDG IFC constant token kind.
          add method, or the caller called the wrong add function (i.e., there's
          a corresponding complex token add function that should have instead
          been called). */
-      header_unit_catastrophe();
+      ifc_write_catastrophe();
   }  /* switch */
   return result;
 }  /* token_to_constant_token_kind */
@@ -4978,7 +4979,7 @@ the given token cache.
       }
       break;
     default:
-      header_unit_catastrophe();
+      ifc_write_catastrophe();
       break;
   }  /* switch */
 }  /* an_ifc_il_map::enter_extracted_body_to_cache */
@@ -5079,7 +5080,7 @@ cache.
       case teik_pragma:
       case teik_ud_lit:
         /* FIXME: Implement these. */
-        header_unit_catastrophe();
+        ifc_write_catastrophe();
         break;
       default_is_unexpected();
     }  /* switch */
@@ -5470,7 +5471,7 @@ of the field declaration.
     /* FIXME: Set properties. */
   } else {
     /* FIXME: Implement bitfields. */
-    header_unit_catastrophe();
+    ifc_write_catastrophe();
   }  /* if */
   return result;
 }  /* an_ifc_il_map::enter_field */
@@ -5920,7 +5921,7 @@ Add all the namespaces in the given scope to the given IL -> IFC mapping.
 {
   for (a_namespace_ptr np = scope->namespaces; np != NULL; np = np->next) {
     if (np->is_namespace_alias) {
-      header_unit_catastrophe();
+      ifc_write_catastrophe();
     } else {
       a_scope_ptr assoc_scope = np->variant.assoc_scope;
 
