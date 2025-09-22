@@ -11826,12 +11826,33 @@ Return TRUE if the given fields have the same offset, same bit field length
 (if applicable), and have layout-compatible types.
 */
 {
-  return fp1->offset == fp2->offset &&
-         fp1->is_bit_field == fp2->is_bit_field &&
-         (!fp1->is_bit_field ||
-          (fp1->offset_bit_remainder == fp2->offset_bit_remainder &&
-           fp1->bit_size == fp2->bit_size)) &&
-         types_are_layout_compatible(fp1->type, fp2->type);
+  a_boolean  result;
+
+  result = fp1->offset == fp2->offset &&
+           fp1->is_bit_field == fp2->is_bit_field &&
+           (!fp1->is_bit_field ||
+            (fp1->offset_bit_remainder == fp2->offset_bit_remainder &&
+             fp1->bit_size == fp2->bit_size)) &&
+           types_are_layout_compatible(fp1->type, fp2->type);
+  if (gpp_version_is(any_version) ?
+        fp1->has_no_unique_address_attribute !=
+                                        fp2->has_no_unique_address_attribute :
+        (fp1->has_no_unique_address_attribute ||
+                                      fp2->has_no_unique_address_attribute)) {
+    /* The standard specifies that having the [[no_unique_address]] attribute
+       (if supported) on a data member makes the enclosing struct/class not
+       "layout compatible".  Clang implements that (somewhat surprising) rule
+       unless comparing layout compatibility of a class against itself (the
+       standard doesn't seem to make the latter exception, but that is
+       presumably an oversight).  GCC implements the more intuitive rule that
+       the attribute only has to match for corresponding data members.
+       The standard does not specify that [[no_unique_address]] on union
+       members affects layout compatibility, but other compilers appear to
+       treat unions like non-union class types in this respect: We follow
+       suit for compatibility purposes. */
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* fields_are_layout_compatible */
 
 
@@ -11885,7 +11906,10 @@ conservatively.
 
   tp1 = skip_typerefs(tp1);
   tp2 = skip_typerefs(tp2);
-  if (tp1->kind != tp2->kind) {
+  complete_type_is_needed(tp1);
+  complete_type_is_needed(tp2);
+  if (tp1->kind != tp2->kind &&
+       is_class_or_struct(tp1) != is_class_or_struct(tp2)) {
     result = FALSE;
   } else if (gnu_mode && tp1->alignment != tp2->alignment) {
     /* For GCC at least, having different alignments disqualifies types
@@ -11897,8 +11921,10 @@ conservatively.
     a_class_symbol_supplement_ptr
          cssp1 = class_symbol_supp(symbol_for(tp1)),
          cssp2 = class_symbol_supp(symbol_for(tp2));
-    if (cssp1->standard_layout && cssp2->standard_layout &&
-        base_classes_are_layout_compatible(tp1, tp2)) {
+    if (same_entities(tp1, tp2)) {
+      result = TRUE;
+    } else if (cssp1->standard_layout && cssp2->standard_layout &&
+               base_classes_are_layout_compatible(tp1, tp2)) {
       a_field_ptr  fp1 = fields_of(tp1), fp2;
       result = TRUE;
       fp1 = next_proper_initializable_field(fp1);

@@ -1,5 +1,19 @@
 Version 6.8
 
+9/22/25  [EDGcpfe/25545,EDGcpfe/27021,EDGcpfe/27952,EDGcpfe/28442]
+__is_layout_compatible
+
+The following bugs in the front end's implementation of __is_layout_compatible
+have been fixed:
+  1) Previously, __is_layout_compatible(X, Y) was always false when X is
+     defined with the keyword "struct" and Y is defined with "class" (or
+     vice versa).
+  2) Previously, __is_layout_compatible failed to instantiate specializations
+     of class templates if needed.
+  3) Previously, __is_layout_compatible failed to take the no_unique_address
+     attribute into account.
+
+
 9/22/25  [EDGcpfe/28431]
 Missing diagnostic in reference conversion with brace-notation cast
 
