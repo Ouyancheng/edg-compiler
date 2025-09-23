@@ -23059,6 +23059,11 @@ be called to start a copy.
             expr_copy = error_node();
           }  /* if */
           release_local_constant(&constant);
+        } else {
+          /* Copy the subtree to ensure it is in the right memory region. */
+          expr_copy->variant.const_eval_deferred.wrapped =
+                   i_copy_expr_tree(expr->variant.const_eval_deferred.wrapped,
+                                    options, cblock);
         }  /* if */
       }
       break;
