@@ -9096,8 +9096,9 @@ expression is presumed to be valid at this point in the translation unit.
 static a_boolean invalid_qual_in_curr_context(a_type_ptr trp)
 /*
 Return TRUE if trp, which must point to a trk_name_qualifier typeref,
-designates a relative name qualifier list in which the parent scope of the
-topmost qualifier is not in the name context stack.
+designates a relative (i.e., not globally qualified) name qualifier list in
+which the parent scope of the topmost qualifier is either not in the name
+context stack or is hidden in the current context.
 */
 {
   a_boolean            result = FALSE;
@@ -9116,6 +9117,8 @@ topmost qualifier is not in the name context stack.
         top_qual = nqp;
         nqp = NULL;
       } else if (type_is(nqp->qualifier.class_type, tk_typeref)) {
+        /* If the topmost qualifier in this list designates a name qualifier
+           typeref, follow the qualifiers in that list. */
         a_type_ptr nested_trp = nqp->qualifier.class_type;
         if (is_typeref_kind(nested_trp, trk_template_arg_list) &&
             type_is(nested_trp->variant.typeref.type, tk_typeref) &&
@@ -9126,15 +9129,21 @@ topmost qualifier is not in the name context stack.
           nested_trp = NULL;
         }  /* if */
         if (nested_trp == NULL) {
+          /* The typeref wasn't a name qualifier, so we've reached the
+             topmost qualifier. */
           top_qual = nqp;
           nqp = NULL;
         } else if (nested_trp->variant.typeref.is_global_qualified_name) {
+          /* Globally-qualified names are valid in every context, so we're
+             finished. */
           top_qual = NULL;
           nqp = NULL;
         } else {
+          /* Follow the name qualifiers from the nested typeref. */
           nqp = nested_trp->variant.typeref.extra_info->name_qualifier;
         }  /* if */
       } else {
+        /* A non-typeref type.  This is the topmost qualifier. */
         top_qual = nqp;
         nqp = NULL;
       }  /* if */
@@ -9150,6 +9159,9 @@ topmost qualifier is not in the name context stack.
       if (scp->qualification_needed ||
           (scp->parent_scope != NULL &&
            !scope_is_in_name_context_stack(scp->parent_scope))) {
+        /* Either the parent of the topmost qualifier is hidden or the
+           current context is outside its scope, so use of this name
+           qualifier list would produce erroneous code. */
         result = TRUE;
       }  /* if */
     }  /* if */
