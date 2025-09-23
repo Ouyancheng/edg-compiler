@@ -567,6 +567,11 @@ typedef int a_gen_name_options_set;
 #define GN_TEMPLATE_PARAM_TYPE_QUAL 0x8000
 			/* The name is a qualifier for a template parameter
 			   type. */
+#define GN_SUPPRESS_TYPENAME_KEYWORD 0x10000
+			/* Do not put out the "typename" keyword in a
+			   dependent name.  Used when gen_name is called
+			   from gen_type_reference and the "typename"
+			   keyword has already been put out. */
 
 /*
 The alignment specified by the most recent #pragma pack directive (0
@@ -6508,6 +6513,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         }  /* if */
         if (entry_kind == iek_type && !(options & GN_DECLARATION) &&
             !(options & GN_QUALIFIER) &&
+            !(options & GN_SUPPRESS_TYPENAME_KEYWORD) &&
             ((options & GN_DEPENDENT) ||
              need_gnu_typename_kwd(a_type_ptr(scp), options))) {
           /* Emit a "typename" keyword for a dependent type, but only at
@@ -6898,15 +6904,27 @@ is from a trk_name_qualifier typeref.
                                      /*include_intrinsics=*/TRUE)) {
           gen_type_operator(class_type, from_name_qual_typeref);
         } else {
-          gen_bare_name(scp, kind);
-          if (has_alternative_templ_args) {
-            if (templ_args != NULL) {
-              gen_template_arguments_full(scp, kind, -1L, templ_args);
-            } else {
-              write_tok_str("<>");
-            }  /* if */
+          if (from_name_qual_typeref && nqp->is_class &&
+              nqp->previous_qualifier == NULL &&
+              (scp->qualification_needed ||
+               (kind == iek_type &&
+                is_immediate_class_type((a_type_ptr)scp) &&
+                a_type_ptr(scp)->
+                                variant.class_struct_union.is_template_class &&
+                class_type_supp(a_type_ptr(scp))->assoc_template->
+                                       source_corresp.qualification_needed))) {
+            gen_name(scp, kind, GN_QUALIFIER, /*need_closing_paren=*/NULL);
           } else {
-            gen_template_arguments(scp, kind, -1L);
+            gen_bare_name(scp, kind);
+            if (has_alternative_templ_args) {
+              if (templ_args != NULL) {
+                gen_template_arguments_full(scp, kind, -1L, templ_args);
+              } else {
+                write_tok_str("<>");
+              }  /* if */
+            } else {
+              gen_template_arguments(scp, kind, -1L);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -9075,6 +9093,71 @@ expression is presumed to be valid at this point in the translation unit.
 }  /* gen_type_operator */
 
 
+static a_boolean invalid_qual_in_curr_context(a_type_ptr trp)
+/*
+Return TRUE if trp, which must point to a trk_name_qualifier typeref,
+designates a relative name qualifier list in which the parent scope of the
+topmost qualifier is not in the name context stack.
+*/
+{
+  a_boolean            result = FALSE;
+
+  check_assertion(type_is(trp, tk_typeref) &&
+                  is_typeref_kind(trp, trk_name_qualifier));
+  if (trp->variant.typeref.is_global_qualified_name) {
+    /* Globally-qualified names are valid in every context. */
+  } else {
+    a_name_qualifier_ptr nqp = trp->variant.typeref.extra_info->name_qualifier;
+    a_name_qualifier_ptr top_qual = NULL;
+    while (nqp != NULL) {
+      if (nqp->previous_qualifier != NULL) {
+        nqp = nqp->previous_qualifier;
+      } else if (!nqp->is_class) {
+        top_qual = nqp;
+        nqp = NULL;
+      } else if (type_is(nqp->qualifier.class_type, tk_typeref)) {
+        a_type_ptr nested_trp = nqp->qualifier.class_type;
+        if (is_typeref_kind(nested_trp, trk_template_arg_list) &&
+            type_is(nested_trp->variant.typeref.type, tk_typeref) &&
+            is_typeref_kind(nested_trp->variant.typeref.type,
+                            trk_name_qualifier)) {
+          nested_trp = nested_trp->variant.typeref.type;
+        } else if (!is_typeref_kind(nested_trp, trk_name_qualifier)) {
+          nested_trp = NULL;
+        }  /* if */
+        if (nested_trp == NULL) {
+          top_qual = nqp;
+          nqp = NULL;
+        } else if (nested_trp->variant.typeref.is_global_qualified_name) {
+          top_qual = NULL;
+          nqp = NULL;
+        } else {
+          nqp = nested_trp->variant.typeref.extra_info->name_qualifier;
+        }  /* if */
+      } else {
+        top_qual = nqp;
+        nqp = NULL;
+      }  /* if */
+    }  /* while */
+    if (top_qual != NULL) {
+      a_source_correspondence_ptr scp;
+      if (top_qual->is_class) {
+        scp = &skip_lexical_typerefs(top_qual->qualifier.class_type)->
+                                                                source_corresp;
+      } else {
+        scp = &top_qual->qualifier.namespace_ptr->source_corresp;
+      }  /* if */
+      if (scp->qualification_needed ||
+          (scp->parent_scope != NULL &&
+           !scope_is_in_name_context_stack(scp->parent_scope))) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* invalid_qual_in_curr_context */
+
+
 static void gen_type_reference(a_type_ptr type,
                                a_boolean  suppress_typename_kwd)
 /*
@@ -9165,6 +9248,7 @@ keyword that would be required in some contexts.
       a_type_ptr         trp = type;
       a_type_ptr         refp = trp->variant.typeref.type;
       a_template_arg_ptr arg_list = NULL;
+      a_boolean          name_qual_suppressed = FALSE;
       if (is_typeref_kind(trp, trk_template_arg_list)) {
         /* This typeref specifies the form of the template argument list
            specified in the reference; a null template argument list
@@ -9235,12 +9319,17 @@ keyword that would be required in some contexts.
           if (trp->variant.typeref.is_global_qualified_name) {
             write_tok_str("::");
           }  /* if */
-          gen_name_qualifier_list(nqp, /*from_name_qual_typeref=*/TRUE);
-          if (options == GN_DEPENDENT &&
-              name_has_template_arguments(&refp->source_corresp, iek_type,
+          if (invalid_qual_in_curr_context(trp)) {
+            name_qual_suppressed = TRUE;
+          } else {
+            gen_name_qualifier_list(nqp, /*from_name_qual_typeref=*/TRUE);
+            if (options == GN_DEPENDENT &&
+                name_has_template_arguments(
+                                          &refp->source_corresp, iek_type,
                                           /*arg_pgt=*/NULL, /*param_ptr=*/NULL,
                                           /*insert_space=*/NULL)) {
-            write_tok_str("template ");
+              write_tok_str("template ");
+            }  /* if */
           }  /* if */
         } else if (trp->variant.typeref.is_global_qualified_name) {
           /* A name reference pointer can be NULL if only the global
@@ -9249,12 +9338,14 @@ keyword that would be required in some contexts.
         }  /* if */
       }  /* if */
       if (is_typeref_kind(type, trk_template_arg_list)) {
-        if (is_typeref_kind(trp, trk_name_qualifier)) {
+        if (is_typeref_kind(trp, trk_name_qualifier) &&
+            !name_qual_suppressed) {
           /* Any needed qualifier has been emitted. */
           gen_bare_name(&refp->source_corresp, iek_type);
         } else {
           /* Use the normal qualification provided by gen_name. */
-          gen_name(&refp->source_corresp, iek_type, GN_NO_TEMPLATE_ARGS,
+          gen_name(&refp->source_corresp, iek_type,
+                   GN_NO_TEMPLATE_ARGS | GN_SUPPRESS_TYPENAME_KEYWORD,
                    /*need_closing_paren=*/NULL);
         }
         if (arg_list == NULL) {
@@ -9264,6 +9355,10 @@ keyword that would be required in some contexts.
                                     &trp->variant.typeref.type->source_corresp,
                                     iek_type, -1, arg_list);
         }  /* if */
+      } else if (name_qual_suppressed) {
+        /* Use the normal qualification provided by gen_name. */
+        gen_name(&refp->source_corresp, iek_type, GN_SUPPRESS_TYPENAME_KEYWORD,
+                 /*need_closing_paren=*/NULL);
       } else {
         gen_unqualified_name(&refp->source_corresp, iek_type);
       }  /* if */
