@@ -229,6 +229,13 @@ STATIC_THREAD a_boolean
 			   specialization.  Always FALSE in other
 			   configurations and for other declarations. */
 
+STATIC_THREAD a_boolean
+		global_qual_emitted;
+			/* TRUE if gen_name should suppress a leading "::"
+			   that would otherwise be emitted because a "::"
+			   was already put out before gen_name was
+			   invoked. */
+
 /*
 Entry used to record an adjustment needed at the end of a name context,
 i.e., restoring the previous values of the qualification_needed and/or
@@ -6716,7 +6723,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           write_tok_ch('(');
           *need_closing_paren = TRUE;
         }  /* if */
-        write_tok_str("::");
+        if (!global_qual_emitted) {
+          write_tok_str("::");
+        }  /* if */
       }  /* if */
     }  /* if */
     scp->qualification_needed = save_qualification_needed;
@@ -9092,6 +9101,7 @@ expression is presumed to be valid at this point in the translation unit.
   }  /* if */
 }  /* gen_type_operator */
 
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
 
 static a_boolean invalid_qual_in_curr_context(a_type_ptr trp)
 /*
@@ -9169,6 +9179,7 @@ context stack or is hidden in the current context.
   return result;
 }  /* invalid_qual_in_curr_context */
 
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 static void gen_type_reference(a_type_ptr type,
                                a_boolean  suppress_typename_kwd)
@@ -9186,6 +9197,7 @@ keyword that would be required in some contexts.
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   a_name_qualifier_ptr   nqp;
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+  a_boolean              saved_global_qual_emitted = global_qual_emitted;
 
   if (is_immediate_class_type(type) &&
       type->variant.class_struct_union.proxy_class) {
@@ -9330,6 +9342,7 @@ keyword that would be required in some contexts.
           }  /* if */
           if (trp->variant.typeref.is_global_qualified_name) {
             write_tok_str("::");
+            global_qual_emitted = TRUE;
           }  /* if */
           if (invalid_qual_in_curr_context(trp)) {
             name_qual_suppressed = TRUE;
@@ -9360,6 +9373,7 @@ keyword that would be required in some contexts.
                    GN_NO_TEMPLATE_ARGS | GN_SUPPRESS_TYPENAME_KEYWORD,
                    /*need_closing_paren=*/NULL);
         }
+        global_qual_emitted = saved_global_qual_emitted;
         if (arg_list == NULL) {
           write_tok_str("<> ");
         } else {
@@ -25519,6 +25533,7 @@ Initialize for the C++/C-generating back end.
   entities_for_decltype = NULL;
   avail_entities_for_decltype = NULL;
   is_generated_explicit_specialization = FALSE;
+  global_qual_emitted = FALSE;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   scanned_types = NULL;
   available_type_scan_records = NULL;
