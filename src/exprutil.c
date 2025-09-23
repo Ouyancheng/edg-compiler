@@ -26048,7 +26048,7 @@ Return FALSE otherwise.
       for (i = 0; i<len; ++i) {
         a_charted_constraint  *constraint = &array1[i];
         if (constraint->kind == CK_ATOMIC) constraint->next = i + 1;
-      }
+      }  /* for */
     }  /* for */
   }  /* if */
 done:
