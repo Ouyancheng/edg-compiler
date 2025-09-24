@@ -9369,8 +9369,14 @@ keyword that would be required in some contexts.
           gen_bare_name(&refp->source_corresp, iek_type);
         } else {
           /* Use the normal qualification provided by gen_name. */
-          gen_name(&refp->source_corresp, iek_type,
-                   GN_NO_TEMPLATE_ARGS | GN_SUPPRESS_TYPENAME_KEYWORD,
+          a_gen_name_options_set options =
+            GN_NO_TEMPLATE_ARGS | GN_SUPPRESS_TYPENAME_KEYWORD;
+          if (name_qual_suppressed) {
+            /* Since there were qualifiers on this reference, it's safest
+               to ensure that a qualified name is used. */
+            options |= GN_FORCE_QUALIFIED_NAME;
+          }  /* if */
+          gen_name(&refp->source_corresp, iek_type, options,
                    /*need_closing_paren=*/NULL);
         }
         global_qual_emitted = saved_global_qual_emitted;
