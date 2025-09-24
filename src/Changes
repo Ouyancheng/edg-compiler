@@ -1,5 +1,21 @@
 Version 6.8
 
+9/24/25  [EDGcpfe/23041,EDGcpfe/23207]
+Abort on parenthesized member function template declaration
+
+In some cases where a member function template of a partially specialized class
+template is declared with a parenthesized declarator, the front end could abort
+with a failed assertion in find_template_class.  For example, with --c++11:
+
+  template<typename T> using A = T;
+  template<typename T> struct C;
+  template<typename T>
+  struct C<T *> {
+    template<typename U>
+    A<C> (f)(int);  // Previously triggered an assertion failure.  Now okay.
+  };
+
+
 9/22/25  [EDGcpfe/27835]
 IL write-read error on expressions involving __builtin_source_location
 

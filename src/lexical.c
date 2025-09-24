@@ -22458,7 +22458,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
       }  /* if */
       new_tp = skip_typerefs(new_tp);
       if (is_immediate_class_type(new_tp) &&
-          new_tp->variant.class_struct_union.is_nonreal_class) {
+          new_tp->variant.class_struct_union.is_nonreal_class &&
+          next_token() == tok_colon_colon) {
         a_class_symbol_supplement_ptr cssp;
         cssp = symbol_supplement_for_class(new_tp);
         if (cssp->class_template != NULL) {
