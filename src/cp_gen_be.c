@@ -9369,12 +9369,12 @@ keyword that would be required in some contexts.
           gen_bare_name(&refp->source_corresp, iek_type);
         } else {
           /* Use the normal qualification provided by gen_name. */
-          a_gen_name_options_set options = GN_FORCE_QUALIFIED_NAME |
-                                           GN_NO_TEMPLATE_ARGS |
-                                           GN_DEPENDENT |
-                                           GN_TEMPLATE |
-                                           GN_SUPPRESS_TYPENAME_KEYWORD;
-          gen_name(&refp->source_corresp, iek_type, options,
+          a_gen_name_options_set noqual_options = GN_FORCE_QUALIFIED_NAME |
+                                                  GN_NO_TEMPLATE_ARGS |
+                                                  GN_DEPENDENT |
+                                                  GN_TEMPLATE |
+                                                  GN_SUPPRESS_TYPENAME_KEYWORD;
+          gen_name(&refp->source_corresp, iek_type, noqual_options,
                    /*need_closing_paren=*/NULL);
         }
         global_qual_emitted = saved_global_qual_emitted;
