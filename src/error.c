@@ -1110,6 +1110,7 @@ called.
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_into_text_buffer;
   octl.text_buffer = msg_buffer;
+  octl.for_diagnostics = TRUE;
   octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
   octl.max_template_arg_depth = MAX_ERROR_TEMPLATE_ARG_DEPTH;
   /* For diagnostics in C99 mode we want to see "_Bool" rather "bool" or the

@@ -277,6 +277,10 @@ typedef struct an_il_to_str_output_control_block {
 	cpp_generating_back_end;
 			/* TRUE if the output is being done for the
 			   C++-generating back end. */
+  a_byte_boolean
+	for_diagnostics;
+			/* TRUE if the output is being done for diagnostic
+			   text. */
 #if DEBUG
   a_byte_boolean
 	debug_output;	/* TRUE if the generated string is part of debug

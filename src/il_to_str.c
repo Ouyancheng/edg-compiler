@@ -138,6 +138,7 @@ Clear an output control block to default values.
   octl->render_c99_bool           = FALSE;
   octl->c_generating_back_end     = FALSE;
   octl->cpp_generating_back_end   = FALSE;
+  octl->for_diagnostics           = FALSE;
 #if DEBUG
   octl->debug_output              = FALSE;
 #endif /* DEBUG */
@@ -2257,6 +2258,10 @@ Output a string for a type specifier.  Do the output in the way described
 by octl.
 */
 {
+  if (octl->for_diagnostics) {
+    /* Ensure diagnostic output has access to the names of types. */
+    type = skip_lexical_typerefs(type);
+  }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   if (type->replace_by_generated_typedef) {
     /* Just put out a temporary name. */
@@ -2545,10 +2550,6 @@ by octl.
                          type->variant.typeref.kind == trk_template_arg_list ||
                          type->variant.typeref.kind == trk_name_qualifier,
                          "form_type_specifier: unexpected typeref kind");
-        if (!octl->gen_compilable_code) {
-          /* Ensure diagnostic output has access to the names of types. */
-          type = skip_lexical_typerefs(type);
-        }  /* if */
         form_name(&type->source_corresp, iek_type, octl);
       }  /* if */
       break;
