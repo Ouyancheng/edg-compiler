@@ -2969,15 +2969,28 @@ for the pointer type.
 */
 {
   check_assertion(type->kind == tk_pointer);
-  an_ifc_type_pointer
-                ptr_type;
-  an_ifc_type_index
-                result = this->map_new_type(type, &ptr_type);
-  a_type_ptr    pointee_type = type->variant.pointer.type;
-  an_ifc_type_index
-                ifc_pointee_type = this->find_or_enter_type(pointee_type);
+  an_ifc_type_index result;
+  a_type_ptr        pointee_type = type->variant.pointer.type;
+  an_ifc_type_index ifc_pointee_type = this->find_or_enter_type(pointee_type);
 
-  set_ifc_pointee(&ptr_type, ifc_pointee_type);
+  if (type->variant.pointer.is_reference) {
+    if (type->variant.pointer.is_rvalue_reference) {
+      an_ifc_type_lvalue_reference ref_type;
+
+      result = this->map_new_type(type, &ref_type);
+      set_ifc_referee(&ref_type, ifc_pointee_type);
+    } else {
+      an_ifc_type_rvalue_reference ref_type;
+
+      result = this->map_new_type(type, &ref_type);
+      set_ifc_referee(&ref_type, ifc_pointee_type);
+    }  /* if */
+  } else {
+    an_ifc_type_pointer ptr_type;
+
+    result = this->map_new_type(type, &ptr_type);
+    set_ifc_pointee(&ptr_type, ifc_pointee_type);
+  }  /* if */
   return result;
 }  /* an_ifc_il_map::enter_pointer_type */
 
