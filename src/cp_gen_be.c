@@ -6175,6 +6175,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   a_boolean               is_partial_spec_prototype_inst = FALSE;
   a_boolean               is_decltype = FALSE;
   a_boolean               is_unknown_function_operator = FALSE;
+  a_boolean               is_templ_param_instance = FALSE;
 
   if (il_header.source_language == sl_Cplusplus &&
       entry_kind == iek_type && !(options & GN_DECLARATION)) {
@@ -6295,12 +6296,13 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       } else
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       /* Do not insert code here. */
-      if ((tp->kind == (a_type_kind)tk_class ||
-           tp->kind == (a_type_kind)tk_struct ||
-           tp->kind == (a_type_kind)tk_union) &&
+      if (is_immediate_class_type(tp) &&
           tp->variant.class_struct_union.is_template_class) {
         assoc_template = tp->variant.class_struct_union.extra_info->
                                                                 assoc_template;
+        if (assoc_template->kind == templk_template_template_param) {
+          is_templ_param_instance = TRUE;
+        }  /* if */
         if (assoc_template->source_corresp.member_of_unknown_base) {
           /* A template instance generated from a template that is a member
              of an unknown base is not itself marked as a member of an
@@ -6723,7 +6725,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           write_tok_ch('(');
           *need_closing_paren = TRUE;
         }  /* if */
-        if (!global_qual_emitted) {
+        if (!global_qual_emitted && !is_templ_param_instance) {
           write_tok_str("::");
         }  /* if */
       }  /* if */
