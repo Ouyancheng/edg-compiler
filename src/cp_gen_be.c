@@ -9374,8 +9374,7 @@ keyword that would be required in some contexts.
           a_gen_name_options_set noqual_options = GN_FORCE_QUALIFIED_NAME |
                                                   GN_NO_TEMPLATE_ARGS |
                                                   GN_DEPENDENT |
-                                                  GN_TEMPLATE |
-                                                  GN_SUPPRESS_TYPENAME_KEYWORD;
+                                                  GN_TEMPLATE;
           gen_name(&refp->source_corresp, iek_type, noqual_options,
                    /*need_closing_paren=*/NULL);
         }
