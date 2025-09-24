@@ -5537,7 +5537,20 @@ of the field declaration.
     an_ifc_decl_index
                 scope_decl_idx = this->associate_entity_home_scope(field);
     set_ifc_home_scope(&field_decl, scope_decl_idx);
-    /* FIXME: Set initializer. */
+
+    /* Set the initializer. */
+    if (field->has_initializer) {
+      a_shared_token_cache
+                init_cache = get_field_initializer_for_module_write(field);
+      an_ifc_output_token_cache
+                init_token_cache;
+      this->enter_token_cache(&init_token_cache, init_cache.ptr());
+
+      an_ifc_expr_index
+                ifc_init_expr = this->output_state->alloc_token_cache_expr(
+                                                             init_token_cache);
+      set_ifc_initializer(&field_decl, ifc_init_expr);
+    }  /* if */
     /* FIXME: Set alignment. */
     /* FIXME: Set traits. */
     /* FIXME: Set specifier. */

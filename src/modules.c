@@ -2082,16 +2082,21 @@ otherwise, return an empty optional.
 }  /* source_position_of */
 
 
-using an_entity_definition_map =
+using an_entity_to_token_cache_map =
                                Ptr_map<a_tagged_pointer, a_shared_token_cache>;
-                        /* The type for a map of tagged entities to the
-                           associated token cache describing their
-                           definition. */
+                        /* The type for a map of tagged entities to an
+                           associated token cache. */
 
-STATIC_THREAD an_entity_definition_map
+STATIC_THREAD an_entity_to_token_cache_map
                 *entity_to_definition_tokens;
                         /* A map of an entity to the token cache representing
                            its definition. */
+
+
+STATIC_THREAD an_entity_to_token_cache_map
+                *entity_to_initializer_tokens;
+                        /* A map of an entity to the token cache representing
+                           its initializer. */
 
 
 void save_function_definition_for_module_write(
@@ -2122,6 +2127,34 @@ module output file.
                   cache.ptr() != NULL);
   return cache;
 }  /* get_function_definition_for_module_write */
+
+
+void save_field_initializer_for_module_write(a_field_ptr                fp,
+                                             const a_shared_token_cache &token)
+/*
+Save the tokens composing the initializer of the given field for use writing a
+module output file.
+*/
+{
+  entity_to_initializer_tokens->map(make_tagged_ptr(fp), token);
+}  /* save_field_initializer_for_module_write */
+
+
+a_shared_token_cache get_field_initializer_for_module_write(a_field_ptr fp)
+/*
+Get the tokens composing the initializer of the given field for use writing a
+module output file.
+*/
+{
+  a_shared_token_cache cache = entity_to_initializer_tokens->get(
+                                                          make_tagged_ptr(fp));
+
+  /* This function should only be called for fields that are expected to
+     have an initializer during module write out. */
+  check_assertion(create_module_unit && cache.ptr() != NULL);
+  return cache;
+}  /* get_field_initializer_for_module_write */
+
 
 #if DEBUG
 
@@ -2356,6 +2389,7 @@ Do one-time initialization of static variables defined in this file.
       pch_saved_var_array_elem(trans_unit_module_entity_scope),
       pch_saved_var_array_elem(module_entity_hash_table),
       pch_saved_var_array_elem(entity_to_definition_tokens),
+      pch_saved_var_array_elem(entity_to_initializer_tokens),
       pch_saved_var_array_elem(module_entity_stack),
       pch_saved_var_array_elem(known_modules),
       pch_saved_var_array_elem(modules_initialized_for_curr_tu),
@@ -2377,6 +2411,7 @@ Do one-time initialization of static variables defined in this file.
   register_trans_unit_variable(trans_unit_module_entity_scope);
   register_trans_unit_variable(module_entity_hash_table);
   register_trans_unit_variable(entity_to_definition_tokens);
+  register_trans_unit_variable(entity_to_initializer_tokens);
   register_trans_unit_variable(module_entity_stack);
   register_trans_unit_variable(known_modules);
   register_trans_unit_variable(modules_initialized_for_curr_tu);
@@ -2428,10 +2463,13 @@ translation unit.
   known_modules = NULL;
   modules_initialized_for_curr_tu = FALSE;
   if (create_module_unit) {
-    entity_to_definition_tokens = new_fe<an_entity_definition_map>(
+    entity_to_definition_tokens = new_fe<an_entity_to_token_cache_map>(
+                                                           /*mask_width=*/10u);
+    entity_to_initializer_tokens = new_fe<an_entity_to_token_cache_map>(
                                                            /*mask_width=*/10u);
   } else {
     entity_to_definition_tokens = NULL;
+    entity_to_initializer_tokens = NULL;
   }  /* if */
   ifc_modules_trans_unit_init();
 }  /* modules_trans_unit_init */

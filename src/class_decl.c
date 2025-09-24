@@ -18280,6 +18280,11 @@ in the context of the completed class later on.
   /* Cache the initializer. */
   a_shared_token_cache token_cache = cache_inclass_initializer(dps->sym);
 
+  if (create_module_unit) {
+    a_field_ptr fp = il_entry_for_symbol<a_field>(dps->sym);
+
+    save_field_initializer_for_module_write(fp, token_cache);
+  }  /* if */
   if (ms_extensions && symbol_is(dps->sym, sk_field) &&
       !nonclass_prototype_instantiations &&
       in_class_template_definition(class_state) &&

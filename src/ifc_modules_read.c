@@ -21810,22 +21810,30 @@ information about the current cache context to help inform decisions about what
 to cache.
 */
 {
-  if (is_var_initialized_by_closure(decl)) {
-    cache_var_closure_initializer(cache, decl);
-  } else {
+  if (is_edg_authored(decl)) {
     an_ifc_expr_index initializer = get_ifc_initializer(decl);
 
     if (!is_null_index(initializer)) {
-      /* An initializer where the type is ExprSort::Tokens will have the
-         braces included as part of the token stream. */
-      a_boolean cache_braces = initializer.sort != ifc_es_expr_tokens;
-
-      if (cache_braces) {
-        cache_token(cache, tok_lbrace);
-      }  /* if */
       cache_expr(cache, initializer, cinfo);
-      if (cache_braces) {
-        cache_token(cache, tok_rbrace);
+    }  /* if */
+  } else {
+    if (is_var_initialized_by_closure(decl)) {
+      cache_var_closure_initializer(cache, decl);
+    } else {
+      an_ifc_expr_index initializer = get_ifc_initializer(decl);
+
+      if (!is_null_index(initializer)) {
+        /* An initializer where the type is ExprSort::Tokens will have the
+           braces included as part of the token stream. */
+        a_boolean cache_braces = initializer.sort != ifc_es_expr_tokens;
+
+        if (cache_braces) {
+          cache_token(cache, tok_lbrace);
+        }  /* if */
+        cache_expr(cache, initializer, cinfo);
+        if (cache_braces) {
+          cache_token(cache, tok_rbrace);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

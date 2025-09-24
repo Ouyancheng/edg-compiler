@@ -834,6 +834,13 @@ extern void save_function_definition_for_module_write(
 extern a_shared_token_cache get_function_definition_for_module_write(
                                                              a_routine_ptr rp);
 
+extern void save_field_initializer_for_module_write(
+                                            a_field_ptr                fp,
+                                            const a_shared_token_cache &token);
+
+extern a_shared_token_cache get_field_initializer_for_module_write(
+                                                               a_field_ptr fp);
+
 #if DEBUG
 
 extern void db_tokens(a_module_token_cache_ptr cache);
