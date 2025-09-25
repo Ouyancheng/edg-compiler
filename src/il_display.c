@@ -2612,6 +2612,9 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.has_zero_init_component) {
         disp_boolean("has_zero_init_component", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.has_pointer_component) {
+        disp_boolean("has_pointer_component", TRUE);
+      }  /* if */
       if (ptr->variant.class_struct_union.has_operator_ampersand) {
         disp_boolean("has_operator_ampersand", TRUE);
       }  /* if */

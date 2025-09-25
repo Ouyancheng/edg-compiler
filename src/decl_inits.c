@@ -5282,6 +5282,42 @@ substituted.
   }  /* if */
 }  /* scan_compound_literal_initializer */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean addresses_dllimport_variable(a_constant  *cp)
+/*
+Return TRUE if the given constant contains the address of a dllimport
+variable.
+*/
+{
+  a_boolean  result;
+
+  if (constant_is(cp, ck_address)) {
+    result = address_base_is(cp, abk_variable) &&
+             (cp->variant.address.variant.variable->decl_modifiers
+                                                         & DM_DLLIMPORT) != 0;
+  } else if (constant_is(cp, ck_aggregate)) {
+    result = FALSE;
+    cp = cp->variant.aggregate.first_constant;
+    for (; cp != NULL; cp = cp->next) {
+      if (!constant_is(cp, ck_designator) &&
+          addresses_dllimport_variable(cp)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  } else if (constant_is(cp, ck_dynamic_init)) {
+    /* We don't know what is under the dynamic initialization.  Return TRUE
+       as a defensive result, but it is unlikely to matter since the constant
+       isn't truly a constant in this case. */
+    result = TRUE;
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* addresses_dllimport_variable */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void initializer(a_decl_parse_state  *dps,
                  a_source_position   *source_pos,
@@ -5881,6 +5917,17 @@ returned set to TRUE.
       init_con = move_local_constant_to_il(&constant);
       init_dip = NULL;
     }  /* if */
+    if ((dps->dso_flags & DSO_CONSTINIT) != 0) {
+      /* Set the "declared_constinit" flag, which will prevent the interpreter 
+         (potentially called below) from forcing static initialization for
+         expressions that it can fold, but which aren't actually constant
+         according to the standard. */
+      if (static_lifetime) {
+        vp->declared_constinit = TRUE;
+      } else {
+        expect_error();
+      }  /* if */
+    }  /* if */
     if (init_dip == NULL) {
       check_assertion(init_con != NULL);
       /* There's no dynamic init entry because the need for one cannot be
@@ -5944,13 +5991,6 @@ returned set to TRUE.
            is_integral_or_enum_type(vp->type)) ||
           is_any_reference_type(vp->type)) {
         is_constant_evaluated = TRUE;
-        if (dps->dso_flags & DSO_CONSTINIT) {
-          /* Set the "declared_constinit" flag, which will prevent the
-             interpreter from forcing static initialization for expressions
-             that it can fold, but which aren't actually constant according to
-             the standard. */
-          vp->declared_constinit = TRUE;
-        }  /* if */
       }  /* if */
       clear_diag_list(&diag_list);
       if (init_dip->variable == NULL) init_dip->variable = vp;
@@ -6118,6 +6158,15 @@ returned set to TRUE.
       if (init_kind == (an_init_kind)initk_dynamic) {
         init_stmt->variant.dynamic_init = init->dynamic;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (ms_extensions && vp->declared_constinit &&
+               has_pointer_component(vp->type) &&
+               vp->init_kind == initk_static) {
+      if (addresses_dllimport_variable(vp->initializer.constant)) {
+        pos_error(ec_initializer_addresses_dllimport_variable,
+                  &pos_first_token);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (decl_pos_block != NULL) {

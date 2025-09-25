@@ -17233,7 +17233,7 @@ or thread_local variable does not.
   a_boolean const_addr = var_has_static_storage_duration(variable);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if ((variable->decl_modifiers & DM_DLLIMPORT) != 0 &&
+  if ((variable->decl_modifiers & DM_DLLIMPORT) != 0 && C_mode() &&
        !is_array_type(variable->type)) {
     /* A dllimport variable is accessed indirect through a variable
        and therefore does not have a constant address. */
@@ -20560,9 +20560,7 @@ in the source (and *operator_position gives its position).
             }  /* if */
           }  /* if */
           if (constant_glvalue_address(test_expr, conaddr,
-                                       /*address_escapes=*/TRUE) ||
-              (microsoft_mode && !C_mode() && curr_expr_kind_is_const() &&
-               is_dllimport_variable_glvalue(test_expr, conaddr))) {
+                                       /*address_escapes=*/TRUE)) {
             /* A glvalue with a constant address (in C++ constant-expression
                contexts, that includes Microsoft-mode dllimport variables). */
             if (cpp11_sfinae_enabled &&

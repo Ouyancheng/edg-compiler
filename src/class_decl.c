@@ -21488,6 +21488,9 @@ be entered.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (has_pointer_component(member_element_type)) {
+    class_type->variant.class_struct_union.has_pointer_component = TRUE;
+  }  /* if */
   /* Check for the case in which the type is or contains a routine type for
      which default arguments have been specified. */
   if (curr_routine_fixup != NULL &&

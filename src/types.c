@@ -1192,6 +1192,36 @@ Return TRUE if the given type is a C++11 rvalue reference type.
 }  /* is_rvalue_reference_type */
 
 
+a_boolean has_pointer_component(a_type_ptr  tp)
+/*
+Return TRUE if the given type is or contains a pointer or reference.
+*/
+{
+  a_boolean  result;
+
+redo:
+  switch (tp->kind) {
+    case tk_pointer:
+      result = TRUE;
+      break;
+    case tk_class:
+    case tk_struct:
+    case tk_union:
+      result = tp->variant.class_struct_union.has_pointer_component;
+      break;
+    case tk_array:
+      tp = tp->variant.array.element_type;
+      goto redo;
+    case tk_typeref:
+      tp = tp->variant.typeref.type;
+      goto redo;
+    default:
+      result = FALSE;
+  }  /* switch */
+  return result;
+}  /* has_pointer_component */
+
+
 a_boolean is_qualified_function_type(a_type_ptr	tp)
 /*
 Return TRUE if the given type is a function type that has qualifiers,

@@ -1,5 +1,14 @@
 Version 6.8
 
+9/25/25  [EDGcpfe/25786,EDGcpfe/28132,EDGcpfe/28462]
+Microsoft C++ compatibility: Constant address of dllimport variables
+
+In Microsoft C++ mode, the front end now accepts constant expressions that
+produce the address of a dllimport variable in more contexts.  Conversely,
+it now more consistently diagnoses attempts to use such a constant expression
+to initialize a constinit variable.
+
+
 9/25/25  [EDGcpfe/28410]
 Constraints on unnamed classes
 

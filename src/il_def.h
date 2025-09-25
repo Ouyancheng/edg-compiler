@@ -10421,6 +10421,10 @@ typedef struct a_type {
 			   the object (i.e., a part of it must be zero-
 			   initialized). */
       a_bit_field
+		has_pointer_component:1;
+			/* TRUE if a subobject of this type is a pointer or
+			   reference. */
+      a_bit_field
 		contains_flexible_array_member:1;
 			/* TRUE if this is a class or struct type and the last
 			   field is an incomplete array type or a class type

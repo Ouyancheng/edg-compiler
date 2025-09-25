@@ -26755,13 +26755,17 @@ diagnostic in *ips.
       { a_constexpr_address *cap = (a_constexpr_address *)object;
         if (is_runtime_data_address(cap)) {
           a_constant_ptr  rt_con = cap->variant.addr_con;
+          a_boolean       dllimport_address = FALSE;
           /* Catch the case of a pointer or reference to a variable that is
              not constant-valued. */
           if (constant_is(rt_con, ck_address)) {
             an_address_base_kind  abk = rt_con->variant.address.kind;
             if (abk == abk_variable) {
               a_variable_ptr  vp = rt_con->variant.address.variant.variable;
-              if (!variable_has_constant_address(vp) &&
+#if DECL_MODIFIERS_IN_USE
+              //dllimport_address = !!(vp->decl_modifiers & DM_DLLIMPORT);
+#endif /* DECL_MODIFIERS_IN_USE */
+              if (!variable_has_constant_address(vp) && !dllimport_address &&
                   !(cpp26_mode && ips->is_constant_evaluated &&
                     type->variant.pointer.is_reference &&
                     is_addressable_auto_var(vp))) {
