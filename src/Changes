@@ -4,7 +4,7 @@ Version 6.8
 Constraints on unnamed classes
 
 The front end now diagnoses non-C-like members of unnamed class types that
-acquire a "name for linkage" purposes.  That includes closure types associated
+acquire a name "for linkage purposes".  That includes closure types associated
 with such types.  The diagnostic is a warning, except in strict mode and in
 Microsoft C++ modes with microsoft_version >= 1926.  For example:
 
@@ -13,7 +13,7 @@ Microsoft C++ modes with microsoft_version >= 1926.  For example:
     int f();                   // Nonstandard: Member function.
     int i = 0;                 // Nonstandard: Default member initializer.
     using C = decltype([]{});  // Nonstandard: Member typedef-name and
-  };                           //              closure type.
+  } N;                         //              closure type.
 
 Furthermore, static data member declarations in unnamed class types are now
 diagnosed in more modes.  Previously, the were permitted in all GNU C++ modes;
