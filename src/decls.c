@@ -12218,6 +12218,56 @@ Issue a diagnostic if the modifier is invalid.
 
 #endif /* DECL_MODIFIERS_IN_USE */
 
+static void check_class_with_name_for_linkage_purposes(a_type  *class_type)
+/*
+The given unnamed class type is acquiring a "name for linkage purposes" through
+a typedef or alias declaration.  The standard prohibits most non-C-like members
+in such a case: Diagnose violations of that rule if applicable.
+*/
+{
+  an_error_severity  sev = es_warning;
+  a_base_class       *bcp = base_classes_of(class_type);
+  a_scope            *scope = class_type_supp(class_type)->assoc_scope;
+
+  if (strict_ansi_mode || mscpp_version_is(>1925)) {
+    sev = es_discretionary_error;
+  }  /* if */
+  if (bcp != NULL) {
+    while (!bcp->direct) bcp = bcp->next;
+    pos_diagnostic(sev, ec_base_class_of_class_type_with_typedef_name,
+                   &bcp->decl_position);
+  }  /* if */
+  for (a_routine  *rp = scope->routines; rp != NULL; rp = rp->next) {
+    if (!rp->compiler_generated) {
+      pos_diagnostic(sev, ec_member_function_of_class_type_with_typedef_name,
+                     &rp->source_corresp.decl_position);
+      break;
+    }  /* if */
+  }  /* for */
+  for (a_type  *tp = scope->types; tp != NULL; tp = tp->next) {
+    if (!is_immediate_enum_type(tp) && !is_immediate_class_type(tp)) {
+      pos_diagnostic(sev, ec_member_type_of_class_type_with_typedef_name,
+                     &tp->source_corresp.decl_position);
+      break;
+    } else if (is_immediate_class_type(tp) && is_lambda_closure_type(tp)) {
+      pos_diagnostic(mscpp_version_is(>=1900) ? es_discretionary_error : sev,
+                     ec_lambda_in_class_type_with_typedef_name,
+                     &tp->source_corresp.decl_position);
+      break;
+    }  /* if */
+  }  /* for */
+  if (class_type_supp(class_type)->has_field_initializer) {
+    for (a_field  *fp = fields_of(class_type); fp != NULL; fp = fp->next) {
+      if (fp->has_initializer) {
+        pos_diagnostic(sev, ec_field_init_in_class_type_with_typedef_name,
+                       &fp->source_corresp.decl_position);
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* check_class_with_name_for_linkage_purposes */
+
+
 void decl_typedef(a_symbol_locator                *locator,
                   a_decl_parse_state              *state,
                   a_type_ptr                      class_type,
@@ -12616,6 +12666,9 @@ symbol entry, and return a pointer to it in state->sym.
                prototype instantiation contexts. */
             set_source_corresp_name(&assoc_template_param->source_corresp,
                                     locator->symbol_header);
+          }  /* if */
+          if (is_immediate_class_type(tp)) {
+            check_class_with_name_for_linkage_purposes(tp);
           }  /* if */
 #if NEED_NAME_MANGLING
           if (recompute_discriminator) {

@@ -3620,6 +3620,12 @@ ec_indeterminate_not_on_first_decl;;"%n previously declared without the \"indete
 ec_default_constructor_is_explicit;;"the default constructor for %t is explicit"
 ec_ifc_definition_load_failure;;"failed to load the definition of %n in %m"
 ec_ifc_initializer_load_failure;;"failed to load the initializer for %n in %m"
+ec_base_class_of_class_type_with_typedef_name;;"a class with a typedef-name for linkage purposes cannot have a base class"
+ec_member_function_of_class_type_with_typedef_name;;"a class with a typedef-name for linkage purposes cannot have a member function"
+ec_member_type_of_class_type_with_typedef_name;;"a class with a typedef-name for linkage purposes cannot have a nested type, other than enumeration type or a non-closure class type"
+ec_lambda_in_class_type_with_typedef_name;;"a class with a typedef-name for linkage purposes cannot contain a lambda-expression"
+ec_field_init_in_class_type_with_typedef_name;;"a class with a typedef-name for linkage purposes cannot have a nonstatic data member with a default member initializer"
+ec_static_data_member_not_allowed_in_unnamed_class;;"a static data member declaration is not allowed in an unnamed class"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

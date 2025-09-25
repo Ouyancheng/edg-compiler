@@ -1,5 +1,25 @@
 Version 6.8
 
+9/25/25  [EDGcpfe/28410]
+Constraints on unnamed classes
+
+The front end now diagnoses non-C-like members of unnamed class types that
+acquire a "name for linkage" purposes.  That includes closure types associated
+with such types.  The diagnostic is a warning, except in strict mode and in
+Microsoft C++ modes with microsoft_version >= 1926.  For example:
+
+  struct B {};
+  typedef struct: B {          // Nonstandard: Base class.
+    int f();                   // Nonstandard: Member function.
+    int i = 0;                 // Nonstandard: Default member initializer.
+    using C = decltype([]{});  // Nonstandard: Member typedef-name and
+  };                           //              closure type.
+
+Furthermore, static data member declarations in unnamed class types are now
+diagnosed in more modes.  Previously, the were permitted in all GNU C++ modes;
+now, this is only true when gnu_version < 40900.
+
+
 9/24/25  [EDGcpfe/23041,EDGcpfe/23207]
 Abort on parenthesized member function template declaration
 

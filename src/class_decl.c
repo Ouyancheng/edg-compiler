@@ -18532,9 +18532,10 @@ template declaration and is NULL otherwise.
     /* Unions are not allowed to have static data members in traditional C++,
        but C++11 permits it (and so do Microsoft compilers). */
     pos_error(ec_static_data_member_not_allowed, start_pos);
-  } else if (!((any_cfront_mode() || microsoft_mode || gpp_mode) &&
+  } else if (!((any_cfront_mode() || microsoft_mode ||
+                gpp_version_is(<40900)) &&
                (!unrestricted_unions_enabled ||
-                class_type->kind != (a_type_kind)tk_union)) &&
+                !type_is(class_type, tk_union))) &&
              is_or_is_nested_within_unnamed_class(class_type)) {
     /* Static data members are not permitted in unnamed classes or in classes
        contained within an unnamed class.  For cfront, Microsoft, and GNU
