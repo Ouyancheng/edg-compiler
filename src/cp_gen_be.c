@@ -9275,6 +9275,7 @@ keyword that would be required in some contexts.
       a_type_ptr         refp = trp->variant.typeref.type;
       a_template_arg_ptr arg_list = NULL;
       a_boolean          name_qual_suppressed = FALSE;
+      a_boolean          typename_kwd_emitted = FALSE;
       if (is_typeref_kind(trp, trk_template_arg_list)) {
         /* This typeref specifies the form of the template argument list
            specified in the reference; a null template argument list
@@ -9337,6 +9338,7 @@ keyword that would be required in some contexts.
           }  /* if */
           if (!suppress_typename_kwd && options == GN_DEPENDENT) {
             write_tok_str("typename ");
+            typename_kwd_emitted = TRUE;
           }  /* if */
           if (use_elab_type_spec) {
             write_tok_str(tag_keyword(refp));
@@ -9371,10 +9373,13 @@ keyword that would be required in some contexts.
           gen_bare_name(&refp->source_corresp, iek_type);
         } else {
           /* Use the normal qualification provided by gen_name. */
-          a_gen_name_options_set noqual_options = GN_FORCE_QUALIFIED_NAME |
+          a_gen_name_options_set noqual_options = options |
+                                                  GN_FORCE_QUALIFIED_NAME |
                                                   GN_NO_TEMPLATE_ARGS |
-                                                  GN_DEPENDENT |
                                                   GN_TEMPLATE;
+          if (suppress_typename_kwd || typename_kwd_emitted) {
+            noqual_options |= GN_SUPPRESS_TYPENAME_KEYWORD;
+          }  /* if */
           gen_name(&refp->source_corresp, iek_type, noqual_options,
                    /*need_closing_paren=*/NULL);
         }
