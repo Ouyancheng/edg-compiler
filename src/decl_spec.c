@@ -4944,6 +4944,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     *type_ptr = tag_sym->variant.type.ptr;
   } else {
     *type_ptr = class_type;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+    *type_ptr = make_typeref_with_lexical_information(*type_ptr, &locator);
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
 done:

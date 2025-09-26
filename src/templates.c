@@ -33591,6 +33591,7 @@ that follows.
   a_source_position             prev_sym_pos;
   a_boolean                     has_parenthesized_initializer;
   a_source_correspondence       *scp;
+  a_type_ptr                    type;
   a_routine_ptr                 rp;
   a_variable_ptr                vp;
   a_boolean			is_constructor = FALSE;
@@ -33667,22 +33668,22 @@ that follows.
          the previous declaration if applied to a static data member). */
     }  /* if */
   }  /* if */
-  if (dps->type == NULL ||
-      (is_error_type(dps->type) && !is_declarator_start())) {
+  type = dps->type != NULL ? skip_lexical_typerefs(dps->type) : NULL;
+  if (type == NULL || (is_error_type(type) && !is_declarator_start())) {
     /* Error of some sort. */
     set_to_error_locator(locator);
   } else if ((dso_flags & (DSO_DEFINES_SOMETHING |
                            DSO_DECLARES_SOMETHING |
                            DSO_ELABORATED_TYPE_SPECIFIER)) &&
-             (is_immediate_class_type(dps->type) ||
-              is_immediate_enum_type(dps->type)) &&
+             (is_immediate_class_type(type) ||
+              is_immediate_enum_type(type)) &&
              curr_token == tok_semicolon) {
     /* The argument is something like class A<int> (i.e., a class template
        specialization).  Note that this also permits the class to be a nested
        class within a template class. */
-    a_boolean	is_class = is_immediate_class_type(dps->type);
+    a_boolean	is_class = is_immediate_class_type(type);
     check_pending_qualifiers_used(dps);
-    sym = symbol_for(dps->type);
+    sym = symbol_for(type);
     check_assertion(sym != NULL);
     if (!decl_state->decl_scope_err &&
         dps->declared_storage_class != (a_storage_class)sc_unspecified) {
@@ -33703,27 +33704,27 @@ that follows.
          "template <>" clauses. */
       check_template_nesting_depth(sym, &dps->specifiers_pos, decl_state);
       if (is_class) {
-        dps->type->variant.class_struct_union.is_specialized = TRUE;
+        type->variant.class_struct_union.is_specialized = TRUE;
       } else {
-        dps->type->variant.integer.is_specialized = TRUE;
+        type->variant.integer.is_specialized = TRUE;
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       { a_boolean	decl_is_definition;
         /* The specialization should be marked as an autonomous declaration. */
         decl_is_definition = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
         if (decl_is_definition) {
-          dps->type->autonomous_primary_tag_decl = TRUE;
+          type->autonomous_primary_tag_decl = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           /* Ensure the extra position information is recorded in the entry
              representing the specialized class. */
           prepend_element_positions(decl_pos_block.extra_positions,
-                                    &dps->type->source_corresp.decl_pos_info
-                                              ->extra_positions);
+                                    &type->source_corresp.decl_pos_info
+                                         ->extra_positions);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         } else {
           an_sssd_flag_set  flags = SSSD_AUTONOMOUS_TAG_DECL |
                                     SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
-          (void)update_src_seq_secondary_decl((char *)dps->type, dps->type,
+          (void)update_src_seq_secondary_decl((char *)type, type,
                                               (a_name_reference_ptr)NULL,
                                               flags, &decl_pos_block);
         }  /* if */
@@ -41648,8 +41649,9 @@ instantiation.
     /* The argument is something like class A<int> -- instantiate all the
        members of the class.  Note that this also permits the class to
        be a nested class within a template class. */
+    a_type_ptr  type = skip_lexical_typerefs(dps->type);
     check_pending_qualifiers_used(dps);
-    sym = symbol_for(dps->type);
+    sym = symbol_for(type);
     check_assertion(sym != NULL);
     if (is_template_instance_class_symbol(sym) &&
         (!is_template_instance_specific_def_symbol(sym) ||
@@ -41664,7 +41666,7 @@ instantiation.
                                        // instantiated.
              S<int> s;  // Okay.
       */
-      dps->type->variant.class_struct_union.is_specialized = FALSE;
+      type->variant.class_struct_union.is_specialized = FALSE;
       update_instantiation_flags_for_class(sym, kind, start_pos, is_pragma,
                                            /*top_level=*/TRUE,
                                            /*is_dll_directive=*/FALSE);
