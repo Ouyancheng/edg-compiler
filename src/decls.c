@@ -12229,7 +12229,7 @@ in such a case: Diagnose violations of that rule if applicable.
   a_base_class       *bcp = base_classes_of(class_type);
   a_scope            *scope = class_type_supp(class_type)->assoc_scope;
 
-  if (strict_ansi_mode || mscpp_version_is(>1925)) {
+  if (strict_ansi_mode || (mscpp_version_is(>1925) && !ms_permissive)) {
     sev = es_discretionary_error;
   }  /* if */
   if (bcp != NULL) {
