@@ -3105,8 +3105,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       /* A decltype or typeof operator that should be rendered in its
          original form (instead of rendering the underlying type). */
       break;
-    } else if (type->variant.typeref.kind == trk_template_arg_list ||
-               type->variant.typeref.kind == trk_name_qualifier) {
+    } else if (is_for_cp_gen_be(octl) &&
+               (type->variant.typeref.kind == trk_template_arg_list ||
+                type->variant.typeref.kind == trk_name_qualifier)) {
       /* A typeref that gives an alternative template argument list for a
          given occurrence of the type or that specifies the qualifiers used
          in the reference to the type.  Do not step over it. */
@@ -3775,9 +3776,9 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
       /* A decltype or typeof operator that should be rendered in its
          original form (instead of rendering the underlying type). */
       break;
-    } else if (resolved_type == NULL &&
+    } else if (resolved_type == NULL && is_for_cp_gen_be(octl) &&
                (type->variant.typeref.kind == trk_template_arg_list ||
-		type->variant.typeref.kind == trk_name_qualifier)) {
+                type->variant.typeref.kind == trk_name_qualifier)) {
       /* Do not scan past alternative template arguments or a name
          qualifier. */
       break;
