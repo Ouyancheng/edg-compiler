@@ -34,7 +34,7 @@ Microsoft C++ modes with microsoft_version >= 1926.  For example:
   } N;                         //              closure type.
 
 Furthermore, static data member declarations in unnamed class types are now
-diagnosed in more modes.  Previously, the were permitted in all GNU C++ modes;
+diagnosed in more modes.  Previously, they were permitted in all GNU C++ modes;
 now, this is only true when gnu_version < 40900.
 
 
