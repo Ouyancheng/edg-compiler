@@ -1,5 +1,20 @@
 Version 6.8
 
+9/29/25  [EDGcpfe/28298]
+C++-generating back end: Incorrect parentheses around decltype operand
+
+Consider, in C++20 mode:
+
+  struct X {};
+  template<X XV> auto f()->typename decltype(XV)::type;
+
+Previously, the decltype construct in this example was incorrectly rendered as
+"decltype((XV))" (i.e., with extraneous parentheses).  That is now fixed.  The
+fix is change to more accurate record the flag decltype_expr_not_parenthesized
+in the a_type entry representing that decltype construct.  (Note that the flag
+is only set if the parentheses can make a difference in the resulting type.)
+
+
 9/29/25  [EDGcpfe/28470]
 Excessive stack usage during IL walks for set_class_keep_definition_in_il
 

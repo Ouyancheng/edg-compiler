@@ -17151,7 +17151,8 @@ expression (i.e., id-expression or member access).
   a_type_ptr        result = NULL;
   an_expr_node_ptr  expr = NULL;
 
-  *no_parens_matters = FALSE;
+  *no_parens_matters = operand->is_id_expression &&
+                       !operand->id_expression_was_parenthesized;
   if (is_expression_operand(operand)) {
     /* Strip a reference indirection from the expression, if present, so
        we can see what's underneath. */
@@ -17241,7 +17242,6 @@ id_case:
     } else {
       goto general_case;
     }  /* if */
-    *no_parens_matters = TRUE;
   } else if (microsoft_mode && expr != NULL && expr->is_lvalue &&
              is_uuidof_expr(expr) && !expr_is_instantiation_dependent(expr)) {
     /* Although __uuidof(expr) produces an lvalue result, MSVC produces its
