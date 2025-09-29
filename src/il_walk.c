@@ -74,6 +74,10 @@ STATIC_THREAD a_boolean
 			/* TRUE if we are walking an IL tree in a secondary
 			   translation unit, FALSE if we are walking the
 			   IL in a primary translation unit. */
+STATIC_THREAD Dyn_array<a_type_ptr>
+		*class_keep_definition_in_il_list;
+			/* List of classes for deferred processing of
+			   keep_definition_in_il. */
 typedef char	*a_char_ptr;
 			/* Useful to indicate "char *" as a type in calling
 			   remap_ptr or walk_ptr. */
@@ -1671,7 +1675,8 @@ void set_class_keep_definition_in_il(a_type_ptr type)
 /*
 Set the keep_definition_in_il flag on the indicated class type.  This means
 the definition of the class must be kept in the IL, and not just the
-declaration.
+declaration.  This routine uses an internal list for deferred processing to
+limit recursion depth.
 */
 {
   if (walking_secondary_trans_unit &&
@@ -1683,24 +1688,39 @@ declaration.
        canonical entry if there is one, however. */
     set_canonical_class_keep_definition_in_il(type);
   } else if (!type->variant.class_struct_union.keep_definition_in_il) {
-    /* Set the flag if it is not set already. */
-    type->variant.class_struct_union.keep_definition_in_il = TRUE;
-#if DEBUG
-    if (db_trace("needed_flags", type, iek_type)) {
-      fprintf(f_debug, "Setting keep_definition_in_il on ");
-      db_abbreviated_type(type);
-      fprintf(f_debug, "\n");
+    if (class_keep_definition_in_il_list == NULL) {
+      class_keep_definition_in_il_list =
+                                       alloc_fe_of_type(Dyn_array<a_type_ptr>);
+      construct(class_keep_definition_in_il_list, /*cap=*/16u);
     }  /* if */
+    class_keep_definition_in_il_list->push_back(type);
+    if (class_keep_definition_in_il_list->length() == 1) {
+      /* The list only gets processed by the top-level invocation. */
+      for (size_t  i = 0;
+           i != class_keep_definition_in_il_list->length();
+           ++i) {
+        type = (*class_keep_definition_in_il_list)[i];
+        /* Set the flag if it is not set already. */
+        type->variant.class_struct_union.keep_definition_in_il = TRUE;
+#if DEBUG
+        if (db_trace("needed_flags", type, iek_type)) {
+          fprintf(f_debug, "Setting keep_definition_in_il on ");
+          db_abbreviated_type(type);
+          fprintf(f_debug, "\n");
+        }  /* if */
 #endif /* DEBUG */
-    /* If the class is already marked to be kept in the IL, redo the sweep
-       for that, because before the keep_definition_in_il flag is set the
-       subtree of the class is not swept when the class keep_in_il flag
-       is set. */
-    remark_to_keep_in_il((char *)type, iek_type);
-    /* For a type that has linkage, mark the associated canonical entry
-       to have its definition kept too, since that's the one that will
-       be copied to the primary IL. */
-    set_canonical_class_keep_definition_in_il(type);
+        /* If the class is already marked to be kept in the IL, redo the sweep
+           for that, because before the keep_definition_in_il flag is set the
+           subtree of the class is not swept when the class keep_in_il flag is
+           set. */
+        remark_to_keep_in_il((char *)type, iek_type);
+        /* For a type that has linkage, mark the associated canonical entry
+           to have its definition kept too, since that's the one that will
+           be copied to the primary IL. */
+        set_canonical_class_keep_definition_in_il(type);
+      }  /* for */
+      class_keep_definition_in_il_list->clear();
+    }  /* if */
   }  /* if */
 }  /* set_class_keep_definition_in_il */
 
@@ -2620,6 +2640,7 @@ of the front end.
   clear_fe_pointers_during_walk = FALSE;
   walking_file_scope = FALSE;
   walking_secondary_trans_unit = FALSE;
+  class_keep_definition_in_il_list = NULL;
 }  /* il_walk_init */
 
 #endif /* IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS */
