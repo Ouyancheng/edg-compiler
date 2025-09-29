@@ -11144,31 +11144,35 @@ information (if available; it may be NULL).
          is specialized. */
       pos_warning(ec_self_friendship, &error_position);
     } else {
-      a_class_list_entry_ptr  clep = NULL;
       ctsp = friend_class_type->variant.class_struct_union.extra_info;
       /* Issue a remark if this is a duplicate friend declaration.  Don't test
          that for friend template substitutions. */
       if (!for_friend_template) {
-        clep = ctsp->befriending_classes;
-        for (; clep != NULL; clep = clep->next) {
-          if (clep->class_type == class_type) {
+        a_class_list_entry_ptr bclep = ctsp->befriending_classes;
+        for (; bclep != NULL; bclep = bclep->next) {
+          if (bclep->class_type == class_type) {
             pos_remark(ec_duplicate_friend_decl, &error_position);
             break;
           }  /* if */
         }  /* for */
       }  /* if */
-      clep = alloc_list_entry_for_class_full(
+      { a_class_list_entry_ptr clep = alloc_list_entry_for_class_full(
                                            &friend_class_type->source_corresp);
-      clep->class_type = class_type;
-      clep->next = ctsp->befriending_classes;
-      ctsp->befriending_classes = clep;
-      /* Now add the friend_class_type to the friends list for the current
-         class. */
-      ctsp = class_type->variant.class_struct_union.extra_info;
-      clep = alloc_list_entry_for_class_full(&class_type->source_corresp);
-      clep->class_type = friend_class_type;
-      clep->next = ctsp->friend_classes;
-      ctsp->friend_classes = clep;
+
+        clep->class_type = class_type;
+        clep->next = ctsp->befriending_classes;
+        ctsp->befriending_classes = clep;
+      }
+      { /* Now add the friend_class_type to the friends list for the current
+           class. */
+        an_il_entity_list_entry_ptr ielep =
+                  alloc_il_entity_list_entry_with(&class_type->source_corresp);
+
+        ctsp = class_type->variant.class_struct_union.extra_info;
+        ielep->entity = make_tagged_ptr(friend_class_type);
+        ielep->next = ctsp->friends;
+        ctsp->friends = ielep;
+      }
 #if DEBUG
       if (db_trace("friendship", class_type, iek_type) ||
           db_trace("friendship", friend_class_type, iek_type)) {
@@ -11185,8 +11189,8 @@ information (if available; it may be NULL).
           fprintf(f_debug, "friend_classes list of ");
           db_abbreviated_type(class_type);
           fprintf(f_debug, ":\n");
-          db_class_list(class_type->variant.class_struct_union.
-                                                   extra_info->friend_classes);
+          db_classes_in_list(class_type->variant.class_struct_union.
+                                                          extra_info->friends);
         }  /* if */
       }  /* if */
 #endif /* DEBUG */
@@ -11665,9 +11669,9 @@ that it is now a friend of class_type.  Also update class_type to indicate
 that the routine indicated by rout_ptr is a friend.
 */
 {
-  a_class_list_entry_ptr clep;
+  a_class_list_entry_ptr      clep;
   a_class_type_supplement_ptr ctsp;
-  a_routine_list_entry_ptr    rlep;
+  an_il_entity_list_entry_ptr rlep;
 
   check_assertion(!rout_ptr->is_inheriting_ctor);
   /* Issue a remark if this is a duplicate friend declaration. */
@@ -11685,10 +11689,10 @@ that the routine indicated by rout_ptr is a friend.
   rout_ptr->friends_or_originator.befriending_classes = clep;
   /* Now add the routine to the friends list for the current class. */
   ctsp = class_type->variant.class_struct_union.extra_info;
-  rlep = alloc_list_entry_for_routine();
-  rlep->routine = rout_ptr;
-  rlep->next = ctsp->friend_routines;
-  ctsp->friend_routines = rlep;
+  rlep = alloc_il_entity_list_entry_with(&class_type->source_corresp);
+  rlep->entity = make_tagged_ptr(rout_ptr);
+  rlep->next = ctsp->friends;
+  ctsp->friends = rlep;
 #if DEBUG
   if (db_trace("friendship", rout_ptr, iek_routine) ||
       db_trace("friendship", class_type, iek_type)) {
@@ -14509,9 +14513,12 @@ operator or a friend operator).
     }  /* if */
   }  /* for */
   if (!result) {
-    a_routine_list_entry_ptr  rlep;
-    for (rlep = ctsp->friend_routines; rlep != NULL; rlep = rlep->next) {
-      rp = rlep->routine;
+    an_il_entity_list_entry_ptr  rlep;
+    for (rlep = ctsp->friends; rlep != NULL; rlep = rlep->next) {
+      if (rlep->entity.kind != iek_routine) {
+        continue;
+      }  /* if */
+      rp = (a_routine_ptr)rlep->entity.ptr;
       if (rp->is_defaulted && special_kind_is(rp, sfk_operator) &&
           opname_kind_is(rp, onk_eq)) {
         result = TRUE;
@@ -22614,9 +22621,12 @@ operators as deleted if appropriate.
     }  /* if */
   }  /* for */
   if (spaceship_enabled) {
-    a_routine_list_entry_ptr  rlep;
-    for (rlep = ctsp->friend_routines; rlep != NULL; rlep = rlep->next) {
-      rp = rlep->routine;
+    an_il_entity_list_entry_ptr  rlep;
+    for (rlep = ctsp->friends; rlep != NULL; rlep = rlep->next) {
+      if (rlep->entity.kind != iek_routine) {
+        continue;
+      }  /* if */
+      rp = (a_routine_ptr)rlep->entity.ptr;
       if (rp->is_defaulted && special_kind_is(rp, sfk_operator)) {
         if (opname_kind_is(rp, onk_eq)) {
           check_defaulted_eq_properties(class_type, rp);
@@ -25323,7 +25333,7 @@ declared, declare one that matches the spaceship operator.
   a_type_ptr          rtp, class_type = cdsp->class_type;
   a_class_type_supplement_ptr
                       ctsp = class_type_supp(class_type);
-  a_routine_list_entry_ptr
+  an_il_entity_list_entry_ptr
                       rlep;
   a_source_position   *pos = &class_type->source_corresp.decl_position;
   a_member_decl_info  decl_info;
@@ -25343,8 +25353,11 @@ declared, declare one that matches the spaceship operator.
       }  /* for */
     }  /* if */
   }  /* for */
-  for (rlep = ctsp->friend_routines; rlep != NULL; rlep = rlep->next) {
-    rp = rlep->routine;
+  for (rlep = ctsp->friends; rlep != NULL; rlep = rlep->next) {
+    if (rlep->entity.kind != iek_routine) {
+      continue;
+    }  /* if */
+    rp = (a_routine_ptr)rlep->entity.ptr;
     if (special_kind_is(rp, sfk_operator)) {
       if (opname_kind_is(rp, onk_eq)) {
         /* There is an equality friend operator. */

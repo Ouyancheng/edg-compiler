@@ -8926,18 +8926,12 @@ typedef struct a_class_type_supplement {
                            the befriended class (or routine) is declared in
                            the befriending class; here the befriending class
                            is recorded in the befriended class (or routine). */
-  a_routine_list_entry_ptr
-		friend_routines;
-			/* A linked list of entries identifying routines that
+  an_il_entity_list_entry_ptr
+		friends;
+			/* A linked list of entries identifying entities that
 			   were explicitly declared as friends of the current
-			   class (i.e., routines that the current class has
-			   befriended). */
-  a_class_list_entry_ptr
-		friend_classes;
-			/* A linked list of entries identifying classes that
-			   were explicitly declared as friends of the current
-			   class (i.e., classes that the current class has
-			   befriended). */
+			   class (i.e., routines, classes, and templates that
+			   the current class has befriended). */
   a_scope_ptr	assoc_scope;
 			/* The scope for the class type.  In the scope entry,
 			   "routines" gives a linked list of routine entries

@@ -3955,6 +3955,8 @@ extern void db_field(a_field_ptr fp, int depth);
 
 extern void db_class_list(a_class_list_entry_ptr list);
 
+extern void db_classes_in_list(an_il_entity_list_entry_ptr list);
+
 extern void db_subobject_path(a_subobject_path  *path);
 
 extern void db_constant(a_constant *cp);

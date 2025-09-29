@@ -3408,10 +3408,8 @@ handle_class_type_supplement_for_class:
           walk_list_not_needed(ctsp->vcall_offsets, a_vcall_offset_entry_ptr, 
                                iek_vcall_offset_entry);
 #endif /* DO_IL_LOWERING && IA64_ABI */
-          walk_list_not_needed(ctsp->friend_routines, a_routine_list_entry_ptr,
-                               iek_routine_list_entry);
-          walk_list_not_needed(ctsp->friend_classes, a_class_list_entry_ptr,
-                               iek_class_list_entry);
+          walk_list_not_needed(ctsp->friends, an_il_entity_list_entry_ptr,
+                               iek_il_entity_list_entry);
 #if MICROSOFT_EXTENSIONS_ALLOWED
           conditionally_clear_fe_pointer(ctsp->partial_class_bodies);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

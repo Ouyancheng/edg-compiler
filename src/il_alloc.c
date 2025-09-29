@@ -1762,8 +1762,7 @@ class is available.
                                           = FALSE;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
-  ctsp->friend_routines                   = NULL;
-  ctsp->friend_classes                    = NULL;
+  ctsp->friends                           = NULL;
   ctsp->assoc_scope                       = NULL;
   ctsp->partial_spec_template_arg_list    = NULL;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
@@ -5545,6 +5544,24 @@ in the current memory region.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return entry;
 }  /* alloc_lambda_capture */
+
+an_il_entity_list_entry_ptr alloc_il_entity_list_entry_with(
+                                                  a_source_correspondence *scp)
+/*
+Allocate an entry for a list of arbitrary IL entries, and return a pointer to
+it.  If scp is non-NULL, allocate the entry in the same memory region as scp;
+otherwise, allocate it in the current file-scope memory region.
+*/
+{
+  an_il_entity_list_entry_ptr  entry;
+
+  entry = (an_il_entity_list_entry_ptr)alloc_in_same_region_as(
+                                              scp,
+                                              sizeof(an_il_entity_list_entry));
+  entry->next = NULL;
+  clear_tagged_ptr(entry->entity);
+  return entry;
+}  /* alloc_il_entity_list_entry_with */
 
 
 an_il_entity_list_entry_ptr alloc_il_entity_list_entry(void)

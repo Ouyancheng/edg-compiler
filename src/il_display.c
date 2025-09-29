@@ -7727,11 +7727,8 @@ Display the indicated class type supplement entry.
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */
-  if (ptr->friend_routines != NULL) {
-    disp_routine_list("friend_routines", ptr->friend_routines);
-  }  /* if */
-  if (ptr->friend_classes != NULL) {
-    disp_class_list("friend_classes", ptr->friend_classes);
+  if (ptr->friends != NULL) {
+    disp_entity_list("friends", ptr->friends);
   }  /* if */
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
   if (ptr->assoc_template != NULL) {

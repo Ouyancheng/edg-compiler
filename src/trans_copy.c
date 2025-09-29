@@ -3143,30 +3143,34 @@ Rebuild the befriending lists for classes on the indicated list of types.
     if (is_immediate_class_type(type)) {
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
-      a_class_list_entry_ptr      clep, befriending_clep;
-      a_routine_list_entry_ptr    rlep;
-      for (clep = ctsp->friend_classes;
-           clep != NULL;
-           clep = clep->next) {
-        a_type_ptr                  friend_class = clep->class_type;
-        a_class_type_supplement_ptr friend_ctsp =
+      a_class_list_entry_ptr      befriending_clep;
+      an_il_entity_list_entry_ptr ielep = ctsp->friends;
+      for (; ielep != NULL; ielep = ielep->next) {
+        if (ielep->entity.kind == iek_type) {
+          a_type_ptr friend_class = (a_type_ptr)ielep->entity.ptr;
+
+          /* The only expected types are class types. */
+          check_assertion(is_class_struct_union_type(friend_class));
+
+          a_class_type_supplement_ptr friend_ctsp =
                            friend_class->variant.class_struct_union.extra_info;
-        befriending_clep = alloc_list_entry_for_class();
-        befriending_clep->class_type = type;
-        befriending_clep->next = friend_ctsp->befriending_classes;
-        friend_ctsp->befriending_classes = befriending_clep;
-      }  /* for */
-      for (rlep = ctsp->friend_routines;
-           rlep != NULL;
-           rlep = rlep->next) {
-        a_routine_ptr friend_routine = rlep->routine;
-        check_assertion(!friend_routine->is_inheriting_ctor);
-        befriending_clep = alloc_list_entry_for_class();
-        befriending_clep->class_type = type;
-        befriending_clep->next =
+          befriending_clep = alloc_list_entry_for_class();
+          befriending_clep->class_type = type;
+          befriending_clep->next = friend_ctsp->befriending_classes;
+          friend_ctsp->befriending_classes = befriending_clep;
+        } else if (ielep->entity.kind == iek_routine) {
+          a_routine_ptr friend_routine = (a_routine_ptr)ielep->entity.ptr;
+          check_assertion(!friend_routine->is_inheriting_ctor);
+          befriending_clep = alloc_list_entry_for_class();
+          befriending_clep->class_type = type;
+          befriending_clep->next =
                      friend_routine->friends_or_originator.befriending_classes;
-        friend_routine->friends_or_originator.befriending_classes =
+          friend_routine->friends_or_originator.befriending_classes =
                                                               befriending_clep;
+        } else {
+          unexpected_condition_str2("rebuild_type_list_befriending_lists:",
+                                    "unexpected entity kind");
+        }  /* if */
       }  /* for */
       if (ctsp->assoc_scope != NULL) {
         rebuild_scope_befriending_lists(ctsp->assoc_scope);

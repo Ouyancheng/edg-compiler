@@ -414,6 +414,9 @@ extern char *alloc_text_of_string_literal(sizeof_t size);
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+extern an_il_entity_list_entry_ptr alloc_il_entity_list_entry_with(
+                                                 a_source_correspondence *scp);
+
 extern an_il_entity_list_entry_ptr alloc_il_entity_list_entry(void);
 
 extern an_attribute_ptr alloc_attribute(void);

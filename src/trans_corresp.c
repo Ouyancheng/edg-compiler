@@ -1788,26 +1788,28 @@ except for in-class specialization.)
 }  /* skip_generated_routine */
 
 
-static a_routine_list_entry_ptr skip_generated_friend_routine(
-                                                a_routine_list_entry_ptr  rle)
+static an_il_entity_list_entry_ptr skip_generated_friend_routine(
+                                            an_il_entity_list_entry_ptr  ielep)
 /*
 Similar to skip_generated_routine except the routines are listed through
-a_routine_list_entry nodes.
+an_il_entity_list_entry_ptr nodes with other entity kinds mixed in.
 */
 {
-  while (rle != NULL && (
+  while (ielep != NULL && (ielep->entity.kind != iek_routine || (
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
          /* Skip covariant routines generated during lowering. */
-          (rle->routine->compiler_generated &&
-           rle->routine->overridden_function_for_wrapper != NULL) ||
+          (((a_routine_ptr)(ielep->entity.ptr))->compiler_generated &&
+           ((a_routine_ptr)(ielep->entity.ptr))->
+                                    overridden_function_for_wrapper != NULL) ||
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
          /* Ordinary members of template classes have a NULL template argument
             list. */ 
-          (rle->routine->is_template_function &&
-           rle->routine->template_arg_list != NULL))) {
-    rle = rle->next;
+          (((a_routine_ptr)(ielep->entity.ptr))->is_template_function &&
+           (((a_routine_ptr)(ielep->entity.ptr))->template_arg_list !=
+            NULL))))) {
+    ielep = ielep->next;
   }  /* while */
-  return rle;
+  return ielep;
 }  /* skip_generated_friend_routine */
 
 
@@ -1873,33 +1875,37 @@ order on the types list of a class scope.)
 }  /* skip_generated_type */
 
 
-static a_class_list_entry_ptr skip_generated_friend_class(
-                                                  a_class_list_entry_ptr  cle)
+static an_il_entity_list_entry_ptr skip_generated_friend_class(
+                                              an_il_entity_list_entry_ptr  cle)
 /*
 Similar to skip_generated_type, except the types are list through
-a_class_list_entry nodes.
+an_il_entity_list_entry_ptr nodes with other entity kinds mixed in.
 */
 {
-  a_class_list_entry_ptr  result = cle;
+  an_il_entity_list_entry_ptr  result = cle;
 
-  while (result != NULL && (
+  while (result != NULL &&
+         (!(result->entity.kind == iek_type &&
+            is_class_struct_union_type((a_type_ptr)result->entity.ptr)) || (
 #if DO_IL_LOWERING
          /* Some types are generated as part of prelowering. */
-         (is_immediate_class_type(result->class_type) &&
-          result->class_type->variant.class_struct_union.extra_info != NULL &&
-          result->class_type->variant.class_struct_union.extra_info
-                                                      ->compiler_generated) ||
+         (is_immediate_class_type((a_type_ptr)result->entity.ptr) &&
+          (((a_type_ptr)result->entity.ptr)->variant.class_struct_union.
+                                                         extra_info != NULL) &&
+          (((a_type_ptr)result->entity.ptr)->variant.class_struct_union.
+                                            extra_info->compiler_generated)) ||
 #endif /* DO_IL_LOWERING */
           /* Nonprototype instantiations can differ from one translation unit
              to another.  (The check on template_arg_list ensures that we
              only skip actual instantiations as opposed to members of
              instantiations.) */
-         (is_immediate_class_type(result->class_type) &&
-          result->class_type->variant.class_struct_union.is_template_class &&
-          !result->class_type
+         (is_immediate_class_type((a_type_ptr)result->entity.ptr) &&
+          (((a_type_ptr)result->entity.ptr)->variant.class_struct_union.
+                                                          is_template_class) &&
+          !((a_type_ptr)result->entity.ptr)
                     ->variant.class_struct_union.is_prototype_instantiation &&
-          result->class_type->variant.class_struct_union.extra_info
-                                              ->template_arg_list != NULL))) {
+          ((a_type_ptr)result->entity.ptr)->variant.class_struct_union.
+                                    extra_info->template_arg_list != NULL)))) {
     result = result->next;
   }  /* while */
   return result;
@@ -3983,15 +3989,16 @@ type is in fact valid.
       /* Traverse friend function declarations. */
       {
         /* Similar to member using declarations. */
-        a_routine_list_entry_ptr  rle = skip_generated_friend_routine(
-                                                         sup->friend_routines);
-        a_routine_list_entry_ptr  corresp_rle = skip_generated_friend_routine(
-                                                 corresp_sup->friend_routines);
+        an_il_entity_list_entry_ptr  rle = skip_generated_friend_routine(
+                                                                 sup->friends);
+        an_il_entity_list_entry_ptr  corresp_rle =
+                                                 skip_generated_friend_routine(
+                                                         corresp_sup->friends);
         for (; rle != NULL && corresp_rle != NULL;
              rle = skip_generated_friend_routine(rle->next),
              corresp_rle = skip_generated_friend_routine(corresp_rle->next)) {
-          if (canonical_il_entry_of(rle->routine) !=
-                                canonical_il_entry_of(corresp_rle->routine)) {
+          if (canonical_il_entry_of((a_routine_ptr)rle->entity.ptr) !=
+               canonical_il_entry_of((a_routine_ptr)corresp_rle->entity.ptr)) {
             match = FALSE;
             report_error = TRUE;
             goto done;
@@ -4006,14 +4013,15 @@ type is in fact valid.
       /* Traverse friend class declarations. */
       {
         /* Similar to member using declarations. */
-        a_class_list_entry_ptr  cle = skip_generated_friend_class(
-                                                          sup->friend_classes);
-        a_class_list_entry_ptr  corresp_cle = skip_generated_friend_class(
-                                                  corresp_sup->friend_classes);
+        an_il_entity_list_entry_ptr  cle = skip_generated_friend_class(
+                                                                 sup->friends);
+        an_il_entity_list_entry_ptr  corresp_cle = skip_generated_friend_class(
+                                                         corresp_sup->friends);
         for (; cle != NULL && corresp_cle != NULL;
              cle = skip_generated_friend_class(cle->next),
              corresp_cle = skip_generated_friend_class(corresp_cle->next)) {
-          if (!corresponding_types(cle->class_type, corresp_cle->class_type)) {
+          if (!corresponding_types((a_type_ptr)cle->entity.ptr,
+                                   (a_type_ptr)corresp_cle->entity.ptr)) {
             match = FALSE;
             report_error = TRUE;
             goto done;
@@ -4903,19 +4911,20 @@ are not checked.
            template, it will not appear in the routines list until the class
            is instantiated.  To ensure that it has its correspondence set,
            we intercept such functions here. */
-        a_routine_list_entry_ptr
+        an_il_entity_list_entry_ptr
            rle = skip_generated_friend_routine(
                                  type->variant.class_struct_union.extra_info
-                                     ->friend_routines),
+                                     ->friends),
            corresp_rle = skip_generated_friend_routine(
                          corresp_type->variant.class_struct_union.extra_info
-                                     ->friend_routines);
+                                     ->friends);
         for (; rle != NULL && corresp_rle != NULL;
              rle = skip_generated_friend_routine(rle->next),
              corresp_rle = skip_generated_friend_routine(corresp_rle->next)) {
           /* This may be the only opportunity to set a correspondence. */
-          a_routine_ptr  routine = rle->routine,
-                         corresp_routine = corresp_rle->routine;
+          a_routine_ptr  routine = (a_routine_ptr)rle->entity.ptr,
+                         corresp_routine =
+                                        (a_routine_ptr)corresp_rle->entity.ptr;
           a_symbol_ptr  friend_sym = symbol_for(routine),
                         corresp_friend_sym = symbol_for(corresp_routine);
           if (same_name(routine, corresp_routine) &&
@@ -4948,24 +4957,27 @@ are not checked.
       {
         /* Just as with friend functions, it is possible that classes are
            only declared in class template instantiations. */
-        a_class_list_entry_ptr
-           cle = type->variant.class_struct_union.extra_info->friend_classes,
-           corresp_cle = corresp_type->variant.class_struct_union.extra_info
-                                     ->friend_classes;
-        cle = skip_generated_friend_class(cle);
-        corresp_cle = skip_generated_friend_class(corresp_cle);
+        an_il_entity_list_entry_ptr
+           cle = skip_generated_friend_class(
+                         type->variant.class_struct_union.extra_info->friends),
+           corresp_cle = skip_generated_friend_class(
+                 corresp_type->variant.class_struct_union.extra_info->friends);
         for (; cle != NULL && corresp_cle != NULL;
              cle = skip_generated_friend_class(cle->next),
              corresp_cle = skip_generated_friend_class(corresp_cle->next)) {
-          a_symbol_ptr  friend_sym = (a_symbol_ptr)cle
-                                       ->class_type->source_corresp.assoc_info,
-                        corresp_friend_sym = (a_symbol_ptr)corresp_cle
-                                       ->class_type->source_corresp.assoc_info;
-          if (same_name(cle->class_type, corresp_cle->class_type) &&
-              (trans_unit_corresp_of(cle->class_type) == NULL ||
-               trans_unit_corresp_of(corresp_cle->class_type) == NULL) &&
+          a_type_ptr    friend_type = (a_type_ptr)cle->entity.ptr,
+                        corresp_friend_type =
+                                           (a_type_ptr)corresp_cle->entity.ptr;
+          a_symbol_ptr  friend_sym = (a_symbol_ptr)friend_type->
+                                                     source_corresp.assoc_info,
+                        corresp_friend_sym =
+                                            (a_symbol_ptr)corresp_friend_type->
+                                                     source_corresp.assoc_info;
+          if (same_name(friend_type, corresp_friend_type) &&
+              (trans_unit_corresp_of(friend_type) == NULL ||
+               trans_unit_corresp_of(corresp_friend_type) == NULL) &&
               same_parents(friend_sym, corresp_friend_sym)) {
-            set_type_corresp(cle->class_type, corresp_cle->class_type);
+            set_type_corresp(friend_type, corresp_friend_type);
           }  /* if */
         }  /* for */
       }

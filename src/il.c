@@ -29056,6 +29056,42 @@ Display a class list for debugging purposes.
   }  /* if */
 }  /* db_class_list */
 
+
+void db_classes_in_list(an_il_entity_list_entry_ptr list)
+/*
+Display a class list for debugging purposes.
+*/
+{
+  auto   is_class = [](an_il_entity_list_entry_ptr lep) -> a_boolean {
+    return (lep->entity.kind == iek_type &&
+            is_class_struct_union_type((a_type_ptr)lep->entity.ptr));
+  };
+  size_t num_classes = count_list_elements(list, is_class);
+  if (num_classes == 0) {
+    fprintf(f_debug, "  <empty class list>\n");
+  } else {
+    an_il_entity_list_entry_ptr entry = list;
+    a_boolean                   secondary = FALSE;
+    a_boolean                   first = TRUE;
+
+    for (; entry != NULL; entry = entry->next) {
+      if (!is_class(entry)) {
+        continue;
+      }  /* if */
+      if (first) {
+        secondary = in_secondary_trans_unit(list);
+        first = FALSE;
+      } else if (secondary != in_secondary_trans_unit(entry)) {
+        (void)fprintf(f_debug, "  ***switch between translation units***\n");
+        secondary = !secondary;
+      }  /* if */
+      fprintf(f_debug, "  ");
+      db_abbreviated_type((a_type_ptr)entry->entity.ptr);
+      fprintf(f_debug, "\n");
+    }  /* for */
+  }  /* if */
+}  /* db_classes_in_list */
+
 #endif /* DEBUG */
 
 #if MAINTAIN_NEEDED_FLAGS
@@ -29071,96 +29107,99 @@ friend_classes and friend_routines pointers in class_type will also be
 cleared.
 */
 {
-  a_class_type_supplement_ptr  ctsp, friend_ctsp;
-  a_type_ptr                   friend_class;
-  a_routine_ptr                friend_rout;
+  a_class_type_supplement_ptr  ctsp;
   a_class_list_entry_ptr       clep, prev_clep, next_clep;
 
   db_enter(4, "eliminate_references_from_befriended_entities");
   ctsp = class_type->variant.class_struct_union.extra_info;
-  /* Go through the befriended classes. */
-  while (ctsp->friend_classes != NULL) {
-    friend_class = ctsp->friend_classes->class_type;
-    friend_ctsp = friend_class->variant.class_struct_union.extra_info;
-    if (friend_ctsp->removed_from_il) {
-      /* This class was removed from the IL already. */
-      check_assertion(!il_entry_prefix_of(friend_class).keep_in_il);
+  /* Go through the befriended entities. */
+  while (ctsp->friends != NULL) {
+    if (ctsp->friends->entity.kind == iek_type) {
+      a_type_ptr friend_class = (a_type_ptr)ctsp->friends->entity.ptr;
+
+      /* The only expected types are class types. */
+      check_assertion(is_class_struct_union_type(friend_class));
+
+      a_class_type_supplement_ptr
+                 friend_ctsp =
+                           friend_class->variant.class_struct_union.extra_info;
+      if (friend_ctsp->removed_from_il) {
+        /* This class was removed from the IL already. */
+        check_assertion(!il_entry_prefix_of(friend_class).keep_in_il);
 #if DEBUG
-      if (debug_level >= 4 || db_trace("dump_elim", friend_class, iek_type)) {
-        fputs("  Befriended ", f_debug);
-        db_abbreviated_type(friend_class);
-        fputs(" is already eliminated", f_debug);
-        fputc('\n', f_debug);
-      }  /* if */
+        if (debug_level >= 4 ||
+            db_trace("dump_elim", friend_class, iek_type)) {
+          fputs("  Befriended ", f_debug);
+          db_abbreviated_type(friend_class);
+          fputs(" is already eliminated", f_debug);
+          fputc('\n', f_debug);
+        }  /* if */
 #endif /* DEBUG */
-    } else {
-      /* Go through the list of classes that have specified friend_class
-         as a friend, find the entry that matches class_type, and link
-         around it. */
+      } else {
+        /* Go through the list of classes that have specified friend_class
+           as a friend, find the entry that matches class_type, and link
+           around it. */
+        prev_clep = NULL;
+        clep = friend_ctsp->befriending_classes;
+        for (; clep != NULL; clep = next_clep) {
+          next_clep = clep->next;
+          if (clep->class_type == class_type) {
+            /* A match -- link around it. */
+            if (prev_clep == NULL) {
+              friend_ctsp->befriending_classes = next_clep;
+            } else {
+              prev_clep->next = next_clep;
+            }  /* if */
+#if DEBUG
+            if (debug_level >= 4 ||
+                db_trace("dump_elim", friend_class, iek_type) ||
+                db_trace("friendship", friend_class, iek_type)) {
+              db_type_name(friend_class);
+              fputs(" no longer befriended by ", f_debug);
+              db_type_name(class_type);
+              fputc('\n', f_debug);
+              if (db_flag_is_set("friendship")) {
+                fprintf(f_debug, "befriending_classes of friend class:\n");
+                db_class_list(friend_ctsp->befriending_classes);
+              }  /* if */
+            }  /* if */
+#endif /* DEBUG */
+            /* Break out of the inner loop and continue the outer loop,
+               moving to the next class declared as a friend of class_type. */
+            break;
+          }  /* if */
+          /* No match -- keep looping. */
+          prev_clep = clep;
+        }  /* for */
+#if CHECKING
+        if (clep == NULL) {
+#if DEBUG
+          fprintf(f_debug, "class type: ");
+          db_abbreviated_type(class_type);
+          fprintf(f_debug, "\nfriend class: ");
+          db_abbreviated_type(friend_class);
+          fprintf(f_debug, "\n");
+          fprintf(f_debug, "befriending_classes of friend class:\n");
+          db_class_list(friend_ctsp->befriending_classes);
+#endif /* DEBUG */
+          unexpected_condition_str2(
+                 "eliminate_references_from_befriended_entities",
+                 "class not found among befriending_classes of friend class");
+        }  /* if */
+#endif /* CHECKING */
+      }  /* if */
+    } else if (ctsp->friends->entity.kind == iek_routine) {
+      a_routine_ptr friend_rout = (a_routine_ptr)ctsp->friends->entity.ptr;
+
+      /* Go through the list of classes that have specified friend_rout as a
+         friend, find the entry that matches class_type, and link around it. */
       prev_clep = NULL;
-      clep = friend_ctsp->befriending_classes;
+      clep = rout_befriending_classes(friend_rout);
+      check_assertion(!(friend_rout->is_inheriting_ctor && clep != NULL));
       for (; clep != NULL; clep = next_clep) {
         next_clep = clep->next;
         if (clep->class_type == class_type) {
           /* A match -- link around it. */
-          if (prev_clep == NULL) {
-            friend_ctsp->befriending_classes = next_clep;
-          } else {
-            prev_clep->next = next_clep;
-          }  /* if */
-#if DEBUG
-          if (debug_level >= 4 ||
-              db_trace("dump_elim", friend_class, iek_type) ||
-              db_trace("friendship", friend_class, iek_type)) {
-            db_type_name(friend_class);
-            fputs(" no longer befriended by ", f_debug);
-            db_type_name(class_type);
-            fputc('\n', f_debug);
-            if (db_flag_is_set("friendship")) {
-              fprintf(f_debug, "befriending_classes of friend class:\n");
-              db_class_list(friend_ctsp->befriending_classes);
-            }  /* if */
-          }  /* if */
-#endif /* DEBUG */
-          /* Break out of the inner loop and continue the outer loop,
-             moving to the next class declared as a friend of class_type. */
-          break;
-        }  /* if */
-        /* No match -- keep looping. */
-        prev_clep = clep;
-      }  /* for */
-#if CHECKING
-      if (clep == NULL) {
-#if DEBUG
-        fprintf(f_debug, "class type: ");
-        db_abbreviated_type(class_type);
-        fprintf(f_debug, "\nfriend class: ");
-        db_abbreviated_type(friend_class);
-        fprintf(f_debug, "\n");
-        fprintf(f_debug, "befriending_classes of friend class:\n");
-        db_class_list(friend_ctsp->befriending_classes);
-#endif /* DEBUG */
-        unexpected_condition_str2(
-               "eliminate_references_from_befriended_entities",
-               "class not found among befriending_classes of friend class");
-      }  /* if */
-#endif /* CHECKING */
-    }  /* if */
-    /* Check the next friend class. */
-    ctsp->friend_classes = ctsp->friend_classes->next;
-  }  /* while */
-  /* Now go through the befriended routines. */
-  while (ctsp->friend_routines != NULL) {
-    friend_rout = ctsp->friend_routines->routine;
-    /* Go through the list of classes that have specified friend_rout as a
-       friend, find the entry that matches class_type, and link around it. */
-    prev_clep = NULL;
-    clep = rout_befriending_classes(friend_rout);
-    check_assertion(!(friend_rout->is_inheriting_ctor && clep != NULL));
-    for (; clep != NULL; clep = next_clep) {
-      next_clep = clep->next;
-      if (clep->class_type == class_type) {
-        /* A match -- link around it. */
 #if DEBUG
           if (debug_level >= 4 ||
               db_trace("dump_elim", friend_rout, iek_routine) ||
@@ -29176,36 +29215,41 @@ cleared.
             }  /* if */
           }  /* if */
 #endif /* DEBUG */
-        if (prev_clep == NULL) {
-          friend_rout->friends_or_originator.befriending_classes = next_clep;
-        } else {
-          prev_clep->next = next_clep;
+          if (prev_clep == NULL) {
+            friend_rout->friends_or_originator.befriending_classes = next_clep;
+          } else {
+            prev_clep->next = next_clep;
+          }  /* if */
+          /* Break out of the inner loop and continue the outer loop, moving
+             to the next routine declared as a friend of class_type. */
+          break;
         }  /* if */
-        /* Break out of the inner loop and continue the outer loop, moving
-           to the next routine declared as a friend of class_type. */
-        break;
-      }  /* if */
-      /* No match -- keep looping. */
-      prev_clep = clep;
-    }  /* for */
+        /* No match -- keep looping. */
+        prev_clep = clep;
+      }  /* for */
 #if CHECKING
-    if (clep == NULL) {
+      if (clep == NULL) {
 #if DEBUG
-      fprintf(f_debug, "class type: ");
-      db_abbreviated_type(class_type);
-      fprintf(f_debug, "\nfriend rout: ");
-      db_name_full(&friend_rout->source_corresp, iek_routine);
-      fprintf(f_debug, "\n");
-      fprintf(f_debug, "befriending_classes of friend rout:\n");
-      db_class_list(rout_befriending_classes(friend_rout));
+        fprintf(f_debug, "class type: ");
+        db_abbreviated_type(class_type);
+        fprintf(f_debug, "\nfriend rout: ");
+        db_name_full(&friend_rout->source_corresp, iek_routine);
+        fprintf(f_debug, "\n");
+        fprintf(f_debug, "befriending_classes of friend rout:\n");
+        db_class_list(rout_befriending_classes(friend_rout));
 #endif /* DEBUG */
         unexpected_condition_str2(
                "eliminate_references_from_befriended_entities",
                "class not found among befriending_classes of friend routine");
-    }  /* if */
+      }  /* if */
 #endif /* CHECKING */
-    /* Check the next friend function. */
-    ctsp->friend_routines = ctsp->friend_routines->next;
+    } else {
+      unexpected_condition_str2(
+                              "eliminate_references_from_befriended_entities:",
+                              "unexpected entity kind");
+    }  /* if */
+    /* Check the next friend. */
+    ctsp->friends = ctsp->friends->next;
   }  /* while */
   db_exit();
 }  /* eliminate_references_from_befriended_entities */
