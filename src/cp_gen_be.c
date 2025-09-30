@@ -9380,7 +9380,8 @@ keyword that would be required in some contexts.
           }  /* if */
         } else {
           /* The qualifier is NULL. */
-          if (elab_type_spec_needed_in_scope(
+          if (is_tag_type(refp) &&
+              elab_type_spec_needed_in_scope(
                                     refp, refp->source_corresp.parent_scope)) {
             write_tok_str(tag_keyword(refp));
             write_space();
