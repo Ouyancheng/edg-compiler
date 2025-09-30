@@ -3167,6 +3167,15 @@ Rebuild the befriending lists for classes on the indicated list of types.
                      friend_routine->friends_or_originator.befriending_classes;
           friend_routine->friends_or_originator.befriending_classes =
                                                               befriending_clep;
+        } else if (ielep->entity.kind == iek_template) {
+          a_template_ptr friend_template = (a_template_ptr)ielep->entity.ptr;
+          a_template_symbol_supplement_ptr
+                         friend_tssp =
+                             template_supplement_for_template(friend_template);
+          befriending_clep = alloc_list_entry_for_class();
+          befriending_clep->class_type = type;
+          befriending_clep->next = friend_tssp->befriending_classes;
+          friend_tssp->befriending_classes = befriending_clep;
         } else {
           unexpected_condition_str2("rebuild_type_list_befriending_lists:",
                                     "unexpected entity kind");

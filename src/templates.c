@@ -23030,10 +23030,20 @@ been instantiated, update the befriending information for the instances.
   a_symbol_ptr            instance_sym;
   a_symbol_list_entry_ptr slep;
 
+  /* Add the given class to the list of befriending classes. */
   clep = alloc_list_entry_for_class();
   clep->next = tssp->befriending_classes;
   clep->class_type = class_declared_in;
   tssp->befriending_classes = clep;
+
+  /* Add the template to the list of friended templates. */
+  an_il_entity_list_entry_ptr ielep = alloc_il_entity_list_entry_with(
+                                           &class_declared_in->source_corresp);
+  a_class_type_supplement_ptr ctsp =
+                      class_declared_in->variant.class_struct_union.extra_info;
+  ielep->entity = make_tagged_ptr(tssp->il_template_entry);
+  ielep->next = ctsp->friends;
+  ctsp->friends = ielep;
   /* Update any instances that have already been created. */
   for (slep = tssp->variant.class_template.instantiations;
        slep != NULL; slep = slep->next) {
@@ -30543,10 +30553,20 @@ been instantiated, update the befriending information for the instances.
   a_class_list_entry_ptr  clep;
   a_template_instance_ptr tip;
 
+  /* Add the given class to the list of befriending classes. */
   clep = alloc_list_entry_for_class();
   clep->next = tssp->befriending_classes;
   clep->class_type = class_declared_in;
   tssp->befriending_classes = clep;
+
+  /* Add the template to the list of friended templates. */
+  an_il_entity_list_entry_ptr ielep = alloc_il_entity_list_entry_with(
+                                           &class_declared_in->source_corresp);
+  a_class_type_supplement_ptr ctsp =
+                      class_declared_in->variant.class_struct_union.extra_info;
+  ielep->entity = make_tagged_ptr(tssp->il_template_entry);
+  ielep->next = ctsp->friends;
+  ctsp->friends = ielep;
   /* Update any instances that have already been created. */
   for (tip = tssp->variant.function.instantiations;
        tip != NULL; tip = tip->next) {

@@ -29243,6 +29243,62 @@ cleared.
                "class not found among befriending_classes of friend routine");
       }  /* if */
 #endif /* CHECKING */
+    } else if (ctsp->friends->entity.kind == iek_template) {
+      a_template_ptr friend_template =
+                                     (a_template_ptr)ctsp->friends->entity.ptr;
+      a_template_symbol_supplement_ptr
+                     friend_tssp =
+                             template_supplement_for_template(friend_template);
+      /* Go through the list of classes that have specified friend_template as
+         a friend, find the entry that matches class_type, and link around
+         it. */
+      prev_clep = NULL;
+      clep = friend_tssp->befriending_classes;
+      for (; clep != NULL; clep = next_clep) {
+        next_clep = clep->next;
+        if (clep->class_type == class_type) {
+          /* A match -- link around it. */
+          if (prev_clep == NULL) {
+            friend_tssp->befriending_classes = next_clep;
+          } else {
+            prev_clep->next = next_clep;
+          }  /* if */
+#if DEBUG
+          if (debug_level >= 4 ||
+              db_trace("dump_elim", friend_template, iek_template)) {
+            db_template_name(friend_template);
+            fputs(" no longer befriended by ", f_debug);
+            db_type_name(class_type);
+            fputc('\n', f_debug);
+            if (db_flag_is_set("friendship")) {
+              fprintf(f_debug, "befriending_classes of friend class:\n");
+              db_class_list(friend_tssp->befriending_classes);
+            }  /* if */
+          }  /* if */
+#endif /* DEBUG */
+          /* Break out of the inner loop and continue the outer loop,
+             moving to the next class declared as a friend of class_type. */
+          break;
+        }  /* if */
+        /* No match -- keep looping. */
+        prev_clep = clep;
+      }  /* for */
+#if CHECKING
+      if (clep == NULL) {
+#if DEBUG
+        fprintf(f_debug, "class type: ");
+        db_abbreviated_type(class_type);
+        fprintf(f_debug, "\nfriend template: ");
+        db_template_name(friend_template);
+        fprintf(f_debug, "\n");
+        fprintf(f_debug, "befriending_classes of friend template:\n");
+        db_class_list(friend_tssp->befriending_classes);
+#endif /* DEBUG */
+        unexpected_condition_str2(
+               "eliminate_references_from_befriended_entities",
+               "class not found among befriending_classes of friend template");
+      }  /* if */
+#endif /* CHECKING */
     } else {
       unexpected_condition_str2(
                               "eliminate_references_from_befriended_entities:",
