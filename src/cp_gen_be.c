@@ -9509,7 +9509,9 @@ keyword that would be required in some contexts.
       /* The elaborated type specifier is always required in C mode. */
       use_elab_type_spec = TRUE;
     } else if (!type->has_been_declared || type->definition_delayed) {
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
 delayed_definition:
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
       a_const_char *nm;
       if ((gcc_is_generated_code_target || msvc_is_generated_code_target) &&
           type->kind == (a_type_kind)tk_integer &&
