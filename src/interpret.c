@@ -26763,7 +26763,7 @@ diagnostic in *ips.
             if (abk == abk_variable) {
               a_variable_ptr  vp = rt_con->variant.address.variant.variable;
 #if DECL_MODIFIERS_IN_USE
-              //dllimport_address = !!(vp->decl_modifiers & DM_DLLIMPORT);
+              dllimport_address = !!(vp->decl_modifiers & DM_DLLIMPORT);
 #endif /* DECL_MODIFIERS_IN_USE */
               if (!variable_has_constant_address(vp) && !dllimport_address &&
                   !(cpp26_mode && ips->is_constant_evaluated &&
