@@ -9181,6 +9181,39 @@ context stack or is hidden in the current context.
   return result;
 }  /* invalid_qual_in_curr_context */
 
+
+static a_boolean elab_type_spec_needed_in_scope(a_type_ptr  type,
+                                                a_scope_ptr scope)
+/*
+Return TRUE if the specified tag type must be referred to using an
+elaborated type specifier in the given scope.
+*/
+{
+  a_boolean result = FALSE;
+
+  check_assertion(is_tag_type(type));
+  /* Push the scope in order to apply the hidden name information to see if
+     the type is hidden in that scope and requires an elaborated type
+     specifier. */
+  push_name_context(scope);
+  result = type->elaborated_type_specifier_needed;
+  if (!result &&
+      gcc_or_clang_is_generated_code_target &&
+      type->source_corresp.is_class_member &&
+      type->source_corresp.qualification_needed &&
+      find_base_class_of(scope->variant.assoc_type,
+                         skip_lexical_typerefs(parent_class_of(type))) !=
+                                                                        NULL) {
+    /* The g++ and clang compilers accept base class tag type member names
+       hidden in derived classes if named in an elaborated type specifier,
+       as if the base class member were declared in the derived class and
+       hidden there by a non-type member name. */
+    result = TRUE;
+  }  /* if */
+  pop_name_context();
+  return result;
+}  /* elab_type_spec_needed_in_scope */
+
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 static void gen_type_reference(a_type_ptr type,
@@ -9311,27 +9344,8 @@ keyword that would be required in some contexts.
               if (is_immediate_class_type(qual_type)) {
                 a_class_type_supplement_ptr ctsp = class_type_supp(qual_type);
                 if (ctsp->assoc_scope != NULL) {
-                  /* Push the scope in order to apply the hidden name
-                     information to see if the type is hidden in that scope and
-                     requires an elaborated type specifier. */
-                  push_name_context(ctsp->assoc_scope);
-                  use_elab_type_spec = refp->elaborated_type_specifier_needed;
-                  if (!use_elab_type_spec &&
-                      gcc_or_clang_is_generated_code_target &&
-                      refp->source_corresp.is_class_member &&
-                      refp->source_corresp.qualification_needed &&
-                      find_base_class_of(
-                               qual_type,
-                               skip_lexical_typerefs(parent_class_of(refp))) !=
-                                                                        NULL) {
-                    /* The g++ and clang compilers accept base class tag
-                       type member names hidden in derived classes if named
-                       in an elaborated type specifier, as if the base
-                       class member were declared in the derived class and
-                       hidden there by a non-type member name. */
-                    use_elab_type_spec = TRUE;
-                  }  /* if */
-                  pop_name_context();
+                  use_elab_type_spec =
+                       elab_type_spec_needed_in_scope(refp, ctsp->assoc_scope);
                 }  /* if */
               }  /* if */
             }  /* if */
@@ -9360,10 +9374,18 @@ keyword that would be required in some contexts.
               write_tok_str("template ");
             }  /* if */
           }  /* if */
-        } else if (trp->variant.typeref.is_global_qualified_name) {
-          /* A name reference pointer can be NULL if only the global
-             qualifier "::" was used. */
-          write_tok_str("::");
+        } else {
+          /* The qualifier is NULL. */
+          if (elab_type_spec_needed_in_scope(
+                                    refp, refp->source_corresp.parent_scope)) {
+            write_tok_str(tag_keyword(refp));
+            write_space();
+          }  /* if */
+          if (trp->variant.typeref.is_global_qualified_name) {
+            /* A name reference pointer can be NULL if only the global
+               qualifier "::" was used. */
+            write_tok_str("::");
+          }  /* if */
         }  /* if */
       }  /* if */
       if (is_typeref_kind(type, trk_template_arg_list)) {
