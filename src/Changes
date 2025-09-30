@@ -5,7 +5,7 @@ Incorrect recording of type constraint for abbreviated friend templates
 
 Consider, in C++20 mode:
 
-  template<typename T, typename U, int i> concept C = true;
+  template<typename, typename, int> concept C = true;
   template<typename T, int I> struct X {
     friend constexpr auto operator+(C<T, I> auto) {
       return true;
