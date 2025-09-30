@@ -9309,6 +9309,10 @@ keyword that would be required in some contexts.
       a_template_arg_ptr arg_list = NULL;
       a_boolean          name_qual_suppressed = FALSE;
       a_boolean          typename_kwd_emitted = FALSE;
+      if (skip_lexical_typerefs(type)->definition_delayed) {
+        type = skip_lexical_typerefs(type);
+        goto delayed_definition;
+      }  /* if */
       if (is_typeref_kind(trp, trk_template_arg_list)) {
         /* This typeref specifies the form of the template argument list
            specified in the reference; a null template argument list
@@ -9505,6 +9509,7 @@ keyword that would be required in some contexts.
       /* The elaborated type specifier is always required in C mode. */
       use_elab_type_spec = TRUE;
     } else if (!type->has_been_declared || type->definition_delayed) {
+delayed_definition:
       a_const_char *nm;
       if ((gcc_is_generated_code_target || msvc_is_generated_code_target) &&
           type->kind == (a_type_kind)tk_integer &&
