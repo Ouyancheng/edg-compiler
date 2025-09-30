@@ -13083,7 +13083,7 @@ this one is such a continuation.
 */
 {
   a_type_ptr                   type;
-  a_src_seq_secondary_decl_ptr sec_decl;
+  a_src_seq_secondary_decl_ptr sec_decl = NULL;
   a_type_kind                  kind;
   a_boolean                    is_definition = FALSE, friend_decl;
   a_boolean                    is_specialization = FALSE;
@@ -13403,7 +13403,14 @@ this one is such a continuation.
         type->has_been_declared = TRUE;
       }  /* if */
       saved_has_been_declared = type->has_been_declared;
-      gen_tag_reference(type, options, attributes);
+      if (sec_decl != NULL && sec_decl->declared_type != NULL &&
+          type_is(sec_decl->declared_type, tk_typeref) &&
+          (is_typeref_kind(sec_decl->declared_type, trk_template_arg_list) ||
+           is_typeref_kind(sec_decl->declared_type, trk_name_qualifier))) {
+        gen_type_reference(sec_decl->declared_type);
+      } else {
+        gen_tag_reference(type, options, attributes);
+      }  /* if */
       if (friend_decl) {
         /* Don't set type->has_been_declared for a friend declaration: it will
            not be visible until it is really declared and so will require an
