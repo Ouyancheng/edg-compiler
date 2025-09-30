@@ -704,7 +704,8 @@ static void gen_constant(a_constant_ptr constant,
                          a_boolean      need_parens);
 static void gen_type(a_type_ptr type);
 static void gen_type_reference(a_type_ptr type,
-                               a_boolean  suppress_typename_kwd = FALSE);
+                               a_boolean  suppress_typename_kwd = FALSE,
+                               a_boolean  is_declaration = FALSE);
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static a_boolean process_preprocessing_directives(void);
@@ -9217,12 +9218,14 @@ elaborated type specifier in the given scope.
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 static void gen_type_reference(a_type_ptr type,
-                               a_boolean  suppress_typename_kwd)
+                               a_boolean  suppress_typename_kwd,
+                               a_boolean  is_declaration)
 /*
 Generate a reference to the indicated type, which is a fundamental type, a
 tag, a typedef, or a dependent type.  A reference is not the definition.
 If suppress_typename_kwd is TRUE, do not put out a leading "typename"
-keyword that would be required in some contexts.
+keyword that would be required in some contexts.  If is_declaration is
+TRUE and the type is a tag type, put out a tag keyword.
 */
 {
   a_type_ptr             orig_type;
@@ -9361,11 +9364,12 @@ keyword that would be required in some contexts.
                               elab_type_spec_needed_in_scope(refp, qual_scope);
             }  /* if */
           }  /* if */
-          if (!suppress_typename_kwd && options == GN_DEPENDENT) {
+          if (!suppress_typename_kwd && !is_declaration &&
+              options == GN_DEPENDENT) {
             write_tok_str("typename ");
             typename_kwd_emitted = TRUE;
           }  /* if */
-          if (use_elab_type_spec) {
+          if (use_elab_type_spec || is_declaration) {
             write_tok_str(tag_keyword(refp));
             write_space();
           }  /* if */
@@ -9388,8 +9392,9 @@ keyword that would be required in some contexts.
         } else {
           /* The qualifier is NULL. */
           if (is_tag_type(refp) &&
-              elab_type_spec_needed_in_scope(
-                                    refp, refp->source_corresp.parent_scope)) {
+              (is_declaration ||
+               elab_type_spec_needed_in_scope(
+                                   refp, refp->source_corresp.parent_scope))) {
             write_tok_str(tag_keyword(refp));
             write_space();
           }  /* if */
@@ -13417,7 +13422,9 @@ this one is such a continuation.
           type_is(sec_decl->declared_type, tk_typeref) &&
           (is_typeref_kind(sec_decl->declared_type, trk_template_arg_list) ||
            is_typeref_kind(sec_decl->declared_type, trk_name_qualifier))) {
-        gen_type_reference(sec_decl->declared_type);
+        gen_type_reference(sec_decl->declared_type,
+                           /*suppress_typename_kwd=*/TRUE,
+                           /*is_declaration=*/TRUE);
       } else {
         gen_tag_reference(type, options, attributes);
       }  /* if */
