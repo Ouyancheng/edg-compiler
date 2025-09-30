@@ -9343,15 +9343,22 @@ keyword that would be required in some contexts.
              the original form of the name was globally qualified, prefix
              the name with "::". */
           if (is_tag_type(refp)) {
+            a_scope_ptr qual_scope = NULL;
             if (nqp->is_class) {
               a_type_ptr qual_type = skip_typerefs(nqp->qualifier.class_type);
               if (is_immediate_class_type(qual_type)) {
-                a_class_type_supplement_ptr ctsp = class_type_supp(qual_type);
-                if (ctsp->assoc_scope != NULL) {
-                  use_elab_type_spec =
-                       elab_type_spec_needed_in_scope(refp, ctsp->assoc_scope);
-                }  /* if */
+                qual_scope = class_type_supp(qual_type)->assoc_scope;
               }  /* if */
+            } else {
+              a_namespace_ptr nsp = nqp->qualifier.namespace_ptr;
+              while (nsp->is_namespace_alias) {
+                nsp = nsp->variant.assoc_namespace;
+              }  /* while */
+              qual_scope = nsp->variant.assoc_scope;
+            }  /* if */
+            if (qual_scope != NULL) {
+              use_elab_type_spec =
+                              elab_type_spec_needed_in_scope(refp, qual_scope);
             }  /* if */
           }  /* if */
           if (!suppress_typename_kwd && options == GN_DEPENDENT) {
