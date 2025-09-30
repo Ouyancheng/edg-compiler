@@ -2195,11 +2195,10 @@ void form_vector_type_attribute(
                      a_boolean                             *need_leading_space,
                      an_il_to_str_output_control_block_ptr octl)
 /*
-Output a GNU "vector_size", "ext_vector_type", "neon_vector_type", or
-"neon_polyvector_type" attribute as required by the specified type, which must
-be a tk_vector, in the way described by octl.  If *need_leading_space is TRUE,
-precede the attribute with a leading space.  *need_leading_space is set to TRUE
-to indicate that a space will be needed after the attribute.
+Output a GNU vector type attribute as required by the specified type, which
+must be a tk_vector, in the way described by octl.  If *need_leading_space is
+TRUE, precede the attribute with a leading space.  *need_leading_space is set
+to TRUE to indicate that a space will be needed after the attribute.
 */
 {
   a_vector_kind  kind;
@@ -2221,15 +2220,13 @@ to indicate that a space will be needed after the attribute.
     case vk_neon_poly:
       octl->output_str("__attribute((neon_polyvector_type(", octl);
       break;
-    default:
-#if DEBUG
-      if (octl->debug_output) {
-        octl->output_str("**BAD-VECTOR-KIND**", octl);
-        break;
-      }  /* if */
-#endif /* DEBUG */
-      unexpected_condition_str("form_vector_type_attribute: bad vector kind");
+    case vk_neon_builtin:
+      octl->output_str("__attribute((neon_builtinvector_type(", octl);
       break;
+    case vk_last:
+      /* vk_last should never be used. */
+      unexpected_condition();
+    default_is_unexpected_str("form_vector_type_attribute: bad vector kind");
   }  /* switch */
   if (type->variant.vector.size_constant != NULL) {
     form_constant(type->variant.vector.size_constant,

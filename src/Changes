@@ -1,5 +1,14 @@
 Version 6.8
 
+9/30/25  [EDGcpfe/28440]
+Missing case in form_vector_type_attribute
+
+The vk_neon_builtin case was missing from a switch statement in
+form_vector_type_attribute, which could result in a failed assertion when
+forming a diagnostic involving such a GNU vector type (e.g.,
+__builtin_aarch64_simd_oi for ARM64 platforms).
+
+
 9/29/25  [EDGcpfe/28298]
 C++-generating back end: Incorrect parentheses around decltype operand
 
