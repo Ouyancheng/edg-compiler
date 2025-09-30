@@ -1,5 +1,25 @@
 Version 6.8
 
+9/30/25  [EDGcpfe/28406]
+Incorrect recording of type constraint for abbreviated friend templates
+
+Consider, in C++20 mode:
+
+  template<typename T, typename U, int i> concept C = true;
+  template<typename T, int I> struct X {
+    friend constexpr auto operator+(C<T, I> auto) {
+      return true;
+    }
+  };
+  static_assert(+X<int, 42>{});
+
+This previously triggered a memory error because the constraint C<T, I> was
+not correctly substituted in the friend definition introduced by X<int, 42>.
+That is now fixed.  (In other similar examples, different error modes could
+occur, such as spurious "duplicate definition" errors induced by the friend
+template substitution.)
+
+
 9/30/25  [EDGcpfe/28440]
 Missing case in form_vector_type_attribute
 

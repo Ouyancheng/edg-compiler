@@ -9829,6 +9829,11 @@ return FALSE.
           a_symbol_ptr  sym = tpp->param_symbol;
           if (sym->token_sequence_number == curr_token_sequence_number) {
             dps->specifiers_type = type_symbol_type(sym);
+            if (type_is(dps->specifiers_type, tk_template_param)) {
+              /* Record the type constraint. */
+              dps->specifiers_type->variant.template_param.extra_info
+                                  ->constraint.type_constraint = constraint;
+            }  /* if */
             result = TRUE;
             break;
           }  /* if */
