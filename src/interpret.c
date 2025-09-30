@@ -26762,9 +26762,9 @@ diagnostic in *ips.
             an_address_base_kind  abk = rt_con->variant.address.kind;
             if (abk == abk_variable) {
               a_variable_ptr  vp = rt_con->variant.address.variant.variable;
-#if DECL_MODIFIERS_IN_USE
+#if MICROSOFT_EXTENSIONS_ALLOWED
               dllimport_address = !!(vp->decl_modifiers & DM_DLLIMPORT);
-#endif /* DECL_MODIFIERS_IN_USE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               if (!variable_has_constant_address(vp) && !dllimport_address &&
                   !(cpp26_mode && ips->is_constant_evaluated &&
                     type->variant.pointer.is_reference &&
