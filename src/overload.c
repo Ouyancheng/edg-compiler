@@ -3218,6 +3218,7 @@ copy-initialization).
       arg_type_qualifiers &= ~(TQ_UNALIGNED | TQ_RESTRICT);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    arg_type_qualifiers &= ~TQ_NULLABLE;
     /* Check the type qualifiers to see if they can be reconciled by
        trivial conversions. */
     if (param_type_qualifiers == arg_type_qualifiers) {
@@ -24638,6 +24639,7 @@ direct binding is "possible" and not whether it is "valid".
       (type_is_correct_or_derived ||
        are_reference_related(base_dest_type, source_type))) {
     a_type_qualifier_set source_quals = get_type_qualifiers(source_type);
+    source_quals &= ~TQ_NULLABLE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       an_expr_node_ptr  temp_init_node;
