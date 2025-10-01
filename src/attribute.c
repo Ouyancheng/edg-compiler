@@ -7233,7 +7233,8 @@ Returns TRUE if the entity (a routine, class, or variable) is a template.
         }  /* if */
       }
       break;
-    default_is_unexpected();
+    default:
+      unexpected_condition();
   }  /* switch */
   return result;
 }  /* is_template */
