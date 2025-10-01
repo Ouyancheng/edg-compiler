@@ -9249,6 +9249,27 @@ elaborated type specifier in the given scope.
          hidden there by a non-type member name. */
       result = TRUE;
     }  /* if */
+    if (!result && type->source_corresp.parent_scope != NULL &&
+        scope_is(type->source_corresp.parent_scope, sck_namespace) &&
+        scope->hidden_names != NULL) {
+      /* Check for an obscure case where a namespace hides the name of a
+         tag type, e.g.,
+           namespace A { }
+           namespace N { struct A; }
+           using namespace N;
+           struct ::A *p;
+         Here the elaborated type specifier is needed because ::A
+         designates the namespace and not N::A. */
+      for (a_hidden_name_ptr hnp = scope->hidden_names;
+           !result && hnp != NULL; hnp = hnp->next) {
+        if (hnp->entity.kind == iek_namespace &&
+            unmangled_name_of(&a_namespace_ptr(hnp->entity.ptr)->
+                                                             source_corresp) ==
+            unmangled_name_of(&type->source_corresp)) {
+          result = TRUE;
+        }  /* if */
+      }  /* for */
+    }  /* if */
     pop_name_context();
   }  /* if */
   return result;
@@ -9381,6 +9402,7 @@ TRUE and the type is a tag type, put out a tag keyword.
            nested-name-specifier is given by the trk_name_qualifier's type
            supplement, which might also be a template with an alternative
            template argument list. */
+        a_scope_ptr qual_scope = NULL;
         nqp = trp->variant.typeref.extra_info->name_qualifier;
         if (nqp != NULL) {
           /* Use the specified qualifier.  If the instance type is
@@ -9388,7 +9410,6 @@ TRUE and the type is a tag type, put out a tag keyword.
              the original form of the name was globally qualified, prefix
              the name with "::". */
           if (is_tag_type(refp)) {
-            a_scope_ptr qual_scope = NULL;
             if (nqp->is_class) {
               a_type_ptr qual_type = skip_typerefs(nqp->qualifier.class_type);
               if (is_immediate_class_type(qual_type)) {
@@ -9406,6 +9427,15 @@ TRUE and the type is a tag type, put out a tag keyword.
                               elab_type_spec_needed_in_scope(refp, qual_scope);
             }  /* if */
           }  /* if */
+          if (is_tag_type(refp) && !refp->has_been_declared &&
+              !(is_immediate_class_type(refp) &&
+                refp->variant.class_struct_union.is_nonreal_class)) {
+            /* The first reference to a tag type must use an elaborated
+               type specifier.  (This would normally not occur with a
+               qualified name, but some very old g++ versions do allow
+               such constructs.) */
+            use_elab_type_spec = TRUE;
+          }  /* if */
           if (!suppress_typename_kwd && !is_declaration &&
               options == GN_DEPENDENT) {
             write_tok_str("typename ");
@@ -9419,6 +9449,7 @@ TRUE and the type is a tag type, put out a tag keyword.
             write_space();
           }  /* if */
           if (gen_qualifier_from_typeref(trp)) {
+            global_qual_emitted = FALSE;
             if (options == GN_DEPENDENT &&
                 name_has_template_arguments(
                                           &refp->source_corresp, iek_type,
@@ -9431,10 +9462,14 @@ TRUE and the type is a tag type, put out a tag keyword.
           }  /* if */
         } else {
           /* The qualifier is NULL. */
+          if (trp->variant.typeref.is_global_qualified_name) {
+            qual_scope = il_header.primary_scope;
+          } else {
+            qual_scope = refp->source_corresp.parent_scope;
+          }  /* if */
           if (is_tag_type(refp) &&
               (is_declaration ||
-               elab_type_spec_needed_in_scope(
-                                   refp, refp->source_corresp.parent_scope))) {
+               elab_type_spec_needed_in_scope(refp, qual_scope))) {
             write_tok_str(tag_keyword(refp));
             write_space();
           }  /* if */
