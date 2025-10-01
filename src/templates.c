@@ -23435,13 +23435,12 @@ specialization's template symbol supplement.
 }  /* set_partial_spec_parent_and_primary */
 
 
-static inline void diagnose_no_specializations(
-                                             an_attribute_ptr  attributes,
-                                             a_source_position *error_position)
+static inline void diagnose_no_specializations(an_attribute_ptr  attributes,
+                                               a_source_position *err_pos)
 /*
 Issue an error if the entity (a function, class, or variable template) has
 a [[clang::no_specializations]] attribute attached to it.  If an error needs
-to be generated, it will be at error_position.
+to be generated, it will be at err_pos.
 */
 {
   if (clang_mode && attributes != NULL) {
@@ -23450,7 +23449,7 @@ to be generated, it will be at error_position.
       a_diag_list       diag_list;
       a_diagnostic_ptr  dp;
       clear_diag_list(&diag_list);
-      dp = pos_start_error(ec_cannot_be_specialized, error_position);
+      dp = pos_start_error(ec_cannot_be_specialized, err_pos);
       more_info_diagnostic(ec_attribute_declared_here, &ap->position,
                            &diag_list);
       add_more_info_list(dp, &diag_list);
