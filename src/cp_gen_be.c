@@ -706,8 +706,10 @@ static void gen_type(a_type_ptr type);
 static void gen_type_reference(a_type_ptr type,
                                a_boolean  suppress_typename_kwd = FALSE,
                                a_boolean  is_declaration = FALSE);
-static void gen_enum_definition(a_type_ptr type);
-static void gen_class_definition(a_type_ptr type);
+static void gen_enum_definition(a_type_ptr type,
+                                a_type_ptr qual_typeref = NULL);
+static void gen_class_definition(a_type_ptr type,
+                                 a_type_ptr qual_typeref = NULL);
 static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
 static void gen_pragma_start(a_pragma_ptr pp);
@@ -8699,13 +8701,16 @@ srq_seq_sublist_parent_found:
 
 static void gen_tag_reference(a_type_ptr             type,
                               a_gen_name_options_set options,
-                              an_attribute_ptr       attributes)
+                              an_attribute_ptr       attributes,
+                              a_type_ptr             qual_typeref = NULL)
 /*
 Generate a reference to the indicated type, which is a class, struct, union,
 or enum; options may be GN_DECLARATION if the reference is in a secondary
 declaration ("struct S;") or GN_NO_OPTIONS for other kinds of reference.
 attributes lists attributes associated with this reference: Render only the
-al_tag_name attributes (if any).
+al_tag_name attributes (if any).  If qual_typeref is non-NULL, it points
+to a trk_name_qualifier typeref giving the qualification to be used in the
+type name.
 */
 {
   a_source_sequence_scan_state saved_state;
@@ -8733,9 +8738,9 @@ al_tag_name attributes (if any).
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Put out the definition. */
     if (type->kind == (a_type_kind)tk_enum) {
-      gen_enum_definition(type);
+      gen_enum_definition(type, qual_typeref);
     } else {
-      gen_class_definition(type);
+      gen_class_definition(type, qual_typeref);
     }  /* if */
     /* Restore the source sequence list position. */
     restore_source_sequence_scan_state(&saved_state);
@@ -9183,6 +9188,31 @@ context stack or is hidden in the current context.
 }  /* invalid_qual_in_curr_context */
 
 
+static a_boolean gen_qualifier_from_typeref(a_type_ptr qual_typeref)
+/*
+If the qualifier specified by the given trk_name_qualifier typeref is valid
+in the current context, put out the qualifier and return TRUE; otherwise,
+put out nothing and return FALSE.  If a global scope qualifier is emitted,
+set the global variable global_qual_emitted to TRUE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (invalid_qual_in_curr_context(qual_typeref)) {
+    result = FALSE;
+  } else {
+    if (qual_typeref->variant.typeref.is_global_qualified_name) {
+      write_tok_str("::");
+      global_qual_emitted = TRUE;
+    }  /* if */
+    gen_name_qualifier_list(
+                      qual_typeref->variant.typeref.extra_info->name_qualifier,
+                      /*from_name_qual_typeref=*/TRUE);
+  }  /* if */
+  return result;
+}  /* gen_qualifier_from_typeref */
+
+
 static a_boolean elab_type_spec_needed_in_scope(a_type_ptr  type,
                                                 a_scope_ptr scope)
 /*
@@ -9231,6 +9261,7 @@ TRUE and the type is a tag type, put out a tag keyword.
   a_type_ptr             orig_type;
   a_gen_name_options_set options = GN_NO_OPTIONS;
   a_type_ptr             poss_dep_type = NULL;
+  a_type_ptr             qual_typeref = NULL;
   a_boolean              use_elab_type_spec = FALSE;
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   a_name_qualifier_ptr   nqp;
@@ -9313,6 +9344,8 @@ TRUE and the type is a tag type, put out a tag keyword.
       a_boolean          name_qual_suppressed = FALSE;
       a_boolean          typename_kwd_emitted = FALSE;
       if (skip_lexical_typerefs(type)->definition_delayed) {
+        check_assertion(is_typeref_kind(type, trk_name_qualifier));
+        qual_typeref = type;
         type = skip_lexical_typerefs(type);
         goto delayed_definition;
       }  /* if */
@@ -9373,14 +9406,7 @@ TRUE and the type is a tag type, put out a tag keyword.
             write_tok_str(tag_keyword(refp));
             write_space();
           }  /* if */
-          if (trp->variant.typeref.is_global_qualified_name) {
-            write_tok_str("::");
-            global_qual_emitted = TRUE;
-          }  /* if */
-          if (invalid_qual_in_curr_context(trp)) {
-            name_qual_suppressed = TRUE;
-          } else {
-            gen_name_qualifier_list(nqp, /*from_name_qual_typeref=*/TRUE);
+          if (gen_qualifier_from_typeref(trp)) {
             if (options == GN_DEPENDENT &&
                 name_has_template_arguments(
                                           &refp->source_corresp, iek_type,
@@ -9388,6 +9414,8 @@ TRUE and the type is a tag type, put out a tag keyword.
                                           /*insert_space=*/NULL)) {
               write_tok_str("template ");
             }  /* if */
+          } else {
+            name_qual_suppressed = TRUE;
           }  /* if */
         } else {
           /* The qualifier is NULL. */
@@ -9573,7 +9601,8 @@ delayed_definition:
            out. */
         elab_spec_options = GN_DECLARATION;
       }  /* if */
-      gen_tag_reference(type, elab_spec_options, (an_attribute_ptr)NULL);
+      gen_tag_reference(type, elab_spec_options, (an_attribute_ptr)NULL,
+                        qual_typeref);
     }  /* if */
   } else {
     /* A fundamental type. */
@@ -10988,11 +11017,14 @@ generate "public " or "private " accordingly.
 }  /* gen_assembly_visibility_for_type */
 
 
-static void gen_enum_definition(a_type_ptr type)
+static void gen_enum_definition(a_type_ptr            type,
+                                ARG_UNUSED a_type_ptr qual_typeref)
 /*
 Output the definition of the indicated enum type.  This is in the form of
 a type specifier (no trailing ";").  The current source sequence entry
-is the one associated with the definition of the enum.
+is the one associated with the definition of the enum.  If qual_typeref is
+non-NULL, it points to a trk_name_qualifier typeref designating the
+qualifier to be used in the enumeration name.
 */
 {
   a_type_ptr     base_type;
@@ -11023,6 +11055,13 @@ is the one associated with the definition of the enum.
   if (has_name_before_mangling(type) &&
       !type->variant.integer.originally_unnamed) {
     write_space();
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+    if (qual_typeref != NULL && gen_qualifier_from_typeref(qual_typeref)) {
+      gen_bare_name(&type->source_corresp, iek_type);
+      global_qual_emitted = FALSE;
+    } else 
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+    /* Do not insert code here. */
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
              (a_boolean *)NULL);
   }  /* if */
@@ -11745,11 +11784,14 @@ Render the given delegate type as a C++/CLI delegate definition.  E.g.:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void gen_class_definition(a_type_ptr type)
+static void gen_class_definition(a_type_ptr            type,
+                                 ARG_UNUSED a_type_ptr qual_typeref)
 /*
 Output the definition of the indicated class type.  This is in the form of
 a type specifier (no trailing ";").  The current source sequence entry
-is the one associated with the definition of the class.
+is the one associated with the definition of the class.  If qual_typeref is
+non-NULL, it points to a trk_name_qualifier typeref specifying the
+qualifier to be used in the class name.
 */
 {
   a_class_type_supplement_ptr
@@ -11813,6 +11855,13 @@ is the one associated with the definition of the class.
       /* Suppress the template argument list on a prototype instantiation. */
       options |= GN_NO_TEMPLATE_ARGS;
     }  /* if */
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+    if (qual_typeref != NULL && gen_qualifier_from_typeref(qual_typeref)) {
+      gen_bare_name(&type->source_corresp, iek_type);
+      global_qual_emitted = FALSE;
+    } else 
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE*/
+    /* Do not insert code here. */
     gen_name(&type->source_corresp, iek_type, options,
              (a_boolean *)NULL);
     write_space();
