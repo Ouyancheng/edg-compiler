@@ -9403,7 +9403,10 @@ TRUE and the type is a tag type, put out a tag keyword.
             typename_kwd_emitted = TRUE;
           }  /* if */
           if (use_elab_type_spec || is_declaration) {
-            write_tok_str(tag_keyword(refp));
+            /* The type may be a proxy type, in which case refp will now
+               designate the tk_template_param type.  Use the original
+               referenced type for determining the tag keyword. */
+            write_tok_str(tag_keyword(trp->variant.typeref.type));
             write_space();
           }  /* if */
           if (gen_qualifier_from_typeref(trp)) {
