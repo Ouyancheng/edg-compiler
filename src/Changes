@@ -1,5 +1,17 @@
 Version 6.8
 
+10/1/25  [EDGcpfe/28438]
+Clang compatibility: clang::no_specializations attribute
+
+The clang::no_specializations attribute is now accepted by the front end
+when clang_version >= 200000.  The "_Clang" attribute namespace is also now
+a synonym for the "clang" attribute namespace.  The following example now
+gives an error (with --clang_version 200000):
+  
+  template <class T> [[_Clang::no_specializations]] void f();
+  template <> void f<int>();
+
+
 10/1/25  [EDGcpfe/19349,EDGcpfe/20562,EDGcpfe/21710,EDGcpfe/22775,
           EDGcpfe/26431]
 Abort on nested lambda in default member initializer

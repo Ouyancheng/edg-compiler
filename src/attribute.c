@@ -361,6 +361,7 @@ static constexpr an_attr_descr known_attr_table[] = {
   { "weak", "", "gx", ak_weak },
   { "weakref", "?(sn)", "gx(40100-)", ak_weakref },
   { "abi_tag", "?(sn+)", "gx(40800-)", ak_abi_tag },
+  { "no_specializations", "?(sn)", "l+[clang](200000-)",ak_no_specializations},
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -642,6 +643,7 @@ static an_attr_application_fn apply_warn_unused_result_attr;
 static an_attr_application_fn apply_weak_attr;
 static an_attr_application_fn apply_weakref_attr;
 static an_attr_application_fn apply_abi_tag_attr;
+static an_attr_application_fn apply_no_specializations;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -792,6 +794,7 @@ STATIC_THREAD an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_weak, "r:+x!|v:+x!", apply_weak_attr },
   { ak_weakref, "r|v", apply_weakref_attr },
   { ak_abi_tag, "r|c|n|v|e", apply_abi_tag_attr },
+  { ak_no_specializations, "v|c|r", apply_no_specializations },
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Microsoft-only attributes. */
@@ -954,6 +957,7 @@ static constexpr a_const_char *valid_attribute_namespaces[] = {
   "gnu",
   "__gnu__",
   "msvc",
+  "_Clang",
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   "edg",
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
@@ -1398,8 +1402,16 @@ the attribute string past the closing "]" or "}".
          a namespace is either required or optional.  See if it is a match. */
       sizeof_t  len = strlen(ap->namespace_name);
       ptr++;
-      if (strncmp(ap->namespace_name, ptr, len) == 0 &&
-          ptr[len] == (required ? ']' : '}')) {
+      a_boolean name_match = FALSE;
+      if (strncmp(ap->namespace_name, ptr, len) == 0) {
+        name_match = TRUE;
+      } else if (strncmp(ap->namespace_name, "_Clang", 7) == 0 &&
+                 strncmp(ptr, "clang", 5) == 0) {
+        /* As a special case, map "_Clang" to "clang". */
+        name_match = TRUE;
+        len = 5;
+      }  /* if */
+      if (name_match && ptr[len] == (required ? ']' : '}')) {
         match = TRUE;
         *cond = ptr+len+1;
       }  /* if */
@@ -1601,7 +1613,8 @@ there is an applicable one; otherwise, return NULL.
              family == af_std &&
              ap->namespace_name != NULL &&
              !ms_extensions &&
-             strcmp(ap->namespace_name, "clang") == 0) {
+             (strcmp(ap->namespace_name, "clang") == 0 ||
+              strcmp(ap->namespace_name, "_Clang") == 0)) {
     /* Clang also maps [[ clang::xyz(...) ]] to __attribute((xyz(...))). */
     family = af_gnu;
     ap->is_std_gcc_attribute = TRUE;
@@ -7196,6 +7209,52 @@ attribute to it and return the entity.
   ((a_routine_ptr)entity)->no_check_memory_usage = TRUE;
   return entity;
 }  /* apply_no_check_memory_usage_attr */
+
+
+static a_boolean is_template(char             *entity,
+                             an_il_entry_kind entity_kind)
+/*
+Returns TRUE if the entity (a routine, class, or variable) is a template.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (entity_kind) {
+    case iek_routine:
+      result = ((a_routine*)entity)->is_template_function;
+      break;
+    case iek_variable:
+      result = ((a_variable*)entity)->is_template_variable;
+      break;
+    case iek_type:
+      { a_type_ptr tp = ((a_type*)entity);
+        if (is_immediate_class_type(tp)) {
+          result = tp->variant.class_struct_union.is_template_class;
+        }  /* if */
+      }
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* is_template */
+
+
+static char* apply_no_specializations(an_attribute_ptr ap,
+                                      char             *entity,
+                                      an_il_entry_kind entity_kind)
+/*
+The given entity must be a class template, variable template or a function
+template.  Apply the attribute to it and return the entity.
+*/
+{
+  // FIXME
+  if (!is_template(entity, entity_kind)) {
+    pos_st_diagnostic(es_warning, ec_wrong_entity_for_attribute,
+                      &ap->position, attribute_display_name(ap));
+    make_attr_unrecognized(ap);
+  }  /* if */
+  return entity;
+}  /* apply_no_specializations */
 
 
 static char* apply_nocommon_attr(ARG_UNUSED an_attribute_ptr ap,

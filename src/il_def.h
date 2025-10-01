@@ -3015,6 +3015,7 @@ enum an_attribute_kind : a_byte {
   ak_weak,		/* "weak" (gnu). */
   ak_weakref,		/* "weakref" (gnu). */
   ak_abi_tag,		/* "abi_tag" (gnu). */
+  ak_no_specializations,/* "no_specializations" (clang). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

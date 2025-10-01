@@ -6247,6 +6247,7 @@ Display the indicated attribute entry.
     case ak_weak:                kind_name = "weak";                break;
     case ak_weakref:             kind_name = "weakref";             break;
     case ak_abi_tag:             kind_name = "abi_tag";             break;
+    case ak_no_specializations:  kind_name = "no_specializations";  break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Microsoft-__declspec-only attributes. */

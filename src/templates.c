@@ -23435,6 +23435,31 @@ specialization's template symbol supplement.
 }  /* set_partial_spec_parent_and_primary */
 
 
+static inline void diagnose_no_specializations(
+                                             an_attribute_ptr  attributes,
+                                             a_source_position *error_position)
+/*
+Issue an error if the entity (a function, class, or variable template) has
+a [[clang::no_specializations]] attribute attached to it.  If an error needs
+to be generated, it will be at error_position.
+*/
+{
+  if (clang_mode && attributes != NULL) {
+    an_attribute_ptr ap = find_attribute(ak_no_specializations, attributes);
+    if (ap != NULL) {
+      a_diag_list       diag_list;
+      a_diagnostic_ptr  dp;
+      clear_diag_list(&diag_list);
+      dp = pos_start_error(ec_cannot_be_specialized, error_position);
+      more_info_diagnostic(ec_attribute_declared_here, &ap->position,
+                           &diag_list);
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
+    }  /* if */
+  }  /* if */
+}  /* diagnose_no_specializations */
+
+
 static a_symbol_ptr add_partial_specialization(
 			a_tmpl_decl_state_ptr	decl_state,
 			a_symbol_ptr		partial_spec_nonreal_sym,
@@ -23502,12 +23527,14 @@ sure it matches the primary template.
         if (class_type_supp(class_type)->cli_class_type_kind !=
                                              decl_state->cli_class_type_kind) {
           pos_sy_error(ec_conflicting_cli_class_template_kinds,
-                     &locator->source_position, partial_spec_nonreal_sym);
+                       &locator->source_position, partial_spec_nonreal_sym);
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
+  diagnose_no_specializations(primary_sym->variant.template_info->attributes,
+                              &locator->source_position);
   return sym;
 }  /* add_partial_specialization */
 
@@ -29946,6 +29973,9 @@ return an error variable template symbol.
         ps_sym->next = primary_tssp->partial_specializations;
         primary_tssp->partial_specializations = ps_sym;
       }  /* if */
+      diagnose_no_specializations(primary_tssp->
+                variant.variable.prototype_variable->source_corresp.attributes,
+                                  &locator->source_position);
     }  /* if */
   }  /* if */
   return ps_sym;
@@ -33744,6 +33774,7 @@ that follows.
               if_microsoft_extensions(|| tssp->is_generic)) {
             sym_error(ec_entity_cannot_be_specialized, class_template_sym);
           }  /* if */
+          diagnose_no_specializations(tssp->attributes, &sym->decl_position);
         }  /* if */
       }
     }  /* if */
@@ -34223,6 +34254,9 @@ that follows.
         }  /* if */
       } else if (!already_specialized || dps->is_definition) {
         scp->decl_position = dps->declarator_pos;
+      }  /* if */
+      if (scp != NULL) {
+        diagnose_no_specializations(scp->attributes, &locator.source_position);
       }  /* if */
     }  /* if */
     if (sym == NULL) {

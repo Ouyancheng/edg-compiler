@@ -3627,6 +3627,7 @@ ec_lambda_in_class_type_with_typedef_name;;"a class with a typedef name for link
 ec_field_init_in_class_type_with_typedef_name;;"a class with a typedef name for linkage purposes cannot have a nonstatic data member with a default member initializer"
 ec_static_data_member_not_allowed_in_unnamed_class;;"a static data member declaration is not allowed in an unnamed class"
 ec_initializer_addresses_dllimport_variable;;"initializer result addresses a dllimport variable"
+ec_cannot_be_specialized;;"template with \"no_specializations\" attribute cannot be specialized"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
