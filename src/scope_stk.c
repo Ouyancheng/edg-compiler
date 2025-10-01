@@ -929,13 +929,14 @@ may be NULL in error cases.)
       check_assertion(is_immediate_class_type(tp));
       ctsp = class_type_supp(tp);
       if (ctsp->is_lambda_closure_class) {
+        ctsp->defined_in_variable_initializer = FALSE;
+        ctsp->defined_in_field_initializer = FALSE;
         if (parent_sym == NULL) {
           /* An error case (e.g., a lambda in a default argument of what turned
              out not to be a function declaration). */
-          ctsp->defined_in_variable_initializer = FALSE;
-          ctsp->defined_in_field_initializer = FALSE;
           expect_error();
         } else if (symbol_is(parent_sym, sk_static_data_member)) {
+          ctsp->defined_in_variable_initializer = TRUE;
           ctsp->lambda_parent.variable =
                               parent_sym->variant.static_data_member.variable;
         } else {
