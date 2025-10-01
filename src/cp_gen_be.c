@@ -9459,6 +9459,13 @@ TRUE and the type is a tag type, put out a tag keyword.
           if (suppress_typename_kwd || typename_kwd_emitted) {
             noqual_options |= GN_SUPPRESS_TYPENAME_KEYWORD;
           }  /* if */
+          if (is_tag_type(refp) &&
+              (is_declaration ||
+               elab_type_spec_needed_in_scope(
+                                   refp, refp->source_corresp.parent_scope))) {
+            write_tok_str(tag_keyword(refp));
+            write_space();
+          }  /* if */
           gen_name(&refp->source_corresp, iek_type, noqual_options,
                    /*need_closing_paren=*/NULL);
         }
