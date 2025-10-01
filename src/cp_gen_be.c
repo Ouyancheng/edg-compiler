@@ -9223,25 +9223,34 @@ elaborated type specifier in the given scope.
   a_boolean result = FALSE;
 
   check_assertion(is_tag_type(type));
-  /* Push the scope in order to apply the hidden name information to see if
-     the type is hidden in that scope and requires an elaborated type
-     specifier. */
-  push_name_context(scope);
-  result = type->elaborated_type_specifier_needed;
-  if (!result &&
-      gcc_or_clang_is_generated_code_target &&
-      type->source_corresp.is_class_member &&
-      type->source_corresp.qualification_needed &&
-      find_base_class_of(scope->variant.assoc_type,
-                         skip_lexical_typerefs(parent_class_of(type))) !=
-                                                                        NULL) {
-    /* The g++ and clang compilers accept base class tag type member names
-       hidden in derived classes if named in an elaborated type specifier,
-       as if the base class member were declared in the derived class and
-       hidden there by a non-type member name. */
+  if (is_immediate_class_type(type) &&
+      scope_is(scope, sck_class_struct_union) &&
+      scope->variant.assoc_type == type) {
+    /* This is a reference to the injected-class-name of a class in the
+       class scope.  Constructors in the class scope hide the
+       injected-class-name, so an elaborated type specifier is needed. */
     result = TRUE;
+  } else {
+    /* Push the scope in order to apply the hidden name information to see if
+       the type is hidden in that scope and requires an elaborated type
+       specifier. */
+    push_name_context(scope);
+    result = type->elaborated_type_specifier_needed;
+    if (!result &&
+        gcc_or_clang_is_generated_code_target &&
+        type->source_corresp.is_class_member &&
+        type->source_corresp.qualification_needed &&
+        find_base_class_of(scope->variant.assoc_type,
+                           skip_lexical_typerefs(parent_class_of(type))) !=
+                                                                        NULL) {
+      /* The g++ and clang compilers accept base class tag type member names
+         hidden in derived classes if named in an elaborated type specifier,
+         as if the base class member were declared in the derived class and
+         hidden there by a non-type member name. */
+      result = TRUE;
+    }  /* if */
+    pop_name_context();
   }  /* if */
-  pop_name_context();
   return result;
 }  /* elab_type_spec_needed_in_scope */
 
