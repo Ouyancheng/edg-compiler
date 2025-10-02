@@ -3755,6 +3755,23 @@ This is used to save tokens for later rescanning.
 }  /* cache_curr_token */
 
 
+void cache_curr_token_fresh(a_token_cache  *cache)
+/*
+Cache the current token with a fresh token sequence number to the given token
+cache.
+*/
+{
+  a_token_sequence_number
+                new_tsn = assign_new_token_sequence_number();
+  Value_saver<a_token_sequence_number>
+                curr_tsn(&curr_token_sequence_number, new_tsn);
+  Value_saver<a_token_sequence_number>
+                curr_last_tsn(&last_token_sequence_number_of_token, new_tsn);
+
+  cache_curr_token(cache);
+}  /* cache_curr_token_fresh */
+
+
 static a_boolean is_template_reference(a_symbol_header_ptr	sym_hdr)
 /*
 The current token is "<" and the previous token is an identifier.  Look

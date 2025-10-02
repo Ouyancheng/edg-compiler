@@ -20888,7 +20888,7 @@ to:
     /* Skip to the matching brace.  Note that other delimiters need not be
        balanced. */
     while (curr_token != tok_end_of_source) {
-      cache_curr_token(rewritten_code);
+      cache_curr_token_fresh(rewritten_code);
       if (curr_token == tok_rbrace) {
         if (--num_lbraces == 0) {
           break;
@@ -20912,7 +20912,7 @@ to:
       (void)get_token();
       do {
         prev_token = curr_token;
-        cache_curr_token(rewritten_code);
+        cache_curr_token_fresh(rewritten_code);
         (void)get_token();
       } while (prev_token != tok_semicolon);
     }  /* if */
