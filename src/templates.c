@@ -23438,11 +23438,12 @@ specialization's template symbol supplement.
 static inline void diagnose_no_specializations(an_attribute_ptr  attributes,
                                                a_source_position *err_pos)
 /*
-Issue an error if the entity (a function, class, or variable template) has
-a [[clang::no_specializations]] attribute attached to it.  If an error needs
-to be generated, it will be at err_pos.
+Issue an error if the attribute list (from an instance of a function, class, or
+variable template) has a [[clang::no_specializations]] attribute in it.  If an
+error needs to be generated, it will be at err_pos.
 */
 {
+#if GNU_EXTENSIONS_ALLOWED
   if (clang_mode && attributes != NULL) {
     an_attribute_ptr ap = find_attribute(ak_no_specializations, attributes);
     if (ap != NULL) {
@@ -23456,6 +23457,7 @@ to be generated, it will be at err_pos.
       end_diagnostic(dp);
     }  /* if */
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* diagnose_no_specializations */
 
 

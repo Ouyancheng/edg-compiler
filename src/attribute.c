@@ -7211,10 +7211,11 @@ attribute to it and return the entity.
 }  /* apply_no_check_memory_usage_attr */
 
 
-static a_boolean is_template(char             *entity,
-                             an_il_entry_kind entity_kind)
+static a_boolean is_template_instance(char             *entity,
+                                      an_il_entry_kind entity_kind)
 /*
-Returns TRUE if the entity (a routine, class, or variable) is a template.
+Returns TRUE if the entity (a routine, class, or variable) is an instance of
+a template.
 */
 {
   a_boolean result = FALSE;
@@ -7237,19 +7238,19 @@ Returns TRUE if the entity (a routine, class, or variable) is a template.
       unexpected_condition();
   }  /* switch */
   return result;
-}  /* is_template */
+}  /* is_template_instance */
 
 
 static char* apply_no_specializations(an_attribute_ptr ap,
                                       char             *entity,
                                       an_il_entry_kind entity_kind)
 /*
-The given entity must be a class template, variable template or a function
-template.  Apply the attribute to it and return the entity.
+The given entity must be an instance of a class template, variable template or
+a function template.  Issue an error if the entity is not applicable for the
+clang::no_specializations attribute.
 */
 {
-  // FIXME
-  if (!is_template(entity, entity_kind)) {
+  if (!is_template_instance(entity, entity_kind)) {
     pos_st_diagnostic(es_warning, ec_wrong_entity_for_attribute,
                       &ap->position, attribute_display_name(ap));
     make_attr_unrecognized(ap);
