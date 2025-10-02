@@ -9427,15 +9427,6 @@ TRUE and the type is a tag type, put out a tag keyword.
                               elab_type_spec_needed_in_scope(refp, qual_scope);
             }  /* if */
           }  /* if */
-          if (is_tag_type(refp) && !refp->has_been_declared &&
-              !(is_immediate_class_type(refp) &&
-                refp->variant.class_struct_union.is_nonreal_class)) {
-            /* The first reference to a tag type must use an elaborated
-               type specifier.  (This would normally not occur with a
-               qualified name, but some very old g++ versions do allow
-               such constructs.) */
-            use_elab_type_spec = TRUE;
-          }  /* if */
           if (!suppress_typename_kwd && !is_declaration &&
               options == GN_DEPENDENT) {
             write_tok_str("typename ");
