@@ -3777,10 +3777,22 @@ token removed.
     }  /* if */
   }  /* for */
 
-  auto is_not_pragma = [](const a_shared_token &tok) -> a_boolean {
-    return !tok->is_pragma();
+  /* As of the time of writing, there is an existing issue when self-compiling
+     the front end in with the following combination of features:
+       - multi-translation unit compilation mode
+       - IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE
+       - IA64_ABI set to TRUE
+
+     If a lambda is used below under these conditions, the alternative entry
+     points from the IA-64 ABI will not be properly merged and will result in
+     an incorrect IL write -> read process.  Thus to avoid triggering this
+     issue, a local class has been used in place of a lambda. */
+  struct a_criterion {
+    a_boolean operator()(const a_shared_token &tok) const {
+      return !tok->is_pragma();
+    }
   };
-  this->tokens.remove_if((size_t)(it.offset + 1), is_not_pragma);
+  this->tokens.remove_if((size_t)(it.offset + 1), a_criterion());
 }  /* a_token_cache::remove_non_pragma_tokens_after */
 
 
