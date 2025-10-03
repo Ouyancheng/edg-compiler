@@ -788,9 +788,10 @@ the string in the IL template entry associated with the member function.
                     /*suppress_identifier_wrapping=*/FALSE);
 
   a_reusable_token_cache cache = tssp->cache->tokens;
-  check_assertion(cache.ptr() != NULL);
   /* Add the tokens from this cache to the template string. */
-  add_token_cache_to_string(cache.ptr());
+  if (cache.ptr() != NULL) {
+    add_token_cache_to_string(cache.ptr());
+  }  /* if */
   /* Copy the string into IL memory. */
   template_ptr->text = make_copy_of_token_string();
 #if DEBUG
