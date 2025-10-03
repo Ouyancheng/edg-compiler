@@ -3285,6 +3285,7 @@ struct a_reusable_token_cache {
     { return (*this) = a_reusable_token_cache(shared_cache); }
   INLINE a_reusable_token_cache &operator=(
                                           const a_reusable_token_cache &other);
+  INLINE a_reusable_token_cache &operator=(a_reusable_token_cache &&other);
 private:
   a_byte_boolean
 		shared_token_cache;
@@ -3371,6 +3372,20 @@ Copy-assign from the given reusable token cache.
   if (this != &other) {
     destroy(this);
     construct(this, other);
+  }  /* if */
+  return *this;
+}  /* a_reusable_token_cache::operator= */
+
+
+a_reusable_token_cache &a_reusable_token_cache::operator=(
+                                                a_reusable_token_cache &&other)
+/*
+Move-assign from the given reusable token cache.
+*/
+{
+  if (this != &other) {
+    destroy(this);
+    construct(this, move_from(&other));
   }  /* if */
   return *this;
 }  /* a_reusable_token_cache::operator= */
