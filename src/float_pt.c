@@ -1330,48 +1330,6 @@ overflow or underflow.  If the conversion can be done, return the result in
 #endif /* USE_SOFTFLOAT */
 }  /* conv_host_fp_to_long_double */
 
-
-static void conv_host_fp_to_float80(a_host_fp_value         val,
-                                    a_boolean               *err,
-                                    an_internal_float_value *result)
-/*
-Convert val from a_host_fp_value (__float128 or float128_t in this case) to a
-__float80.  Set "err" if the conversion would result in overflow or underflow.
-If the conversion can be done, return the result in "result".
-*/
-{
-#if USE_SOFTFLOAT
-  /* Convert from a 128-bit float to a __float80. */
-  softfloat_exceptionFlags = 0;
-  check_assertion(targ_ldbl_mant_dig == 64);
-  f128M_to_extF80M(&val, (extFloat80_t*)result);
-  /* Use the same overflow condition as below. */
-  if (is_finite(val) &&
-      (softfloat_exceptionFlags & softfloat_flag_overflow) != 0 &&
-      !gnu_mode) {
-    /* An overflow. */
-    *err = TRUE;
-  }  /* if */
-#else /* !USE_SOFTFLOAT */
-  /* Use host conversion routines to convert from 128-bit float to __float80.
-     An implicit assumption is made here that the host has the __float80
-     type (but we know that it supports at least a 128-bit type and that the
-     target supports __float80), so that seems likely.  Use Softfloat if that's
-     not the case. */
-  __float80 flt80_val = (__float80)val;
-#if TARG_HAS_IEEE_FLOATING_POINT
-  a_host_fp_value round_trip_val = flt80_val;
-  if (is_finite(val) && !is_finite(round_trip_val) && !gnu_mode) {
-    *err = TRUE;
-  }  /* if */
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
-  if (!*err) {
-    /* Use memcpy to copy all of the bits. */
-    (void)memcpy(result, &flt80_val, sizeof(flt80_val));
-  }  /* if */
-#endif /* USE_SOFTFLOAT */
-}  /* conv_host_fp_to_float80 */
-
 #endif /* HOST_FP_VALUE_IS_128BIT */
 
 static void store_host_fp_value(a_host_fp_value         temp,
@@ -1427,9 +1385,6 @@ before setting it if there are unused bits.
          double cases above) because the long double format may differ between
          the host and the target. */
       conv_host_fp_to_long_double(temp, err, float_value);
-    } else if (kind == fk_float80) {
-      /* Convert from an internal __float128 to __float80. */
-      conv_host_fp_to_float80(temp, err, float_value);
 #endif /* HOST_FP_VALUE_IS_128BIT */
     } else {
       /* Store a host floating value into a float_value of the same kind
