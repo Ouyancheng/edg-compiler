@@ -2354,7 +2354,7 @@ struct Shared_obj {
   using an_allocator = Allocator<a_control_block>;
   using an_allocation = typename an_allocator::an_allocation;
 
-  INLINE explicit Shared_obj()
+  INLINE Shared_obj()
     : allocator(an_allocator()), ctrl_block(NULL) {}
   INLINE explicit Shared_obj(const an_Object    &o,
                              const an_allocator &a = an_allocator());
