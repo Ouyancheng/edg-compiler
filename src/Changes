@@ -3,7 +3,7 @@ Version 6.8
 10/3/25  [EDGcpfe/28473]
 Microsoft compatibility: Return value copy elision in constant evaluation
 
-Consider, in C++17 mode:
+Consider, in C++20 mode:
 
     struct S {
       constexpr S(int *p): p(p) {}
