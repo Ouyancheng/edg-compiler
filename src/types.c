@@ -16363,6 +16363,7 @@ return type be examined? what about its parameters?).
           }  /* if */
         }  /* if */
         if (!status &&
+            is_typeref_kind(type_ptr, trk_is_template_alias) &&
             (flags & TTT_TEMPLATE_ARGS ||
              ((flags & TTT_NONREAL_TEMPLATE_ARGS) &&
               (type_ptr->variant.typeref.is_dependent)))) {
