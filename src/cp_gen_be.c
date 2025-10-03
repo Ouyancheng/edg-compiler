@@ -20563,7 +20563,7 @@ Generate code for an instantiation directive.
           gen_microsoft_routine_decl_modifiers(rout);
           gen_sun_link_scope_specifiers(rout->decl_modifiers);
           gen_routine_specifiers_and_declaration(
-                                         rout, rout->type,
+                                         rout, idp->declared_type,
                                          /*is_definition=*/FALSE,
                                          /*force_unqualified_name=*/FALSE,
                                          /*friend_decl=*/FALSE,
@@ -20585,7 +20585,7 @@ Generate code for an instantiation directive.
       case iek_variable:
         { a_variable_ptr var = (a_variable_ptr)idp->entity.ptr;
           gen_sun_link_scope_specifiers(var->decl_modifiers);
-          gen_general_declaration_using_type(var->type,
+          gen_general_declaration_using_type(idp->declared_type,
                                              &var->source_corresp,
                                              kind,
                                             (a_src_seq_secondary_decl_ptr)NULL,

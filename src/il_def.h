@@ -2323,6 +2323,11 @@ typedef struct an_instantiation_directive {
 			/* Attributes specified explicitly in the instantiation
 			   directive (as opposed to the attributes specified
 			   on the template being instantiated). */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_type_ptr	declared_type;
+			/* The type as it actually appears in the template
+			   instantiation directive. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_decl_position_supplement_ptr
 		decl_pos_info;

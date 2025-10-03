@@ -8073,6 +8073,9 @@ Display the indicated instantiation-directive entry.
     disp_boolean("do_not_instantiate", idp->do_not_instantiate);
   }  /* if */
   disp_ptr("attributes", (char *)idp->attributes, iek_attribute);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_ptr("declared_type", (char *)idp->declared_type, iek_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (idp->decl_pos_info != NULL) {
     disp_source_range("identifier_range",

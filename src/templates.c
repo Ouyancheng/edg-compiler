@@ -41454,6 +41454,9 @@ processing.
     if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
       idp->do_not_instantiate = TRUE;
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    idp->declared_type = dps->declared_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     idp->decl_pos_info = make_decl_pos_supplement(/*at_file_scope=*/TRUE,
                                                   decl_pos_block);

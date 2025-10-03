@@ -3861,6 +3861,9 @@ handle_class_type_supplement_for_class:
         remap_ptr(eptr->entity.ptr, a_char_ptr,
                   (an_il_entry_kind)eptr->entity.kind);
         walk_list(eptr->attributes, an_attribute_ptr, iek_attribute);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        walk_ptr(eptr->declared_type, a_type_ptr, iek_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         walk_ptr(eptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);
