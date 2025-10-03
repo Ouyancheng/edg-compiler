@@ -23251,7 +23251,7 @@ example, for a return, because the caller will do the destruction).
      with no constructors.  Microsoft compilers also appear not to perform
      return value optimizations when the temporaries come through a
      conditional operator. */
-  if (dip->kind != (a_dynamic_init_kind)dik_none &&
+  if (!dyn_init_is(dip, dik_none) &&
       !(microsoft_mode && ms_permissive &&
         dip->is_result_for_class_rvalue_question_mark)) {
     is_usable_temp_init = TRUE;

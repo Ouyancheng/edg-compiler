@@ -3325,6 +3325,11 @@ EXTERN_THREAD Ptr_map<a_variable_ptr, a_boolean>
 			   process of being deduced. */
 
 
+extern
+a_dynamic_init_ptr unoptimize_conditional_return(a_dynamic_init_ptr  dip,
+                                                 a_routine_ptr       rp,
+                                                 a_source_position   *pos);
+
 #if DEBUG
 extern void count_rescan_fs_expr_nodes(unsigned long *p_count);
 

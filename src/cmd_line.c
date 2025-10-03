@@ -3209,7 +3209,6 @@ option values if they were not already set by a command line option.
           constexpr_dynamic_alloc_enabled = TRUE;
           constexpr_virtual_enabled = TRUE;
           allow_parenthesized_aggregate_init = TRUE;
-          constexpr_dynamic_alloc_enabled = TRUE;
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1929) {
