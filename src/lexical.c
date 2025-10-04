@@ -28939,11 +28939,11 @@ This function is useful for quickly grabbing a particular cached token for
 inspection in a debugger; not optimized for general usage.
 */
 {
-  a_shared_token result = {};
+  a_shared_token result;
 
   for (const a_shared_token &tok : *cache) {
     if (tok->get_starting_seq_number() == seq_number) {
-      result = *tok;
+      result = tok;
       break;
     }  /* if */
   }  /* for */
