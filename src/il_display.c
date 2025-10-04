@@ -3589,6 +3589,8 @@ Display the indicated class list and name.
   }  /* if */
 }  /* disp_class_list */
 
+#if GNU_FUNCTION_MULTIVERSIONING || \
+    SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
 
 static void disp_routine_list(a_const_char             *name,
                               a_routine_list_entry_ptr ptr)
@@ -3607,6 +3609,7 @@ Display the indicated routine list and name.
   }  /* if */
 }  /* disp_routine_list */
 
+#endif /* GNU_FUNCTION_MULTIVERSIONING || ... */
 
 static void disp_template_arg_list(a_const_char        *name,
                                    a_template_arg_ptr  ptr)
