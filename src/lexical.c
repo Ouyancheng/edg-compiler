@@ -28944,9 +28944,10 @@ inspection in a debugger; not optimized for general usage.
   for (const a_shared_token &tok : *cache) {
     if (tok->get_starting_seq_number() == seq_number) {
       result = tok;
-      break;
+      goto done;
     }  /* if */
   }  /* for */
+done:
   return result;
 }  /* get_cache_token */
 
