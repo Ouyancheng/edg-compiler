@@ -28435,7 +28435,7 @@ end_tsn.
         add_body_string = FALSE;
       }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && ... */
-      if (add_body_string) { /*lint !e774*/
+      if (add_body_string && tssp->cache->tokens.ptr() != NULL) {
         add_cached_tokens_to_string(tssp->cache->tokens->begin(),
                                     tssp->cache->tokens->end(),
                                     /*start_tsn=*/NO_TOKEN_SEQUENCE_NUMBER,
