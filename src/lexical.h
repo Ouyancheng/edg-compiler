@@ -3291,6 +3291,10 @@ private:
 		shared_token_cache;
 			/* TRUE if variant should use the shared_token_cache;
 			   otherwise, FALSE. */
+#ifdef UNION_AS_STRUCT
+/* FIXME: Workaround for union-as-struct build issue. */
+#undef union
+#endif /* ifdef UNION_AS_STRUCT */
   union a_token_cache_union {
     inline a_token_cache_union()
       {}
@@ -3304,6 +3308,9 @@ private:
     a_shared_token_cache
 		shared; /* The shared backing token cache. */
   } variant;
+#ifdef UNION_AS_STRUCT
+#define union struct
+#endif /* ifdef UNION_AS_STRUCT */
 };  /* a_reusable_token_cache */
 
 
