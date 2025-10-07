@@ -1,5 +1,16 @@
 Version 6.8
 
+10/6/25  [EDGcpfe/24948,EDGcpfe/28482]
+Clang/GCC: "static" in array parameters dimensions
+
+C99 permits the "static" keyword in array parameter dimensions.  For example:
+
+  void f(int a[static 4]) {}
+
+Clang and GCC also accept this in their C89/C90 mode, and the front end now
+emulates this (with a warning).
+
+
 10/3/25  [EDGcpfe/28473]
 Microsoft compatibility: Return value copy elision in constant evaluation
 

@@ -4710,10 +4710,14 @@ constant.
                    &start_pos);
   }  /* if */
   add_stop_token(tok_rbracket);
-  if (c99_mode && top_level_param_decl && curr_token == tok_static) {
+  if ((c99_mode || gcc_mode) && top_level_param_decl &&
+      curr_token == tok_static) {
     /* In C99, "static" in an array declarator in a parameter declaration
        indicates that the actual argument must have at least as many elements
        as the declared size of the array. */
+    if (!c99_mode) {
+      pos_warning(ec_static_dimension_nonstandard, &pos_curr_token);
+    }  /* if */
     static_seen = TRUE;
     (void)get_token();
   } else if (!C_mode() && (decl_scope_level == NO_SCOPE_DEPTH ||
@@ -4765,9 +4769,12 @@ constant.
                 &qualifier_pos);
       qualifiers = TQ_NONE;
     }  /* if */
-    if (c99_mode && top_level_param_decl && curr_token == tok_static &&
-        !static_seen) {
+    if ((c99_mode || gcc_mode) && top_level_param_decl &&
+        curr_token == tok_static && !static_seen) {
       /* In C99, "static" can appear after cv-qualifiers as well. */
+      if (!c99_mode) {
+        pos_warning(ec_static_dimension_nonstandard, &pos_curr_token);
+      }  /* if */
       static_seen = TRUE;
       (void)get_token();
     }  /* if */
