@@ -27368,7 +27368,7 @@ memory region constraints.
     a_routine   *cctor = NULL;
     a_type_ptr  ftp = skip_typerefs(rp->type),
                 tp = skip_typerefs(ftp->variant.routine.return_type);
-    a_boolean    bitwise_copy = FALSE, err = FALSE;
+    a_boolean   bitwise_copy = FALSE, err = FALSE;
     check_assertion(is_immediate_class_type(tp));
     if (type_has_nontrivial_destructor(tp)) {
       cctor = select_copy_constructor_full(

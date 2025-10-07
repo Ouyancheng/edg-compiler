@@ -1246,10 +1246,6 @@ Double the number of entries in the given set.  This requires rehashing.
   }  /* if */
 }  /* expand_live_set */
 
-static void intmsg(char const*msg) {
-//fprintf(f_debug, msg);
-}
-
 
 /*
 Macro to add an allocation sequence number to a live set.  (It may not be in
@@ -1261,7 +1257,6 @@ the set already.)
   a_live_set_index     mask = (set)->hash_mask;                              \
   a_live_set_index     idx = (a_live_set_index)(hash & mask);                \
   an_alloc_seq_number  *table = (set)->table;                                \
-if (alloc_seq == 20) intmsg("added\n"); \
   if (table[idx] == 0) {                                                     \
     table[idx] = (alloc_seq);                                                \
   } else {                                                                   \
@@ -1308,7 +1303,6 @@ at idx.
   a_live_set_index     idx = (a_live_set_index)(hash & mask);                \
   an_alloc_seq_number  *table = (set)->table;                                \
   /* Find the item to delete (we're assuming it exists). */                  \
-if (alloc_seq == 20) intmsg("removed\n"); \
   while (table[idx] != (alloc_seq)) {                                        \
     idx = (idx+1) & mask;                                                    \
   }  /* while */                                                             \
