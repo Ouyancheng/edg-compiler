@@ -3529,7 +3529,6 @@ diagnostic in error cases.  error_pos is the position to use for diagnostics
         if (is_reference_type(tp)) {
           /* Perform reference collapsing. */
           tp = type_pointed_to(tp);
-          tp = remove_qualifiers(tp, TQ_CONST | TQ_VOLATILE);
         }  /* if */
         result = make_reference_type(tp);
       } else {

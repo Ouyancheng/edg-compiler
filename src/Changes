@@ -1,5 +1,16 @@
 Version 6.8
 
+10/8/25  [EDGcpfe/28335,EDGcpfe/28483]
+Clang/GCC: __add_lvalue_reference for cv-qualified reference types
+
+Previously, the front dropped any cv-qualifier when applying the
+__add_lvalue_reference type-transforming intrinsic to a reference type.  For
+example, with --gnu_version 150100:
+
+  using type = __add_lvalue_reference(const int &);
+  using type = const int &;  // Previously a spurious error.  Now okay.
+
+
 10/6/25  [EDGcpfe/8796,EDGcpfe/16454,EDGcpfe/24948,EDGcpfe/28482]
 Clang/GCC: "static" in array parameter dimensions
 
