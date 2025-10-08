@@ -6528,36 +6528,46 @@ that requires a definition.  It is FALSE for just an instantiation of the
 declaration (which could be for an explicit specialization, etc.).
 */
 {
-  a_type_ptr	tp = var->type;
+  a_type_ptr	orig_tp = var->type, tp;
   a_boolean	result = FALSE;
   an_error_code	error_code = ec_no_error;
-  a_boolean	is_extern = var->storage_class == (a_storage_class)sc_extern;
+  a_boolean	is_extern = var->storage_class == sc_extern;
 
-  check_assertion(tp != NULL);
+  check_assertion(orig_tp != NULL);
+  tp = skip_typerefs(orig_tp);
   if (is_use) {
     /* If we will be checking for an incomplete type below, make sure the type
        is instantiated. */
     complete_class_type_is_needed(tp);
   }  /* if */
-  if (is_function_type(tp)) {
+  if (type_is(tp, tk_routine)) {
     result = TRUE;
     error_code = ec_variable_templ_function_type;
-  } else if (is_use && is_incomplete_type(tp)) {
-    if (is_incomplete_array_type(tp) &&
+  } else if (is_immediate_class_type(tp) &&
+             tp->variant.class_struct_union.abstract) {
+    result = TRUE;
+    error_code = ec_abstract_class_object_not_allowed;
+  } else if (is_use && tp->incomplete) {
+    if (type_is(tp, tk_array) && array_type_has_no_bound(tp) &&
         (is_extern || is_prototype_instantiation_context())) {
       /* Allow an incomplete array on an extern declaration and also in a
          prototype instantiation because it could be completed in an
          out-of-class definition. */
-    } else if (gnu_version_is(any_version) && is_class_struct_union_type(tp) &&
+    } else if ((ms_version_is(any_version) ||
+                gpp_version_is(any_version) ||
+                (clangcpp_version_is(any_version) &&
+                 var->source_corresp.is_class_member)) &&
+               is_immediate_class_type(tp) &&
                var->is_prototype_instantiation) {
-      /* GCC does not diagnose incomplete class types in this context. */
+      /* MSVC and GCC do not diagnose incomplete class types in this context.
+         Clang omits the diagnosis only for member templates. */
     } else {
       result = TRUE;
       error_code = ec_incomplete_var_type;
     }  /* if */
   }  /* if */
   if (result && issue_error) {
-    pos_ty_error(error_code, &dps->specifiers_pos, tp);
+    pos_ty_error(error_code, &dps->specifiers_pos, orig_tp);
   }  /* if */
   return result;
 }  /* is_invalid_variable_template_type */

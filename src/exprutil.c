@@ -21954,7 +21954,9 @@ it might produce an error).
      case. */
   if (is_variable_node(node)) {
     a_variable_ptr variable = node_variable(node);
+    /* Check if the variable must be instantiated. */
     if (!variable->used && !variable->is_nonreal &&
+        !variable->is_specialized &&
         variable->template_info != NULL &&
         variable->template_info->template_arg_list != NULL &&
         !symbol_for(variable)->defined) {

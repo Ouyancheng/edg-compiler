@@ -1,5 +1,21 @@
 Version 6.8
 
+10/8/25  [EDGcpfe/28478]
+Variable template declaration with incomplete type
+
+Consider:
+
+  struct S {
+    struct I;
+    template<typename> static I x;
+  };
+
+The front end previously always issued an error reporting that x is declared
+with an incomplete type.  It no longer does that in Microsoft, GNU, and Clang
+C++ modes.  For Clang mode, the error is only omitted for member templates,
+but for Microsoft and GNU modes it is omitted for all variable templates.
+
+
 10/8/25  [EDGcpfe/28335,EDGcpfe/28483]
 Clang/GCC: __add_lvalue_reference for cv-qualified reference types
 
