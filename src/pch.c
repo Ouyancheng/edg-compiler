@@ -2189,6 +2189,8 @@ from the PCH file) to reflect the information loaded from the file.
 {
   a_source_file_ptr	orig_sfp;
 
+  /* Reset any necessary memory management state. */
+  mem_manage_reset();
   il_reset();
   orig_sfp = il_header_from_pch.primary_source_file;
   /* Make the source file pointer for the file that created the
@@ -2248,8 +2250,6 @@ from the PCH file) to reflect the information loaded from the file.
   rebuild_structures_on_il_read();
   /* Re-open module files that might have been open. */
   modules_pch_reset();
-  /* Reset any necessary memory management state. */
-  mem_manage_reset();
 }  /* pch_fixup_part_1 */
 
 
