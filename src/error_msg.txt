@@ -3629,6 +3629,7 @@ ec_static_data_member_not_allowed_in_unnamed_class;;"a static data member declar
 ec_initializer_addresses_dllimport_variable;;"initializer result addresses a dllimport variable"
 ec_cannot_be_specialized;;"template with \"no_specializations\" attribute cannot be specialized"
 ec_static_dimension_nonstandard;;"\"static\" is nonstandard here"
+ec_enum_previously_declared_without_explicit_base;;"%nd was previously declared without an explicit enum base"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -8851,11 +8851,14 @@ check_typerefs:
           } else if (type_1->variant.integer.enum_type &&
                      type_2->variant.integer.enum_type &&
                      !(microsoft_mode || (gcc_mode && gnu_version < 30400)) &&
-                     C_mode()) {
+                     C_mode() &&
+                     !(type_1->variant.integer.has_explicit_enum_base &&
+                       type_2->variant.integer.has_explicit_enum_base)) {
             /* In C modes, an enum type may be compatible with an integer type,
                but two different enum types are not compatible.  We do not
                apply the latter rule when emulating Microsoft C or early GNU C
-               versions. */
+               versions.  In C23, if both types have equivalent explicit
+               underlying types, consider those instead. */
           } else {
             if (type_1->variant.integer.int_kind ==
                                            type_2->variant.integer.int_kind &&

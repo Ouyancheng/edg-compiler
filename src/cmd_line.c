@@ -3597,6 +3597,8 @@ Set the various flags appropriate to C99 mode or later standard modes.
     std_attributes_enabled = TRUE;
     nodiscard_attribute_enabled = TRUE;
     enumerator_attributes_enabled = TRUE;
+    explicit_enum_base_enabled = TRUE;
+    opaque_enum_decls_enabled = TRUE;
     if (!option_kind_used[(int)optk_utf8_char_literals]) {
       utf8_char_literals_enabled = TRUE;
     }  /* if */

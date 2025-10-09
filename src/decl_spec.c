@@ -910,17 +910,18 @@ lambda, not the definition of X).
     result = FALSE;
   } else if (next_tok == tok_lbrace) {
     result = TRUE;
-  } else if (!C_mode() && next_tok == tok_colon && !is_ref_within_new_expr) {
+  } else if (!C_mode() ? (next_tok == tok_colon && !is_ref_within_new_expr)
+                       : (next_tok == tok_colon && tag_kind == sk_enum_tag &&
+                          explicit_enum_base_enabled)) {
     /* Possibly the beginning of a C++ base class type specifier or an
        explicit underlying type for C++11/Microsoft enum type. */
-    if (tag_kind != (a_symbol_kind)sk_enum_tag ||
+    if (tag_kind != sk_enum_tag ||
         !scope_is(&scope_stack_top(), sck_class_struct_union)) {
       result = TRUE;
     } else if (explicit_enum_base_enabled) {
       /* An enum type with an explicit base, or a bit field declaration of
          enum type.  More lookahead is required to distinguish the two. */
       a_scanning_token_cache  cache;
-
       /* Skip past the colon.  (Since next_tok == tok_colon, we know that
          either the current token or one that follows soon after the current
          token is a colon.) */
@@ -5645,7 +5646,8 @@ is updated to reflect relevant positions of this definition.
                          (a_routine_ptr)NULL);
   }  /* if */
   integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
-  if (C_dialect == C_dialect_cplusplus || gcc_mode) {
+  if (C_dialect == C_dialect_cplusplus || gcc_mode ||
+      explicit_base_kind != (an_integer_kind)ik_none) {
     /* In C++ the type of an enumerator is the same as that of its
        enumeration, but that won't actually be known until the definition
        is complete.  Set the types in the enum constants later.
@@ -5910,11 +5912,15 @@ is updated to reflect relevant positions of this definition.
       enum_con->source_corresp.name_linkage =
                                      enum_type->source_corresp.name_linkage;
       enum_con_sym->variant.constant = enum_con;
-      if (gcc_mode) {
-        /* In GNU C mode, the type of the constants is determined after
-           all the constants have been seen. */
+      if (gcc_mode && explicit_base == NULL) {
+        /* In GNU C mode (without an explicitly-specified underlying type),
+           the type of the constants is determined after all the constants
+           have been seen. */
       } else if (C_mode()) {
-        enum_con->type = enum_con_type;
+        /* Pre-C23 the type is an plain integer type (normally "int").  In C23,
+           it may be the enumeration type if the underlying type was explicitly
+           specified. */
+        enum_con->type = explicit_base != NULL ? enum_type : enum_con_type;
       } else {
         /* In C++ mode leave the type of the constant unchanged for now.
            The enumerator constants will get the type of the enumeration,
@@ -6117,7 +6123,7 @@ is updated to reflect relevant positions of this definition.
   /* Set the type size (based on the integral type it is mapped onto). */
   set_type_size(enum_type);
   enum_type->incomplete = FALSE;
-  if (!C_mode()) {
+  if (!C_mode() || explicit_base_kind != ik_none) {
     /* In C++ now that we know the type of the enumeration, we can update
        each constant to share the same type. */
     change_enum_constants_type(constant_list, enum_type);
@@ -6435,6 +6441,13 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     if (explicit_enum_base_enabled) {
       explicit_base_kind = scan_explicit_enum_base_type(&explicit_base,
                                                         &pos_explicit_base);
+      if (C_mode() && explicit_base_kind != ik_none && tag_sym != NULL &&
+          !type_symbol_type(tag_sym)->variant.integer.has_explicit_enum_base) {
+        /* Something like "enum E; enum E: int;".  Note that "enum E;" is
+           nonstandard, but accepted in some modes. */
+        pos_sy_error(ec_enum_previously_declared_without_explicit_base,
+                     &pos_explicit_base, tag_sym);
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode && tag_sym != NULL && !tag_sym->defined &&
           symbol_is(tag_sym, sk_enum_tag) &&
@@ -6922,8 +6935,14 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_definition || is_opaque_enum_decl) {
     if (explicit_base != NULL) {
+      a_type_ptr  utp = skip_typerefs(explicit_base);
       /* Record the explicit underlying type as it appeared in the source. */
       integer_type_supp(enum_type)->base_type = explicit_base;
+      if (c23_mode && type_is(utp, tk_integer)) {
+        /* In C23, enumerator constants immediately have the enumeration type
+           with the explicitly-specified (unqualified) underlying type. */
+        enum_type->variant.integer.int_kind = utp->variant.integer.int_kind;
+      }  /* if */
       /* Update the position of the base type if this is the first opaque
          declaration or if it is the definition. */
       if (is_definition ||
