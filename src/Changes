@@ -1,5 +1,22 @@
 Version 6.8
 
+10/9/25  [EDGcpfe/28472]
+Equivalence of type template arguments using typedef names
+
+The changes for EDGcpfe/26872 (in version 6.7) introduced a regression where
+type template arguments using typedef names were not always considered
+equivalent.  For example, with --c++11:
+
+  template<typename> struct B;
+  template<typename T> using A = B<T>;
+  template<typename T> struct C {
+    using AT = A<T>;
+    void f(C<AT> *);
+  };
+  template<typename T>
+  void C<T>::f(C<B<T>> *) {}  // Previously a spurious error.  Now okay.
+
+
 10/8/25  [EDGcpfe/28478]
 Variable template declaration with incomplete type
 

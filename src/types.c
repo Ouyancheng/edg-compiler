@@ -7629,7 +7629,8 @@ check_typerefs:
     a_type_qualifier_set  tqs1 = TQ_NONE, tqs2 = TQ_NONE;
     a_boolean             type_op = FALSE, type_intrinsic = FALSE;
     a_type_ptr            tp1 = type_1, tp2 = type_2;
-    a_boolean	          is_nonreal1 = FALSE, is_nonreal2 = FALSE;
+    a_boolean             is_nonreal1 = FALSE, is_nonreal2 = FALSE;
+    a_boolean             need_to_recheck_typerefs = FALSE;
     while (tp1->kind == (a_type_kind)tk_typeref) {
       if (!has_name(tp1)) {
         if (typeref_is_type_operator(tp1)) {
@@ -7645,7 +7646,7 @@ check_typerefs:
       if (tp1->variant.typeref.is_nonreal) is_nonreal1 = TRUE;
       tp1 = tp1->variant.typeref.type;
     }  /* while */
-    if (tp1->kind == (a_type_kind)tk_template_param) is_nonreal1 = TRUE;
+    if (type_is_nonreal(tp1)) is_nonreal1 = TRUE;
     while (tp2->kind == (a_type_kind)tk_typeref) {
       if (!has_name(tp2)) {
         if (typeref_is_type_operator(tp2)) {
@@ -7661,7 +7662,7 @@ check_typerefs:
       if (tp2->variant.typeref.is_nonreal) is_nonreal2 = TRUE;
       tp2 = tp2->variant.typeref.type;
     }  /* while */
-    if (tp2->kind == (a_type_kind)tk_template_param) is_nonreal2 = TRUE;
+    if (type_is_nonreal(tp2)) is_nonreal2 = TRUE;
     if (is_nonreal1 && type_is(type_1, tk_typeref) &&
         is_typeref_kind(type_1, trk_is_template_alias) &&
         type_1->variant.typeref.is_dependent &&
@@ -7670,7 +7671,7 @@ check_typerefs:
       /* Skip a transparent alias template and continue with the underlying
          type. */
       type_1 = type_1->variant.typeref.type;
-      goto check_typerefs;
+      need_to_recheck_typerefs = TRUE;
     }  /* if */
     if (is_nonreal2 && type_is(type_2, tk_typeref) &&
         is_typeref_kind(type_2, trk_is_template_alias) &&
@@ -7680,8 +7681,9 @@ check_typerefs:
       /* Skip a transparent alias template and continue with the underlying
          type. */
       type_2 = type_2->variant.typeref.type;
-      goto check_typerefs;
+      need_to_recheck_typerefs = TRUE;
     }  /* if */
+    if (need_to_recheck_typerefs) goto check_typerefs;
     if (is_nonreal1 != is_nonreal2) {
       goto done;
     } else if (type_is(type_1, tk_typeref) && type_is(type_2, tk_typeref)) {
