@@ -914,13 +914,13 @@ lambda, not the definition of X).
                        : (next_tok == tok_colon && tag_kind == sk_enum_tag &&
                           explicit_enum_base_enabled)) {
     /* Possibly the beginning of a C++ base class type specifier or an
-       explicit underlying type for C++11/Microsoft enum type. */
-    if (tag_kind != sk_enum_tag ||
-        !scope_is(&scope_stack_top(), sck_class_struct_union)) {
+       explicit underlying type for C++11/C23/Microsoft enum type. */
+    if (tag_kind != sk_enum_tag) {
       result = TRUE;
     } else if (explicit_enum_base_enabled) {
-      /* An enum type with an explicit base, or a bit field declaration of
-         enum type.  More lookahead is required to distinguish the two. */
+      /* An enum type with an explicit base, a bit field declaration of enum
+         type, or a C99 _Generic selection for an enum type.  More lookahead
+         is required to distinguish the first case from the others. */
       a_scanning_token_cache  cache;
       /* Skip past the colon.  (Since next_tok == tok_colon, we know that
          either the current token or one that follows soon after the current
@@ -933,7 +933,7 @@ lambda, not the definition of X).
       }  /* for */
       (void)get_token();
       /* Check that what follows the colon is not an expression (which would
-         indicate a bit field length). */
+         indicate a bit field length or _Generic selection). */
       result = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                                 DFS_SINGLE_TYPE_REQUIRED |
                                 DFS_POSSIBLE_ENUM_BASE);
@@ -6125,7 +6125,8 @@ is updated to reflect relevant positions of this definition.
   enum_type->incomplete = FALSE;
   if (!C_mode() || explicit_base_kind != ik_none) {
     /* In C++ now that we know the type of the enumeration, we can update
-       each constant to share the same type. */
+       each constant to share the same type.  This also applies in C modes if
+       the enumeration has an explicit underlying type. */
     change_enum_constants_type(constant_list, enum_type);
   }  /* if */
   /* If entities dependent on this enum type were declared before it was
@@ -6938,9 +6939,10 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       a_type_ptr  utp = skip_typerefs(explicit_base);
       /* Record the explicit underlying type as it appeared in the source. */
       integer_type_supp(enum_type)->base_type = explicit_base;
-      if (c23_mode && type_is(utp, tk_integer)) {
-        /* In C23, enumerator constants immediately have the enumeration type
-           with the explicitly-specified (unqualified) underlying type. */
+      if (C_mode() && type_is(utp, tk_integer)) {
+        /* In C, enumerator constants immediately have the enumeration type
+           with the explicitly-specified (unqualified) underlying type (a C23
+           feature also support in some pre-C23 modes). */
         enum_type->variant.integer.int_kind = utp->variant.integer.int_kind;
       }  /* if */
       /* Update the position of the base type if this is the first opaque

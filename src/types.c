@@ -8857,8 +8857,9 @@ check_typerefs:
             /* In C modes, an enum type may be compatible with an integer type,
                but two different enum types are not compatible.  We do not
                apply the latter rule when emulating Microsoft C or early GNU C
-               versions.  In C23, if both types have equivalent explicit
-               underlying types, consider those instead. */
+               versions.  In C23 (and some pre-C23 dialects), if both types
+               have equivalent explicit underlying types, consider those
+               instead. */
           } else {
             if (type_1->variant.integer.int_kind ==
                                            type_2->variant.integer.int_kind &&
