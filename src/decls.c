@@ -21718,6 +21718,22 @@ required updates in the source sequence entry for this declaration.
         sssdp->declared_storage_class = dps->declared_storage_class;
       }  /* if */
     }  /* if */
+  } else if (dps->secondary_declarator && dps->sym != NULL) {
+    if (symbol_is(dps->sym, sk_variable)) {
+      /* For function template instantiations source sequence entries are
+         usually not recorded, but IL consumers might still want to know that
+         multiple variables were declared in a single declaration.  This is
+         feasible for local variables because they cannot be redeclared and
+         therefore there is no potential ambiguity as to whether they were
+         declared in a declaration with multiple declarators or not. */
+      a_variable  *vp = dps->sym->variant.variable.ptr;
+      if (vp->source_corresp.is_local_to_function) {
+        vp->source_corresp.is_decl_after_first_in_comma_list = TRUE;
+      }  /* if */
+    } else if (symbol_is(dps->sym, sk_field)) {
+      dps->sym->variant.field.ptr
+              ->source_corresp.is_decl_after_first_in_comma_list = TRUE;
+    }  /* if */
   }  /* if */
 }  /* wrapup_sse_for_simple_decl */
 

@@ -3411,7 +3411,9 @@ typedef struct a_source_correspondence {
 			   a comma-separated declarator list and was not the
 			   first in that list.  E.g., "j" in "int i, j;".
 			   For secondary declarations, see the similar flag in
-			   a_src_seq_secondary_decl. */
+			   a_src_seq_secondary_decl.  This is only maintained
+			   if this entity has an associated source sequence
+			   entry, or if it is a local variable declaration. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_bit_field	static_used_by_instantiation:1;

@@ -1,5 +1,27 @@
 Version 6.8
 
+10/10/25 [EDGcpfe/28460]
+is_decl_after_first_in_comma_list
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is configured to TRUE, the front end
+records "source sequence entries" for statements and declared entities
+appearing in the source code.  It also indicates whether an entity is declared
+in a "secondary declarator" (i.e., a declarator that appear right after
+another declarator separated by a comma) in two ways:
+  1) for the "primary declaration" of an entity X, this is indicated by a flag
+     is_decl_after_first_in_comma_list in the a_source_correspondence for X
+  2) for a "secondary declaration" of an entity X, this is indicated by a flag
+     is_decl_after_first_in_comma_list in the secondary source sequence entry
+     for that declaration of X.
+In most configurations, source sequence entries are not recorded for template
+instantiations, and thus the is_decl_after_first_in_comma_list flags were not
+recorded for entities resulting from instantiations.  Now, however, the front
+end does set the is_decl_after_first_in_comma_list in the source correspondence
+of local variables and fields resulting from instantiations.  Those particular
+entities cannot have secondary declarations, and thus the meaning of the flag
+in the source correspondence is unambiguous.
+
+
 10/10/25 [EDGcpfe/28492]
 Fix segfault caused by memory corruption when reading a PCH
 
