@@ -1,5 +1,14 @@
 Version 6.8
 
+10/10/25 [EDGcpfe/28492]
+Fix segfault caused by memory corruption when reading a PCH
+
+Previously, when using a PCH, the front end could allocate memory at addresses
+that conflicted with memory used within the PCH while performing PCH fixup.
+This could result in memory corruption that ultimately could lead to a segfault
+or other failure at random locations within the front end.  This is now fixed.
+
+
 10/9/25  [EDGcpfe/24604,EDGcpfe/25943,EDGcpfe/27793,EDGcpfe/27833,
           EDGcpfe/28149,EDGcpfe/28468]
 C23: Explicit underlying enum types
