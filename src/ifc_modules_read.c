@@ -22078,6 +22078,136 @@ type.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean is_concrete_placeholder_elaboration(
+                                                 an_ifc_type_index elaboration)
+/*
+Return TRUE if the given fundamental type is a known type (i.e., a non-user
+defined and non-deduced type or a user-declared type that exists in namespace
+scope); otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (elaboration.sort == ifc_ts_type_fundamental) {
+    Opt<an_ifc_type_fundamental> opt_fund_type;
+
+    construct_node(&opt_fund_type, elaboration);
+    if (!opt_fund_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_fundamental fund_type = *opt_fund_type;
+    an_ifc_type_basis_sort  basis = get_ifc_basis(fund_type);
+    switch (basis) {
+      case ifc_tbs_auto:
+      case ifc_tbs_decltype_auto:
+        /* These fundamental types are not well expressed by direct
+           reference. */
+        break;
+      case ifc_tbs_bool:
+      case ifc_tbs_char:
+      case ifc_tbs_double:
+      case ifc_tbs_float:
+      case ifc_tbs_int:
+      case ifc_tbs_nullptr:
+      case ifc_tbs_void:
+      case ifc_tbs_wchar_t:
+        /* These fundamental types can always be expressed by direct
+           reference. */
+        result = TRUE;
+        break;
+      case ifc_tbs_class:
+      case ifc_tbs_concept:
+      case ifc_tbs_ellipsis:
+      case ifc_tbs_empty:
+      case ifc_tbs_enum:
+      case ifc_tbs_function:
+      case ifc_tbs_interface:
+      case ifc_tbs_namespace:
+      case ifc_tbs_overload:
+      case ifc_tbs_segment_type:
+      case ifc_tbs_struct:
+      case ifc_tbs_typename:
+      case ifc_tbs_union:
+      case ifc_tbs_variable_template:
+        /* These fundamental types are not expected to appear here. */
+        { a_string err_msg("Unexpected fundamental type basis (",
+                           str_for(basis),
+                           ") for placeholder type ",
+                           index_to_str(elaboration));
+
+          ifc_unexpected(module_of(fund_type), err_msg);
+        }
+        goto invalid;
+      default_is_unexpected();
+    }  /* switch */
+  } else if (elaboration.sort == ifc_ts_type_pointer) {
+    Opt<an_ifc_type_pointer> opt_itp;
+
+    construct_node(&opt_itp, elaboration);
+    if (!opt_itp.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_pointer itp = *opt_itp;
+    an_ifc_type_index   pointee = get_ifc_pointee(itp);
+    if (is_concrete_placeholder_elaboration(pointee)) {
+      result = TRUE;
+    }  /* if */
+  } else if (elaboration.sort == ifc_ts_type_lvalue_reference) {
+    Opt<an_ifc_type_lvalue_reference> opt_itlr;
+
+    construct_node(&opt_itlr, elaboration);
+    if (!opt_itlr.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_lvalue_reference itlr = *opt_itlr;
+    an_ifc_type_index            referee = get_ifc_referee(itlr);
+    if (is_concrete_placeholder_elaboration(referee)) {
+      result = TRUE;
+    }  /* if */
+  } else if (elaboration.sort == ifc_ts_type_rvalue_reference) {
+    Opt<an_ifc_type_rvalue_reference> opt_itrr;
+
+    construct_node(&opt_itrr, elaboration);
+    if (!opt_itrr.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_rvalue_reference itrr = *opt_itrr;
+    an_ifc_type_index            referee = get_ifc_referee(itrr);
+    if (is_concrete_placeholder_elaboration(referee)) {
+      result = TRUE;
+    }  /* if */
+  } else if (elaboration.sort == ifc_ts_type_designated) {
+    Opt<an_ifc_type_designated> opt_designated_type;
+
+    construct_node(&opt_designated_type, elaboration);
+    if (!opt_designated_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_designated designated_type = *opt_designated_type;
+    an_ifc_decl_index      decl_idx = get_ifc_decl(designated_type);
+    if (is_class_scope(decl_idx)) {
+      if (!validate(decl_idx)) {
+        goto invalid;
+      }  /* if */
+      if (has_ifc_home_scope(decl_idx) &&
+          is_namespace_scope(get_ifc_home_scope(decl_idx))) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* is_concrete_placeholder_elaboration */
+
+
 template<typename an_ifc_Node_type>
 static a_boolean is_func_type_deduced_from_body(const an_ifc_Node_type &type)
 /*
@@ -22101,59 +22231,8 @@ otherwise, return FALSE.
     an_ifc_type_placeholder placeholder_type = *opt_placeholder_type;
     an_ifc_type_index       elaboration =
                                          get_ifc_elaboration(placeholder_type);
-    if (elaboration.sort == ifc_ts_type_fundamental) {
-      Opt<an_ifc_type_fundamental> opt_fund_type;
-
-      construct_node(&opt_fund_type, elaboration);
-      if (!opt_fund_type.has_value()) {
-        goto invalid;
-      }  /* if */
-
-      an_ifc_type_fundamental fund_type = *opt_fund_type;
-      an_ifc_type_basis_sort  basis = get_ifc_basis(fund_type);
-      switch (basis) {
-        case ifc_tbs_auto:
-        case ifc_tbs_decltype_auto:
-          /* These fundamental types are not well expressed by direct
-             reference. */
-          break;
-        case ifc_tbs_bool:
-        case ifc_tbs_char:
-        case ifc_tbs_double:
-        case ifc_tbs_float:
-        case ifc_tbs_int:
-        case ifc_tbs_nullptr:
-        case ifc_tbs_void:
-        case ifc_tbs_wchar_t:
-          /* These fundamental types can always be expressed by direct
-             reference. */
-          result = FALSE;
-          break;
-        case ifc_tbs_class:
-        case ifc_tbs_concept:
-        case ifc_tbs_ellipsis:
-        case ifc_tbs_empty:
-        case ifc_tbs_enum:
-        case ifc_tbs_function:
-        case ifc_tbs_interface:
-        case ifc_tbs_namespace:
-        case ifc_tbs_overload:
-        case ifc_tbs_segment_type:
-        case ifc_tbs_struct:
-        case ifc_tbs_typename:
-        case ifc_tbs_union:
-        case ifc_tbs_variable_template:
-          /* These fundamental types are not expected to appear here. */
-          { a_string err_msg("Unexpected fundamental type basis (",
-                             str_for(basis),
-                             ") for return type ",
-                             index_to_str(return_type));
-
-            ifc_unexpected(module_of(fund_type), err_msg);
-          }
-          goto invalid;
-        default_is_unexpected();
-      }  /* switch */
+    if (is_concrete_placeholder_elaboration(elaboration)) {
+      result = FALSE;
     }  /* if */
   }  /* if */
 invalid:
