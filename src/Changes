@@ -9,6 +9,8 @@ For example:
 
   enum Answer: unsigned char { No, Yes, Maybe };
 
+This is also accepted in all Clang C modes with clang_version >= 80000 and in
+all GNU C modes with gnu_version >= 130000 (i.e., not just in C23 modes).
 This feature was added to C23 through the C standardization committee's paper
 N3030.
 

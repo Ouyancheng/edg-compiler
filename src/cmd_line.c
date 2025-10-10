@@ -5374,6 +5374,12 @@ This function is also called in clang mode.
     if (clang_version >= 30500) {
       terse_static_assert_enabled = TRUE;
     }  /* if */
+    if (clang_version >= 80000) {
+      /* Clang 8.0 (and later) accepts the C23 feature enabling explicit
+         underlying types for enumeration types. */
+      explicit_enum_base_enabled = TRUE;
+      opaque_enum_decls_enabled = TRUE;
+    }  /* if */
     if (clang_version >= 170000) {
       std_attributes_enabled = TRUE;
     }  /* if */
@@ -5402,6 +5408,12 @@ This function is also called in clang mode.
       std_attributes_enabled = TRUE;
       nodiscard_attribute_enabled = TRUE;
       enumerator_attributes_enabled = TRUE;
+    }  /* if */
+    if (gnu_version >= 130000) {
+      /* GCC 13 (and later) accepts the C23 feature enabling explicit
+         underlying types for enumeration types. */
+      explicit_enum_base_enabled = TRUE;
+      opaque_enum_decls_enabled = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gcc_mode_options */
