@@ -1,6 +1,7 @@
 Version 6.8
 
-10/9/25  [EDGcpfe/25943,EDGcpfe/27793,EDGcpfe/28149,EDGcpfe/28468]
+10/9/25  [EDGcpfe/24604,EDGcpfe/25943,EDGcpfe/27793,EDGcpfe/27833,
+          EDGcpfe/28149,EDGcpfe/28468]
 C23: Explicit underlying enum types
 
 In C23 mode, the front end now accepts an explicit underlying type for the
