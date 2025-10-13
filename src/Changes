@@ -21,11 +21,11 @@ is_decl_after_first_in_comma_list
 When GENERATE_SOURCE_SEQUENCE_LISTS is configured to TRUE, the front end
 records "source sequence entries" for statements and declared entities
 appearing in the source code.  It also indicates whether an entity is declared
-in a "secondary declarator" (i.e., a declarator that appear right after
+in a "secondary declarator" (i.e., a declarator that appears right after
 another declarator separated by a comma) in two ways:
-  1) for the "primary declaration" of an entity X, this is indicated by a flag
-     is_decl_after_first_in_comma_list in the a_source_correspondence for X
-  2) for a "secondary declaration" of an entity X, this is indicated by a flag
+  1) For the "primary declaration" of an entity X, this is indicated by a flag
+     is_decl_after_first_in_comma_list in the a_source_correspondence for X.
+  2) For a "secondary declaration" of an entity X, this is indicated by a flag
      is_decl_after_first_in_comma_list in the secondary source sequence entry
      for that declaration of X.
 In most configurations, source sequence entries are not recorded for template

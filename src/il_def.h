@@ -3413,7 +3413,8 @@ typedef struct a_source_correspondence {
 			   For secondary declarations, see the similar flag in
 			   a_src_seq_secondary_decl.  This is only maintained
 			   if this entity has an associated source sequence
-			   entry, or if it is a local variable declaration. */
+			   entry, or if it is associated with a local variable
+			   or field declaration. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_bit_field	static_used_by_instantiation:1;
