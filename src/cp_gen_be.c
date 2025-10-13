@@ -9225,7 +9225,8 @@ elaborated type specifier in the given scope.
   check_assertion(is_tag_type(type));
   if (is_immediate_class_type(type) &&
       scope_is(scope, sck_class_struct_union) &&
-      scope->variant.assoc_type == type) {
+      scope->variant.assoc_type == type &&
+      scope_is_in_name_context_stack(scope)) {
     /* This is a reference to the injected-class-name of a class in the
        class scope.  Constructors in the class scope hide the
        injected-class-name, so an elaborated type specifier is needed. */
