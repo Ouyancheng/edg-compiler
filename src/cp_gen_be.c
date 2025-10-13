@@ -20591,8 +20591,18 @@ Generate code for an instantiation directive.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Allow qualified names in instantiation directives. */
           class_type->has_been_declared = TRUE;
-          gen_tag_reference(class_type, (a_gen_name_options_set)GN_DECLARATION,
-                            idp->attributes);
+          if (idp->declared_type != NULL &&
+              type_is(idp->declared_type, tk_typeref) &&
+              (is_typeref_kind(idp->declared_type, trk_template_arg_list) ||
+               is_typeref_kind(idp->declared_type, trk_name_qualifier))) {
+            gen_type_reference(idp->declared_type,
+                               /*suppress_typename_kwd=*/TRUE,
+                               /*is_declaration=*/TRUE);
+          } else {
+            gen_tag_reference(class_type,
+                              (a_gen_name_options_set)GN_DECLARATION,
+                              idp->attributes);
+          }  /* if */
           write_tok_ch(';');
           class_type->source_corresp.attributes = saved_attributes;
         }
