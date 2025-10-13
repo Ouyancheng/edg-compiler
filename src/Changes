@@ -1,5 +1,20 @@
 Version 6.8
 
+10/13/25 [EDGcpfe/27902]
+Spurious substitution failure for aggregate initialization from a pack
+
+Previously, when a template argument list was explicitly specified for a pack
+of a function template, initial substitution could fail if that pack was used
+as the initializer of an aggregate.  For example, with --c++11:
+
+  struct A {
+    int i;
+  };
+  template<typename ... Ts>
+  decltype(A{Ts{} ...}) f();
+  auto v = f<int>();  // Previously a spurious error.  Now okay.
+
+
 10/10/25 [EDGcpfe/28460]
 is_decl_after_first_in_comma_list
 

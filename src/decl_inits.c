@@ -3804,8 +3804,9 @@ issued if no more specific position is available.
       /* The caller should move on to the component that follows the braced
          list (if any). */
       *p_icp = next_elem(*p_icp);
-      if (icp != NULL) {
-        /* Initializers remain at this level, but no subobjects. */
+      if (icp != NULL && icp->pack_expansion_descr == NULL) {
+        /* Non-expansion initializers remain at this level, but no
+           subobjects. */
         check_assertion(fp == NULL && bcp == NULL);
         if (is->no_diagnostics) {
           is->init_error = !gcc_mode;
