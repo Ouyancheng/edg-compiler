@@ -917,6 +917,13 @@ lambda, not the definition of X).
        explicit underlying type for C++11/C23/Microsoft enum type. */
     if (tag_kind != sk_enum_tag) {
       result = TRUE;
+    } else if (!C_mode() &&
+               !scope_is(&scope_stack_top(), sck_class_struct_union)) {
+      /* In C++ mode, the only valid scenario when "enum X" is followed by a
+         colon outside a class definition is the case where an explicit
+         underlying type is specified.  (In C mode, it could also be a
+         selection in a _Generic(...) construct.) */
+      result = TRUE;
     } else if (explicit_enum_base_enabled) {
       /* An enum type with an explicit base, a bit field declaration of enum
          type, or a C99 _Generic selection for an enum type.  More lookahead
