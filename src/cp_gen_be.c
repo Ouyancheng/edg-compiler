@@ -9249,27 +9249,6 @@ elaborated type specifier in the given scope.
          hidden there by a non-type member name. */
       result = TRUE;
     }  /* if */
-    if (!result && type->source_corresp.parent_scope != NULL &&
-        scope_is(type->source_corresp.parent_scope, sck_namespace) &&
-        scope->hidden_names != NULL) {
-      /* Check for an obscure case where a namespace hides the name of a
-         tag type, e.g.,
-           namespace A { }
-           namespace N { struct A; }
-           using namespace N;
-           struct ::A *p;
-         Here the elaborated type specifier is needed because ::A
-         designates the namespace and not N::A. */
-      for (a_hidden_name_ptr hnp = scope->hidden_names;
-           !result && hnp != NULL; hnp = hnp->next) {
-        if (hnp->entity.kind == iek_namespace &&
-            unmangled_name_of(&a_namespace_ptr(hnp->entity.ptr)->
-                                                             source_corresp) ==
-            unmangled_name_of(&type->source_corresp)) {
-          result = TRUE;
-        }  /* if */
-      }  /* for */
-    }  /* if */
     pop_name_context();
   }  /* if */
   return result;

@@ -1555,6 +1555,34 @@ indicated scope.
       check_name_hiding_of_qualifiable_name(sym_ptr, sp);
     }  /* if */
   }  /* if */
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+  if (for_using_directive && is_tag_symbol(sym_ptr)) {
+    /* Check for the case where a name in the namespace of the
+       using-directive hides the name of a tag type in the target
+       namespace, e.g.,
+         namespace A { }
+         namespace N { struct A; }
+         using namespace N;
+         struct ::A *p;
+       Here the elaborated type specifier is needed because ::A designates
+       the namespace and not N::A.  (This would ordinarily be handled by
+       name qualification, "N::A", but when a trk_name_qualifier overrides
+       the required qualification, an elaborated-type-specifier is
+       required.) */
+    a_symbol_locator locator;
+    a_symbol_ptr     old_sym_ptr;
+    clear_locator(&locator, &sym_ptr->decl_position);
+    locator.symbol_header = sym_ptr->header;
+    old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP);
+    if (old_sym_ptr != NULL && old_sym_ptr->kind != sym_ptr->kind) {
+      /* The hiding can be defeated using an elaborated-type-specifier. */
+      record_defeatable_name_hiding(sym_ptr, /*tag_hidden_by_nontag=*/TRUE,
+                                    /*hidden_class_or_namespace_member=*/FALSE,
+                                    /*simulated_hiding=*/FALSE, sp,
+                                    old_sym_ptr);
+    }  /* if */
+  }  /* if */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 }  /* check_for_defeatable_name_hiding */
 
 
