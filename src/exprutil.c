@@ -6372,14 +6372,17 @@ calls to std::is_constant_evaluated should to "true".
 
 a_boolean expr_interpret_expression_operand(an_operand  *operand,
                                             a_boolean   must_be_constant,
-                                            a_boolean   is_constant_evaluated)
+                                            a_boolean   is_constant_evaluated,
+                          /* Defaulted: */  a_boolean   force_prvalue)
 /*
 Interpret the given expression operand.  If successful, return TRUE and replace
 *operand by a corresponding constant operand.  Otherwise return FALSE, and, if
 must_be_constant is TRUE, issue a diagnostic (if diagnostics should be issued)
 and make *operand an error operand.  is_constant_evaluated indicates the result
-of calling std::is_constant_evaluated() during the interpretation of the
-given expression.
+of calling std::is_constant_evaluated() during the interpretation of the given
+expression.  force_prvalue (which is FALSE by default) is the force_prvalue
+flag value passed to the interpret_expr function: If TRUE, it forces converting
+the given operand to a prvalue (without updating the original expression tree).
 */
 {
   a_boolean      result;
@@ -6389,7 +6392,7 @@ given expression.
   check_assertion(is_expression_operand(operand));
   clear_diag_list(&diag_list);
   if (interpret_expr(operand->variant.expression, is_constant_evaluated,
-                     /*force_prvalue=*/FALSE, constant, &diag_list)) {
+                     force_prvalue, constant, &diag_list)) {
     an_operand  orig_operand;
     orig_operand = *operand;
     if (!curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
@@ -22770,7 +22773,17 @@ cases so we don't do it here.
       } else if (curr_expr_kind_is_traditional_const()) {
         /* An lvalue cannot be converted to an rvalue in a pre-C++11 constant
            expression. */
-        error_in_operand(ec_expr_not_constant, operand);
+         
+        if ((gcc_version_is(>= 80000) || clangc_version_is(>= 170000)) &&
+            is_expression_operand(operand)) {
+          (void)expr_interpret_expression_operand(
+                                             operand,
+                                             /*must_be_constant=*/TRUE,
+                                             /*is_constant_evaluated=*/FALSE,
+                                             /*force_prvalue=*/TRUE);
+        } else if (!is_constant_operand(operand)) {
+          error_in_operand(ec_expr_not_constant, operand);
+        }  /* if */
       } else if (!constexpr_enabled &&
                  !potential_gnu_ignored_object_expr(node, curr_token) &&
                  construct_not_allowed_in_cpp11_constant_expr(

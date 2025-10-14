@@ -752,7 +752,7 @@ typedef struct a_constexpr_address {
 			   address and so it should be assumed to point to an
 			   object even if it is a null address (used to
 			   support classic implementations of "offsetof").
-			   Otherwise, zero. */
+			   Otherwise, ignored. */
   an_alloc_seq_number
 		alloc_seq_number;
 			/* The allocation sequence number of the storage
@@ -2369,6 +2369,7 @@ Release the storage allocated for the given interpreter state.
   }
   if (ips->static_storage_ready) {
     release_constexpr_stack(&ips->static_storage);
+    ips->static_storage_ready = FALSE;
   }  /* if */
   if (n_free_variant_path_entries != n_variant_path_entries &&
       n_active_interpreter_states == 0) {
@@ -26023,6 +26024,23 @@ the value representation of the integer value.
           }  /* if */
         } else {
           /* A variable used as a glvalue; the result is its address. */
+          if (var_bytes == NULL && var->is_immutable &&
+              gcc_const_variables_allowed && var->storage_class == sc_static &&
+              (clangc_version_is(>=150000) || gcc_version_is(>=80000))) {
+            a_constant_ptr  con = var_constant_value_full(
+                                             var, /*copy_for_reuse=*/FALSE,
+                                             /*clear_backing_expr=*/FALSE,
+                                             /*allow_C_mode_const_var=*/TRUE);
+            if (con != NULL) {
+              a_constexpr_address dst_addr;
+              alloc_static_object(ips, tp, var_bytes, &result);
+              if (!result) break;
+              map_stack_bytes(ips, var, var_bytes);
+              clear_address(&dst_addr, var_bytes);
+              result = extract_value_from_constant(ips, con, dst_addr);
+              if (!result) break;
+            }  /* if */
+          }  /* if */
           if (var_bytes != NULL) {
             a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
             a_byte_count         obj_size;
@@ -26606,9 +26624,12 @@ subobject path.
           }  /* if */
           end_path = path_entry;
           path_entry->is_offset = TRUE;
-          while (type->kind == (a_type_kind)tk_array) {
+          while (type_is(type, tk_array)) {
             type = skip_typerefs(type->variant.array.element_type);
           }  /* while */
+          if (is_immediate_vector_type(type)) {
+            type = skip_typerefs(type->variant.vector.element_type);
+          }  /* if */
           elem_size = value_bytes_for_type(ips, type, &okay);
           check_assertion(okay && elem_size != 0);
           pos = i_offset/elem_size;

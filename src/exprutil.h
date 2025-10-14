@@ -2675,7 +2675,8 @@ void force_operand_to_constant_if_possible_full(
 extern
 a_boolean expr_interpret_expression_operand(an_operand  *operand,
                                             a_boolean   must_be_constant,
-                                            a_boolean   is_constant_evaluated);
+                                            a_boolean   is_constant_evaluated,
+                                            a_boolean   force_prvalue = FALSE);
 
 extern a_boolean constant_conv_function_result(a_routine_ptr   conv_func,
                                                an_operand      *source_operand,
