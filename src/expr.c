@@ -26331,7 +26331,7 @@ called only in C++ mode.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean    unbox_case = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_conv_descr conversion, ctor_arg_conversion;
+  a_conv_descr conversion;
   a_conv_context_set
                conv_context = (CCO_CAST | CCO_EXPLICIT_CAST |
                                CCO_DIRECT_INITIALIZATION),
@@ -26616,7 +26616,9 @@ called only in C++ mode.
       /* Normal case (not a cast to a reference type). */
       /* Check for user-defined conversions, but not when casting to void. */
       if (!is_void_type(type_cast_to)) {
-        a_boolean  aggr_init = FALSE, failed = FALSE;
+        a_boolean     aggr_init = FALSE, failed = FALSE;
+        a_conv_descr  ctor_arg_conversion;
+        clear_conv_descr(&ctor_arg_conversion);
         if (user_defined_conversion_possible(
                                          operand, type_cast_to,
                                          /*need_lvalue_result=*/FALSE,
