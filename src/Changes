@@ -13,7 +13,7 @@ non-type template parameter.  For example, with --c++20:
   struct A;
 
 
-10/13/25 [EDGcpfe/27902]
+10/13/25 [EDGcpfe/24634,EDGcpfe/27214,EDGcpfe/27836,EDGcpfe/27902]
 Spurious substitution failure for aggregate initialization from a pack
 
 Previously, when a template argument list was explicitly specified for a pack
