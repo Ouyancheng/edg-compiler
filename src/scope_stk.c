@@ -2589,8 +2589,10 @@ STATIC_THREAD a_saved_stmt_stack_stack
 		*saved_stmt_stack_stack;
 			/* The stack of saved stmt stack states. */
 
+
 static void push_saved_stmt_scope_stack()
 /*
+Push a new entry onto the saved statement scope stack, stack.
 */
 {
   saved_stmt_stack_stack->emplace_back();
@@ -2601,6 +2603,7 @@ static void push_saved_stmt_scope_stack()
 
 static void pop_saved_stmt_scope_stack()
 /*
+Pop the current top entry from the saved statement scope stack, stack.
 */
 {
   a_struct_stmt_stack_state *state = &saved_stmt_stack_stack->back_elem();
@@ -2608,6 +2611,7 @@ static void pop_saved_stmt_scope_stack()
   restore_struct_stmt_stack(state);
   saved_stmt_stack_stack->pop_back();
 }  /* pop_saved_stmt_scope_stack */
+
 
 static a_memory_region_number get_enclosing_memory_region(
 						a_routine_ptr	assoc_routine)
