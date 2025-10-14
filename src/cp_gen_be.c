@@ -9176,6 +9176,8 @@ context stack or is hidden in the current context.
       }  /* if */
       if (scp->qualification_needed ||
           (scp->parent_scope != NULL &&
+           !scope_is(scp->parent_scope, sck_class_struct_union) &&
+           !scope_is(scp->parent_scope, sck_namespace) &&
            !scope_is_in_name_context_stack(scp->parent_scope))) {
         /* Either the parent of the topmost qualifier is hidden or the
            current context is outside its scope, so use of this name
