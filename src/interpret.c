@@ -26627,9 +26627,11 @@ subobject path.
           while (type_is(type, tk_array)) {
             type = skip_typerefs(type->variant.array.element_type);
           }  /* while */
+#if GNU_VECTOR_TYPES_ALLOWED
           if (is_immediate_vector_type(type)) {
             type = skip_typerefs(type->variant.vector.element_type);
           }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           elem_size = value_bytes_for_type(ips, type, &okay);
           check_assertion(okay && elem_size != 0);
           pos = i_offset/elem_size;
