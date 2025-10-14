@@ -22773,7 +22773,6 @@ cases so we don't do it here.
       } else if (curr_expr_kind_is_traditional_const()) {
         /* An lvalue cannot be converted to an rvalue in a pre-C++11 constant
            expression. */
-         
         if ((gcc_version_is(>= 80000) || clangc_version_is(>= 170000)) &&
             is_expression_operand(operand)) {
           (void)expr_interpret_expression_operand(
