@@ -1,5 +1,18 @@
 Version 6.8
 
+10/14/25 [EDGcpfe/28313]
+Abort on type constraint with dependent non-type template parameter
+
+Previously, the front end would abort due to a failed assertion in
+update_template_param_symbol for a type constraint declared with a dependent
+non-type template parameter.  For example, with --c++20:
+
+  template<typename, int, auto>
+  concept C = true;
+  template<C<1, 2>>  // Previously triggered an assertion failure.  Now okay.
+  struct A;
+
+
 10/13/25 [EDGcpfe/27902]
 Spurious substitution failure for aggregate initialization from a pack
 

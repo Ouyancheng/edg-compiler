@@ -21477,8 +21477,20 @@ next_integer_pack_element:
            to be used in this argument list. */
         if (param_ptr->variant.constant.type_involves_template_param &&
             !template_in_prototype_instantiation) {
+          a_template_arg_ptr  templ_arg_list;
+          if (type_constraint) {
+            /* For a type constraint, add the implicit first template
+               argument. */
+            check_assertion(decl_info->parameters->param_symbol->kind ==
+                                                                      sk_type);
+            templ_arg_list = alloc_template_arg(tak_type);
+            templ_arg_list->variant.type = decl_info->parameters->variant.type;
+            templ_arg_list->next = arg_list;
+          } else {
+            templ_arg_list = arg_list;
+          }  /* if */
           constant_type = rescan_template_constant_parameter(
-                              template_sym, sym, param_ptr, arg_list,
+                              template_sym, sym, param_ptr, templ_arg_list,
                               /*do_default_arg=*/FALSE, (a_constant_ptr*)NULL);
         }  /* if */
         if (curr_token == tok_integer_pack) {
