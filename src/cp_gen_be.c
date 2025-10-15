@@ -9180,8 +9180,9 @@ context stack or is hidden in the current context.
            !scope_is(scp->parent_scope, sck_namespace) &&
            !scope_is_in_name_context_stack(scp->parent_scope))) {
         /* Either the parent of the topmost qualifier is hidden or the
-           current context is outside its scope, so use of this name
-           qualifier list would produce erroneous code. */
+           current context is outside its scope and the qualifier cannot be
+           named via qualification, so use of this name qualifier list
+           would produce erroneous code. */
         result = TRUE;
       }  /* if */
     }  /* if */
