@@ -1630,11 +1630,12 @@ name table.
     a_symbol_ptr  param_sym = param->param_symbol;
     if (param_sym->is_error) {
       /* Ignore invalid parameters. */
-    } else if (param_sym->header->identifier_length == 9 &&
-               *param_sym->header->identifier == '<') {
-      /* This is an unnamed parameter with header identifier "<unnamed>". */
+    } else if (*param_sym->header->identifier == '<') {
+      /* This is an unnamed parameter with header identifier "<unnamed>"
+         or "<auto-N>" (where N is a decimal number). */
       check_assertion(
-                 strncmp(param_sym->header->identifier, "<unnamed>", 9) == 0);
+                 strncmp(param_sym->header->identifier, "<unnamed>", 9) == 0 ||
+                 strncmp(param_sym->header->identifier, "<auto-", 6) == 0);
     } else {
       check_for_defeatable_name_hiding(param_sym, sp,
                                        /*for_using_directive=*/FALSE);
