@@ -9381,12 +9381,25 @@ TRUE and the type is a tag type, put out a tag keyword.
         refp = class_type_supp(refp)->proxy_of_type;
       }  /* if */
       if (is_typeref_kind(trp, trk_name_qualifier)) {
-        /* A nested template that was named with a qualified-id.  The
+        /* A type that was named with a qualified-id.  The
            nested-name-specifier is given by the trk_name_qualifier's type
-           supplement, which might also be a template with an alternative
-           template argument list. */
+           supplement, which might also involve lexical typerefs. */
         a_scope_ptr qual_scope = NULL;
         nqp = trp->variant.typeref.extra_info->name_qualifier;
+        if (is_class_struct_union_type(refp)) {
+          /* Check for and eliminate references to an injected-class-name.
+             This is necessary because of an example like
+               struct A::A a = A::A();
+             The elaborated-type-specifier is mandatory in the type of the
+             variable and prohibited in the explicit temporary.  Both type
+             references arrive here and are indistinguishable at this
+             level, so we avoid the problem by removing all qualifiers that
+             designate the same type as the target type. */
+          while (nqp != NULL && nqp->is_class &&
+                 standalone_identical_types(nqp->qualifier.class_type, refp)) {
+            nqp = nqp->previous_qualifier;
+          }  /* while */
+        }  /* if */
         if (nqp != NULL) {
           /* Use the specified qualifier.  If the instance type is
              dependent, prefix the output with the "typename" keyword.  If
