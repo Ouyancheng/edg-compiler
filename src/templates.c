@@ -2979,13 +2979,13 @@ Otherwise it is zero.
 #if GNU_EXTENSIONS_ALLOWED
       } else {
         /* A type parameter. */
-        if (gpp_mode && gnu_version >= 30400 && !cpp11_mode) {
+        if (gpp_version_is(>=30400) && !cpp11_mode) {
           /* In GNU C++ mode, attempts to bind a template parameter to a class
              type or enumeration type with no name for linkage purposes is
              treated as a deduction failure rather than an outright error.
              Earlier versions of g++ do not behave that way.  Lambdas are
              excluded from this special treatment. */
-          a_type_ptr  tp = tap->variant.type;
+          a_type_ptr  tp = skip_typerefs_not_typedefs(tap->variant.type);
           a_boolean   is_lambda_closure_class;
           a_boolean   is_class = is_immediate_class_type(tp);
           is_lambda_closure_class =
