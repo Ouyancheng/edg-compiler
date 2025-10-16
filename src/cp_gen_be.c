@@ -9388,14 +9388,16 @@ TRUE and the type is a tag type, put out a tag keyword.
         nqp = trp->variant.typeref.extra_info->name_qualifier;
         if (is_class_struct_union_type(refp)) {
           /* Check for and eliminate references to an injected-class-name.
-             This is necessary because of an example like
-               struct A::A a = A::A();
-             The elaborated-type-specifier is mandatory in the type of the
-             variable and prohibited in the explicit temporary.  Both type
-             references arrive here and are indistinguishable at this
-             level, so we avoid the problem by removing all qualifiers that
-             designate the same type as the target type. */
+             This is necessary because of an example like struct A::A a =
+             A::A(); The elaborated-type-specifier is mandatory in the type
+             of the variable and prohibited in the explicit temporary.
+             Both type references arrive here and are indistinguishable at
+             this level, so we avoid the problem by removing all qualifiers
+             in the same scope as the target type that designate the target
+             type. */
           while (nqp != NULL && nqp->is_class &&
+                 nqp->qualifier.class_type->source_corresp.parent_scope ==
+                                           refp->source_corresp.parent_scope &&
                  standalone_identical_types(nqp->qualifier.class_type, refp)) {
             nqp = nqp->previous_qualifier;
           }  /* while */
