@@ -1,5 +1,26 @@
 Version 6.8
 
+10/16/25 [EDGcpfe/28501]
+Incorrect substitution of function parameter pack
+
+Consider, with --c++11:
+
+  template<typename> struct C;
+  template<typename ... As>
+  struct C<int(As ...)> {
+    template<typename U> using A = int;
+    template<typename U, typename = typename C<int(As ...)>::template A<U>>
+    struct V;
+    template<typename U, typename V = V<U>> void f();
+  };
+  C<int(int)> c;
+
+With the changes for EDGcpfe/24353,EDGcpfe/24386,EDGcpfe/24492,EDGcpfe/24598,
+EDGcpfe/26367 (in version 6.6), the front end instantiated the type
+C<int(int...)> in addition to C<int(int)>.  When using the C-generating back
+end, this would result in spurious redefinition errors in the generated code.
+
+
 10/15/25 [EDGcpfe/28466]
 Assertion failure in check_name_hiding_by_template_parameters
 

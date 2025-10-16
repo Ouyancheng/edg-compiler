@@ -3742,8 +3742,14 @@ an error if a default argument expression is encountered.
                Here, scanning the noexcept argument will substitute A<F>, which
                must produce B<R(Ps...)> and not just B<R(Ps)>.
             */
-            ptp->is_parameter_pack = TRUE;
-            is_pack_element = FALSE;
+            a_boolean  is_pack = FALSE;
+            a_pack_instantiation_descr_ptr
+                       pidp = pack_expansion_stack->instantiation_descr;
+            for (; !is_pack && pidp != NULL; pidp = pidp->next) {
+              is_pack = symbol_is_pack(pidp->pack_status->symbol);
+            }  /* for */
+            ptp->is_parameter_pack = is_pack;
+            is_pack_element = !is_pack;
           }  /* if */
           ptp->is_pack_element = is_pack_element;
           if (is_pack_element &&
