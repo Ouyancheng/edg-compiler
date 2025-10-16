@@ -2364,9 +2364,11 @@ struct Shared_obj :
   INLINE Shared_obj(const a_shared_object &other)
     : an_allocator(other), ctrl_block(other.ctrl_block)
     { if (this->ctrl_block != NULL) { ++(this->ctrl_block->ref_counter); } }
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   INLINE Shared_obj(a_shared_object &&other)
     : an_allocator(other), ctrl_block(other.ctrl_block)
     { other.ctrl_block = NULL; }
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   INLINE ~Shared_obj();
   INLINE auto operator=(const an_Object &other) -> a_shared_object&;
   INLINE auto operator=(an_Object &&other) -> a_shared_object&;
