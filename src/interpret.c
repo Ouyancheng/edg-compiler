@@ -26026,7 +26026,7 @@ the value representation of the integer value.
           /* A variable used as a glvalue; the result is its address. */
           if (var_bytes == NULL && var->is_immutable &&
               gcc_const_variables_allowed && var->storage_class == sc_static &&
-              (clangc_version_is(>=150000) || gcc_version_is(>=80000))) {
+              (clangc_version_is(>=170000) || gcc_version_is(>=80000))) {
             a_constant_ptr  con = var_constant_value_full(
                                              var, /*copy_for_reuse=*/FALSE,
                                              /*clear_backing_expr=*/FALSE,
