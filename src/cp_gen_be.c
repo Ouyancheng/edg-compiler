@@ -3918,6 +3918,43 @@ End the writing of a preprocessing directive.
 }  /* end_pp_directive */
 
 
+static inline a_boolean is_lexical_typeref(a_type_ptr tp)
+/*
+Return TRUE if tp is a trk_template_arg_list or trk_name_qualifier typeref,
+FALSE otherwise.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_is(tp, tk_typeref) &&
+      (is_typeref_kind(tp, trk_template_arg_list) ||
+       is_typeref_kind(tp, trk_name_qualifier))) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_lexical_typeref */
+
+
+static inline a_boolean has_qual_typeref(a_type_ptr tp)
+/*
+Return TRUE if tp is a trk_name_qualifier typeref or a
+trk_template_arg_list typeref whose immediate underlying type is a
+trk_name_qualifier typeref, FALSE otherwise./
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_is(tp, tk_typeref) &&
+      (is_typeref_kind(tp, trk_name_qualifier) ||
+       (is_typeref_kind(tp, trk_template_arg_list) &&
+        type_is(tp->variant.typeref.type, tk_typeref) &&
+        is_typeref_kind(tp->variant.typeref.type, trk_name_qualifier)))) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_qual_typeref */
+
+
 static void gen_base_class_name(a_type_ptr tp)
 /*
 Put out the name of the given type for use in a base class specifier or a
@@ -3925,9 +3962,7 @@ member initializer list.
 */
 {
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-  if (type_is(tp, tk_typeref) &&
-      (is_typeref_kind(tp, trk_template_arg_list) ||
-       is_typeref_kind(tp, trk_name_qualifier))) {
+  if (is_lexical_typeref(tp)) {
     /* Use the special processing in gen_type_reference to handle these
        typerefs. */
     gen_type_reference(tp, /*suppress_typename_kwd=*/TRUE);
@@ -4155,9 +4190,7 @@ a name.  Never generate a qualified name.
       scp = source_corresp_for_template_param(
                             &class_type_supp(tp)->assoc_template->coordinates);
       name = unmangled_name_of(scp);
-    } else if (type_is(tp, tk_typeref) &&
-               (is_typeref_kind(tp, trk_template_arg_list) ||
-                is_typeref_kind(tp, trk_name_qualifier))) {
+    } else if (is_lexical_typeref(tp)) {
       /* Use the name of the type to which the typeref refers. */
       name = unmangled_name_of(&skip_lexical_typerefs(tp)->source_corresp);
     }  /* if */
@@ -5221,9 +5254,7 @@ gen_class_qualifier, used as the output_class_qualifier function in the
 il_to_str output control block.  */
 {
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-  if (type_is(class_type, tk_typeref) &&
-      (is_typeref_kind(class_type, trk_template_arg_list) ||
-       is_typeref_kind(class_type, trk_name_qualifier))) {
+  if (is_lexical_typeref(class_type)) {
     gen_type_reference(class_type, /*suppress_typename_kwd=*/TRUE);
     write_tok_str(":: ");
   } else
@@ -6912,6 +6943,7 @@ is from a trk_name_qualifier typeref.
           gen_type_operator(class_type, from_name_qual_typeref);
         } else {
           if (from_name_qual_typeref && nqp->previous_qualifier == NULL &&
+              !has_qual_typeref(nqp->qualifier.class_type) &&
               (scp->qualification_needed ||
                (kind == iek_type &&
                 is_immediate_class_type((a_type_ptr)scp) &&
@@ -9326,9 +9358,7 @@ TRUE and the type is a tag type, put out a tag keyword.
                                 variant.class_struct_union.is_nonreal_class)) {
       /* Alias template specializations do not require a "typename"
          prefix unless they are members of dependent classes. */
-    } else if (type_is(type, tk_typeref) &&
-               (is_typeref_kind(type, trk_template_arg_list) ||
-                is_typeref_kind(type, trk_name_qualifier)) &&
+    } else if (is_lexical_typeref(type) &&
                !(in_prototype_instantiation_context &&
                  skip_lexical_typerefs(type)->
                                              source_corresp.is_class_member)) {
@@ -9355,8 +9385,7 @@ TRUE and the type is a tag type, put out a tag keyword.
     } else if (typeref_is_type_operator(type, /*include_intrinsics=*/TRUE)) {
       gen_type_operator(type);
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-    } else if (is_typeref_kind(type, trk_template_arg_list) ||
-               is_typeref_kind(type, trk_name_qualifier)) {
+    } else if (is_lexical_typeref(type)) {
       a_type_ptr         trp = type;
       a_type_ptr         refp = trp->variant.typeref.type;
       a_template_arg_ptr arg_list = NULL;
@@ -13518,8 +13547,7 @@ this one is such a continuation.
       saved_has_been_declared = type->has_been_declared;
       if (sec_decl != NULL && sec_decl->declared_type != NULL &&
           type_is(sec_decl->declared_type, tk_typeref) &&
-          (is_typeref_kind(sec_decl->declared_type, trk_template_arg_list) ||
-           is_typeref_kind(sec_decl->declared_type, trk_name_qualifier))) {
+          is_lexical_typeref(sec_decl->declared_type)) {
         gen_type_reference(sec_decl->declared_type,
                            /*suppress_typename_kwd=*/TRUE,
                            /*is_declaration=*/TRUE);
@@ -20616,9 +20644,7 @@ Generate code for an instantiation directive.
           /* Allow qualified names in instantiation directives. */
           class_type->has_been_declared = TRUE;
           if (idp->declared_type != NULL &&
-              type_is(idp->declared_type, tk_typeref) &&
-              (is_typeref_kind(idp->declared_type, trk_template_arg_list) ||
-               is_typeref_kind(idp->declared_type, trk_name_qualifier))) {
+              is_lexical_typeref(idp->declared_type)) {
             gen_type_reference(idp->declared_type,
                                /*suppress_typename_kwd=*/TRUE,
                                /*is_declaration=*/TRUE);
@@ -22263,9 +22289,7 @@ output_functional_notation_cast_arguments:
       write_tok_ch('(');
       closing_parens_needed++;
       if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
-          !(type_is(init_entity_type, tk_typeref) &&
-            (is_typeref_kind(init_entity_type, trk_template_arg_list) ||
-             is_typeref_kind(init_entity_type, trk_name_qualifier)))) {
+          !(is_lexical_typeref(init_entity_type))) {
         /* Avoid type qualifiers, which would potentially cause problems. */
         gen_cast(skip_typerefs_not_typedefs(init_entity_type));
       } else {
