@@ -6830,12 +6830,12 @@ is from a trk_name_qualifier typeref.
 */
 {
   if (nqp != NULL) {
+    a_source_correspondence_ptr scp;
     /* Do a recursive call to put out the parent qualifier. */
     gen_name_qualifier_list(nqp->previous_qualifier, from_name_qual_typeref);
     if (nqp->is_class) {
       /* A class qualifier. */
       a_type_ptr                  class_type = nqp->qualifier.class_type;
-      a_source_correspondence_ptr scp;
       an_il_entry_kind            kind;
       a_boolean                   has_alternative_templ_args = FALSE;
       a_template_arg_ptr          templ_args = NULL;
@@ -6918,15 +6918,18 @@ is from a trk_name_qualifier typeref.
                                      /*include_intrinsics=*/TRUE)) {
           gen_type_operator(class_type, from_name_qual_typeref);
         } else {
-          if (from_name_qual_typeref && nqp->is_class &&
-              nqp->previous_qualifier == NULL &&
+          if (from_name_qual_typeref && nqp->previous_qualifier == NULL &&
               (scp->qualification_needed ||
                (kind == iek_type &&
                 is_immediate_class_type((a_type_ptr)scp) &&
                 a_type_ptr(scp)->
                                 variant.class_struct_union.is_template_class &&
                 class_type_supp(a_type_ptr(scp))->assoc_template->
-                                       source_corresp.qualification_needed))) {
+                                       source_corresp.qualification_needed) ||
+               (scp->parent_scope != NULL &&
+                !scope_is_in_name_context_stack(scp->parent_scope)))) {
+            /* The top-level qualifier in the list requires qualification,
+               so use the normal name output. */
             gen_name(scp, kind, GN_QUALIFIER, /*need_closing_paren=*/NULL);
           } else {
             gen_bare_name(scp, kind);
@@ -6944,8 +6947,18 @@ is from a trk_name_qualifier typeref.
       }  /* if */
     } else {
       /* A namespace qualifier. */
-      gen_unqualified_name(&nqp->qualifier.namespace_ptr->source_corresp,
-                           iek_namespace);
+      scp = &nqp->qualifier.namespace_ptr->source_corresp;
+      if (from_name_qual_typeref && nqp->previous_qualifier == NULL &&
+          (scp->parent_scope != NULL &&
+           !scope_is_in_name_context_stack(scp->parent_scope))) {
+        /* The top-level qualifier in the list requires qualification, so
+           use the normal name output. */
+        gen_name(scp, iek_namespace, GN_QUALIFIER,
+                 /*need_closing_paren=*/NULL);
+      } else {
+        gen_unqualified_name(&nqp->qualifier.namespace_ptr->source_corresp,
+                             iek_namespace);
+      }  /* if */
     }  /* if */
     write_tok_str("::");
   }  /* if */
