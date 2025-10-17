@@ -16078,9 +16078,11 @@ not_direct_binding_case:
            but Clang accepts such cases also, and MSVC accepts them if the
            destination reference is an rvalue reference.
         */
-        require_reference_return = !clang_version_is(any_version) &&
-                                   !(ms_version_is(any_version) &&
-                                     is_rvalue_reference_type(dest_type));
+        if (!clang_version_is(any_version) &&
+            !(ms_version_is(any_version) &&
+              is_rvalue_reference_type(ref_binding_type))) {
+          require_reference_return = TRUE;
+        }  /* if */
       } else if (conv_context & CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS) {
         /* We've been told specifically to allow explicit conversion
            functions. */
