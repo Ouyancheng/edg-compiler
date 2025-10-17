@@ -16073,7 +16073,7 @@ not_direct_binding_case:
            Core issue 2267 clarified that that is not the case if a temporary
            is involved:
               struct X {};
-              struct Y { explicit operator X&&(); } y;
+              struct Y { explicit operator X(); } y;
               X &&r(y);  // Error.
            but Clang accepts such cases also, and MSVC accepts them if the
            destination reference is an rvalue reference.
