@@ -25832,6 +25832,7 @@ static void create_member_using_declaration(
                                           a_base_class_ptr     bcp,
                                           a_boolean            dummy_base,
                                           a_type_ptr           class_type,
+                                          a_type_ptr           qualifier_class,
                                           a_using_decl_ptr     *prev_udp,
                                           an_access_specifier  access,
                                           an_attribute_ptr     attributes,
@@ -25844,11 +25845,12 @@ is an element.  "*other_sym" points to a declaration of the same name in the
 scope of the derived class "class_type" (NULL if none exists).  "bcp" is the
 base class from which the symbol is being projected (or, when "dummy_base" is
 TRUE, a dummy entry created only to represent the using-declaration in a
-prototype instantiation).  "*prev_udp" is the previous a_using_decl structure
-created for the using-declaration that is currently being processed.  "access"
-is the access specifier applicable to the new declaration.  Any attributes
-that appertain to the using-declaration are applied (they are copied if
-copy_attributes is TRUE).
+prototype instantiation).  "qualifier_class" is the class type specified in
+the name qualifier (can be a typeref).  "*prev_udp" is the previous
+a_using_decl structure created for the using-declaration that is currently
+being processed.  "access" is the access specifier applicable to the new
+declaration.  Any attributes that appertain to the using-declaration are
+applied (they are copied if copy_attributes is TRUE).
 */
 {
   a_symbol_ptr       fund_sym = fundamental_symbol_of_projection(sym);
@@ -25990,7 +25992,7 @@ copy_attributes is TRUE).
     udp = make_using_decl(fund_sym, &decl_pos, depth_scope_stack);
     /* Record the class that was actually specified in the qualified
        name in the source. */
-    udp->qualifier.class_type = sym_parent_class(declared_sym);
+    udp->qualifier.class_type = qualifier_class;
     udp->access = access;
     udp->is_class_member = TRUE;
     if (attributes != NULL) {
@@ -26535,7 +26537,23 @@ entity if applicable.
     } else if (!no_il_entry &&
                !is_duplicate_member_using_decl(declared_sym, &using_pos)) {
       /* No error so far, so enter the using-declaration symbol. */
-      a_boolean  is_overloaded = FALSE;
+      a_boolean             is_overloaded = FALSE;
+      a_name_qualifier_ptr  nqp = locator_for_curr_id.name_qualifier;
+      a_type_ptr            qualifier_class;
+      if (nqp == NULL) {
+        qualifier_class = locator_for_curr_id.parent.class_type;
+      } else {
+        qualifier_class = nqp->qualifier.class_type;
+      }  /* if */
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+      if (nqp != NULL &&
+          (locator_for_curr_id.is_global_qualified_name ||
+           nqp->previous_qualifier != NULL)) {
+        qualifier_class = make_typeref_with_name_qualifier(
+                                 qualifier_class, nqp->previous_qualifier,
+                                 locator_for_curr_id.is_global_qualified_name);
+      }  /* if */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
       other_sym = NULL;
       sym = declared_sym;
       fund_sym = fundamental_symbol_of(sym);
@@ -26582,16 +26600,18 @@ entity if applicable.
           /* In some modes, "must be tag" lookups can find typedefs.  Ignore
              such symbols. */
           create_member_using_declaration(tag_sym, tag_sym, &overload_sym, bcp,
-                                          bcp_is_dummy, class_type, &prev_udp,
-                                          access, using_attributes,
+                                          bcp_is_dummy, class_type,
+                                          qualifier_class, &prev_udp, access,
+                                          using_attributes,
                                           /*copy_attributes=*/FALSE);
           if (rep_udp == NULL) rep_udp = prev_udp;
         }  /* if */
       }  /* if */
       for (;;) {
         create_member_using_declaration(sym, declared_sym, &other_sym, bcp,
-                                        bcp_is_dummy, class_type, &prev_udp,
-                                        access, using_attributes,
+                                        bcp_is_dummy, class_type,
+                                        qualifier_class, &prev_udp, access,
+                                        using_attributes,
                                         /*copy_attributes=*/sym->next != NULL);
         if (rep_udp == NULL) rep_udp = prev_udp;
         if (!is_overloaded) break;

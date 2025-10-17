@@ -23664,6 +23664,39 @@ underlying type is tp.
 }  /* make_typeref_with_template_args */
 
 
+a_type_ptr make_typeref_with_name_qualifier(
+                                a_type_ptr            tp,
+                                a_name_qualifier_ptr  name_qualifier,
+                                a_boolean             is_global_qualified_name)
+/*
+Return a new tk_typref entry with the given name qualifier (can be NULL if
+is_global_qualified_name is TRUE) and whose underlying type is tp.
+*/
+{
+  a_type_and_name_qualifier
+              hash_key{tp, name_qualifier, is_global_qualified_name};
+  a_type_ptr  *tp_in_table =
+                      (a_type_ptr*)hash_find(name_qualifier_typeref_hash_table,
+                                             &hash_key, /*create=*/TRUE);
+  if (*tp_in_table == NULL) {
+    a_type_ptr  new_tp = alloc_type(tk_typeref);
+    new_tp->variant.typeref.kind = trk_name_qualifier;
+    new_tp->variant.typeref.type = tp;
+    new_tp->variant.typeref.is_global_qualified_name =is_global_qualified_name;
+    new_tp->variant.typeref.extra_info->name_qualifier = name_qualifier;
+    if (type_is(tp, tk_typeref)) {
+      new_tp->variant.typeref.is_nonreal = tp->variant.typeref.is_nonreal;
+      new_tp->variant.typeref.is_dependent = tp->variant.typeref.is_dependent;
+      new_tp->variant.typeref.is_prototype_instantiation =
+                                tp->variant.typeref.is_prototype_instantiation;
+    }  /* if */
+    *tp_in_table = new_tp;
+  }  /* if */
+  tp = *tp_in_table;
+  return tp;
+}  /* make_typeref_with_name_qualifier */
+
+
 a_type_ptr make_typeref_with_lexical_information(a_type_ptr        tp,
                                                  a_symbol_locator  *locator)
 /*
@@ -23674,30 +23707,8 @@ entry with that template argument list and whose underlying type is tp.
 */
 {
   if (locator->is_global_qualified_name || locator->name_qualifier != NULL) {
-    a_type_and_name_qualifier
-                hash_key{tp, locator->name_qualifier,
-                         (a_boolean)locator->is_global_qualified_name};
-    a_type_ptr  *tp_in_table =
-                      (a_type_ptr*)hash_find(name_qualifier_typeref_hash_table,
-                                             &hash_key, /*create=*/TRUE);
-    if (*tp_in_table == NULL) {
-      a_type_ptr  new_tp = alloc_type(tk_typeref);
-      new_tp->variant.typeref.kind = trk_name_qualifier;
-      new_tp->variant.typeref.type = tp;
-      new_tp->variant.typeref.is_global_qualified_name =
-                                             locator->is_global_qualified_name;
-      new_tp->variant.typeref.extra_info->name_qualifier =
-                                                       locator->name_qualifier;
-      if (type_is(tp, tk_typeref)) {
-        new_tp->variant.typeref.is_nonreal = tp->variant.typeref.is_nonreal;
-        new_tp->variant.typeref.is_dependent =
-                                              tp->variant.typeref.is_dependent;
-        new_tp->variant.typeref.is_prototype_instantiation =
-                                tp->variant.typeref.is_prototype_instantiation;
-      }  /* if */
-      *tp_in_table = new_tp;
-    }  /* if */
-    tp = *tp_in_table;
+    tp = make_typeref_with_name_qualifier(tp, locator->name_qualifier,
+                                          locator->is_global_qualified_name);
   }  /* if */
   if (locator->template_arg_list != NULL) {
     tp = make_typeref_with_template_args(tp, locator->template_arg_list);

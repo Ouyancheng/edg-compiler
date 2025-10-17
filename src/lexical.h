@@ -5036,6 +5036,10 @@ extern void get_definition_of_class(a_type_ptr	class_type);
 extern a_type_ptr make_typeref_with_lexical_information(
                                               a_type_ptr        tp,
                                               a_symbol_locator  *locator);
+extern a_type_ptr make_typeref_with_name_qualifier(
+                               a_type_ptr            tp,
+                               a_name_qualifier_ptr  name_qualifier,
+                               a_boolean             is_global_qualified_name);
 extern a_hash_value hash_type_and_name_qualifier(a_void_ptr     key);
 extern a_boolean compare_type_and_name_qualifier(a_void_ptr     entry,
                                                  a_void_ptr     key);
