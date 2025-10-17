@@ -1,13 +1,5 @@
 Version 6.8
 
-10/17/25  [EDGcpfe/28454]
-Missing case for fk_float80
-
-In configurations where DEFAULT_FLOAT_KIND_FOR_FLOAT80 is fk_float80 and
-HOST_FP_VALUE_IS_128BIT is TRUE, the handling of __float80 constants was
-incorrect and is now fixed.
-
-
 10/16/25 [EDGcpfe/28501]
 Incorrect substitution of function parameter pack
 
@@ -212,6 +204,8 @@ invocation (it must be elided in C++17).  MSVC, however, does introduce a
 copy constructor invocation during the constant evaluation and that causes
 the embedded pointer of the result to be set to null, thus making the
 static_assert condition true.  The front end now emulates that behavior.
+
+
 
 10/1/25  [EDGcpfe/28438]
 Clang compatibility: clang::no_specializations attribute
