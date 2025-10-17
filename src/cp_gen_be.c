@@ -5224,7 +5224,7 @@ il_to_str output control block.  */
   if (type_is(class_type, tk_typeref) &&
       (is_typeref_kind(class_type, trk_template_arg_list) ||
        is_typeref_kind(class_type, trk_name_qualifier))) {
-    gen_type_reference(class_type);
+    gen_type_reference(class_type, /*suppress_typename_kwd=*/TRUE);
     write_tok_str(":: ");
   } else
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
