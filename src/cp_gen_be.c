@@ -5222,16 +5222,9 @@ il_to_str output control block.  */
 {
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   if (type_is(class_type, tk_typeref) &&
-      is_typeref_kind(class_type, trk_name_qualifier)) {
-    if (class_type->variant.typeref.extra_info->name_qualifier != NULL) {
-      gen_name_qualifier_list(class_type->variant.typeref.extra_info->
-                                                                name_qualifier,
-                              /*from_name_qual_typeref=*/TRUE);
-    } else if (class_type->variant.typeref.is_global_qualified_name) {
-      write_tok_str("::");
-    }  /* if */
-    gen_unqualified_name(&class_type->variant.typeref.type->source_corresp,
-                         iek_type);
+      (is_typeref_kind(class_type, trk_template_arg_list) ||
+       is_typeref_kind(class_type, trk_name_qualifier))) {
+    gen_type_reference(class_type);
     write_tok_str(":: ");
   } else
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
