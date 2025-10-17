@@ -1,5 +1,21 @@
 Version 6.8
 
+10/17/25 [EDGcpfe/28497]
+Direct reference binding and explicit conversion functions
+
+Consider:
+
+  struct X {};
+  struct Y { explicit operator X&&(); } y;
+  X &&r(y);  // Previously an error.  Now okay.
+
+The front end previously did not consider the conversion function in this
+context because it is declared "explicit".  That is now fixed.  In Clang and
+Microsoft C++ modes, this consideration is extended to some cases where the
+conversion function does not produce a glvalue (i.e., does not have a reference
+return type).
+
+
 10/16/25 [EDGcpfe/28501]
 Incorrect substitution of function parameter pack
 

@@ -15992,6 +15992,7 @@ not_direct_binding_case:
                                             cssp->conversion_list, &ostblock);
        ;
        conversion_symbol = next_symbol_in_overload_symbol_list(&ostblock)) {
+    a_boolean  require_reference_return = FALSE;
     if (conversion_symbol == NULL) {
       /* Either exit the loop or, if the list of template conversion functions
          is yet to be processed, process that. */
@@ -16061,6 +16062,25 @@ not_direct_binding_case:
         /* The context is direct-initialization, so the use is okay. */
       } else if (boolean_converted_case) {
         /* The conversion is in a context where bool is required. */
+      } else if (is_reference_binding && is_direct_binding &&
+                 (conv_context & CCO_DIRECT_INITIALIZATION) != 0) {
+        /* When attempting to direct-bind a reference via a conversion function
+           in a direct-initialization context, we generally consider explicit
+           conversion functions.  For example:
+              struct X {};
+              struct Y { explicit operator X&&(); } y;
+              X &&r(y);  // Okay.
+           Core issue 2267 clarified that that is not the case if a temporary
+           is involved:
+              struct X {};
+              struct Y { explicit operator X&&(); } y;
+              X &&r(y);  // Error.
+           but Clang accepts such cases also, and MSVC accepts them if the
+           destination reference is an rvalue reference.
+        */
+        require_reference_return = !clang_version_is(any_version) &&
+                                   !(ms_version_is(any_version) &&
+                                     is_rvalue_reference_type(dest_type));
       } else if (conv_context & CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS) {
         /* We've been told specifically to allow explicit conversion
            functions. */
@@ -16220,9 +16240,14 @@ not_direct_binding_case:
     /* Is the type returned by this routine a type we want? */
     compatible = FALSE;
     conv_routine_type = skip_typerefs(conv_routine_type);
-    return_type = return_type_of(conv_routine_type);
-    unqual_return_type = skip_typerefs(return_type);
     raw_return_type = conv_routine_type->variant.routine.return_type;
+    if (is_any_reference_type(raw_return_type)) {
+      return_type = type_pointed_to(raw_return_type);
+    } else {
+      if (require_reference_return) goto reject_function;
+      return_type = prvalue_type(raw_return_type);
+    }  /* if */
+    unqual_return_type = skip_typerefs(return_type);
     result_is_a_reference = is_any_reference_type(raw_return_type);
     result_is_an_lvalue = result_is_a_reference &&
                           is_any_lvalue_reference_type(raw_return_type);
