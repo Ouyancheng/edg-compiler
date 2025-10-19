@@ -6955,18 +6955,19 @@ is from a trk_name_qualifier typeref.
                 !scope_is_in_name_context_stack(scp->parent_scope)))) {
             /* The top-level qualifier in the list requires qualification,
                so use the normal name output. */
-            gen_name(scp, kind, GN_QUALIFIER, /*need_closing_paren=*/NULL);
+            gen_name(scp, kind, GN_QUALIFIER | GN_NO_TEMPLATE_ARGS,
+                     /*need_closing_paren=*/NULL);
           } else {
             gen_bare_name(scp, kind);
-            if (has_alternative_templ_args) {
-              if (templ_args != NULL) {
-                gen_template_arguments_full(scp, kind, -1L, templ_args);
-              } else {
-                write_tok_str("<>");
-              }  /* if */
+          }  /* if */
+          if (has_alternative_templ_args) {
+            if (templ_args != NULL) {
+              gen_template_arguments_full(scp, kind, -1L, templ_args);
             } else {
-              gen_template_arguments(scp, kind, -1L);
+              write_tok_str("<>");
             }  /* if */
+          } else {
+            gen_template_arguments(scp, kind, -1L);
           }  /* if */
         }  /* if */
       }  /* if */
