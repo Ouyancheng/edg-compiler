@@ -3605,7 +3605,7 @@ Return TRUE if the given using declarations refer to corresponding entities.
 
   if (!result) {
     /* Nothing more to be tested. */
-  } else if (ud1->qualifier.class_type
+  } else if (skip_typerefs(ud1->qualifier.class_type)
                 ->variant.class_struct_union.is_nonreal_class) {
     /* The using-declaration refers to a dependent base class.  In this case
        it is usually not sufficient to compare the canonical entries. */
