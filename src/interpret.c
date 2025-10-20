@@ -4535,6 +4535,8 @@ associated with the objects.
           } else {
             result = TRUE;
           }  /* if */
+        } else {
+          result = TRUE;
         }  /* if */
       }
       break;
