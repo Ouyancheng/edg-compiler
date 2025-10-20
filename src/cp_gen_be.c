@@ -2953,7 +2953,8 @@ names is not public, set *for_all_scopes to FALSE.
                                     &local_for_all_scopes);
       } else if (is_immediate_class_type(type) ||
                  (type_is(type, tk_typeref) &&
-                  is_typeref_kind(type, trk_is_template_alias))) {
+                  (is_typeref_kind(type, trk_is_template_alias) ||
+                   is_typeref_kind(type, trk_template_arg_list)))) {
         /* Check names used in template arguments, if any. */
         a_template_arg_ptr tap;
         if (is_immediate_class_type(type)) {
@@ -9150,61 +9151,106 @@ expression is presumed to be valid at this point in the translation unit.
 
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
 
+static a_boolean qual_is_inacessible(a_name_qualifier_ptr nqp)
+/*
+Return TRUE if the type designated by nqp (possibly with alternative
+template arguments from a trk_template_arg_list typeref) is inaccessible
+in the current context, FALSE otherwise.
+*/
+{
+  a_boolean          result;
+  a_type_ptr         type;
+  a_template_arg_ptr *arg_list = NULL;
+  a_template_arg_ptr saved_args;
+  a_boolean          for_all_scopes;
+
+  check_assertion(nqp->is_class);
+  type = skip_lexical_typerefs(nqp->qualifier.class_type);
+  if (type_is(nqp->qualifier.class_type, tk_typeref) &&
+      is_typeref_kind(nqp->qualifier.class_type, trk_template_arg_list)) {
+    if (is_immediate_class_type(type)) {
+      arg_list = &class_type_supp(type)->template_arg_list;
+    } else if (type_is(type, tk_typeref)) {
+      arg_list = &type->variant.typeref.extra_info->template_arg_list;
+    }  /* if */
+    check_assertion(arg_list != NULL);
+    saved_args = *arg_list;
+    *arg_list =
+      nqp->qualifier.class_type->variant.typeref.extra_info->template_arg_list;
+  }  /* if */
+  result = !entity_name_is_accessible(&type->source_corresp, iek_type,
+                                      /*ignore_context=*/FALSE,
+                                      &for_all_scopes);
+  if (arg_list != NULL) {
+    *arg_list = saved_args;
+  }  /* if */
+  return result;
+}  /* if */
+
+
 static a_boolean invalid_qual_in_curr_context(a_type_ptr trp)
 /*
 Return TRUE if trp, which must point to a trk_name_qualifier typeref,
 designates a relative (i.e., not globally qualified) name qualifier list in
 which the parent scope of the topmost qualifier is either not in the name
-context stack or is hidden in the current context.
+context stack or is hidden in the current context, or if any qualifier in
+the list is inaccessible.
 */
 {
   a_boolean            result = FALSE;
+  a_boolean            inaccessible = FALSE;
+  a_boolean            global_qual = FALSE;
+  a_name_qualifier_ptr nqp = trp->variant.typeref.extra_info->name_qualifier;
+  a_name_qualifier_ptr top_qual = NULL;
 
   check_assertion(type_is(trp, tk_typeref) &&
                   is_typeref_kind(trp, trk_name_qualifier));
   if (trp->variant.typeref.is_global_qualified_name) {
-    /* Globally-qualified names are valid in every context. */
-  } else {
-    a_name_qualifier_ptr nqp = trp->variant.typeref.extra_info->name_qualifier;
-    a_name_qualifier_ptr top_qual = NULL;
-    while (nqp != NULL) {
-      if (nqp->previous_qualifier != NULL) {
-        nqp = nqp->previous_qualifier;
-      } else if (!nqp->is_class) {
-        top_qual = nqp;
-        nqp = NULL;
-      } else if (type_is(nqp->qualifier.class_type, tk_typeref)) {
-        /* If the topmost qualifier in this list designates a name qualifier
-           typeref, follow the qualifiers in that list. */
-        a_type_ptr nested_trp = nqp->qualifier.class_type;
-        if (is_typeref_kind(nested_trp, trk_template_arg_list) &&
-            type_is(nested_trp->variant.typeref.type, tk_typeref) &&
-            is_typeref_kind(nested_trp->variant.typeref.type,
-                            trk_name_qualifier)) {
-          nested_trp = nested_trp->variant.typeref.type;
-        } else if (!is_typeref_kind(nested_trp, trk_name_qualifier)) {
-          nested_trp = NULL;
-        }  /* if */
-        if (nested_trp == NULL) {
-          /* The typeref wasn't a name qualifier, so we've reached the
-             topmost qualifier. */
-          top_qual = nqp;
-          nqp = NULL;
-        } else if (nested_trp->variant.typeref.is_global_qualified_name) {
-          /* Globally-qualified names are valid in every context, so we're
-             finished. */
-          top_qual = NULL;
-          nqp = NULL;
-        } else {
-          /* Follow the name qualifiers from the nested typeref. */
-          nqp = nested_trp->variant.typeref.extra_info->name_qualifier;
-        }  /* if */
-      } else {
-        /* A non-typeref type.  This is the topmost qualifier. */
-        top_qual = nqp;
-        nqp = NULL;
+    global_qual = TRUE;
+  }  /* if */
+  while (nqp != NULL) {
+    if (nqp->is_class && qual_is_inacessible(nqp)) {
+      top_qual = NULL;
+      nqp = NULL;
+      result = TRUE;
+    } else if (nqp->previous_qualifier != NULL) {
+      nqp = nqp->previous_qualifier;
+    } else if (!nqp->is_class) {
+      top_qual = nqp;
+      nqp = NULL;
+    } else if (type_is(nqp->qualifier.class_type, tk_typeref)) {
+      /* If the topmost qualifier in this list designates a name qualifier
+         typeref, follow the qualifiers in that list. */
+      a_type_ptr nested_trp = nqp->qualifier.class_type;
+      if (is_typeref_kind(nested_trp, trk_template_arg_list) &&
+          type_is(nested_trp->variant.typeref.type, tk_typeref) &&
+          is_typeref_kind(nested_trp->variant.typeref.type,
+                          trk_name_qualifier)) {
+        nested_trp = nested_trp->variant.typeref.type;
+      } else if (!is_typeref_kind(nested_trp, trk_name_qualifier)) {
+        nested_trp = NULL;
       }  /* if */
-    }  /* while */
+      if (nested_trp == NULL) {
+        /* The typeref wasn't a name qualifier, so we've reached the
+           topmost qualifier. */
+        top_qual = nqp;
+        nqp = NULL;
+      } else {
+        /* Follow the name qualifiers from the nested typeref. */
+        if (nested_trp->variant.typeref.is_global_qualified_name) {
+          global_qual = TRUE;
+        }  /* if */
+        nqp = nested_trp->variant.typeref.extra_info->name_qualifier;
+      }  /* if */
+    } else {
+      /* A non-typeref type.  This is the topmost qualifier. */
+      top_qual = nqp;
+      nqp = NULL;
+    }  /* if */
+  }  /* while */
+  if (inaccessible) {
+    result = TRUE;
+  } else {
     if (top_qual != NULL) {
       a_source_correspondence_ptr scp;
       if (top_qual->is_class) {
@@ -9214,7 +9260,7 @@ context stack or is hidden in the current context.
         scp = &top_qual->qualifier.namespace_ptr->source_corresp;
       }  /* if */
       if (scp->qualification_needed ||
-          (scp->parent_scope != NULL &&
+          (!global_qual && scp->parent_scope != NULL &&
            !scope_is(scp->parent_scope, sck_class_struct_union) &&
            !scope_is(scp->parent_scope, sck_namespace) &&
            !scope_is_in_name_context_stack(scp->parent_scope))) {
