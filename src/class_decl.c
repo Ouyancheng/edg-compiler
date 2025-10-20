@@ -25785,8 +25785,7 @@ TRUE.
   udp = sp->using_declarations;
   /* Traverse the list looking for a name and qualifier match. */
   for (; udp != NULL; udp = udp->next) {
-    if (same_entities(udp->qualifier.class_type,
-                      skip_proxy_class(sym_parent_class(sym)))) {
+    if (same_entities(udp->qualifier.class_type, sym_parent_class(sym))) {
       if (udp->entity.kind == iek_base_class) {
         a_base_class_ptr bcp = (a_base_class_ptr)udp->entity.ptr;
         scp = &bcp->type->source_corresp;
@@ -26545,6 +26544,10 @@ entity if applicable.
         qualifier_class = locator_for_curr_id.parent.class_type;
       } else {
         qualifier_class = nqp->qualifier.class_type;
+        if (qualifier_class->kind == tk_template_param) {
+          qualifier_class = qualifier_class->variant.template_param.extra_info
+                                           ->class_type;
+        }  /* if */
       }  /* if */
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
       if (nqp != NULL &&

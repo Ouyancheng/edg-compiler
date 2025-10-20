@@ -3673,7 +3673,9 @@ Return TRUE if the given using declarations refer to corresponding entities.
        using declarations that refer to base classes, there is no source
        correspondence data immediately associated with the pointer, so some
        additional work is required. */
-    char *entity1, *entity2;
+    char        *entity1, *entity2;
+    a_type_ptr  utp1 = skip_typerefs(ud1->qualifier.class_type),
+                utp2 = skip_typerefs(ud2->qualifier.class_type);
     if (ud1->entity.kind == iek_base_class) {
       entity1=canonical_il_entry_of(((a_base_class_ptr)ud1->entity.ptr)->type);
       entity2=canonical_il_entry_of(((a_base_class_ptr)ud2->entity.ptr)->type);
@@ -3681,8 +3683,7 @@ Return TRUE if the given using declarations refer to corresponding entities.
       entity1 = canonical_il_entry_of(ud1->entity.ptr);
       entity2 = canonical_il_entry_of(ud2->entity.ptr);
     }  /* if */
-    result = canonical_il_entry_of(ud1->qualifier.class_type) ==
-                           canonical_il_entry_of(ud2->qualifier.class_type) &&
+    result = canonical_il_entry_of(utp1) == canonical_il_entry_of(utp2) &&
              entity1 == entity2;
   }  /* if */
   return result;
