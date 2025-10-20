@@ -25785,7 +25785,8 @@ TRUE.
   udp = sp->using_declarations;
   /* Traverse the list looking for a name and qualifier match. */
   for (; udp != NULL; udp = udp->next) {
-    if (same_entities(udp->qualifier.class_type, sym_parent_class(sym))) {
+    if (same_entities(udp->qualifier.class_type,
+                      skip_proxy_class(sym_parent_class(sym)))) {
       if (udp->entity.kind == iek_base_class) {
         a_base_class_ptr bcp = (a_base_class_ptr)udp->entity.ptr;
         scp = &bcp->type->source_corresp;
