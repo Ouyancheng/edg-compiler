@@ -9917,10 +9917,6 @@ so it can go into the IL.
       free_arg_operand_list(tap->arg_operand);
       tap->arg_operand = NULL;
       pop_expr_stack();
-    } else if (tap->kind == (a_templ_arg_kind)tak_type) {
-      /* Eliminate any local or nonreal typedefs. */
-      tap->variant.type = strip_local_and_nonreal_typedefs(
-                                     tap->variant.type, /*local_only=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* prep_generic_template_argument_list */
