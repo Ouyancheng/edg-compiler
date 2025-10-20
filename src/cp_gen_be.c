@@ -9600,7 +9600,8 @@ TRUE and the type is a tag type, put out a tag keyword.
         }  /* if */
       } else if (name_qual_suppressed) {
         /* Use the normal qualification provided by gen_name. */
-        gen_name(&refp->source_corresp, iek_type, GN_SUPPRESS_TYPENAME_KEYWORD,
+        gen_name(&refp->source_corresp, iek_type,
+                 GN_SUPPRESS_TYPENAME_KEYWORD | GN_FORCE_QUALIFIED_NAME,
                  /*need_closing_paren=*/NULL);
       } else {
         gen_unqualified_name(&refp->source_corresp, iek_type);
