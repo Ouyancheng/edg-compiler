@@ -20429,6 +20429,13 @@ Generate code for a class member or nonmember using-declaration.
         write_tok_str("using ");
       }  /* if */
 #endif /* USING_DECLARATIONS_IN_GENERATED_CODE */
+      if (skip_typerefs(class_type)->
+                                 variant.class_struct_union.is_nonreal_class &&
+          entry_kind == iek_type && !udp->is_inheriting_ctor) {
+        /* This is a dependent member type, so the "typename" keyword is
+           required. */
+        write_tok_str("typename ");
+      }  /* if */
       if (is_lexical_typeref(class_type)) {
         /* Use the qualification and/or template arguments from the
            original source form. */
@@ -20437,12 +20444,6 @@ Generate code for a class member or nonmember using-declaration.
         write_tok_str(":: ");
         qualifier = skip_lexical_typerefs(class_type);
       } else {
-        if (class_type->variant.class_struct_union.is_nonreal_class &&
-            entry_kind == iek_type && !udp->is_inheriting_ctor) {
-          /* This is a dependent member type, so the "typename" keyword is
-             required. */
-          write_tok_str("typename ");
-        }  /* if */
         /* Write the access declaration, which is just a qualified name. (Note:
            although this is not a "bound member" access, names in
            using-declarations are subject to the same restrictions on the form
