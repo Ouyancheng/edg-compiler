@@ -9263,8 +9263,14 @@ the list is inaccessible.
     if (top_qual != NULL) {
       a_source_correspondence_ptr scp;
       if (top_qual->is_class) {
-        scp = &skip_lexical_typerefs(top_qual->qualifier.class_type)->
+        a_type_ptr tp = skip_lexical_typerefs(top_qual->qualifier.class_type);
+        if (is_immediate_class_type(tp) &&
+            tp->variant.class_struct_union.is_template_class) {
+          scp = &class_type_supp(tp)->assoc_template->source_corresp;
+        } else {
+          scp = &skip_lexical_typerefs(top_qual->qualifier.class_type)->
                                                                 source_corresp;
+        }  /* if */
       } else {
         scp = &top_qual->qualifier.namespace_ptr->source_corresp;
       }  /* if */
