@@ -9160,32 +9160,41 @@ in the current context, FALSE otherwise.
 {
   a_boolean          result;
   a_type_ptr         type;
+  a_type_ptr         naming_type;
   a_template_arg_ptr *arg_list = NULL;
   a_template_arg_ptr saved_args;
   a_boolean          for_all_scopes;
 
   check_assertion(nqp->is_class);
   type = skip_lexical_typerefs(nqp->qualifier.class_type);
-  if (type_is(nqp->qualifier.class_type, tk_typeref) &&
-      is_typeref_kind(nqp->qualifier.class_type, trk_template_arg_list)) {
-    if (is_immediate_class_type(type)) {
-      arg_list = &class_type_supp(type)->template_arg_list;
-    } else if (type_is(type, tk_typeref)) {
-      arg_list = &type->variant.typeref.extra_info->template_arg_list;
+  naming_type = skip_typerefs_not_typedefs_or_type_operators(type);
+  if (type_is(naming_type, tk_typeref) &&
+      typeref_is_type_operator(naming_type)) {
+    /* gen_type_operator can handle type operators that are invalid in the
+       current context, so let this qualifier go through. */
+    result = FALSE;
+  } else {
+    if (type_is(nqp->qualifier.class_type, tk_typeref) &&
+        is_typeref_kind(nqp->qualifier.class_type, trk_template_arg_list)) {
+      if (is_immediate_class_type(type)) {
+        arg_list = &class_type_supp(type)->template_arg_list;
+      } else if (type_is(type, tk_typeref)) {
+        arg_list = &type->variant.typeref.extra_info->template_arg_list;
+      }  /* if */
+      check_assertion(arg_list != NULL);
+      saved_args = *arg_list;
+      *arg_list = nqp->qualifier.class_type->variant.typeref.extra_info->
+                                                             template_arg_list;
     }  /* if */
-    check_assertion(arg_list != NULL);
-    saved_args = *arg_list;
-    *arg_list =
-      nqp->qualifier.class_type->variant.typeref.extra_info->template_arg_list;
-  }  /* if */
-  result = !entity_name_is_accessible(&type->source_corresp, iek_type,
-                                      /*ignore_context=*/FALSE,
-                                      &for_all_scopes);
-  if (arg_list != NULL) {
-    *arg_list = saved_args;
+    result = !entity_name_is_accessible(&type->source_corresp, iek_type,
+                                        /*ignore_context=*/FALSE,
+                                        &for_all_scopes);
+    if (arg_list != NULL) {
+      *arg_list = saved_args;
+    }  /* if */
   }  /* if */
   return result;
-}  /* if */
+}  /* qual_is_inacessible */
 
 
 static a_boolean invalid_qual_in_curr_context(a_type_ptr trp)
