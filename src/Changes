@@ -1,5 +1,16 @@
 Version 6.8
 
+10/20/25 [EDGcpfe/28480]
+Repeated array element values in constant expressions
+
+The constant evaluation interpreter now recognizes repeated array element
+values in its results, and represents them using a ck_init_repeat entry
+instead of producing a potentially-large sequence of identical a_constant
+entries.  As part of this change a few fixes were applied to the handling
+of ck_aggregate and ck_init_repeat entries for arrays elsewhere in the
+interpreter.
+
+
 10/17/25 [EDGcpfe/28497]
 Direct reference binding and explicit conversion functions
 

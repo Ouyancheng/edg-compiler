@@ -1712,24 +1712,6 @@ Return TRUE if the given type is:
 }  /* implicit_init_involves_ref_init */
 
 
-static a_constant_ptr add_repeat_con(a_constant_ptr  elem_con,
-                                     a_targ_size_t   count)
-/*
-Return a ck_init_repeat for the given count on top of the given constant.
-The count can be zero.
-*/
-{
-  a_constant_ptr  result; 
-
-  result = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-  result->source_corresp.decl_position =
-                                       elem_con->source_corresp.decl_position;
-  result->variant.init_repeat.count = count;
-  result->variant.init_repeat.constant = elem_con;
-  return result;
-}  /* add_repeat_con */
-
-
 static a_constant_ptr repeat_constant_for_array_init(a_constant_ptr  cp,
                                                      a_type_ptr      atp)
 /*

@@ -6332,6 +6332,25 @@ set to point to the base class or field that corresponds to the constant.
 }  /* add_constant_to_aggregate */
   
 
+a_constant_ptr add_repeat_con(a_constant_ptr  elem_con,
+                              a_targ_size_t   count)
+/*
+Return a ck_init_repeat for the given count on top of the given constant.
+The count can be zero.
+*/
+{
+  a_constant_ptr  result; 
+
+  result = alloc_constant(ck_init_repeat);
+  result->type = elem_con->type;
+  result->source_corresp.decl_position =
+                                       elem_con->source_corresp.decl_position;
+  result->variant.init_repeat.count = count;
+  result->variant.init_repeat.constant = elem_con;
+  return result;
+}  /* add_repeat_con */
+
+
 void explode_string_initializer(a_constant_ptr con)
 /*
 If the indicated initializer constant is a string literal constant,

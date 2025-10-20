@@ -4316,6 +4316,252 @@ interpreter storage.
   return comparable;
 }  /* addresses_are_comparable */
 
+
+static a_boolean normalize_runtime_address_if_possible(
+                                                    a_constexpr_address *ptr1,
+                                                    a_constexpr_address *ptr2)
+/*
+One of ptr1 and ptr1 is a run-time address and the other is not.  If the
+run-time address has an associated zero ck_integer constant, replace it by an
+equivalent interpreter address and return TRUE.  Otherwise, return FALSE.
+This is used to compare pointer values (null pointer values in particular).
+*/
+{
+  a_boolean             compat = FALSE, ovfl;
+  a_host_large_integer  val;
+
+  if (is_runtime_data_address(ptr1)) {
+    a_constant_ptr  cp = ptr1->variant.addr_con;
+    if (constant_is(cp, ck_integer)) {
+      conv_integer_value_to_host_large_integer(&cp->variant.integer_value,
+                                               /*is_signed=*/FALSE, &val,
+                                               &ovfl);
+      if (!ovfl && val == 0) {
+        clear_address(ptr1, (a_byte*)0);
+        compat = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (is_runtime_data_address(ptr2)) {
+    a_constant_ptr  cp = ptr2->variant.addr_con;
+    if (constant_is(cp, ck_integer)) {
+      conv_integer_value_to_host_large_integer(&cp->variant.integer_value,
+                                               /*is_signed=*/FALSE, &val,
+                                               &ovfl);
+      if (!ovfl && val == 0) {
+        clear_address(ptr2, (a_byte*)0);
+        compat = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return compat;
+}  /* normalize_runtime_address_if_possible */
+
+
+static a_boolean eq_constexpr_addresses(a_constexpr_address  *cap1,
+                                        a_constexpr_address  *cap2)
+/*
+Return TRUE if the given addresses are equal.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (cap1->flags != cap2->flags) {
+    if (is_runtime_data_address(cap1) != is_runtime_data_address(cap2)) {
+      if (!normalize_runtime_address_if_possible(cap1, cap2)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (cap1->length != cap2->length ||
+      cap1->alloc_seq_number != cap2->alloc_seq_number ||
+      cap1->address != cap2->address) {
+    /* Note that we do not have to check cap1->complete_object because that
+       result is implied by the address and alloc_seq_number tests. */
+    result = FALSE;
+  } else if (cap1->flags & CA_RUNTIME_DATA_ADDRESS) {
+    result = compare_constants(cap1->variant.addr_con, cap2->variant.addr_con,
+                               CC_NO_OPTIONS);
+  } else if (cap1->flags & CA_FUNCTION) {
+    result = cap1->variant.routine == cap2->variant.routine;
+  } else if (cap1->flags & CA_VARIANT_PATH) {
+    a_variant_path_entry  *vpep1 = cap1->variant.variant_path,
+                          *vpep2 = cap1->variant.variant_path;
+    do {
+      if (vpep1->field != vpep2->field ||
+          vpep1->base_address != vpep2->base_address) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      vpep1 = vpep1->next;
+      vpep2 = vpep2->next;
+    } while (vpep1 != NULL && vpep2 != NULL);
+    if (vpep1 != vpep2) result = FALSE;
+  } else if (cap1->flags & CA_ARRAY_ELEMENT) {
+    result = cap1->variant.base_address == cap2->variant.base_address;
+  }  /* if */
+done:
+  return result;
+}  /* eq_constexpr_addresses */
+
+
+static a_boolean eq_subobjects(an_interpreter_state  *ips,
+                               a_byte                *sub_obj1,
+                               a_byte                *sub_obj2,
+                               a_type_ptr            tp,
+                               a_byte                *complete_obj)
+/*
+Return TRUE if the subobjects pointed to (both of type tp and part of the
+same complete object complete_obj) are equal.  ips is the interpreter state
+associated with the objects.
+*/
+{
+  a_boolean  result;
+
+  if (!subobject_is_initialized(sub_obj1, complete_obj) ||
+      !subobject_is_initialized(sub_obj2, complete_obj)) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  switch (tp->kind) {
+    case tk_integer:
+      result = !memcmp(sub_obj1, sub_obj2, sizeof(an_integer_value));
+      break;
+    case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      result = !memcmp(sub_obj1, sub_obj2, sizeof(an_internal_float_value));
+      break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
+      result = !memcmp(&cx_value(sub_obj1)->real, &cx_value(sub_obj2)->real,
+                       sizeof(an_internal_float_value)) &&
+               !memcmp(&cx_value(sub_obj1)->imag, &cx_value(sub_obj2)->imag,
+                       sizeof(an_internal_float_value));
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case tk_pointer:
+    case tk_nullptr:
+      result = eq_constexpr_addresses((a_constexpr_address*)sub_obj1,
+                                      (a_constexpr_address*)sub_obj2);
+      break;
+    case tk_array:
+      { a_type_ptr     etp = skip_typerefs(tp->variant.array.element_type);
+        a_targ_size_t  n_elems, k;
+        a_byte_count   elem_size;
+        n_elems = tp->variant.array.variant.number_of_elements;
+        result = TRUE;
+        elem_size = value_bytes_for_type(ips, etp, &result);
+        if (!result) goto done;
+        for (k = 0; k<n_elems; k += 1) {
+          if (!eq_subobjects(ips, sub_obj1, sub_obj2, etp, complete_obj)) {
+            result = FALSE;
+            break;
+          }  /* if */
+          sub_obj1 += elem_size;
+          sub_obj2 += elem_size;
+        }  /* for */
+      }
+      break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      { a_type_ptr     etp = skip_typerefs(tp->variant.vector.element_type);
+        a_targ_size_t  k, n_elems = num_vector_elements(tp);
+        a_byte_count   elem_size;
+        result = TRUE;
+        elem_size = value_bytes_for_type(ips, etp, &result);
+        if (!result) goto done;
+        for (k = 0; k<n_elems; k += 1) {
+          if (!eq_subobjects(ips, sub_obj1, sub_obj2, etp, complete_obj)) {
+            result = FALSE;
+            break;
+          }  /* if */
+          sub_obj1 += elem_size;
+          sub_obj2 += elem_size;
+        }  /* for */
+      }
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    case tk_class:
+    case tk_struct:
+      { /* Check the fields and bases. */
+        a_base_class_ptr  bcp = base_classes_of(tp);
+        a_field_ptr       fp = fields_of(tp);
+        result = TRUE;
+        if (*(a_base_class**)sub_obj1 != *(a_base_class**)sub_obj2) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        fp = next_alloc_field(fp);
+        for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+          a_type_ptr    ftp = skip_typerefs(fp->type);
+          a_byte_count  offset;
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          if (!eq_subobjects(ips, sub_obj1+offset, sub_obj2+offset, ftp,
+                             complete_obj)) {
+            result = FALSE;
+            goto done;
+          }  /* if */
+        }  /* for */
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct || bcp->is_virtual) {
+            a_byte_count  offset;
+            get_mapped_byte_count(&persistent_map, bcp, offset);
+            if (!eq_subobjects(ips, sub_obj1+offset, sub_obj2+offset,
+                               bcp->type, complete_obj)) {
+              result = FALSE;
+              goto done;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }
+      break;
+    case tk_union:
+      { /* Initialize the first field (if any). */
+        a_field_ptr  fp = *(a_field**)sub_obj1;
+        if (fp != *(a_field**)sub_obj2) {
+          result = FALSE;
+        } else if (fp != NULL) {
+          a_byte_count  offset;
+          a_type_ptr    ftp = skip_typerefs(fp->type);
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          if (!eq_subobjects(ips, sub_obj1+offset, sub_obj2+offset, ftp,
+                             complete_obj)) {
+            result = FALSE;
+          } else {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case tk_ptr_to_member:
+      { a_constexpr_ptr_to_mem  *pm1 = (a_constexpr_ptr_to_mem*)sub_obj1,
+                                *pm2 = (a_constexpr_ptr_to_mem*)sub_obj2;
+        if (pm1->is_ptr_to_mem_function != pm2->is_ptr_to_mem_function ||
+            pm1->subtract_adjustment != pm2->subtract_adjustment ||
+            pm1->this_class_adjustment != pm2->this_class_adjustment) {
+          result = FALSE;
+        } else if (pm1->is_ptr_to_mem_function) {
+          result = pm1->variant.routine == pm2->variant.routine;
+        } else {
+          result = pm1->variant.field == pm2->variant.field;
+        }  /* if */
+      }
+      break;
+    case tk_reflection:
+      result = !memcmp(sub_obj1, sub_obj2, sizeof(a_reflection_value));
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+done:
+  return result;
+}  /* eq_subobjects */
+
 #if DEBUG
 
 uintptr_t db_hash_ptr(void  *ptr)
@@ -5855,6 +6101,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
           for (k = 0; k<n_elems;) {
             if (elem_con == NULL) {
               /* Not all elements are covered.  Zero the remainder. */
+              mark_complete_class_object_if_needed(etp, elem_dst.address);
               init_subobject_to_zero(ips, elem_dst.address, etp,
                                      complete_object);
               repeat = 1;
@@ -6229,7 +6476,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
               do_constexpr_fail(result);
               break;
             }  /* if */
-            mark_subobject_initialized(value, complete_object);
+            mark_subobject_initialized(elem_addr.address, complete_object);
             k  += 1;
             elem_addr.address += elem_size;
             if (implied_src != NULL) implied_elem_src.address += elem_size;
@@ -19168,46 +19415,6 @@ a diagnostic.
 }  /* check_boolean_condition */
  
 
-static a_boolean normalize_runtime_address_if_possible(
-                                                    a_constexpr_address *ptr1,
-                                                    a_constexpr_address *ptr2)
-/*
-One of ptr1 and ptr1 is a run-time address and the other is not.  If the
-run-time address has an associated zero ck_integer constant, replace it by an
-equivalent interpreter address and return TRUE.  Otherwise, return FALSE.
-This is used to compare pointer values (null pointer values in particular).
-*/
-{
-  a_boolean             compat = FALSE, ovfl;
-  a_host_large_integer  val;
-
-  if (is_runtime_data_address(ptr1)) {
-    a_constant_ptr  cp = ptr1->variant.addr_con;
-    if (constant_is(cp, ck_integer)) {
-      conv_integer_value_to_host_large_integer(&cp->variant.integer_value,
-                                               /*is_signed=*/FALSE, &val,
-                                               &ovfl);
-      if (!ovfl && val == 0) {
-        clear_address(ptr1, (a_byte*)0);
-        compat = TRUE;
-      }  /* if */
-    }  /* if */
-  } else if (is_runtime_data_address(ptr2)) {
-    a_constant_ptr  cp = ptr2->variant.addr_con;
-    if (constant_is(cp, ck_integer)) {
-      conv_integer_value_to_host_large_integer(&cp->variant.integer_value,
-                                               /*is_signed=*/FALSE, &val,
-                                               &ovfl);
-      if (!ovfl && val == 0) {
-        clear_address(ptr2, (a_byte*)0);
-        compat = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return compat;
-}  /* normalize_runtime_address_if_possible */
-
-
 #define compatible_address_kinds(addr1, addr2)                               \
   (is_runtime_data_address(ptr1) == is_runtime_data_address(ptr2) ||         \
    normalize_runtime_address_if_possible(ptr1, ptr2))
@@ -27137,7 +27344,7 @@ diagnostic in *ips.
         a_base_class_ptr  bcp;
         a_field_ptr       fp = fields_of(type);
         a_boolean         is_static_init_list;
-        set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+        set_constant_kind(con, ck_aggregate);
         /* Add direct base sub-object constants first. */
         for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
           a_byte_count    offset;
@@ -27194,7 +27401,7 @@ diagnostic in *ips.
                true for that field too. */
             ips->permit_address_of_local_temporary = TRUE;
           }  /* if */
-          cp = alloc_constant((a_constant_repr_kind)ck_error);
+          cp = alloc_constant(ck_error);
           if (!copy_interpreter_object_to_constant(
                               ips, object+offset, complete_object, ftp, cp)) {
             result = FALSE;
@@ -27254,7 +27461,7 @@ diagnostic in *ips.
         a_byte          *sub_obj = object;
         n_elems = type->variant.array.variant.number_of_elements;
         if (!result) break;
-        set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
+        set_constant_kind(con, ck_aggregate);
         for (k = 0; k<n_elems; k += 1, sub_obj += elem_size) {
           a_constant_ptr  elem_con;
           if (!subobject_is_initialized(sub_obj, complete_object) &&
@@ -27267,11 +27474,30 @@ diagnostic in *ips.
             do_constexpr_fail(result);
             break;
           }  /* if */
-          elem_con = alloc_constant((a_constant_repr_kind)ck_error);
+          elem_con = alloc_constant(ck_error);
           if (!copy_interpreter_object_to_constant(
                               ips, sub_obj, complete_object, etp, elem_con)) {
             do_constexpr_fail(result);
             break;
+          }  /* if */
+          if (k+1 < n_elems) {
+            /* Consider opportunities to represent sequences of identical
+               values using a ck_init_repeat entry. */
+            a_targ_size_t  r = 1;
+            for (; k+r < n_elems; r += 1) {
+              if (!eq_subobjects(ips, sub_obj, sub_obj + r*elem_size, etp,
+                                 complete_object)) {
+                /* The interpreter storage is not identical. */
+                break;
+              }  /* if */
+            }  /* for */
+            if (r != 1) {
+              elem_con = add_repeat_con(elem_con, r);
+              /* Move r-1 elements ahead.  (The for-loop will move one more
+                 element ahead, hence r-1 and not r. */
+              k = k+(r-1);
+              sub_obj = sub_obj + (r-1)*elem_size;
+            }  /* if */
           }  /* if */
           add_constant_to_aggregate(elem_con, con, (a_base_class_ptr)NULL,
                                     (a_field_ptr)NULL);

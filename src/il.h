@@ -2154,6 +2154,9 @@ extern void add_constant_to_aggregate(a_constant_ptr con,
                                       a_base_class_ptr bcp,
                                       a_field_ptr      fp);
 
+extern a_constant_ptr add_repeat_con(a_constant_ptr  elem_con,
+                                     a_targ_size_t   count);
+
 extern void explode_string_initializer(a_constant_ptr con);
 
 extern a_targ_size_t string_constant_length(a_constant_ptr  con);
