@@ -20416,7 +20416,8 @@ Generate code for a class member or nonmember using-declaration.
       if (is_lexical_typeref(class_type)) {
         /* Use the qualification and/or template arguments from the
            original source form. */
-        gen_type_reference(class_type);
+        gen_type_reference(class_type,
+                           /*suppress_typename_kwd=*/(entry_kind != iek_type));
         write_tok_str(":: ");
         qualifier = skip_lexical_typerefs(class_type);
       } else {
