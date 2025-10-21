@@ -7183,14 +7183,24 @@ precedence confusion.  Do the output in the way described by octl.
       }
       break;
     case ck_init_repeat:
-      check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<", octl);
-      form_unsigned_num(
+      if (!octl->gen_compilable_code) {
+        octl->output_str("<", octl);
+        form_unsigned_num(
              (a_host_large_unsigned)constant->variant.init_repeat.count, octl);
-      octl->output_str(error_text(ec_repetitions_of), octl);
-      form_constant(constant->variant.init_repeat.constant,
-                    /*need_parens=*/FALSE, octl);
-      octl->output_str(">", octl);
+        octl->output_str(error_text(ec_repetitions_of), octl);
+        form_constant(constant->variant.init_repeat.constant,
+                      /*need_parens=*/FALSE, octl);
+        octl->output_str(">", octl);
+      } else {
+        /* Generate compilable code, by expanding the repetition. */
+        a_host_large_unsigned
+             k, n = (a_host_large_unsigned)constant->variant.init_repeat.count;
+        for (k = 0; k<n; ++k) {
+          if (k > 0) octl->output_str(", ", octl);
+          form_constant(constant->variant.init_repeat.constant,
+                        /*need_parens=*/FALSE, octl);
+        }  /* for */
+      }
       break;
     case ck_template_param:
       check_assertion(!octl->gen_compilable_code ||
