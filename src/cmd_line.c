@@ -3121,7 +3121,7 @@ option values if they were not already set by a command line option.
           cpp20_designators_restriction = TRUE;
           aggregate_classes_can_have_user_ctors = FALSE;
           rvalue_allowed_with_const_qual_memptr = TRUE;
-          /* Enable emulation of Visual Studio's /std:c++23 and /std:c++latest
+          /* Enable emulation of Visual Studio's /std:c++20 and /std:c++latest
              command-line options.  Note that internally most C++20 features
              are enabled via global variables, but for those that aren't, set
              std_version to the value for C++20. */
