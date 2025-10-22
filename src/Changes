@@ -20,7 +20,7 @@ example, with --c++11:
 
 
 10/20/25 [EDGcpfe/28480]
-Repeated array element values in constant expressions
+Repeated array element values in constant expressions (IL CHANGE)
 
 The constant evaluation interpreter now recognizes repeated array element
 values in its results, and represents them using a ck_init_repeat entry
