@@ -705,7 +705,8 @@ static void gen_constant(a_constant_ptr constant,
 static void gen_type(a_type_ptr type);
 static void gen_type_reference(a_type_ptr type,
                                a_boolean  suppress_typename_kwd = FALSE,
-                               a_boolean  is_declaration = FALSE);
+                               a_boolean  is_declaration = FALSE,
+                               a_boolean  suppress_elab_type_spec = FALSE);
 static void gen_enum_definition(a_type_ptr type,
                                 a_type_ptr qual_typeref = NULL);
 static void gen_class_definition(a_type_ptr type,
@@ -9362,13 +9363,16 @@ elaborated type specifier in the given scope.
 
 static void gen_type_reference(a_type_ptr type,
                                a_boolean  suppress_typename_kwd,
-                               a_boolean  is_declaration)
+                               a_boolean  is_declaration,
+                               a_boolean  suppress_elab_type_spec)
 /*
 Generate a reference to the indicated type, which is a fundamental type, a
 tag, a typedef, or a dependent type.  A reference is not the definition.
 If suppress_typename_kwd is TRUE, do not put out a leading "typename"
 keyword that would be required in some contexts.  If is_declaration is
-TRUE and the type is a tag type, put out a tag keyword.
+TRUE and the type is a tag type, put out a tag keyword.  If
+suppress_elab_type_spec is TRUE, do not put out the type as an
+elaborated-type-specifier, even if it would be required in some contexts.
 */
 {
   a_type_ptr             orig_type;
@@ -9709,7 +9713,7 @@ delayed_definition:
            through gen_tag_reference). */
         use_elab_type_spec = TRUE;
       }  /* if */
-    } else {
+    } else if (!suppress_elab_type_spec) {
       /* See if the type is a member of a class or namespace.  If so, we
          need to push the hidden name information for that scope to see if
          the elaborated type specifier is needed. */
@@ -22318,7 +22322,9 @@ when possible.
       /* Use a functional-notation cast. */
 output_functional_notation_cast:
       octl.suppress_template_args = suppress_template_args;
-      gen_type_reference(init_entity_type);
+      gen_type_reference(init_entity_type, /*suppress_typename_kwd=*/TRUE,
+                         /*is_declaration=*/FALSE,
+                         /*suppress_elab_type_spec=*/TRUE);
       octl.suppress_template_args = saved_suppress_template_args;
       /* In a case like "auto x = T{};", braced-init will be FALSE,
          reflecting the use of the "=" in the initializer.  However, if T
