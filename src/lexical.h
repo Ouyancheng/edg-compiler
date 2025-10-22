@@ -595,6 +595,10 @@ protected:
 		extra_info_kind;
 			/* Indication of the type of extra information about
 			   the token provided below. */
+#ifdef UNION_AS_STRUCT
+/* FIXME: Workaround for union-as-struct build issue. */
+#undef union
+#endif /* ifdef UNION_AS_STRUCT */
   union a_variant {
     inline a_variant()
       {}
@@ -652,6 +656,9 @@ protected:
 			/* An index into the IFC module containing additional
 			   information. */
   } extra_info;
+#ifdef UNION_AS_STRUCT
+#define union struct
+#endif /* ifdef UNION_AS_STRUCT */
 private:
   /* Friend to allow construction to be performed optimally without exposing
      implementation details. */
