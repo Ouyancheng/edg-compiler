@@ -23103,10 +23103,14 @@ Scan the new-type-name or ( type-name ) from source.
 }  /* scan_new_type */
 
 
-static void scan_new_initializer(a_new_parse_state  *nps,
-                                 a_decl_parse_state *dps)
+static void prescan_new_init_if_needed(a_new_parse_state  *nps,
+                                 a_decl_parse_state       *dps)
 /*
-Scan the new initializer expression (if present).
+Prescan the new initializer expression (if present) if it is needed to
+deduce the allocated type (and update *dps with the deduced type accordingly,
+in that case).  Also determine if the initializer is parenthesized (in which
+case the left parenthesis is consumed) or braced (the left brace is not
+consumed).  Update *nps accordingly.
 */
 {
   if (curr_token == tok_lparen) {
@@ -23183,7 +23187,7 @@ Scan the new initializer expression (if present).
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* scan_new_initializer */
+}  /* prescan_new_init_if_needed */
 
 
 static an_init_component_ptr scan_paren_expr_list_as_braced_list(
@@ -24301,19 +24305,21 @@ parenthesized initializer was provided.
        instantiation. */
     /* Scan the argument list. */
     nps->templ_init_scanned = TRUE;
-    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
-                        /*already_after_left_delim=*/TRUE,
-                        &dummy, /*return_raw_arguments=*/TRUE,
-                        /*p_unknown_dependent_function=*/NULL,
-                        /*args_will_be_discarded=*/FALSE,
-                        /*is_custom_ms_attr_arg_list=*/FALSE,
-                        rcblock,
-                        /*arg_list_supplied=*/FALSE,
-                        (an_arg_list_elem *)NULL,
-                        &nps->init_raw_args,
-                        /*single_operand=*/(an_operand *)NULL,
-                        /*single_operand_returned=*/(a_boolean *)NULL,
-                        &nps->end_new_init_position);
+    if (nps->init_raw_args == NULL) {
+      scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL, tok_rparen,
+                          /*already_after_left_delim=*/TRUE,
+                          &dummy, /*return_raw_arguments=*/TRUE,
+                          /*p_unknown_dependent_function=*/NULL,
+                          /*args_will_be_discarded=*/FALSE,
+                          /*is_custom_ms_attr_arg_list=*/FALSE,
+                          rcblock,
+                          /*arg_list_supplied=*/FALSE,
+                          (an_arg_list_elem *)NULL,
+                          &nps->init_raw_args,
+                          /*single_operand=*/(an_operand *)NULL,
+                          /*single_operand_returned=*/(a_boolean *)NULL,
+                          &nps->end_new_init_position);
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (rcblock == NULL) nps->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -24909,7 +24915,7 @@ expression, and return the result in *result (or an error indication in
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     nps.end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    scan_new_initializer(&nps, &dps);
+    prescan_new_init_if_needed(&nps, &dps);  // FIXME: rename
   }  /* if */
   if (nps.using_expr_cache) {
     /* Activate the prescanned initializer cache so the expression will be

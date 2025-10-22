@@ -1,5 +1,22 @@
 Version 6.8
 
+10/22/25 [EDGcpfe/27848,EDGcpfe/28506]
+Spurious errors and/or abort on new-expression with a parenthesized initializer
+
+A new-expression for a non-dependent with a parenthesized aggregate initializer
+appearing in a template could trigger parsing errors.  In some configurations
+those errors could lead to an abort (an internal error).  For example, in GNU
+C++20 mode:
+
+  struct S { int i; };
+  template<typename T> S* f(T p) {
+    S s = { x };
+    return new S(s);  // Previously could trigger parsing errors followed by
+  }                   // an internal error.
+
+This is now fixed.
+
+
 10/22/25 [EDGcpfe/28469]
 Substitution failure on friend function template
 
