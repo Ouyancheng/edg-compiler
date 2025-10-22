@@ -28330,7 +28330,14 @@ if the caller has determined that reinterpret_cast expressions can be folded
              A dynamic initializer entry is still required in that case, but
              we must ensure that it represents constant initialization (i.e.,
              a dik_constant entry). */
-          dip->kind = (a_dynamic_init_kind)dik_constant;
+          if (dyn_init_is(dip, dik_nonconstant_aggregate)) {
+            a_constant  *orig_cp = orig_cp = dip->variant.constant.ptr;
+            result_con->explicit_braces_on_aggregate =
+                                        orig_cp->explicit_braces_on_aggregate;
+            result_con->explicit_parentheses_on_aggregate =
+                                   orig_cp->explicit_parentheses_on_aggregate;
+          }  /* if */
+          dip->kind = dik_constant;
           dip->variant.constant.ptr = alloc_unshared_constant(result_con);
           dip->variant.constant.lambda = NULL;
           dip->variant.constant.non_constant = FALSE;
