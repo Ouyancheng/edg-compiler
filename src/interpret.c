@@ -28331,7 +28331,7 @@ if the caller has determined that reinterpret_cast expressions can be folded
              we must ensure that it represents constant initialization (i.e.,
              a dik_constant entry). */
           if (dyn_init_is(dip, dik_nonconstant_aggregate)) {
-            a_constant  *orig_cp = orig_cp = dip->variant.constant.ptr;
+            a_constant  *orig_cp = dip->variant.constant.ptr;
             result_con->explicit_braces_on_aggregate =
                                         orig_cp->explicit_braces_on_aggregate;
             result_con->explicit_parentheses_on_aggregate =
