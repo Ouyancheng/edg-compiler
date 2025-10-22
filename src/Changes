@@ -1,5 +1,24 @@
 Version 6.8
 
+10/22/25 [EDGcpfe/28469]
+Substitution failure on friend function template
+
+Previously, the front end sometimes failed to substitute into a friend function
+template with a non-type template parameter declared using a typedef name.  For
+example, with --c++11:
+
+  using INT = int;
+  template<int> struct B {};
+  template<typename>
+  struct C {
+    template<INT i, B<i + 1> * = nullptr>
+    friend int f(C, B<i>) {
+      return 0;
+    }
+  };
+  int i = f(C<int>{}, B<0>{});  // Previously a spurious error.  Now okay.
+
+
 10/20/25 [EDGcpfe/28480]
 Repeated array element values in constant expressions
 
