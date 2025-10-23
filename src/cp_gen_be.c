@@ -22322,7 +22322,7 @@ when possible.
       /* Use a functional-notation cast. */
 output_functional_notation_cast:
       octl.suppress_template_args = suppress_template_args;
-      gen_type_reference(init_entity_type, /*suppress_typename_kwd=*/TRUE,
+      gen_type_reference(init_entity_type, /*suppress_typename_kwd=*/FALSE,
                          /*is_declaration=*/FALSE,
                          /*suppress_elab_type_spec=*/TRUE);
       octl.suppress_template_args = saved_suppress_template_args;
