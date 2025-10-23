@@ -23103,8 +23103,8 @@ Scan the new-type-name or ( type-name ) from source.
 }  /* scan_new_type */
 
 
-static void prescan_new_init_if_needed(a_new_parse_state  *nps,
-                                 a_decl_parse_state       *dps)
+static void prescan_new_init_if_needed(a_new_parse_state   *nps,
+                                       a_decl_parse_state  *dps)
 /*
 Prescan the new initializer expression (if present) if it is needed to
 deduce the allocated type (and update *dps with the deduced type accordingly,
