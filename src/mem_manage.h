@@ -107,7 +107,7 @@ extern char *realloc_buffer(char     *old_ptr,
 
 constexpr sizeof_t
 		HUGE_FE_MEM_THRESHOLD = (sizeof(a_mem_block_header) + 2048);
-			/* The amount of bytes before a front end allocation is
+			/* The number of bytes before a front end allocation is
 			   considered a huge allocation. */
 
 extern a_mem_block_header_ptr alloc_mem_block(
@@ -179,7 +179,7 @@ is used for allocation of general front end memory (i.e., not IL).
                           /*small_extension=*/TRUE);
   } else {
     /* Suppress the CodeCenter warning caused because after_end_of_block
-       may be point to memory that is not allocated, or is part of a
+       may be pointing to memory that is not allocated, or is part of a
        different allocation. */
     /*SUPPRESS 22*/
     sizeof_t remaining_space = (sizeof_t)(hdr->after_end_of_block -
