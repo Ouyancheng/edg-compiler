@@ -59,7 +59,7 @@ constexpr sizeof_t
                     ((HOST_ALLOCATION_INCREMENT - sizeof(a_mem_block_header)) /
                                             sizeof(a_shared_token_ctrl_block));
                         /* The number of tokens to allocate per batch.  This is
-                           sized to consume an entire memory blocks worth of
+                           sized to consume an entire memory block's worth of
                            tokens at a time.
 
                            Note that for PCH support to function when
@@ -3172,7 +3172,7 @@ Compute and return a hash code for the token.
 This class is given special permission to mess with the internals of
 detail::a_cached_token_base for the purposes of optimal construction.
 
-By using special access permissions to directly constructing the extra token
+By using special access permissions to directly construct the extra token
 information in the destination object, these functions are able to
 significantly reduce the instruction count.
 */
@@ -3345,8 +3345,7 @@ a_shared_token a_token_factory::build_constant(
                                               a_token_kind            kind)
 /*
 This function is an implementation detail of build_tok_constant; prefer that
-function for most use cases and see it function for a description of the
-arguments.
+function for most use cases and see it for a description of the arguments.
 */
 {
   a_shared_token result = build_cached_token(
@@ -3370,8 +3369,7 @@ a_shared_token a_token_factory::build_tok_body_replacement(
                                     const a_source_position *pos)
 /*
 This function is an implementation detail of build_tok_body_replacement; prefer
-that function for most use cases and see it function for a description of the
-arguments.
+that function for most use cases and see it for a description of the arguments.
 */
 {
   a_shared_token result = shared_obj<an_immutable_cached_token>(token, *pos,
@@ -3394,8 +3392,7 @@ a_shared_token a_token_factory::build_tok_removed_expr(
                                              a_token_cache_iterator  end)
 /*
 This function is an implementation detail of build_tok_removed_expr; prefer
-that function for most use cases and see it function for a description of the
-arguments.
+that function for most use cases and see it for a description of the arguments.
 */
 {
   a_shared_token result = build_cached_token(tok_removed_expr, start_seq, pos);
@@ -3403,7 +3400,7 @@ arguments.
   result->extra_info_kind = teik_removed_expr;
   new (&result->extra_info.removed_expr) a_removed_expr_descr();
   if (begin != end) {
-    /* Perform a non-destructive move-copy the tokens. */
+    /* Copy the tokens using a non-destructive move. */
     result->extra_info.removed_expr.cache =
                                    new_fe<a_token_cache>(/*reusable=*/TRUE,
                                                          distance(begin, end));
@@ -3417,9 +3414,8 @@ a_shared_token a_token_factory::build_tok_pragma(
                                              a_token_sequence_number seq,
                                              const a_source_position *pos)
 /*
-This function is an implementation detail of build_tok_pragma; prefer
-that function for most use cases and see it function for a description of the
-arguments.
+This function is an implementation detail of build_tok_pragma; prefer that
+function for most use cases and see it for a description of the arguments.
 */
 {
   a_shared_token result = build_cached_token(tok_error, seq, pos);
@@ -3433,9 +3429,8 @@ a_shared_token a_token_factory::build_tok_pp(char                    *text,
                                              a_targ_size_t           len,
                                              const a_source_position *pos)
 /*
-This function is an implementation detail of build_tok_pragma; prefer
-that function for most use cases and see it function for a description of the
-arguments.
+This function is an implementation detail of build_tok_pragma; prefer that
+function for most use cases and see it for a description of the arguments.
 */
 {
   check_assertion(text != NULL);
@@ -3456,9 +3451,8 @@ a_shared_token a_token_factory::build_tok_identifier(
                                                   a_targ_size_t           len,
                                                   const a_source_position *pos)
 /*
-This function is an implementation detail of build_tok_identifier; prefer
-that function for most use cases and see it function for a description of the
-arguments.
+This function is an implementation detail of build_tok_identifier; prefer that
+function for most use cases and see it for a description of the arguments.
 */
 {
   a_shared_token result = build_cached_token(
@@ -3479,8 +3473,7 @@ a_shared_token a_token_factory::build_tok_ifc_ref(
                                             const a_source_position       *pos)
 /*
 This function is an implementation detail of build_tok_ifc_ref; prefer that
-function for most use cases and see it function for a description of the
-arguments.
+function for most use cases and see it for a description of the arguments.
 */
 {
   a_shared_token result = build_cached_token(
@@ -3502,8 +3495,7 @@ a_shared_token a_token_factory::build_tok_ud_literal(
                                      const a_source_position *pos)
 /*
 This function is an implementation detail of build_tok_ud_literal; prefer that
-function for most use cases and see it function for a description of the
-arguments.
+function for most use cases and see it for a description of the arguments.
 */
 {
   a_shared_token              result = build_cached_token(
@@ -3556,8 +3548,7 @@ a_shared_token a_token_factory::build_tok_resolved_type(
                                                   const a_source_position *pos)
 /*
 This function is an implementation detail of build_tok_resolved_type; prefer
-that function for most use cases and see it function for a description of the
-arguments.
+that function for most use cases and see it for a description of the arguments.
 */
 {
   a_shared_token result = build_cached_token(
@@ -3578,9 +3569,9 @@ a_shared_token a_token_factory::build_tok_insert_string()
 This function merely constructs a new shared token that is used as a
 placeholder "dummy entry" with the extra info kind set to teik_insert_string.
 
-This function is an implementation detail of push_string_insert_cache_entry see
-that function (and its sister function pop_string_insert_cache_entry) for more
-information.
+This function is an implementation detail of push_string_insert_cache_entry;
+see that function (and its sister function pop_string_insert_cache_entry) for
+more information.
 */
 {
   a_shared_token result = shared_obj<an_immutable_cached_token>(
@@ -3759,8 +3750,8 @@ type definition in lexical.h.
 */
 {
   return detail::a_token_factory::build_tok_ud_literal(value_constant,
-                                                         spelling_constant,
-                                                         suffix, type, pos);
+                                                       spelling_constant,
+                                                       suffix, type, pos);
 }  /* build_tok_ud_literal */
 
 
@@ -4442,7 +4433,7 @@ Interface to get_token that sets the caching_tokens flag.
 static INLINE void push_current_token_to_rescan_stack()
 /*
 This function is called to copy the current token state directly onto the
-cached_token_rescan_stack in an efficient manner.  This is typical used to
+cached_token_rescan_stack in an efficient manner.  This is typically used to
 preserve the current token before performing one of several different token
 cache rescan strategies.
 */
@@ -4525,7 +4516,7 @@ This routine copies the tokens from the cache provided by the caller and pushes
 them to the cached_token_rescan_stack.  If the source cache is terminated by a
 tok_end_of_source, it is excluded from the tokens added to the
 cached_token_rescan_stack.  This routine is used to allow a series of tokens to
-be cached into a reusable cache and the rescanned as if part of the original
+be cached into a reusable cache and then rescanned as if part of the original
 source with no need to worry about detection of the tok_end_of_source later.
 */
 {
@@ -4639,9 +4630,11 @@ error.
     }  /* if */
     if (!tok->is_pragma()) {
       /* The token sequence looks something like:
-		 pragma-n0 token-n1 pragma-n2 token-n3 token-n4
+
+           pragma-n0 token-n1 pragma-n2 token-n3 token-n4
+
          where token-n3 is the split location.  We also want to move any
-         pragma that precede token-n3 to cache 2.  When we break out of
+         pragma that precedes token-n3 to cache 2.  When we break out of
          the loop first_moved_tok_it will point to pragma-n2 and
          before_first_moved_tok_it will point to token-n1.  Save the previous
          values of these fields.  If include_prev_token is TRUE we want
@@ -4800,7 +4793,7 @@ a_token_cache_iterator find_iter_for_curr_rescan_token()
 /*
 Search the reusable_cache_stack's associated token cache for the first token
 with the lexer's current value of curr_token_sequence_number.  Return an
-iterator to that token if found; otherwise, return a default constructed
+iterator to that token if found; otherwise, return a default-constructed
 iterator.
 */
 {
@@ -19247,7 +19240,7 @@ added to the cache.
   lssep->cache_tokens++;
   if (include_curr_token &&
       last_token_sequence_number_of_token > lssep->last_tsn_in_cache) {
-    /* There should always be a scanning token cache initialed above and not
+    /* There should always be a scanning token cache initialized above and not
        cleared until this lexical state stack entry is popped off the lexical
        state stack. */
     check_assertion(lssep->cache.has_value());
@@ -19765,7 +19758,7 @@ Construct a new cached token iterator from the current lexical state.
 a_cached_token_supplier a_cached_token_supplier::operator++(int)
 /*
 Move on to the next non-pragma token and return a copy of the current iterator.
-If no next token exist the next token is a default-constructed a_shared_token.
+If no next token exists the next token is a default-constructed a_shared_token.
 */
 {
   a_cached_token_supplier result = *this;
@@ -19795,7 +19788,7 @@ remain.
 
 void a_cached_token_supplier::move_to_next_token()
 /*
-Move on to the next token.  If no next token exist the next token is a
+Move on to the next token.  If no next token exists the next token is a
 default-constructed a_shared_token.
 */
 {
@@ -29035,7 +29028,7 @@ a_shared_token get_cache_token(a_token_cache_ptr       cache,
                                a_token_sequence_number seq_number)
 /*
 Return a copy of the token identified by the given sequence number in the given
-cache, or a default initialized cached token if not found.
+cache, or a default-initialized cached token if not found.
 
 This function is useful for quickly grabbing a particular cached token for
 inspection in a debugger; not optimized for general usage.

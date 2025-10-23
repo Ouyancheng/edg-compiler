@@ -4036,7 +4036,7 @@ nested class.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           rescan_shared_reusable_cache(rfp->function_body_token_cache);
           if (!rfp->function_body_token_cache->is_reusable) {
-            /* The cache was not marked for reuse, drop the reference to it. */
+            /* The cache was not marked for reuse; drop the reference to it. */
             rfp->function_body_token_cache = a_shared_token_cache();
           }  /* if */
           /* Scan the function body. */

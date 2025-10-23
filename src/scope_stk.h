@@ -582,10 +582,10 @@ typedef struct a_pack_expansion_stack_entry {
   a_token_cache_iterator
 		first_token_it;
 			/* During a real instantiation, this is an iterator
-			   point to the token at the start of the pack
+			   that points to the token at the start of the pack
 			   expansion.  This is used to reset the token position
 			   to scan the non-initial pack elements.  This is not
-			   used (is a default constructed token cache iterator)
+			   used (is a default-constructed token cache iterator)
 			   when is_rescan is TRUE.  */
   a_template_arg_ptr
 		template_arg_list;
@@ -1571,8 +1571,8 @@ typedef struct a_scope_stack_entry {
 			   context. */
   a_template_cache_segment_list
 		*template_cache_segment_list;
-			/* A list of template cache segment entry for a member
-			   class or function of the current prototype
+			/* A list of template cache segment entries for a
+			   member class or function of the current prototype
 			   instantiation.  Present only for template
 			   instantiation scopes associated with prototype
 			   instantiations. */

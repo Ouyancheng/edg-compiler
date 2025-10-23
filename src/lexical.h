@@ -402,7 +402,7 @@ struct an_unresolved_ud_literal_descr {
 
 
 /*
-A kind enum representing the possible indexes types represented by an instance
+A kind enum representing the possible index types represented by an instance
 of the a_lexical_ifc_index_reference.
 */
 enum a_lexical_ifc_index_kind {
@@ -1014,7 +1014,7 @@ struct a_token_cache_iterator_base {
 protected:
   a_token_cache *cache; /* The cache being read from. */
   int           offset; /* The offset from the start of the token cache for the
-			   token represented by this iterator. */
+                           token represented by this iterator. */
   friend struct EDG_PREFIX::a_token_cache;
 };  /* a_token_cache_iterator_base */
 
@@ -3933,7 +3933,7 @@ token removed.
   }  /* for */
 
   /* As of the time of writing, there is an existing issue when self-compiling
-     the front end in with the following combination of features:
+     the front end with the following combination of features:
        - multi-translation unit compilation mode
        - IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE
        - IA64_ABI set to TRUE
@@ -3980,7 +3980,7 @@ INLINE void find_first_and_last_impl(
                                 an_Iterator_type        *before_first_token_it,
                                 an_Iterator_type        *last_token_it)
 /*
-This function sets *before_first_token_it to the token immediately proceeding
+This function sets *before_first_token_it to the token immediately preceding
 the first token with a starting token sequence number greater than or equal to
 first_token_number.  *last_token_number is set to the last token in the cache
 with an ending token sequence number equal to or less than
@@ -4193,7 +4193,7 @@ extern a_token_kind get_token_to_be_cached(void);
 extern void rescan_cached_tokens(a_token_cache *cache,
                                  a_boolean     discard_curr_token = FALSE);
 extern void rescan_copy_of_cache(a_token_cache *cache);
-/* Push a reusable cache on to the reusable cache stack. */
+/* Push a reusable cache onto the reusable cache stack. */
 extern void rescan_reusable_cache(const a_reusable_token_cache &cache);
 
 

@@ -1,5 +1,15 @@
 Version 6.8
 
+10/23/25 [EDGcpfe/27955]
+Token Cache Refactor
+
+The internal representation of token caches has been refactored.  Token caches
+now have a more C++-style API that provides a good foundation for future
+improvements, improves memory safety, and greatly improves encapsulation.  As a
+result of these changes, multiple crashes that previously occurred when the
+front end was attempting to parse invalid C++ code are now fixed.
+
+
 10/22/25 [EDGcpfe/27848,EDGcpfe/28506]
 Spurious errors and/or abort on new-expression with a parenthesized initializer
 

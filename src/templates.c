@@ -5904,9 +5904,9 @@ and a list of the unprocessed entries is returned to the caller.
 
     a_token_cache_ptr source_cache = primary_source_cache;
     if (tcsp->source_cache != NULL) {
-      /* If this the sequence of tokens associated with this template cache
-         segment was moved into a secondary cache: remove any member bodies
-         from the secondary cache.  */
+      /* If the sequence of tokens associated with this template cache segment
+         was moved into a secondary cache: remove any member bodies from the
+         secondary cache. */
       source_cache = tcsp->source_cache;
     }  /* if */
     /* Check that the template cache segment is actually contained by this
@@ -33066,7 +33066,7 @@ parameter lists that were scanned.
                           /*keep_default_args=*/TRUE);
   }  /* if */
   /* Build the template string for this template */
-  /* Disable the GCC maybe uninitialized warning which may falsely flag
+  /* Disable the GCC "maybe uninitialized" warning which may falsely flag
      p_template_body_cache's shared_obj as being potentially used without
      initialization. */
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
