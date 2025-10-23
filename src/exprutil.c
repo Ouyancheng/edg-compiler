@@ -13479,14 +13479,14 @@ to a fixed-point operand).
   /* Do not insert code here. */
   {
     if (!is_error_type(type)) {
-      if (operand_1 != NULL && !identical_types(operand_1->type, type)) {
+      if (operand_1 != NULL && !cast_identical_types(operand_1->type, type)) {
         /* Cast operand 1 to match the desired type. */
 #if FIXED_POINT_ALLOWED
         warn_on_fixed_point_to_floating_point_conversion(operand_1, type);
 #endif /* FIXED_POINT_ALLOWED */
         cast_operand(type, operand_1, /*is_implicit_cast=*/TRUE);
       }  /* if */
-      if (!identical_types(operand_2->type, type)) {
+      if (!cast_identical_types(operand_2->type, type)) {
         /* Cast operand 2 to match the desired type. */
 #if FIXED_POINT_ALLOWED
         warn_on_fixed_point_to_floating_point_conversion(operand_2, type);
