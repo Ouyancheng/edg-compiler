@@ -1294,7 +1294,7 @@ or both reside in the global module; otherwise, return FALSE.
   check_assertion(a.mod == skip_module_partitions(a.mod) &&
                   b.mod == skip_module_partitions(b.mod));
   /* If the same IL module is being used (or both are using no IL module and
-     are thus part of the global module); these are definitely the same
+     are thus part of the global module), these are definitely the same
      module. */
   return a.mod == b.mod;
 }  /* is_same_module_or_global_module */

@@ -1068,7 +1068,7 @@ enum a_token_kind : unsigned short {
                                (similar to a tok_decltype_construct).  However,
                                the associated type is not converted from
                                an_ifc_type_index into an IL type until the
-                               token is used during parsed. */
+                               token is used during parsing. */
   tok_ifc_param_ref,        /* Generated when reading an IFC file to represent
                                an enk_param_ref representing a reference to a
                                parameter that is not yet available. */

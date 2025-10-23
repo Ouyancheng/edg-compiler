@@ -11792,7 +11792,7 @@ done:
 
 static void ensure_ifc_hidden_friends_loaded(an_ifc_input_state *state)
 /*
-Allocate and populated the map of friends to their corresponding classes for
+Allocate and populate the map of friends to their corresponding classes for
 this IFC input state if not already performed.
 */
 {
@@ -13437,11 +13437,11 @@ static void add_ifc_friends_to_class(
                                 a_type_ptr                         class_type,
                                 const Dyn_array<an_ifc_decl_index> &il_friends)
 /*
-The given class_type associated has just been completed.  Record the given
-associated friend entities that were not processed as part of the class
-definition.  This function is called after the class is completed because IFC
-"friend declarations" may include template definitions that rely on the
-completeness of the class type.
+The given class_type has just been completed.  Record the given associated
+friend entities that were not processed as part of the class definition.  This
+function is called after the class is completed because IFC "friend
+declarations" may include template definitions that rely on the completeness of
+the class type.
 */
 {
   for (an_ifc_decl_index friend_decl_idx : il_friends) {
@@ -13897,7 +13897,8 @@ Complete the definition of the class referred to by mep (if needed).
         cache_type(&cache, base, /*cinfo=*/{});
       }  /* if */
 
-      /* Form an execute a "plan" describing the class members to be cached. */
+      /* Form and execute a "plan" describing the class members to be
+         cached. */
       a_class_member_descriptor_array class_members;
       Dyn_array<an_ifc_decl_index>    il_friends;
       if (opt_class_scope.has_value()) {
@@ -15066,7 +15067,7 @@ return FALSE.
     if (opt_func_decl.has_value()) {
       an_ifc_decl_function func_decl = *opt_func_decl;
 
-      /* Hidden friends should not be eager loaded. */
+      /* Hidden friends should not be eagerly loaded. */
       if (is_function_hidden_friend(func_decl)) {
         result = FALSE;
       }  /* if */
@@ -15205,7 +15206,6 @@ to this function.
         if (!init_decl_locator(func_decl, &loc)) {
           goto invalid;
         }  /* if */
-
         defer_symbol_creation(decl_idx, scope, &loc);
       }
       break;
@@ -16139,7 +16139,7 @@ prefer type_for_type_index in other cases.
 invalid:
   result = error_type();
 done:
-  /* If this assertion fails preceeding code failed to set a result value or
+  /* If this assertion fails preceding code failed to set a result value or
      use the invalid result case. */
   check_assertion(result != NULL);
   return result;
@@ -16946,7 +16946,7 @@ no corresponding type, return an error type.
 invalid:
   result = error_type();
 done:
-  /* If this assertion fails preceeding code failed to set a result value or
+  /* If this assertion fails preceding code failed to set a result value or
      use the invalid result case. */
   check_assertion(result != NULL);
 #if DEBUG
