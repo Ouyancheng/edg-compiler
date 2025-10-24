@@ -24915,7 +24915,7 @@ expression, and return the result in *result (or an error indication in
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     nps.end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    prescan_new_init_if_needed(&nps, &dps);  // FIXME: rename
+    prescan_new_init_if_needed(&nps, &dps);
   }  /* if */
   if (nps.using_expr_cache) {
     /* Activate the prescanned initializer cache so the expression will be
