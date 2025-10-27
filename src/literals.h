@@ -33,7 +33,8 @@ BEGIN_EDG_NAMESPACE
 
 extern void conv_integer_literal(int           radix,
                                  an_error_code *err_code,
-                                 a_const_char  **err_pos);
+                                 a_const_char  **err_pos,
+                                 a_boolean     potential_ud_literal);
 #if FIXED_POINT_ALLOWED
 extern void conv_fixed_point_literal(a_boolean      is_hexadecimal,
                                      an_error_code  *err_code,

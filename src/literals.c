@@ -80,9 +80,10 @@ sign-extension might be needed later on.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-void conv_integer_literal(int           radix,
-                          an_error_code *err_code,
-                          a_const_char  **err_pos)
+void conv_integer_literal(int                  radix,
+                          an_error_code        *err_code,
+                          a_const_char         **err_pos,
+                          ARG_UNUSED a_boolean potential_ud_literal)
 /*
 Convert an integer of base indicated by radix (2, 8, 10, or 16) from
 external form to internal form.  start_of_curr_token and end_of_curr_token
@@ -97,7 +98,9 @@ constants).  The number may have a "u" or "l" suffix, or both. (Or an "ll"
 or "ull" suffix, if long long is allowed.) (Or a suffix like "i32", if
 Microsoft extensions are enabled.)  Apostrophes (C++14 digit separators)
 within the token are unconditionally ignored, since they will only be part
-of the token if digit separators are enabled.
+of the token if digit separators are enabled.  If potential_ud_literal is
+TRUE, the integer literal might be part of a user-defined literal, which
+affects the handling of some overflow cases.
 */
 {
   an_integer_value number, ten, digit, mask;
@@ -621,14 +624,24 @@ ll_check:
     if (int128_extensions_enabled) {
       /* 128-bit integers are supported. */
       if (clang_mode || gnu_mode) {
-        /* Although Clang and GCC accept types like __int128, they do not
-           allow literals of those types.  Clang appears to fall back to
-           unsigned long long (after issuing an error), whereas GCC falls back
-           to int (after issuing a warning). */
-        pos_diagnostic(clang_mode ? es_discretionary_error : es_warning,
-                       ec_integer_too_large, &error_position);
-        kind = clang_mode ? (an_integer_kind)ik_unsigned_long_long
-                          : (an_integer_kind)ik_int;
+        if (potential_ud_literal) {
+          /* An overflowing integer is allowed if it will be used with a
+             raw user-defined literal operator or a user-defined literal
+             template.  Pass the potential error back to the caller, where
+             it will be ignored if this is determined to be part of a valid
+             user-defined literal. */
+          *err_pos = start_of_curr_token;
+          *err_code = ec_integer_too_large;
+        } else {
+          /* Although Clang and GCC accept types like __int128, they do not
+             allow literals of those types.  Clang appears to fall back to
+             unsigned long long (after issuing an error), whereas GCC falls
+             back to int (after issuing a warning). */
+          pos_diagnostic(clang_mode ? es_discretionary_error : es_warning,
+                         ec_integer_too_large, &error_position);
+        }  /* if */
+        kind = clang_mode ? ik_unsigned_long_long
+                          : ik_int;
         goto kind_established;
       }  /* if */
       if (!has_u_suffix &&

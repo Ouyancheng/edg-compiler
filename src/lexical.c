@@ -12728,19 +12728,19 @@ convert_literal_value:
     }  /* if */
     switch (kind) {
       case k_decimal:
-        conv_integer_literal(10, &err_code, &err_pos);
+        conv_integer_literal(10, &err_code, &err_pos, potential_ud_suffix);
         ctoken = tok_int_constant;
         break;
       case k_octal:
-        conv_integer_literal(8, &err_code, &err_pos);
+        conv_integer_literal(8, &err_code, &err_pos, potential_ud_suffix);
         ctoken = tok_int_constant;
         break;
       case k_hex:
-        conv_integer_literal(16, &err_code, &err_pos);
+        conv_integer_literal(16, &err_code, &err_pos, potential_ud_suffix);
         ctoken = tok_int_constant;
         break;
       case k_binary:
-        conv_integer_literal(2, &err_code, &err_pos);
+        conv_integer_literal(2, &err_code, &err_pos, potential_ud_suffix);
         ctoken = tok_int_constant;
         break;
 #if FIXED_POINT_ALLOWED
