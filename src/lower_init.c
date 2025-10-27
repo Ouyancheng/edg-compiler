@@ -6912,7 +6912,8 @@ dealt with).
                                repeated_con->variant.aggregate.last_constant) {
               a_constant_ptr rcon =
                                 repeated_con->variant.aggregate.first_constant;
-              ipd.array_element_count *= rcon->variant.init_repeat.count;
+              ipd.array_element_count *=
+                             (a_targ_ptrdiff_t)rcon->variant.init_repeat.count;
               repeated_con = rcon-> variant.init_repeat.constant;
               ipd.array_element_type = repeated_con->type;
             }  /* while */
