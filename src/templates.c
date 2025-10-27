@@ -26110,9 +26110,13 @@ declaration of a partial specialization declared outside of its class.
         suppress_redecl_error = TRUE;
         make_new_symbol_invisible = TRUE;
       } else if (decl_state->is_template_friend && sym == NULL &&
-                 enclosing_scope_is_prototype_instantiation_context()) {
+                 (!friend_class_injection_enabled || ms_compat) &&
+                  enclosing_scope_is_prototype_instantiation_context()) {
         /* In prototype instantiation contexts, template friends are only
-           added as invisible symbols. */
+           added as invisible symbols, unless friend class injection is
+           enabled.  However, MSVC does not do friend class injection for
+           template friends, even though it does do so for non-template
+           friends. */
         suppress_redecl_error = TRUE;
         make_new_symbol_invisible = TRUE;
       } else {
