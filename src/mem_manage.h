@@ -171,7 +171,7 @@ is used for allocation of general front end memory (i.e., not IL).
   if (use_dedicated_mem_block) {
     /* If above the HUGE_FE_MEM_THRESHOLD, a dedicated memory region header is
        created.  This uses the small extension logic so that the minimum memory
-       region size (if a new allocation is require) is not
+       region size (if a new allocation is required) is not
        HOST_ALLOCATION_INCREMENT. */
     trim_mem_block(hdr);
     small_extension = TRUE;
@@ -307,7 +307,7 @@ struct Is_trivially_copyable_edg_impl<a_reusable_allocation> :
 template<>
 struct Is_trivially_destructible_edg_impl<a_reusable_allocation> :
                                                 Integral_constant<bool, true> {
-};  /* Is_trivially_copyable_edg_impl */
+};  /* Is_trivially_destructible_edg_impl */
 
 typedef Dyn_array<a_reusable_allocation, General_allocator>
 		a_reusable_allocation_list;
@@ -325,6 +325,7 @@ extern void free_fe_normal(a_void_ptr ptr,
                            sizeof_t   size);
 
 }  /* detail */
+
 
 inline char *alloc_fe(sizeof_t     size)
 /*
