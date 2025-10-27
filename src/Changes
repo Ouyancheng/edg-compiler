@@ -1,5 +1,20 @@
 Version 6.8
 
+10/27/25 [EDGcpfe/28315]
+Microsoft compatibility: friend class name injection
+
+Previously, a friend class template declaration conflicted with a member class
+declaration in permissive Microsoft modes or when using Microsoft extensions in
+GCC/Clang mode.  For example, with --ms_c++17
+
+  template<typename>
+  struct C {
+    template<typename>
+    friend struct B;
+    struct B;  // Previously a spurious error.  Now okay.
+  };
+
+
 10/24/25 [EDGcpfe/26294]
 Recording the form of template arguments (IL CHANGE)
 

@@ -2744,7 +2744,7 @@ option values if they were not already set by a command line option.
       }  /* if */
       /* Friend class name injection appears to still be performed in all
          MSVC modes. */
-      friend_class_injection_enabled = TRUE;
+      friend_class_injection_enabled = ms_compat;
     }  /* if */
     if (!option_kind_used[(int)optk_dependent_name_processing]) {
       /* In non-permissive mode, do normal dependent name processing. */
