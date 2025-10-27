@@ -2601,6 +2601,7 @@ Push a new entry onto the saved statement scope stack, stack.
   new_struct_stmt_stack(state);
 }  /* push_saved_stmt_scope_stack */
 
+
 static void pop_saved_stmt_scope_stack()
 /*
 Pop the current top entry from the saved statement scope stack, stack.

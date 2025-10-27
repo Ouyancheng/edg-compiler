@@ -3453,7 +3453,7 @@ enclosing namespace scope can be determined, return a null IFC index.
       ifc_unexpected(module_of(decl_idx), err_msg);
       goto invalid;
     }  /* if */
-  }  /* if */
+  }  /* while */
   result = home_scope_idx;
 invalid:
   return result;
@@ -5268,7 +5268,7 @@ otherwise, return FALSE.
     if (test_bitmask<ifc_rpb_initializer>(properties)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (is_msvc_authored(node)) {
-        /* If this is a MSVC-authored function.*/
+        /* If this is an MSVC-authored function. */
         Opt<an_ifc_trait_function_definition> opt_itfd;
 
         find_trait(&opt_itfd, decl_idx);
@@ -5750,7 +5750,7 @@ index information to the given symbol.
 
       while (ssep->kind != sck_file && ssep->kind != sck_namespace) {
         ssep = &scope_stack[ssep->previous_scope];
-      }  /* if */
+      }  /* while */
       mep->scope = ssep->il_scope;
     } else {
       expect_error_str("the given entity should've been processed by "
@@ -11104,7 +11104,7 @@ private:
 an_ifc_template_spec_info::an_ifc_template_spec_info(
                                                    a_module_entity_ptr mep_val)
   : mep(mep_val)
-  /*
+/*
 Construct a new template spec info object for the template at the given IFC
 index.
 */
@@ -11844,7 +11844,7 @@ this IFC input state if not already performed.
                                      get_hidden_friend_decl_index(friend_decl);
         state->hidden_friend_to_class->map_or_replace(hidden_friend_decl_idx,
                                                       class_mep);
-      }  /* if */
+      }  /* for */
     }  /* for */
   }  /* if */
 }  /* ensure_ifc_hidden_friends_loaded */
@@ -17180,8 +17180,7 @@ expression in the module file.
 { a_type_ptr           result;
   a_module_token_cache cache;
 
-  /* Create a fake "typename-specifier" and use that to parse the
-     type. */
+  /* Create a fake "typename-specifier" and use that to parse the type. */
   cache_token(&cache, tok_typename);
   cache_expr(&cache, expr_idx, /*cinfo=*/{});
   if (!cache.is_valid()) {
