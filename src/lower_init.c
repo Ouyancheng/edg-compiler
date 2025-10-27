@@ -6902,6 +6902,20 @@ dealt with).
               ipd.array_element_count =
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
             }  /* if */
+            /* See if the constant is a repeated aggregate (used to initialize
+               multi-dimensional arrays).  If so, strip any applicable
+               ck_init_repeat constants and increase the count accordingly. */
+            while (repeated_con->kind == ck_aggregate &&
+                   repeated_con->variant.aggregate.first_constant->kind ==
+                                                             ck_init_repeat &&
+                   repeated_con->variant.aggregate.first_constant ==
+                               repeated_con->variant.aggregate.last_constant) {
+              a_constant_ptr rcon =
+                                repeated_con->variant.aggregate.first_constant;
+              ipd.array_element_count *= rcon->variant.init_repeat.count;
+              repeated_con = rcon-> variant.init_repeat.constant;
+              ipd.array_element_type = repeated_con->type;
+            }  /* while */
           }  /* if */
           entity_node = make_init_entity_node(&ipd,
                                               /*result_is_lvalue=*/TRUE,

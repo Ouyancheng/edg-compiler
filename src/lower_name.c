@@ -4837,8 +4837,11 @@ do_unknown_function:
       /* Shouldn't get designated initializers here. */
       unexpected_condition();
     case ck_init_repeat:
-      /* These may show up when mangling constants in compound literals;
-         just ignore them. */
+      /* Handle a repeated constant. */
+      for (a_targ_size_t i = 0; i < con->variant.init_repeat.count; ++i) {
+        literal_representation(con->variant.init_repeat.constant, old_form,
+                               in_dependent_expr, suppress_address_of, mctl);
+      }  /* for */
       break;
     case ck_reflection:
       { a_tagged_pointer  *iep = &con->variant.reflection.entity;
@@ -6504,10 +6507,6 @@ together here).
       } else {
         result = mangled_braced_expression(con->next, mctl);
       }  /* if */
-      break;
-    case ck_init_repeat:
-      /* Ignore a ck_init_repeat that's not preceded by a designated
-         initializer. */
       break;
     default:
       /* Perform normal mangling on the constant. */
