@@ -8,8 +8,12 @@ front end now records the form of template arguments and any name qualifiers
 used for type specifiers in the IL.  A typeref of kind trk_template_arg_list
 represents an alternative template argument list that differs from the
 canonical template argument list for a class template specialization.
-Conversely, a typeref of kind trk_name_qualifier represents the name qualifiers
-used for a type specifier.  For example, with --c++11:
+Furthermore, a typeref of kind trk_name_qualifier represents the name
+qualifiers used for a type specifier.  This information is stored in the
+template_arg_list and name_qualifier fields, respectively, of the associated
+typeref type supplement.  Additionally, the is_global_qualified_name flag in
+the typeref variant of a typeref of kind trk_name_qualifier indicates that the
+type specifier uses a global namespace qualifier.  For example, with --c++11:
 
   using INT1 = int;
   using INT2 = int;
@@ -26,13 +30,14 @@ trk_template_arg_list typeref with an alternative template argument list <INT2>
 for the same class template specialization, and the type of c3 points to a
 trk_template_arg_list typeref with an alternative template argument list <int>,
 which in turn points to a trk_name_qualifier typeref with the name qualifier
-ns.
+ns.  For cases where the new typeref kinds are not needed, a new utility
+function skip_lexical_typerefs has been added to skip over these typeref kinds.
 
-Name references for variable and function template specializations now also
-point to the template argument list as written.  Additionally, an
-orig_class_of_which_a_member field has been added for pointer-to-member types,
-and a declared_type field for explicit instantiation directives, referring to
-the types as written.
+Similarly, the orig_template_arg_list field of a_name_reference points to the
+template argument list as written for variable and function template
+specializations.  Additionally, an orig_class_of_which_a_member field has been
+added for pointer-to-member types, and a declared_type field for explicit
+instantiation directives, referring to the types as written.
 
 The C++-generating back end has also been updated to use the new information in
 the generated output.
