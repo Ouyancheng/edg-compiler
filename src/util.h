@@ -1272,7 +1272,7 @@ private:
                         /* TRUE if the local buffer is being used for an
                            allocation, FALSE otherwise. */
 #ifdef UNION_AS_STRUCT
-/* FIXME: Workaround for union-as-struct build issue. */
+/* Workaround for union-as-struct build issue. */
 #undef union
 #endif /* ifdef UNION_AS_STRUCT */
   union {
@@ -2482,7 +2482,7 @@ Move other to *this, then return *this.
   /* Decrement the reference count of the control block currently owned. */
   this->decrement_reference();
 
-  /* Move construct the object. */
+  /* Move-construct the object. */
   an_allocation allocation = this->alloc(1);
   this->ctrl_block = (a_control_block*)allocation.start;
   new (this->ctrl_block) a_control_block{move_from(&other), /*ref_counter=*/1};
@@ -5266,7 +5266,7 @@ private:
                         /* The pointer value mapped by this entry.  (A "key" in
                            the hash table.) */
 #ifdef UNION_AS_STRUCT
-/* FIXME: Workaround for union-as-struct build issue. */
+/* Workaround for union-as-struct build issue. */
 #undef union
 #endif /* ifdef UNION_AS_STRUCT */
   union {
@@ -5284,7 +5284,7 @@ private:
 template<typename a_Ptr_key, typename a_Value>
 Ptr_map_entry<a_Ptr_key, a_Value>::Ptr_map_entry(an_entry &&other)
 /*
-Move construct a Ptr_map_entry from another Ptr_map_entry.
+Move-construct a Ptr_map_entry from another Ptr_map_entry.
 */
   : stored_key(move_from(&other.stored_key))
 {
@@ -5311,7 +5311,7 @@ template<typename a_Ptr_key, typename a_Value>
 auto Ptr_map_entry<a_Ptr_key, a_Value>::operator=(an_entry &&other) ->
                                                                       an_entry&
 /*
-Move assign into this Ptr_map_entry from another Ptr_map_entry.
+Move-assign into this Ptr_map_entry from another Ptr_map_entry.
 */
 {
   destroy(this);

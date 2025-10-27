@@ -796,7 +796,7 @@ FALSE.
 a_module_template_parameter::a_module_template_parameter(
                                            a_module_template_parameter &&other)
 /*
-Move construct from the given module template parameter.
+Move-construct from the given module template parameter.
 */
   : kind(other.kind)
 {
@@ -837,7 +837,7 @@ Destroy the given module template parameter.
 a_module_template_parameter& a_module_template_parameter::operator=(
                                            a_module_template_parameter &&other)
 /*
-Move assign from the given module template parameter.
+Move-assign from the given module template parameter.
 */
 {
   if (this != &other) {
@@ -1023,7 +1023,7 @@ struct a_module_entity_key {
 
 a_module_entity_key::a_module_entity_key(a_module_entity_key &&other)
 /*
-Move construct from the given module entity key.
+Move-construct from the given module entity key.
 */
   : mod(other.mod), scope(other.scope), name(other.name), kind(other.kind),
     variant(other.variant)

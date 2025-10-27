@@ -2420,7 +2420,7 @@ and replace the constant in the first cached string token with the constant for
 the concatenation.  If first_token is non-NULL, it points to an element of the
 given cache and that is where concatenation starts; otherwise, concatenation
 starts with the first token in the given cache.  (The rest of the cached tokens
-are left as they are; the caller removes and frees them.) The result string
+are left as they are; the caller removes and frees them.)  The result string
 will have characters of the given kind.  Some of the constants may be error
 constants if there were malformed string literals in the input; in that case,
 the output is an error constant.  Some of the entries in the token cache may be

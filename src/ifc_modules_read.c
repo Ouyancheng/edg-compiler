@@ -148,7 +148,7 @@ struct an_ifc_input_string_table {
 an_ifc_input_string_table::an_ifc_input_string_table(
                                                an_ifc_input_string_table &&old)
 /*
-Move construct from the given IFC string table.
+Move-construct from the given IFC string table.
 */
   : an_ifc_input_string_table()
 {

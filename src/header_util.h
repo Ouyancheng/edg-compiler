@@ -128,7 +128,7 @@ private:
   a_boolean     storing_value;
                         /* TRUE if there is a value stored, FALSE otherwise. */
 #ifdef UNION_AS_STRUCT
-/* FIXME: Workaround for union-as-struct build issue. */
+/* Workaround for union-as-struct build issue. */
 #undef union
 #endif /* ifdef UNION_AS_STRUCT */
   union {
@@ -153,7 +153,7 @@ template<typename a_Value_type>
 Opt<a_Value_type>::Opt(const Opt<a_Value_type> &other)
   : storing_value(other.storing_value)
 /*
-Copy construct an optional from another optional.
+Copy-construct an optional from another optional.
 */
 {
   /* A value was stored, copy it. */
@@ -167,7 +167,7 @@ template<typename a_Value_type>
 Opt<a_Value_type>::Opt(Opt<a_Value_type> &&other)
   : storing_value(other.storing_value)
 /*
-Move construct an optional from another optional.
+Move-construct an optional from another optional.
 */
 {
   /* A value was stored, move it. */

@@ -596,7 +596,7 @@ protected:
 			/* Indication of the type of extra information about
 			   the token provided below. */
 #ifdef UNION_AS_STRUCT
-/* FIXME: Workaround for union-as-struct build issue. */
+/* Workaround for union-as-struct build issue. */
 #undef union
 #endif /* ifdef UNION_AS_STRUCT */
   union a_variant {
@@ -668,7 +668,7 @@ private:
 
 a_cached_token_base::a_cached_token_base(const a_cached_token_base &other)
 /*
-Copy construct a new cached token base object from the given cached token base.
+Copy-construct a new cached token base object from the given cached token base.
 */
   : token(other.token), source_position(other.source_position),
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -731,7 +731,7 @@ Copy construct a new cached token base object from the given cached token base.
 
 a_cached_token_base::a_cached_token_base(a_cached_token_base &&other)
 /*
-Move construct a new cached token base object from the given cached token base.
+Move-construct a new cached token base object from the given cached token base.
 */
   : token(other.token), source_position(other.source_position),
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -834,7 +834,7 @@ Destroy the current cached token base object.
 a_cached_token_base& a_cached_token_base::operator=(
                                         const a_cached_token_base &other)
 /*
-Copy assign the given cached token's state into this token.
+Copy-assign the given cached token's state into this token.
 */
 {
   if (this != &other) {
@@ -848,7 +848,7 @@ Copy assign the given cached token's state into this token.
 a_cached_token_base& a_cached_token_base::operator=(
                                              a_cached_token_base &&other)
 /*
-Move assign the given cached token's state into this token.
+Move-assign the given cached token's state into this token.
 */
 {
   if (this != &other) {
@@ -1332,7 +1332,7 @@ back to the list of available scanning token caches.
 a_scanning_token_cache& a_scanning_token_cache::operator=(
                                                 a_scanning_token_cache &&other)
 /*
-Move assign the backing cache from the given scanning token cache to this token
+Move-assign the backing cache from the given scanning token cache to this token
 cache.  The caches are swapped to ensure no scanning token cache may be
 permanently lost.
 */
@@ -3351,7 +3351,7 @@ private:
 			/* TRUE if variant should use the shared_token_cache;
 			   otherwise, FALSE. */
 #ifdef UNION_AS_STRUCT
-/* FIXME: Workaround for union-as-struct build issue. */
+/* Workaround for union-as-struct build issue. */
 #undef union
 #endif /* ifdef UNION_AS_STRUCT */
   union a_token_cache_union {
@@ -3388,7 +3388,7 @@ cache.
 a_reusable_token_cache::a_reusable_token_cache(
                                            const a_reusable_token_cache &other)
 /*
-Copy construct the reusable token cache.
+Copy-construct the reusable token cache.
 */
   : shared_token_cache(other.shared_token_cache)
 {

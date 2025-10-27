@@ -47,7 +47,7 @@ constructed for a write operation.
 
 an_ifc_module_file::an_ifc_module_file(an_ifc_module_file &&old)
 /*
-Move construct from the given IFC module file.
+Move-construct from the given IFC module file.
 */
   : an_ifc_module_file(old.module_kind)
 {
