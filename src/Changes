@@ -3,9 +3,9 @@ Version 6.8
 10/27/25 [EDGcpfe/28315]
 Microsoft compatibility: friend class name injection
 
-Previously, a friend class template declaration conflicted with a member class
-declaration in permissive Microsoft modes or when using Microsoft extensions in
-GCC/Clang mode.  For example, with --ms_c++17
+Previously, in modes with friend name injection enabled, a friend class
+template declaration conflicted with a member class declaration inside a class
+template definition. For example, with --ms_c++17
 
   template<typename>
   struct C {
@@ -13,6 +13,11 @@ GCC/Clang mode.  For example, with --ms_c++17
     friend struct B;
     struct B;  // Previously a spurious error.  Now okay.
   };
+
+Furthermore, a change has been made to no longer enable friend class name
+injection when Microsoft extensions are used, but only in Microsoft and
+Microsoft compatibility modes, in order to better emulate the behavior of
+GCC/Clang.
 
 
 10/24/25 [EDGcpfe/26294]
