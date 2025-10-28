@@ -37,9 +37,10 @@ emulation modes.)  This is now fixed.  For example, with --c++17
 10/27/25 [EDGcpfe/28315]
 Microsoft compatibility: friend class name injection
 
-Previously, in permissive Microsoft modes where friend name injection is
-enabled, a friend class template declaration conflicted with a member class
-declaration within a class template definition.  For example, with --ms_c++17:
+A change has been made to no longer enable friend class name injection when
+Microsoft extensions are used in modes other than Microsoft or Microsoft
+compatibility modes, in order to better emulate the behavior of GCC/Clang.  For
+example, with --c++ --clang_version 210100 --ms_extensions:
 
   template<typename>
   struct C {
@@ -47,11 +48,6 @@ declaration within a class template definition.  For example, with --ms_c++17:
     friend struct B;
     struct B;  // Previously a spurious error.  Now okay.
   };
-
-Furthermore, a change has been made to no longer enable friend class name
-injection when Microsoft extensions are used in modes other than Microsoft or
-Microsoft compatibility modes, in order to better emulate the behavior of
-GCC/Clang.
 
 
 10/24/25 [EDGcpfe/26294]
