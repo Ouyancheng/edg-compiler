@@ -4050,7 +4050,7 @@ token in the cache.
         *last_token_it = an_Iterator_type(cache, (int)last_idx);
         break;
       }  /* if */
-    }  /* if */
+    }  /* for */
     check_assertion_or_expect_error_str(
                        last_idx != -1,
                        "a_token_cache::find_first_and_last: last_tsn missing");

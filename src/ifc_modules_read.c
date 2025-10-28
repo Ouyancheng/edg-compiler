@@ -23637,7 +23637,7 @@ context to help inform decisions about what to cache.
         /* Catch up to the lparen as the name matched. */
         while (it != lookahead_it) {
           ++it;
-        }  /* if */
+        }  /* while */
         /* Capture the token sequence number of the token following the
            lparen. */
         if ((it + 1) == it_end) {

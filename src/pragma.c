@@ -543,7 +543,7 @@ operations performed on the copies associated with the token being processed.
     /* Clear the flag that indicates the pragma has been processed so that
        it will be processed again for the cached token. */
     ppp->has_been_processed = FALSE;
-  }  /* while */
+  }  /* for */
   db_exit();
   return new_list;
 }  /* make_fresh_copy_of_pragmas_on_list */
