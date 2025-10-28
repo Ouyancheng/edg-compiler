@@ -24983,9 +24983,8 @@ templates from that base template.
     a_token_kind        final_token = tok_semicolon;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Don't issue source sequence entries for generated entities. */
-    a_boolean           saved_source_sequence_entries_disallowed;
-    saved_source_sequence_entries_disallowed =
-                                          source_sequence_entries_disallowed;
+    a_boolean           saved_source_sequence_entries_disallowed =
+                                           source_sequence_entries_disallowed;
     scope_stack_top().source_sequence_entries_disallowed = TRUE;
     source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -25390,6 +25389,13 @@ declared, declare one that matches the spaceship operator.
   check_defaulted_spaceship_return_type(srp, class_type);
   if (erp == NULL) {
     /* No equality operator was found: Implicitly declare a defaulted one. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Don't issue source sequence entries for generated entities. */
+    a_boolean  saved_source_sequence_entries_disallowed =
+                                           source_sequence_entries_disallowed;
+    scope_stack_top().source_sequence_entries_disallowed = TRUE;
+    source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     initialize_member_decl_info(&decl_info, pos);
     clear_func_info(&func_info);
     /* All special functions are inline definitions. */
@@ -25420,6 +25426,13 @@ declared, declare one that matches the spaceship operator.
     erp->compiler_generated = TRUE;
     check_defaulted_eq_properties(class_type, erp);
     done_with_func_info(func_info);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Restore the previous state wrt. generating source sequence entries. */
+    source_sequence_entries_disallowed =
+                                      saved_source_sequence_entries_disallowed;
+    scope_stack_top().source_sequence_entries_disallowed
+                                    = saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 }  /* check_implicit_comparison_operators */
 
