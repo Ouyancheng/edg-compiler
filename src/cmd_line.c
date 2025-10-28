@@ -4247,7 +4247,11 @@ default mode (e.g., exception handling).
   if (cpp23_mode) {
     if_consteval_enabled = TRUE;
     explicit_this_param_enabled = TRUE;
-    extended_float_types = TRUE;
+    if (!clang_mode) {
+      /* As of version 21, clang does not yet support the extended
+         floating-point types. */
+      extended_float_types = TRUE;
+    }  /* if */
     elifdef_enabled = TRUE;
     size_suffix_enabled = TRUE;
     named_unicode_chars_allowed = TRUE;

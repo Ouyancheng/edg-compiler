@@ -1,5 +1,19 @@
 Version 6.8
 
+10/27/25 [EDGcpfe/28498]
+Clang compatibility: extended floating-point types
+
+As of at least version 21, clang does not support the extended
+floating-point literals defined in the C++23 Standard.  The front end,
+however, erroneously did so in clang emulation mode.  This is now fixed.
+For example, with --clang_version=210000 --c++23:
+
+#ifdef __STDCPP_FLOAT32_T__
+ _Float32 float32;   // Previously an error, "_Float32 is undefined"; now
+                     // accepted because the feature-test macro is not defined
+#endif
+
+
 10/27/25 [EDGcpfe/28436]
 GNU/clang compatibility: large integer user-defined literals
 
