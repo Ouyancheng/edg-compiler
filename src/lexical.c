@@ -12695,6 +12695,7 @@ fixed_point_suffix:
     ctoken = tok_pp_number;
   } else {
     /* Preprocessing number is not wanted. */
+    a_boolean potential_ud_literal = FALSE;
     if (curr_char_loc != (end_of_curr_token + 1) && !err) {
       /* Extra characters were seen in the pp-number scan. */
       if (user_defined_literals_enabled && potential_ud_suffix
@@ -12725,22 +12726,23 @@ convert_literal_value:
          numeric suffix; they are actually part of the putative ud-suffix
          instead. */
       end_of_curr_token = possible_start_of_ud_suffix - 1;
+      potential_ud_literal = TRUE;
     }  /* if */
     switch (kind) {
       case k_decimal:
-        conv_integer_literal(10, &err_code, &err_pos, potential_ud_suffix);
+        conv_integer_literal(10, &err_code, &err_pos, potential_ud_literal);
         ctoken = tok_int_constant;
         break;
       case k_octal:
-        conv_integer_literal(8, &err_code, &err_pos, potential_ud_suffix);
+        conv_integer_literal(8, &err_code, &err_pos, potential_ud_literal);
         ctoken = tok_int_constant;
         break;
       case k_hex:
-        conv_integer_literal(16, &err_code, &err_pos, potential_ud_suffix);
+        conv_integer_literal(16, &err_code, &err_pos, potential_ud_literal);
         ctoken = tok_int_constant;
         break;
       case k_binary:
-        conv_integer_literal(2, &err_code, &err_pos, potential_ud_suffix);
+        conv_integer_literal(2, &err_code, &err_pos, potential_ud_literal);
         ctoken = tok_int_constant;
         break;
 #if FIXED_POINT_ALLOWED
