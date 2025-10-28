@@ -4839,8 +4839,9 @@ do_unknown_function:
     case ck_init_repeat:
       /* Handle a repeated constant. */
       for (a_targ_size_t i = 0; i < con->variant.init_repeat.count; ++i) {
-        literal_representation(con->variant.init_repeat.constant, old_form,
-                               in_dependent_expr, suppress_address_of, mctl);
+        mangled_encoding_for_constant(con->variant.init_repeat.constant,
+                                      old_form, in_dependent_expr,
+                                      suppress_address_of, mctl);
       }  /* for */
       break;
     case ck_reflection:
@@ -6548,16 +6549,15 @@ mangling for the constant, is provided; otherwise, the list of expressions
       for (cp = con->variant.aggregate.first_constant;
            cp != NULL;
            cp = cp->next) {
-        /* Repeated constants and designators are ignored for the purposes of
-           counting the number of elements in the list, as are implicit
-           aggregate element initializers. */
-        if (cp->kind != (a_constant_repr_kind)ck_init_repeat &&
-            cp->kind != (a_constant_repr_kind)ck_designator &&
-            !cp->implicit_aggr_element) {
-          if (cp->kind == (a_constant_repr_kind)ck_dynamic_init &&
+        if (cp->kind == ck_init_repeat) {
+          count += cp->variant.init_repeat.count;
+        } else if (cp->kind != ck_designator && !cp->implicit_aggr_element) {
+          /* Designators are ignored for the purposes of counting the number of
+             elements in the list, as are implicit aggregate element
+             initializers. */
+          if (cp->kind == ck_dynamic_init &&
               cp->variant.dynamic_init.ptr != NULL &&
-              cp->variant.dynamic_init.ptr->kind ==
-                                        (a_dynamic_init_kind)dik_constructor &&
+              cp->variant.dynamic_init.ptr->kind == dik_constructor &&
               !dip_has_args_that_need_mangling(cp->variant.dynamic_init.ptr)) {
             /* A case like "new A[1]{}" where a constructor call (with no
                arguments -- or at least no non-default arguments).  When
