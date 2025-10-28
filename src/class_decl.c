@@ -32303,6 +32303,29 @@ differently from other class types in this respect).
 }  /* has_nonliteral_type_subobject */
 
 
+static a_boolean has_no_user_ctor(a_class_symbol_supplement  *cssp)
+/*
+Return TRUE if all the constructors pointed to by cssp->constructor are
+compiler-generated.
+*/
+{
+  a_symbol   *ctor = cssp->constructor;
+  a_boolean  result = TRUE;
+
+  if (ctor != NULL && symbol_is(ctor, sk_overloaded_function)) {
+    ctor = ctor->variant.overloaded_function.symbols;
+  }  /* if */
+  for (; ctor != NULL; ctor = ctor->next) {
+    if (!symbol_is(ctor, sk_member_function)) continue;
+    if (!ctor->variant.routine.ptr->compiler_generated) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* has_no_user_ctor */
+
+
 void set_literal_type_flag(a_type_ptr  type)
 /*
 Ensure either the known_to_be_a_literal_type or known_not_to_be_a_literal_type
@@ -32358,8 +32381,7 @@ flag is set in the class symbol supplement of the given type.
       /* A constexpr trivial default constructor makes the class a literal
          type. */
       cssp->known_to_be_a_literal_type = TRUE;
-    } else if (class_type_supp(type)->anonymous_union_kind !=
-                                          (an_anonymous_union_kind)auk_none) {
+    } else if (class_type_supp(type)->anonymous_union_kind != auk_none) {
       /* Anonymous unions don't have constructors per se (and hence no
          constexpr constructor will be found), but we can treat them like
          aggregates in this context. */
@@ -32371,6 +32393,15 @@ flag is set in the class symbol supplement of the given type.
          conceivably apply without considering constexpr, but if we get here
          we'll treat the class type as a non-literal type. */
       cssp->known_not_to_be_a_literal_type = TRUE;
+    } else if ((gpp_version_is(any_version) || ms_version_is(any_version)) &&
+               !cssp->has_user_declared_default_constructor &&
+               has_no_user_ctor(cssp)) {
+      /* MSVC and GCC appear to treat a class like:
+           class C { int i = 0, j; };
+         as a literal type, even though it is not an aggregate class and its
+         (generated) default constructor does not initialize j (and thus it
+         is not constexpr). */
+      cssp->known_to_be_a_literal_type = TRUE;
     } else {
       /* Check if the type has a constexpr constructor or constructor template
          that isn't a move/copy constructor.  The standard also requires that
