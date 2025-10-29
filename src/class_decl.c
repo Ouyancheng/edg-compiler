@@ -32316,8 +32316,9 @@ compiler-generated.
     ctor = ctor->variant.overloaded_function.symbols;
   }  /* if */
   for (; ctor != NULL; ctor = ctor->next) {
-    if (!symbol_is(ctor, sk_member_function)) continue;
-    if (!ctor->variant.routine.ptr->compiler_generated) {
+    if ((symbol_is(ctor, sk_member_function) &&
+         !ctor->variant.routine.ptr->compiler_generated) ||
+        symbol_is(ctor, sk_function_template)) {
       result = FALSE;
       break;
     }  /* if */
