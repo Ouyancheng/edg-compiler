@@ -12720,13 +12720,14 @@ fixed_point_suffix:
     /* Convert the constant.  Errors are still possible, since the checking
        above allows certain cases by. */
 convert_literal_value:
-    if (user_defined_literals_enabled && potential_ud_suffix &&
-        possible_start_of_ud_suffix != NULL) {
-      /* Exclude the characters that were previously thought to be a
-         numeric suffix; they are actually part of the putative ud-suffix
-         instead. */
-      end_of_curr_token = possible_start_of_ud_suffix - 1;
+    if (user_defined_literals_enabled && potential_ud_suffix) {
       potential_ud_literal = TRUE;
+      if (possible_start_of_ud_suffix != NULL) {
+        /* Exclude the characters that were previously thought to be a
+           numeric suffix; they are actually part of the putative ud-suffix
+           instead. */
+        end_of_curr_token = possible_start_of_ud_suffix - 1;
+      }  /* if */
     }  /* if */
     switch (kind) {
       case k_decimal:
