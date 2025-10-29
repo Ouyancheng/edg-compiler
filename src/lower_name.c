@@ -6521,6 +6521,23 @@ together here).
   return result;
 }  /* mangled_braced_expression */
 
+#if !IA64_ABI
+
+static inline a_boolean constant_doesnt_generate_mangling(
+                                                       const a_constant_ptr cp)
+/*
+Return TRUE if cp is a constant for which no mangling will be generated in the
+Cfront ABI, i.e., a case like "new A[1]{}" where a constructor call (with no
+arguments -- or at least no non-default arguments).
+*/
+{
+   return (cp->kind == ck_dynamic_init &&
+           cp->variant.dynamic_init.ptr != NULL &&
+           cp->variant.dynamic_init.ptr->kind == dik_constructor &&
+           !dip_has_args_that_need_mangling(cp->variant.dynamic_init.ptr));
+}  /* constant_doesnt_generate_mangling */
+
+#endif /* !IA64_ABI */
 
 static void mangled_list(an_expr_node_ptr         expr_list,
                          a_constant_ptr           con,
@@ -6544,28 +6561,29 @@ mangling for the constant, is provided; otherwise, the list of expressions
   if (con == NULL) {
     count = number_of_operands_in_list(expr_list);
   } else {
-    if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+    if (con->kind == ck_aggregate) {
       count = 0;
       for (cp = con->variant.aggregate.first_constant;
            cp != NULL;
            cp = cp->next) {
-        if (cp->kind == ck_init_repeat) {
-          count += cp->variant.init_repeat.count;
-        } else if (cp->kind != ck_designator && !cp->implicit_aggr_element) {
-          /* Designators are ignored for the purposes of counting the number of
-             elements in the list, as are implicit aggregate element
-             initializers. */
-          if (cp->kind == ck_dynamic_init &&
-              cp->variant.dynamic_init.ptr != NULL &&
-              cp->variant.dynamic_init.ptr->kind == dik_constructor &&
-              !dip_has_args_that_need_mangling(cp->variant.dynamic_init.ptr)) {
-            /* A case like "new A[1]{}" where a constructor call (with no
-               arguments -- or at least no non-default arguments).  When
-               mangled later, this constant produces no mangled output, so
-               don't include it in the constant count for this aggregate. */
+        if (cp->implicit_aggr_element || cp->kind == ck_designator) {
+          /* Designators and implicit aggregate element initializers are
+             ignored for the purposes of counting the number of elements in the
+             list. */
+        } else if (constant_doesnt_generate_mangling(cp)) {
+          /* A case like "new A[1]{}" where a constructor call (with no
+             arguments -- or at least no non-default arguments).  When
+             mangled later, this constant produces no mangled output, so
+             don't include it in the constant count for this aggregate. */
+        } else if (cp->kind == ck_init_repeat) {
+          if (constant_doesnt_generate_mangling(
+                                           cp->variant.init_repeat.constant)) {
+            /* No mangling to repeat. */
           } else {
-            count++;
+            count += cp->variant.init_repeat.count;
           }  /* if */
+        } else {
+          count++;
         }  /* if */
       }  /* for */
     } else {
