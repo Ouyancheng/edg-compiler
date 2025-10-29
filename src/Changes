@@ -65,7 +65,7 @@ rendered by the C++-generating back end).
 Clang compatibility: extended floating-point types
 
 As of at least version 21, clang does not support the extended
-floating-point literals defined in the C++23 Standard.  The front end,
+floating-point types defined in the C++23 Standard.  The front end,
 however, erroneously did so in clang emulation mode.  This is now fixed.
 For example, with --clang_version=210000 --c++23:
 
