@@ -1121,9 +1121,10 @@ Produce TRUE if a given routine is a real template instance (not an explicit
 specialization nor a prototype instantiation).
 */
 #define rout_is_real_template_instance(rp)                              \
-  ((rp)->is_template_function &&                                        \
-   !(rp)->is_specialized &&                                             \
-   !(rp)->is_prototype_instantiation)
+  (((rp)->is_template_function &&                                       \
+    !(rp)->is_specialized &&                                            \
+    !(rp)->is_prototype_instantiation) ||                               \
+   (rp)->friend_defined_in_instantiation)
 
 /*
 Produce TRUE if a given routine is an instance (a template function that is not
