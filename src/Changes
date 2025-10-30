@@ -1,5 +1,21 @@
 Version 6.8
 
+10/30/25 [EDGcpfe/28485]
+Clang compatibility: __make_signed and __make_unsigned
+
+When __make_signed and __make_unsigned are applied to enumeration types, the
+front end previously handled enumeration types as if they were replaced with
+their underlying type.  Now, instead, the result is based on the "lowest rank
+integer" whose size equals the size of the enumeration type.  For example,
+if long and long long have the same size, but int has a smaller size than long,
+then with
+
+  enum E: unsigned long long {};
+
+__make_signed(E) now produces type long whereas previously it produced type
+long long.
+
+
 10/30/25 [EDGcpfe/28504]
 Clang compatibility: Implicit type contexts in pre-C++20 modes
 

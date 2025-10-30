@@ -3564,11 +3564,24 @@ diagnostic in error cases.  error_pos is the position to use for diagnostics
         a_type_qualifier_set  tqs = get_type_qualifiers(tp);
         tp = skip_typerefs(tp);
         an_integer_kind int_kind = tp->variant.integer.int_kind;
-        result = integer_type(int_kind);
-        if (int_kind == ik_char) {
+        if (tp->variant.integer.enum_type) {
+          /* For enumeration types, std::make_signed_t<enum_type> produces the
+             lowest-ranking signed integer type I such that sizeof(enum_type)
+             equals sizeof(I). */
+          for (an_integer_kind  ik = ik_signed_char;
+               ik != ik_last; 
+               ik = an_integer_kind(ik+1)) {
+            if (int_kind_is_signed[ik]) {
+              result = integer_type(ik);
+              if (result->size == tp->size) break;
+            }  /* if */
+          }  /* for */
+        } else if (int_kind == ik_char) {
           result = integer_type(ik_signed_char);
         } else if (!int_type_is_signed(tp)) {
           result = other_signedness_integer_type(int_kind);
+        } else {
+          result = integer_type(int_kind);
         }  /* if */
         if (tqs != TQ_NONE) {
           result = make_qualified_type(result, tqs);
@@ -3586,11 +3599,24 @@ diagnostic in error cases.  error_pos is the position to use for diagnostics
         a_type_qualifier_set  tqs = get_type_qualifiers(tp);
         tp = skip_typerefs(tp);
         an_integer_kind int_kind = tp->variant.integer.int_kind;
-        result = integer_type(int_kind);
-        if (int_kind == ik_char) {
+        if (tp->variant.integer.enum_type) {
+          /* For enumeration types, std::make_unsigned_t<enum_type> produces
+             the lowest-ranking unsigned integer type I such that
+             sizeof(enum_type) equals sizeof(I). */
+          for (an_integer_kind  ik = ik_unsigned_char;
+               ik != ik_last; 
+               ik = an_integer_kind(ik+1)) {
+            if (!int_kind_is_signed[ik]) {
+              result = integer_type(ik);
+              if (result->size == tp->size) break;
+            }  /* if */
+          }  /* for */
+        } else if (int_kind == ik_char) {
           result = integer_type(ik_unsigned_char);
         } else if (int_type_is_signed(tp)) {
           result = other_signedness_integer_type(int_kind);
+        } else {
+          result = integer_type(int_kind);
         }  /* if */
         if (tqs != TQ_NONE) {
           result = make_qualified_type(result, tqs);
