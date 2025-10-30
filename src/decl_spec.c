@@ -12301,18 +12301,38 @@ general_identifier_case:
           */
           state->is_implicit_type_context = TRUE;
         }  /* if */
-        curr_token_type_symbol =
+        { a_boolean  implicit_typename = state->is_implicit_type_context &&
+                                         relaxed_typename_enabled,
+                     retried = FALSE;
+retry_type_name_determination:
+          curr_token_type_symbol =
                     curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                      /*in_prescan=*/FALSE,
                                      /*in_type_check=*/FALSE,
-                                     state->is_implicit_type_context &&
-                                         relaxed_typename_enabled,
+                                     implicit_typename,
                                      /*is_sizeof_context=*/FALSE,
                                      /*concept_okay=*/
                                      (is_parameter || 
                                       state->auto_type_allowed ||
                                       state->is_trailing_return_type) &&
                                        concepts_enabled);
+          if (clangcpp_version_is(>= 160000)) {
+            /* Clang 16 (and later) appears to accept the implicit typename
+               contexts of C++20 in pre-C++20 modes, but with a warning.  We
+               emulate this by retrying a curr_type_symbol call that failed
+               in an implicit type context without relaxed_typename_enabled
+               as if relaxed_typename_enabled is TRUE.  If it succeeds the
+               second time around, we issue a warning. */ 
+            if (!retried && curr_token_type_symbol == NULL &&
+                state->is_implicit_type_context) {
+              implicit_typename = TRUE;
+              retried = TRUE;
+              goto retry_type_name_determination;
+            } else if (retried && curr_token_type_symbol != NULL) {
+              pos_warning(ec_missing_typename, &pos_curr_token);
+            }  /* if */
+          }  /* if */
+        }
         if (curr_token_type_symbol != NULL &&
             symbol_is(curr_token_type_symbol, sk_concept_template)) {
           if (is_parameter) {

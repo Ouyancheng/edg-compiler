@@ -1,5 +1,22 @@
 Version 6.8
 
+10/30/25 [EDGcpfe/28504]
+Clang compatibility: Implicit type contexts in pre-C++20 modes
+
+C++20 introduced "implicit type contexts" where the "typename" keyword is no
+longer required to disambiguate names with a dependent qualifier.  For
+example:
+
+  template<typename T> using A1 = typename T::Type;
+  template<typename T> using A2 = T::Type;
+
+Prior to C++20, the definition of A1 is valid but A2 is not.  C++20 made the
+"typename" prefix optional in this context (since nothing but a type is valid
+here).  In Clang pre-C++20 modes (with clang_version >= 160000), the front end
+now also accepts the second form but with a warning indicating that the
+missing "typename" is nonstandard.
+
+
 10/28/25 [EDGcpfe/24748,EDGcpfe/26366,EDGcpfe/28510,EDGcpfe/28511]
 Friends defined in class template instantiations and constexpr requirements
 
