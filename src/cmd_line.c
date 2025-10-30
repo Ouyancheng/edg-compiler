@@ -3252,6 +3252,11 @@ option values if they were not already set by a command line option.
           static_call_operator_enabled = TRUE;
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 1950) {
+        if (ms_cpp23_mode) {
+          auto_cast_enabled = TRUE;
+        }  /* if */
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
@@ -4266,6 +4271,7 @@ default mode (e.g., exception handling).
       local_static_constexpr_enabled = TRUE;
     }  /* if */
     static_call_operator_enabled = TRUE;
+    auto_cast_enabled = TRUE;
   }  /* if */
   if (cpp26_mode) {
     embed_enabled = TRUE;
@@ -13532,6 +13538,7 @@ variables declared in cmd_line.h.
   delimited_escape_seqs_allowed = FALSE;
   lambda_attributes_allowed = FALSE;
   lambda_declarator_params_optional = FALSE;
+  auto_cast_enabled = FALSE;
   embed_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 

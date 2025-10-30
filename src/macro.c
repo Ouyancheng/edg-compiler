@@ -4614,12 +4614,6 @@ STATIC_THREAD a_boolean
 			   feature test macro. */
 
 STATIC_THREAD a_boolean
-		auto_cast_enabled;
-			/* TRUE if C++23 cast to auto is enabled.  Used to
-			   support the __cpp_auto_cast feature test
-			   macro. */
-
-STATIC_THREAD a_boolean
 		c_alignas_enabled;
 			/* TRUE if the _Alignas specifier is enabled in C
 			   mode.  Used to support
@@ -11745,7 +11739,6 @@ command line -D options.
   decltype_keyword_enabled = decltype_enabled &&
                                             !enable_underscore_decltype_only;
   initializer_lists_enabled = cpp11_mode;
-  auto_cast_enabled = cpp23_mode;
   c_alignas_enabled = C_mode() && alignas_enabled;
   c_alignof_enabled = C_mode() && alignof_enabled;
   c_generic_enabled = c11_mode;

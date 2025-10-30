@@ -2936,6 +2936,11 @@ EXTERN_THREAD a_boolean
 			   feature). */
 
 EXTERN_THREAD a_boolean
+		auto_cast_enabled;
+			/* TRUE if auto(x) and auto{x} are permitted (a C++23
+			   feature). */
+
+EXTERN_THREAD a_boolean
 		embed_enabled;
 			/* TRUE if the C23/C++26 #embed directive is
 			   supported. */

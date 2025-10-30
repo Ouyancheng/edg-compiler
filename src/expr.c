@@ -29587,7 +29587,7 @@ previously-scanned braced initializer.
     cast_operand_to_void(result, type_cast_to);
   } else {
     if (is_auto_type(type_cast_to)) {
-      if (!cpp23_mode) {
+      if (!auto_cast_enabled) {
         expr_pos_warning(ec_auto_cast_is_cpp23, &error_position);
       }  /* if */
       if (is_braced_init_component(icp) &&
@@ -30004,7 +30004,7 @@ freed by this routine.
     }  /* if */
   }  /* if */
   is_auto_cast = is_auto_type(type_cast_to);
-  if (is_auto_cast && !cpp23_mode) {
+  if (is_auto_cast && !auto_cast_enabled) {
     expr_pos_warning(ec_auto_cast_is_cpp23, start_position);
   }  /* if */
   could_be_dependent = !is_auto_cast &&
@@ -36983,7 +36983,7 @@ Return TRUE if the indicated token is one that could start an expression.
       break;
     case tok_auto:
       /* In C++23 "auto(x)" and "auto{x}" are permitted. */
-      is_expr_start = cpp23_mode;
+      is_expr_start = auto_cast_enabled;
       break;
     default:
       if (!C_mode() &&
@@ -43826,7 +43826,7 @@ handle_trapped_left_paren:
       break;
 
     case tok_auto:
-      if (cpp23_mode || gpp_version_is(>=120000)) {
+      if (auto_cast_enabled || gpp_version_is(>=120000)) {
          /* C++23 allows "auto(<expr>)" and "auto{<expr>}".  Newer versions
             of GCC also accept it (with a warning) in other C++ modes. */
          goto type_start;

@@ -1,5 +1,13 @@
 Version 6.8
 
+10/30/25 [EDGcpfe/28379]
+Microsoft compatibility: auto(...) and auto{...}
+
+The C++23 feature that allows function-notation casts to type "auto" is now
+also accepted when microsoft_version >= 1950 and --ms_c++23 is specified on
+the command line.
+
+
 10/30/25 [EDGcpfe/28485]
 Clang compatibility: __make_signed and __make_unsigned
 
