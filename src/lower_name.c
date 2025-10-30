@@ -6527,8 +6527,8 @@ static inline a_boolean constant_doesnt_generate_mangling(
                                                        const a_constant_ptr cp)
 /*
 Return TRUE if cp is a constant for which no mangling will be generated in the
-Cfront ABI, i.e., a case like "new A[1]{}", for which there a constructor call
-(with no arguments -- or at least no non-default arguments).
+Cfront ABI, i.e., a case like "new A[1]{}", for which there is a constructor
+call (with no arguments -- or at least no non-default arguments).
 */
 {
    return (cp->kind == ck_dynamic_init &&
@@ -6571,8 +6571,8 @@ mangling for the constant, is provided; otherwise, the list of expressions
              ignored for the purposes of counting the number of elements in the
              list. */
         } else if (constant_doesnt_generate_mangling(cp)) {
-          /* A case like "new A[1]{}", for which there a constructor call (with
-             no arguments -- or at least no non-default arguments).  When
+          /* A case like "new A[1]{}", for which there is a constructor call
+             (with no arguments -- or at least no non-default arguments).  When
              mangled later, this constant produces no mangled output, so
              don't include it in the constant count for this aggregate. */
         } else if (cp->kind == ck_init_repeat) {
