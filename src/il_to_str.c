@@ -7192,7 +7192,7 @@ precedence confusion.  Do the output in the way described by octl.
                       /*need_parens=*/FALSE, octl);
         octl->output_str(">", octl);
       } else {
-        /* Generate compilable code, by expanding the repetition. */
+        /* Generate compilable code by expanding the repetition. */
         a_host_large_unsigned
              k, n = (a_host_large_unsigned)constant->variant.init_repeat.count;
         for (k = 0; k<n; ++k) {

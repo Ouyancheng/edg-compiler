@@ -4321,7 +4321,7 @@ static a_boolean normalize_runtime_address_if_possible(
                                                     a_constexpr_address *ptr1,
                                                     a_constexpr_address *ptr2)
 /*
-One of ptr1 and ptr1 is a run-time address and the other is not.  If the
+One of ptr1 and ptr2 is a run-time address and the other is not.  If the
 run-time address has an associated zero ck_integer constant, replace it by an
 equivalent interpreter address and return TRUE.  Otherwise, return FALSE.
 This is used to compare pointer values (null pointer values in particular).
