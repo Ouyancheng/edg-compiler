@@ -11864,8 +11864,8 @@ optional.
 
   ensure_ifc_hidden_friends_loaded(input_state);
 
-  an_ifc_decl_index   result;
-  a_module_entity_ptr class_decl_mep =
+  Opt<an_ifc_decl_index> result;
+  a_module_entity_ptr    class_decl_mep =
               input_state->hidden_friend_to_class->get(hidden_friend_decl_idx);
   if (class_decl_mep == NULL) {
     a_string err_msg("Expected a class to reference the hidden friend ",
