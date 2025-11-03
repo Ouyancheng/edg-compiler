@@ -1228,9 +1228,16 @@ using a_shared_token_cache = Shared_obj<a_token_cache>;
 
 EXTERN_THREAD Dyn_array<a_token_cache*>
 		*avail_scanning_token_caches;
+			/* A list of available token caches to be used by
+			   instances of a_scanning_token_cache (see
+			   a_scanning_token_cache for more information). */
 
 EXTERN_THREAD Dyn_array<a_token_cache*>
 		*avail_tiny_scanning_token_caches;
+			/* A list of available token caches to be used by
+			   instances of a_tiny_scanning_token_cache (see
+			   a_tiny_scanning_token_cache for more
+			   information). */
 
 /*
 This is a specialized token cache used for temporary scanning of tokens.
