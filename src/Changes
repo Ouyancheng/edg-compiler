@@ -1,5 +1,17 @@
 Version 6.8
 
+11/2/25  [EDGcpfe/28513]
+Hexadecimal floating-point literals and 80-bit floating-point types
+
+In configurations supporting 80-bit floating-point types, the front end
+previously sometimes created invalid internal values when converting from
+some hexadecimal floating-point literals.  This is now fixed.  For example,
+with --g++:
+
+  __float80 f0 = 0x0.0000000b504f334p-16385W;   // Previously produced an
+                                                // incorrect value, now okay.
+
+
 10/30/25 [EDGcpfe/28379]
 Microsoft compatibility: auto(...) and auto{...}
 

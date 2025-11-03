@@ -219,6 +219,16 @@ floating-point format.
 #define kind_is_16bit(kind)                                                   \
   (kind_is_binary16(kind) || (kind) == fk_std_bfloat16)
 
+/*
+Macro that returns TRUE if the most-significant bit of the floating-point
+kind's mantissa is an implicit 1 bit.  That is true of all supported
+floating-point kinds except fk_float80 and fk_long_double when long double
+has a float80 representation.
+*/
+#define kind_has_implicit_mantissa_bit(kind)                                  \
+  !((kind) == fk_float80 ||                                                   \
+    (repr_is_long_double(kind) && targ_ldbl_mant_dig == 64))
+
 STATIC_THREAD a_boolean
                 long_double_is_double;
                         /* TRUE in configurations where the "long double" and
@@ -231,11 +241,6 @@ STATIC_THREAD sizeof_t
 			   smaller than the actual size on some systems
 			   (e.g., Intel long doubles use 10 bytes of the
 			   12 bytes of allocated space). */
-
-STATIC_THREAD a_boolean
-		long_double_has_no_implicit_bit = FALSE;
-			/* TRUE if the long double floating point type does
-			   not make use of an implicit mantissa bit. */
 
 STATIC_THREAD a_host_fp_value
 		fp_zero;
@@ -367,7 +372,8 @@ append_using_c_formatting) as they are supported on all platforms.
   uint32_t  exponent, exponent_bias = 16383;
   a_byte    *p;
   int       i, offset, bytes, trailing_zeros = 0, left;
-  a_boolean leading_zeros = TRUE, implied_hidden_bit;
+  a_boolean leading_zeros = TRUE;
+  a_boolean  implied_hidden_bit = kind_has_implicit_mantissa_bit(kind);
 
   /* This routine only handles 80 and 128-bit float (everything else should
      be handled by the caller). */
@@ -375,12 +381,10 @@ append_using_c_formatting) as they are supported on all platforms.
       (repr_is_long_double(kind) && targ_ldbl_mant_dig == 64)) {
       /* 80 bits. */
     bytes = 10;
-    implied_hidden_bit = FALSE;
   } else if (kind == fk_float128 || kind == fk_std_float128 ||
              (repr_is_long_double(kind) && targ_ldbl_mant_dig == 113)) {
       /* 128 bits. */
     bytes = 16;
-    implied_hidden_bit = TRUE;
   } else {
     unexpected_condition();
   }  /* if */
@@ -2251,10 +2255,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
      denormalizing it. */
   if (*exponent < min_exp) {
     long bits_needed, bits_total;
-    int  implicit_bits;
-    /* Some long double kinds do not make use of an implicit mantissa bit. */
-    implicit_bits = (repr_is_long_double(kind) &&
-                     long_double_has_no_implicit_bit) ? 0 : 1;
+    int  implicit_bits = kind_has_implicit_mantissa_bit(kind) ? 1 : 0;
     /* Compute the number of additional bits needed to represent the value
        in denormalized form. */
     bits_needed = min_exp - *exponent;
@@ -2279,8 +2280,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
      mant_dig includes the implicit bit. */
   {
     /* Some long double kinds do not make use of an implicit mantissa bit. */
-    unsigned implicit_bits = (repr_is_long_double(kind) &&
-                              long_double_has_no_implicit_bit) ? 0 : 1;
+    unsigned implicit_bits = kind_has_implicit_mantissa_bit(kind) ? 1 : 0;
     long     value_bits = bits + implicit_bits;
     if (value_bits > (long)mant_dig) *inexact = TRUE;
   }
@@ -2425,9 +2425,7 @@ adjusted to make the implicit bit explicit.
     *exponent = 0;
     *is_negative = FALSE;
   } else {
-    if (restore_implicit_bit &&
-        (!repr_is_long_double(kind) ||
-         !long_double_has_no_implicit_bit)) {
+    if (restore_implicit_bit && kind_has_implicit_mantissa_bit(kind)) {
       /* Make explicit the implicit bit of the mantissa. */
       shift_right_mantissa(mp, 1);
       mp->parts[0] |= 0x80000000;
@@ -2640,6 +2638,8 @@ set to TRUE if the exponent is too large to represent.
     /* Bypass the 'p' or 'P'. */
     long	value = 0;
     a_boolean	is_negative = FALSE;
+    long        max_exp = 0;
+    long        min_exp = 0;
     str++;
     /* Check for a sign on the exponent. */
     if (*str == '-') {
@@ -2648,8 +2648,21 @@ set to TRUE if the exponent is too large to represent.
     } else if (*str == '+') {
       str++;
     }  /* if */
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
+    max_exp = max_exponent[(int)fk_double];
+    min_exp = -min_exponent[(int)fk_double];
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+    max_exp = max_exponent[(int)fk_long_double];
+    min_exp = -min_exponent[(int)fk_long_double];
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+    max_exp = max_exponent[(int)fk_float128];
+    min_exp = -min_exponent[(int)fk_float128];
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+    check_assertion(max_exp != 0);
     for (; isdigit((unsigned char)*str); str++) {
-      if (value > targ_ldbl_max_exp) {
+      if (value > (is_negative ? min_exp : max_exp)) {
         /* The value exceeds the largest possible exponent.  Stop
            accumulating the exponent at this point.  Note that this
            assumes that the exponent calculation will not exceed the
@@ -2717,8 +2730,7 @@ exponent was out of range).
     /* Round the value to the nearest representable value. */
     round_hex_fp_value(mp, &exponent, (a_targ_size_t)mant_dig,
                        /*is_fixed_point=*/FALSE, /*is_signed=*/FALSE, inexact);
-    if (!repr_is_long_double(kind) ||
-        !long_double_has_no_implicit_bit) {
+    if (kind_has_implicit_mantissa_bit(kind)) {
       /* Shift one bit further to have an implied initial one bit.  This is
          only done for floating point representations that use an implicit
          bit. */
@@ -4561,11 +4573,6 @@ Initialize static variables related to float_pt.c.
                       "FP_LONG_DOUBLE_IS_80BIT_EXTENDED should be TRUE");
 #endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && ... */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-  /* At least on Intel implementations, 80-bit floating-point values do not
-     have an implicit mantissa bit. */
-  if (targ_ldbl_mant_dig == 64) {
-    long_double_has_no_implicit_bit = TRUE;
-  }  /* if */
 #if USE_SOFTFLOAT
   /* Initialize SoftFloat global variables to default values.  See the
      SoftFloat documentation for available settings. */
