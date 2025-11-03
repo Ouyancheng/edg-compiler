@@ -1,5 +1,15 @@
 Version 6.8
 
+11/2/25  [EDGcpfe/28514]
+Type with defaulted trivial destructor spuriously considered non-literal
+
+In some complex cases, a type containing a defaulted trivial destructor was
+sometimes treated as "non-literal" even when it satisfied all the standard
+requirements for a literal type.  This could lead ton spurious errors, e.g.,
+when the type was used as the return type of a constexpr function.  This is
+now fixed.
+
+
 11/2/25  [EDGcpfe/28513]
 Hexadecimal floating-point literals and 80-bit floating-point types
 

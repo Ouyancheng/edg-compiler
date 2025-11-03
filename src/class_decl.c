@@ -22416,7 +22416,7 @@ skip_assignment_operators:
       gsfd->suppress_dtor = TRUE;
     } else {
       a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
-      if (!rp->is_constexpr) {
+      if (!rp->is_constexpr && !rp->is_trivial_destructor) {
         /* If this special member has to call a non-constexpr special member,
            it is itself not constexpr. */
         gsfd->dtor_not_constexpr = TRUE;
