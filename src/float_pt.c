@@ -373,7 +373,7 @@ append_using_c_formatting) as they are supported on all platforms.
   a_byte    *p;
   int       i, offset, bytes, trailing_zeros = 0, left;
   a_boolean leading_zeros = TRUE;
-  a_boolean  implied_hidden_bit = kind_has_implicit_mantissa_bit(kind);
+  a_boolean implied_hidden_bit = kind_has_implicit_mantissa_bit(kind);
 
   /* This routine only handles 80 and 128-bit float (everything else should
      be handled by the caller). */
@@ -2636,10 +2636,10 @@ set to TRUE if the exponent is too large to represent.
   /* Check for the presence of an exponent. */
   if (*str == 'p' || *str == 'P') {
     /* Bypass the 'p' or 'P'. */
-    long	value = 0;
-    a_boolean	is_negative = FALSE;
-    long        max_exp = 0;
-    long        min_exp = 0;
+    long      value = 0;
+    a_boolean is_negative = FALSE;
+    long      max_exp = 0;
+    long      min_exp = 0;
     str++;
     /* Check for a sign on the exponent. */
     if (*str == '-') {
