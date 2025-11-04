@@ -13581,18 +13581,31 @@ selector is an object pointer, FALSE if it is an object.
     } else {
       a_source_position selector_position;
       /* We have a selector. */
-      /* Cast the selector to the class of the member symbol. */
-      /* Also do the ARM 11.5 access checking for the type of selector used
-         to access a protected member. */
       selector_position = bound_function_selector->position;
-      cast_pointer_for_field_selection(bound_function_selector,
-                                       selector_is_object_pointer,
-                                       function_symbol,
-                                       overloaded_function_symbol,
-                                       access_error_reported,
-                                       /*do_protected_member_check=*/
+      if (orig_function_operand != NULL &&
+          is_expression_operand(orig_function_operand) &&
+          is_routine_node(orig_function_operand->variant.expression)) {
+        /* This is a member-function call like x.f(...) or p->f(...) where
+           the lookup of f found a single candidate, but we later decided to
+           perform overload resolution (e.g., because the function has a
+           trailing requires clause or a Clang enable_if attribute).  In such
+           cases, the selector was already cast to the class of f, and
+           attempting another cast could actually trigger an error (e.g.,
+           because a protected member would not be viewed from the derived
+           class). */
+      } else {
+        /* Cast the selector to the class of the member symbol. */
+        /* Also do the ARM 11.5 access checking for the type of selector used
+           to access a protected member. */
+        cast_pointer_for_field_selection(bound_function_selector,
+                                         selector_is_object_pointer,
+                                         function_symbol,
+                                         overloaded_function_symbol,
+                                         access_error_reported,
+                                         /*do_protected_member_check=*/
                                                                   !is_property,
-                                       &selector_position);
+                                         &selector_position);
+      }  /* if */
     }  /* if */
     /* Bind the function to the selector. */
     bind_member_function_operand_to_selector(bound_function_selector,
