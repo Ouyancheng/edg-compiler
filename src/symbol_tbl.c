@@ -11975,12 +11975,13 @@ appears later, the compiler-generated flag should be cleared.
       av_sym->variant.routine.ptr = sym->variant.routine.ptr;
     }  /* if */
   } else if (exceptions_enabled) {
-    /* Add exception specifications (except in Microsoft mode, where exception
-       specifications are usually discarded). */
-    rtsp = sym->variant.routine.ptr->type->variant.routine.extra_info;
     if (is_delete_operator(opname)) {
-      /* Mark the predeclared operator delete function with "throw()". */
-      rtsp->exception_specification = alloc_exception_specification();
+      /* In C++11, deallocation functions changed from "throw()" to
+         "noexcept". */
+      if (!cpp11_mode) {
+        rtsp = sym->variant.routine.ptr->type->variant.routine.extra_info;
+        rtsp->exception_specification = alloc_exception_specification();
+      }  /* if */
     } else {
       /* Putting out "throw(std::bad_alloc)" for the predeclared operator new
          is not yet implemented; it would entail predeclaring namespace std

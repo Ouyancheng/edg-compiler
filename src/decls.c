@@ -9225,9 +9225,12 @@ for use in generating cross-reference output describing this declaration.
 #endif /* CHECKING */
     if (implicit_noexcept_enabled && locator->is_operator_name &&
         rtsp->exception_specification == NULL &&
-        is_delete_operator(locator->variant.opname)) {
+        is_delete_operator(locator->variant.opname) &&
+        cpp11_mode) {
       /* A delete operator without an explicit exception specification is
-         treated as if declared "noexcept". */
+         treated as if declared "noexcept" in C++11 and later modes.  A
+         "throw()" exception specification is later added in pre-C++11 modes
+         (in make_global_operator_new_or_delete_symbol). */
       add_noexcept_specification(rtsp);
     }  /* if */
     /* If this is an overloaded operator, check for errors in the
