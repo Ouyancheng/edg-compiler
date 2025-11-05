@@ -154,24 +154,6 @@ FPT_LONG_DOUBLE_PRECISION macros (see float_type.h for an explanation).
       FP_LONG_DOUBLE_IS_BINARY128 and FP_LONG_DOUBLE_IS_80BIT_EXTENDED is TRUE.
 #endif /* FP_LONG_DOUBLE_IS_BINARY64 + FP_LONG_DOUBLE_IS_BINARY128 + ... */
 
-/* The SoftFloat library provides a binary128 type, so that should be used
-for the internal floating-point representation in SoftFloat
-configurations. */
-#if USE_SOFTFLOAT
-#ifndef USE_DOUBLE_FOR_HOST_FP_VALUE
-#define USE_DOUBLE_FOR_HOST_FP_VALUE FALSE
-#endif /* !defined(USE_DOUBLE_FOR_HOST_FP_VALUE) */
-#ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE FALSE
-#endif /* !defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE) */
-#undef USE_FLOAT128_FOR_HOST_FP_VALUE
-#define USE_FLOAT128_FOR_HOST_FP_VALUE TRUE
-#if USE_DOUBLE_FOR_HOST_FP_VALUE || USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-#error SoftFloat configurations cannot use double or long double \
-       for host floating-point values.
-#endif /* USE_DOUBE_FOR_HOST_FP_VALUE || ... */
-#endif /* USE_SOFTFLOAT */
-
 /*
 Definitions of fundamental properties for IEEE 754-2008 floating-point types.
 The default values for the FPT_FLOAT_* macros reflect the IEEE 754-2008

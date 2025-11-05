@@ -2656,7 +2656,7 @@ set to TRUE if the exponent is too large to represent.
     max_exp = max_exponent[(int)fk_long_double];
     min_exp = -min_exponent[(int)fk_long_double];
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#if USE_FLOAT128_FOR_HOST_FP_VALUE || USE_SOFTFLOAT
     max_exp = max_exponent[(int)fk_float128];
     min_exp = -min_exponent[(int)fk_float128];
 #endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
