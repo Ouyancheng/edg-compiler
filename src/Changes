@@ -1,5 +1,20 @@
 Version 6.8
 
+11/5/25  [EDGcpfe/28428]
+Floating point configuration consistency
+
+The C and C++ Standards do not mandate the representation to be used for
+the "long double" type.  The front end accommodates this flexibility by
+offering three configuration options, FP_LONG_DOUBLE_IS_BINARY64,
+FP_LONG_DOUBLE_IS_80BIT_EXTENDED, and FP_LONG_DOUBLE_IS_BINARY128, to
+specify the representation to be used.  However, it also allows configuring
+the characteristics (the number of bits in the mantissa and the minimum and
+maximum exponent values) of each floating point type.  The front end now
+ensures that the TARG_LDBL_MANT_DIG, TARG_LDBL_MIN_EXP, and
+TARG_LDBL_MAX_EXP settings match the FP_LONG_DOUBLE_IS_* setting and issues
+a build error if a mismatch is detected.
+
+
 11/4/25  [EDGcpfe/28370]
 GCC and Clang C++ compatibility: Core issue 2084
 
