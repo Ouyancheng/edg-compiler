@@ -19275,7 +19275,7 @@ for the union type (class_type).
   }  /* if */
   check_assertion(class_type != NULL);
   parent_cssp = symbol_supplement_for_class(class_type);
-  if (gpp_mode || clang_mode) {
+  if (gpp_version_is(<130000) || clangcpp_version_is(<170000)) {
     initializer_overrides_ctor = has_initializer;
     /* initializer_overrides_other_ctor already FALSE */
   } else if (!ms_version_is(<1927)) {

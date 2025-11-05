@@ -1,5 +1,18 @@
 Version 6.8
 
+11/4/25  [EDGcpfe/28370]
+GCC and Clang C++ compatibility: Core issue 2084
+
+The changes for EDGcpfe/21433 implemented the resolution for core issue 2084,
+which causes a union to be default constructible if it has a single member
+with a default initializer even if another member has a nontrivial default
+constructor (which in other circumstances would make the union's default
+constructor deleted).  However, those changes were not enabled in Clang and
+GCC modes because neither Clang nor GCC implemented that resolution at the
+time.  Now, the standard-conforming behavior is enabled in GCC mode with
+gnu_version >= 130000 and in Clang mode with clang_version >= 170000.
+
+
 11/4/25  [EDGcpfe/28516]
 Spurious protected member access error
 
