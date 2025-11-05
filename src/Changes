@@ -45,10 +45,10 @@ Consider (in C++20 mode):
 
 Previously, the front end erroneously issued an error about f() being
 inaccessible.  Accessing a protected member from a derived class requires the
-selector object to be of a derived type (and not, e.g., of the class enclosing
-the member; e.g., ((B<int>*)this)->f() would be an error.  The spurious error
-for this example was the result of "this" being prematurely converted to the
-base class type.  That is now fixed.
+selector object to be of a derived type (and not of the class enclosing the
+member; e.g., ((B<int>*)this)->f() would be an error).  The spurious error for
+this example was the result of "this" being prematurely converted to the base
+class type.  That is now fixed.
 
 
 11/2/25  [EDGcpfe/28514]
