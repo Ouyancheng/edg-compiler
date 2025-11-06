@@ -2659,7 +2659,7 @@ set to TRUE if the exponent is too large to represent.
 #if USE_FLOAT128_FOR_HOST_FP_VALUE || USE_SOFTFLOAT
     max_exp = max_exponent[(int)fk_float128];
     min_exp = -min_exponent[(int)fk_float128];
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE || USE_SOFTFLOAT */
     check_assertion(max_exp != 0);
     for (; isdigit((unsigned char)*str); str++) {
       if (value > (is_negative ? min_exp : max_exp)) {
