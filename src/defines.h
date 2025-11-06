@@ -358,11 +358,12 @@ Flags to be set for any version that uses the C++ generating back end.
 /* Settings needed to make CodeCenter happy (it doesn't understand long
    double). */
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
-#define TARG_SIZEOF_LONG_DOUBLE 8
-#define TARG_LDBL_MANT_DIG 53
-#define TARG_LDBL_MAX_EXP 1024
-#define TARG_LDBL_MIN_EXP 1021
-#define FP_HAS_LONG_DOUBLE 0
+#define FP_LONG_DOUBLE_IS_BINARY128 1
+#define TARG_SIZEOF_LONG_DOUBLE 16
+#define TARG_LDBL_MANT_DIG 113
+#define TARG_LDBL_MAX_EXP 16384
+#define TARG_LDBL_MIN_EXP -16381
+#define FP_HAS_LONG_DOUBLE 1
 #define ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE 1
 #ifndef UNICODE_SOURCE_SUPPORTED
 #define UNICODE_SOURCE_SUPPORTED 1
