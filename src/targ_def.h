@@ -898,14 +898,15 @@ Otherwise, supply a reasonable default value.
 #endif /* ifdef LDBL_MAX_EXP */
 #endif /* ifndef TARG_LDBL_MAX_EXP */
 
-#if FP_LONG_DOUBLE_IS_BINARY64 && \
+#if defined(FP_LONG_DOUBLE_IS_BINARY64) && FP_LONG_DOUBLE_IS_BINARY64 && \
     (TARG_LDBL_MANT_DIG != 53 || \
      TARG_LDBL_MAX_EXP != 1024 || \
      TARG_LDBL_MIN_EXP != -1021)
 #error FP_LONG_DOUBLE_IS_BINARY64 is TRUE but TARG_LDBL_* values do not match.
 #endif /* FP_LONG_DOUBLE_IS_BINARY64 && ... */
 
-#if FP_LONG_DOUBLE_IS_80BIT_EXTENDED && \
+#if defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) && \
+    FP_LONG_DOUBLE_IS_80BIT_EXTENDED && \
     (TARG_LDBL_MANT_DIG != 64 || \
      TARG_LDBL_MAX_EXP != 16384 || \
      TARG_LDBL_MIN_EXP != -16381)
@@ -913,7 +914,7 @@ Otherwise, supply a reasonable default value.
        match.
 #endif /* FP_LONG_DOUBLE_IS_80BIT_EXTENDED && ... */
 
-#if FP_LONG_DOUBLE_IS_BINARY128 && \
+#if defined(FP_LONG_DOUBLE_IS_BINARY128) && FP_LONG_DOUBLE_IS_BINARY128 && \
     (TARG_LDBL_MANT_DIG != 113 || \
      TARG_LDBL_MAX_EXP != 16384 || \
      TARG_LDBL_MIN_EXP != -16381)
