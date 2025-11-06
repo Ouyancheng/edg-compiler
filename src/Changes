@@ -15,10 +15,10 @@ with --c++17:
 
 
 11/5/25  [EDGcpfe/28445]
-Exception specifications on operator delete
+Exception specifications on deallocation functions
 
-Since C++11, predefined operator delete declarations should be "noexcept" but
-were instead "throw()".  Now fixed.
+Since C++11, predefined deallocation function declarations should be "noexcept"
+but were instead "throw()".  Now fixed.
 
 
 11/5/25  [EDGcpfe/28428]
