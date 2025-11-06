@@ -13618,6 +13618,11 @@ this one is such a continuation.
         gen_type_reference(sec_decl->declared_type,
                            /*suppress_typename_kwd=*/TRUE,
                            /*is_declaration=*/TRUE);
+      } else if (is_immediate_class_type(type) &&
+                 class_type_supp(type)->proxy_of_type != NULL) {
+        gen_type_reference(class_type_supp(type)->proxy_of_type,
+                           /*suppress_typename_kwd=*/FALSE,
+                           /*is_declaration=*/TRUE);
       } else {
         gen_tag_reference(type, options, attributes);
       }  /* if */

@@ -1,5 +1,19 @@
 Version 6.8
 
+11/5/25  [EDGcpfe/28519]
+C++-generating back end: friend declarations of dependent nested type
+
+The front end previously incorrectly added a "class" keyword to a friend
+declaration of a dependent nested type.  This is now fixed.  For example,
+with --c++17:
+
+  template <bool, typename a> struct A { typedef a type; };
+  template <bool b, typename a> using c = typename A<b, a>::type;
+  template <bool b> class d {
+    friend c<b, int>; // Previously generated as "friend class A<b,int>::type"
+  };
+
+
 11/5/25  [EDGcpfe/28445]
 Exception specifications on operator delete
 
