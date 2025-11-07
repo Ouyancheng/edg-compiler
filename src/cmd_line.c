@@ -5553,9 +5553,9 @@ before this routine is called.
   }  /* if */
   c_and_cpp_function_types_are_distinct = FALSE;
   allow_default_arg_on_template_member_definition = TRUE;
-  if (gnu_version < 110000 || !cpp20_mode) {
-    /* GCC doesn't accept floating-point nontype template parameters until
-       GCC 11.x, and then only in C++20 mode. */
+  if (gnu_version_is(<110000) || clang_version_is(<180000) || !cpp20_mode) {
+    /* GNU 11 and Clang 18 support floating-point template parameters, but only
+       in C++20 mode. */
     floating_point_template_parameters_allowed = FALSE;
   }  /* if */
   equiv_typedefs_are_lookup_equivalent = FALSE;

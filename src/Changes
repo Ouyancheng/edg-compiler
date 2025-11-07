@@ -1,5 +1,12 @@
 Version 6.8
 
+11/7/25  [EDGcpfe/28520]
+Clang compatibility: floating-point template parameters enabled with --c++20
+
+Floating-point template parameters (a C++20 feature) are now enabled when
+clang_version >= 180000 and --c++20 or later is specified.
+
+
 11/7/25  [EDGcpfe/28521]
 C++-generating back end: template parameter pack expansions
 
