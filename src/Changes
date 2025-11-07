@@ -1,5 +1,21 @@
 Version 6.8
 
+11/7/25  [EDGcpfe/28521]
+C++-generating back end: template parameter pack expansions
+
+The C++-generating back end previously enclosed a template parameter name
+in redundant parentheses when it appears in a pack expansion in a template
+argument.  Although the resulting code is valid, it could trigger a clang
+bug reporting a deduction problem.  This is now fixed, and the redundant
+parentheses are suppressed in the generated code.  For example, with
+--c++20:
+
+  template<int...>  struct A { };
+  template<typename T> struct B { };
+  template<auto... Xs> struct B<A<Xs...>> { };  // Previously generated as
+                                                // B<A<(Xs)...>>
+
+
 11/5/25  [EDGcpfe/28519]
 C++-generating back end: friend declarations of dependent nested type
 

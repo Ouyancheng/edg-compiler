@@ -629,7 +629,10 @@ Output the indicated template argument in the way described by octl.
                           (expr == NULL ||
                            (!node_is(expr, enk_temp_init) &&
                             !(is_constant_node(expr) &&
-                              node_constant_is(expr, ck_aggregate))))));
+                              (node_constant_is(expr, ck_aggregate) ||
+                               (node_constant_is(expr, ck_template_param) &&
+                                tpck_is(node_constant(expr),
+                                        tpck_param))))))));
           if (is_any_reference_type(con->type)) {
             /* A reference parameter.  Display specially -- one level of
                indirection must be removed. */
