@@ -2458,7 +2458,7 @@ template<typename an_Object, template<typename> class Allocator>
 auto Shared_obj<an_Object, Allocator>::operator=(const an_Object &other)
                                                             -> a_shared_object&
 /*
-Move copy other to *this, then return *this.
+Copy other to *this, then return *this.
 */
 {
   /* Decrement the reference count of the control block currently owned. */
@@ -2494,7 +2494,7 @@ template<typename an_Object, template<typename> class Allocator>
 auto Shared_obj<an_Object, Allocator>::operator=(const a_shared_object &other)
                                                             -> a_shared_object&
 /*
-Move copy other to *this, then return *this.
+Copy other to *this, then return *this.
 */
 {
   if (this != &other) {
@@ -2561,7 +2561,7 @@ If a reference to the shared object is currently present, decrement its
 counter.  If the counter hits 0, the object will be deallocated.
 */
 {
-  /* Disable the GCC maybe uninitialized warning which may falsely flag
+  /* Disable the GCC "maybe uninitialized" warning which may falsely flag
      the control block as being uninitialized in some contexts. */
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   if (this->ctrl_block != NULL) {
@@ -2583,8 +2583,8 @@ template<typename an_Object,
 INLINE a_boolean operator==(const Shared_obj<an_Object, Allocator_A> &obj_a,
                             const Shared_obj<an_Object, Allocator_B> &obj_b)
 /*
-Return TRUE if the given shared object values are equal; otherwise, return
-FALSE.
+Return TRUE if the given shared objects refer to the same underlying shared
+object; otherwise, return FALSE.
 */
 {
   return obj_a.ptr() == obj_b.ptr();
