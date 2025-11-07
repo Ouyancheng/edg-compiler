@@ -875,27 +875,66 @@ Otherwise, supply a reasonable default value.
 #endif /* ifndef TARG_DBL_MAX_EXP */
 
 #ifndef TARG_LDBL_MANT_DIG
+#if defined(FP_LONG_DOUBLE_IS_BINARY64) && FP_LONG_DOUBLE_IS_BINARY64
+#define TARG_LDBL_MANT_DIG 53
+#else /* !(defined(FP_LONG_DOUBLE_IS_BINARY_64) && ...) */
+#if defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) && \
+    FP_LONG_DOUBLE_IS_80BIT_EXTENDED
+#define TARG_LDBL_MANT_DIG 64
+#else /* !(defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) && ...) */
+#if defined(FP_LONG_DOUBLE_IS_BINARY128) && FP_LONG_DOUBLE_IS_BINARY128
+#define TARG_LDBL_MANT_DIG 113
+#else /* !(defined(FP_LONG_DOUBLE_IS_BINARY128) && ...) */
 #ifdef LDBL_MANT_DIG
 #define TARG_LDBL_MANT_DIG LDBL_MANT_DIG
 #else /* ifndef LDBL_MANT_DIG */
 #define TARG_LDBL_MANT_DIG 64
 #endif /* ifdef LDBL_MANT_DIG */
+#endif /* defined(FP_LONG_DOUBLE_IS_BINARY128) && ... */
+#endif /* defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) && ... */
+#endif /* defined(FP_LONG_DOUBLE_IS_BINARY64) && FP_LONG_DOUBLE_IS_BINARY64 */
 #endif /* ifndef TARG_LDBL_MANT_DIG */
 
 #ifndef TARG_LDBL_MIN_EXP
+#if defined(FP_LONG_DOUBLE_IS_BINARY64) && FP_LONG_DOUBLE_IS_BINARY64
+#define TARG_LDBL_MIN_EXP -1021
+#else /* !(defined(FP_LONG_DOUBLE_IS_BINARY_64) && ...) */
+#if defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) && \
+    FP_LONG_DOUBLE_IS_80BIT_EXTENDED
+#define TARG_LDBL_MIN_EXP -16381
+#else /* !(defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) && ...) */
+#if defined(FP_LONG_DOUBLE_IS_BINARY128) && FP_LONG_DOUBLE_IS_BINARY128
+#define TARG_LDBL_MIN_EXP -16381
+#else /* !(defined(FP_LONG_DOUBLE_IS_BINARY128) && ...) */
 #ifdef LDBL_MIN_EXP
 #define TARG_LDBL_MIN_EXP LDBL_MIN_EXP
 #else /* ifndef LDBL_MIN_EXP */
 #define TARG_LDBL_MIN_EXP (-16381)
 #endif /* ifdef LDBL_MIN_EXP */
+#endif /* defined(FP_LONG_DOUBLE_IS_BINARY128) && ... */
+#endif /* defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) && ... */
+#endif /* defined(FP_LONG_DOUBLE_IS_BINARY64) && FP_LONG_DOUBLE_IS_BINARY64 */
 #endif /* ifndef TARG_LDBL_MIN_EXP */
 
 #ifndef TARG_LDBL_MAX_EXP
+#if defined(FP_LONG_DOUBLE_IS_BINARY64) && FP_LONG_DOUBLE_IS_BINARY64
+#define TARG_LDBL_MAX_EXP 1024
+#else /* !(defined(FP_LONG_DOUBLE_IS_BINARY_64) && ...) */
+#if defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) && \
+    FP_LONG_DOUBLE_IS_80BIT_EXTENDED
+#define TARG_LDBL_MAX_EXP 16384
+#else /* !(defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) && ...) */
+#if defined(FP_LONG_DOUBLE_IS_BINARY128) && FP_LONG_DOUBLE_IS_BINARY128
+#define TARG_LDBL_MAX_EXP 16384
+#else /* !(defined(FP_LONG_DOUBLE_IS_BINARY128) && ...) */
 #ifdef LDBL_MAX_EXP
 #define TARG_LDBL_MAX_EXP LDBL_MAX_EXP
 #else /* ifndef LDBL_MAX_EXP */
 #define TARG_LDBL_MAX_EXP (16384)
 #endif /* ifdef LDBL_MAX_EXP */
+#endif /* defined(FP_LONG_DOUBLE_IS_BINARY128) && ... */
+#endif /* defined(FP_LONG_DOUBLE_IS_80BIT_EXTENDED) && ... */
+#endif /* defined(FP_LONG_DOUBLE_IS_BINARY64) && FP_LONG_DOUBLE_IS_BINARY64 */
 #endif /* ifndef TARG_LDBL_MAX_EXP */
 
 #if defined(FP_LONG_DOUBLE_IS_BINARY64) && FP_LONG_DOUBLE_IS_BINARY64 && \
