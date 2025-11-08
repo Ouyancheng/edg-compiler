@@ -56,7 +56,10 @@ the characteristics (the number of bits in the mantissa and the minimum and
 maximum exponent values) of each floating point type.  The front end now
 ensures that the TARG_LDBL_MANT_DIG, TARG_LDBL_MIN_EXP, and
 TARG_LDBL_MAX_EXP settings match the FP_LONG_DOUBLE_IS_* setting and issues
-a build error if a mismatch is detected.
+a build error if a mismatch is detected.  In addition, if the TARG_LDBL_*
+values are not set explicitly but one of the FP_LONG_DOUBLE_IS_* options is
+TRUE, the TARG_LDBL_* values are defaulted to match the selected
+FP_LONG_DOUBLE_IS_* option.
 
 
 11/4/25  [EDGcpfe/28370]
