@@ -12,10 +12,10 @@ C++-generating back end: template parameter pack expansions
 
 The C++-generating back end previously enclosed a template parameter name
 in redundant parentheses when it appears in a pack expansion in a template
-argument.  Although the resulting code is valid, it could trigger a clang
-bug reporting a deduction problem.  This is now fixed, and the redundant
-parentheses are suppressed in the generated code.  For example, with
---c++20:
+argument.  Although most implementations accept the resulting code without
+an error, clang reports a deduction problem.  Accordingly, the
+C++-generating back end has now been changed to suppress these redundant
+parentheses in the generated code.  For example, with --c++20:
 
   template<int...>  struct A { };
   template<typename T> struct B { };
