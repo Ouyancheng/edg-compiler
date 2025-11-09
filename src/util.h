@@ -590,6 +590,7 @@ private:
                         /* The underlying iterator that's being reversed. */
 };  /* Reverse_iter */
 
+
 template<typename an_Object>
 void reverse_array(an_Object  *arr,
                    size_t     length)
