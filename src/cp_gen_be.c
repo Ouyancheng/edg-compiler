@@ -5611,7 +5611,7 @@ are done in the il_to_str routines before this routine is called.
        types.  These need to be preserved because they can affect SFINAE
        processing.  Also, member typedefs that refer to trk_name_qualifier
        typerefs must be maintained because the name qualifier will be
-       relative to containing class, which is likely not the current
+       relative to the containing class, which is likely not the current
        context and thus could result in incorrect generated code, with the
        qualifier being inaccessible or out of scope. */
     a_type_ptr underlying_type =
