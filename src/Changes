@@ -1248,7 +1248,7 @@ file).
 Segfault when using PCH files with mmap on old versions of Linux
 
 Previously, on older versions of Linux in configurations with
-USE_MMAP_FOR_MEMORY_REGIONS set to TRUE a segfault could occur when using PCH
+USE_MMAP_FOR_MEMORY_REGIONS set to TRUE, a segfault could occur when using PCH
 files (at any point where the memory loaded from the PCH is mutated).  This is
 now fixed.
 

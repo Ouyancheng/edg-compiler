@@ -912,7 +912,7 @@ memory used by the compilation.
   mem_manage_wrapup();
   /* It's important that this is called after mem_manage_wrapup.
 
-     Older versions of the Linux kernel require the file backing a mmap
+     Older versions of the Linux kernel require that the file backing a mmap
      operation remain open.  Since the precompile header implementation loads a
      variety of memory mappings from f_pch_input, f_pch_input must NOT be
      closed prior to memory management wrapup (or else odd segfaults will
