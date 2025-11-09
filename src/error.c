@@ -3301,7 +3301,7 @@ static void general_diagnostic(
 NORETURN void insufficient_address_space()
 /*
 The program requires additional address space that it cannot acquire.  Write
-the given message and exit.
+a diagnostic message and exit.
 */
 {
   catastrophe(ec_insufficient_address_space);

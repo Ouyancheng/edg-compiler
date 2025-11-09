@@ -750,7 +750,7 @@ as contiguous memory blocks to use this interface.
         To prevent this warning from being issued (and protect against these
         unlikely cases) the byte count is checked explicitly before calling
         memcpy. */
-     insufficient_address_space();
+    insufficient_address_space();
   }  /* if */
   (void)memcpy(&(dest_array[0]), &(src_array[0]), num_bytes);
 }  /* copy_construct_elements */
@@ -878,7 +878,7 @@ as contiguous memory blocks to use this interface.
         To prevent this warning from being issued (and protect against these
         unlikely cases) the byte count is checked explicitly before calling
         memmove. */
-     insufficient_address_space();
+    insufficient_address_space();
   }  /* if */
   (void)memmove(&(dest_array[0]), &(src_array[0]), num_bytes);
 }  /* move_elements */
