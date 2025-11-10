@@ -23046,7 +23046,7 @@ been instantiated, update the befriending information for the instances.
   clep->class_type = class_declared_in;
   tssp->befriending_classes = clep;
 
-  /* Add the template to the list of friended templates. */
+  /* Add the template to the list of befriended templates. */
   an_il_entity_list_entry_ptr ielep = alloc_il_entity_list_entry_with(
                                            &class_declared_in->source_corresp);
   a_class_type_supplement_ptr ctsp =
@@ -30569,7 +30569,7 @@ been instantiated, update the befriending information for the instances.
   clep->class_type = class_declared_in;
   tssp->befriending_classes = clep;
 
-  /* Add the template to the list of friended templates. */
+  /* Add the template to the list of befriended templates. */
   an_il_entity_list_entry_ptr ielep = alloc_il_entity_list_entry_with(
                                            &class_declared_in->source_corresp);
   a_class_type_supplement_ptr ctsp =

@@ -1,5 +1,14 @@
 Version 6.8
 
+11/10/25 [EDGcpfe/26294]
+Unified friend listing (IL CHANGE)
+
+The IL representation of a class's befriended entities has been unified; there
+is now a single list representing all befriended entities.  Additionally,
+befriend templates are now included in this list (previously, they could not
+easily be retrieved).
+
+
 11/7/25  [EDGcpfe/28520]
 Clang compatibility: floating-point template parameters enabled with --c++20
 
