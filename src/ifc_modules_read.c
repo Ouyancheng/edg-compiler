@@ -7441,9 +7441,9 @@ static void diagnose_ifc_entity_part_load_failure(an_error_code     error_code,
                                                   an_ifc_Index_type idx)
 /*
 Emit an error for some portion of a lazily-loaded IFC entity failing to load.
-entity_sym is the symbol of the lazily-loaded entity.  idx is in the primary
-index identifying what is being loaded (typically the IFC index represented by
-the primary module entry locator).
+entity_sym is the symbol of the lazily-loaded entity.  idx is the primary index
+identifying what is being loaded (typically the IFC index represented by the
+primary module entry locator).
 */
 {
   a_module_ptr     mod = module_of(idx);
