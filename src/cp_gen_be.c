@@ -4961,7 +4961,7 @@ entity is a template class, add the template arguments.
       }  /* if */
     } else {
       gen_template_arguments(scp, entry_kind, -1L);
-    }  /* IF */
+    }  /* if */
   }  /* if */
 }  /* gen_unqualified_name */
 
