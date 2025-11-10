@@ -11602,9 +11602,9 @@ is dependent.
 
 a_boolean are_template_args_lexically_identical(a_template_arg_ptr  list1,
                                                 a_template_arg_ptr  list2,
-                               /* Defaulted: */ long                num_args)
+                              /* Defaulted: */  long                num_args)
 /*
-Return TRUE if the given template arguments lists are lexically identical.  If
+Return TRUE if the given template argument lists are lexically identical.  If
 num_args is not -1, it specifies the number of arguments to compare.
 */
 {
@@ -11677,7 +11677,7 @@ template).  Return the symbol that is found or newly created.
 *new_list points to the template argument list of the template class
 or alias to be found or created.  If a new template instance is created, the
 template argument list is attached to that new instance.  If an existing
-instance with lexically identical template arguments is found, the template
+instance with lexically-identical template arguments is found, the template
 argument list passed by the caller is discarded.  In either case, the
 pointer provided by the caller is set to NULL to prevent subsequent use of
 the argument list in case it has been freed.

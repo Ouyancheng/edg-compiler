@@ -13233,11 +13233,11 @@ a_type_ptr make_partial_ptr_to_member_type(a_type_ptr  class_type,
 /*
 Allocate and return a pointer-to-member type for members of the given class
 type.  The type produced must eventually be "completed" by a call to
-update_ptr_to_member_type (which records the member type).
-Ordinarily, the given class_type cannot be a typeref, but in GNU and Microsoft
-modes, an exception is made to emulate a peculiar behavior in template
-instantiation contexts; a later call to update_ptr_to_member_type will replace
-any typerefs by the underlying class type entry in such cases.  orig_class_type
+update_ptr_to_member_type (which records the member type).  Ordinarily, the
+given class_type cannot be a typeref, but in GNU and Microsoft modes, an
+exception is made to emulate a peculiar behavior in template instantiation
+contexts; a later call to update_ptr_to_member_type will replace any
+typerefs by the underlying class type entry in such cases.  orig_class_type
 points to the class type as specified, including any typerefs.
 */
 {

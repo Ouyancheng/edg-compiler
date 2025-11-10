@@ -312,15 +312,15 @@ typedef struct a_symbol_locator {
   a_template_arg_ptr
 		template_arg_list;
 			/* When a function template symbol, or an overloaded
-			   function symbol is followed by a template argument
+			   function symbol, is followed by a template argument
 			   list, this points to the argument list that was
 			   specified.  Typically, the reference cannot be
 			   coalesced to a pointer to a template instance until
 			   the function type is known.  This also points to the
 			   template argument list for a variable template
 			   symbol.  For a class template symbol it only points
-			   the template argument list if it is lexically
-			   different to the one associated with the type and
+			   to the template argument list if it is lexically
+			   different from the one associated with the type and
 			   record_form_of_name_reference is TRUE. */
   a_name_qualifier_ptr
 		name_qualifier;

@@ -6848,7 +6848,7 @@ source sequence entry (NULL if no such reference was recorded).
 
 static void gen_name_qualifier_list(
                                    a_name_qualifier_ptr nqp,
-                                   a_boolean            from_name_qual_typeref)
+                 /* Defaulted: */  a_boolean            from_name_qual_typeref)
 /*
 Put out the list of name qualifiers indicated by nqp.  If nqp is NULL,
 put out nothing.  If from_name_qual_typeref is TRUE, the name qualifier list
@@ -9002,7 +9002,7 @@ the same instance might not be).
 
 
 static void gen_type_operator(a_type_ptr tp,
-                              a_boolean  from_name_qual_typeref)
+            /* Defaulted: */  a_boolean  from_name_qual_typeref)
 /*
 Emit a type operator (decltype, etc.) or type builtin construct.  If the
 argument to the construct has associated source sequence entries, the type
@@ -9362,9 +9362,9 @@ elaborated type specifier in the given scope.
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 static void gen_type_reference(a_type_ptr type,
-                               a_boolean  suppress_typename_kwd,
-                               a_boolean  is_declaration,
-                               a_boolean  suppress_elab_type_spec)
+             /* Defaulted: */  a_boolean  suppress_typename_kwd,
+             /* Defaulted: */  a_boolean  is_declaration,
+             /* Defaulted: */  a_boolean  suppress_elab_type_spec)
 /*
 Generate a reference to the indicated type, which is a fundamental type, a
 tag, a typedef, or a dependent type.  A reference is not the definition.
@@ -11163,7 +11163,7 @@ generate "public " or "private " accordingly.
 
 
 static void gen_enum_definition(a_type_ptr            type,
-                                ARG_UNUSED a_type_ptr qual_typeref)
+              /* Defaulted: */  ARG_UNUSED a_type_ptr qual_typeref)
 /*
 Output the definition of the indicated enum type.  This is in the form of
 a type specifier (no trailing ";").  The current source sequence entry
@@ -11930,7 +11930,7 @@ Render the given delegate type as a C++/CLI delegate definition.  E.g.:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_class_definition(a_type_ptr            type,
-                                 ARG_UNUSED a_type_ptr qual_typeref)
+               /* Defaulted: */  ARG_UNUSED a_type_ptr qual_typeref)
 /*
 Output the definition of the indicated class type.  This is in the form of
 a type specifier (no trailing ";").  The current source sequence entry

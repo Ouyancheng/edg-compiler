@@ -4463,7 +4463,7 @@ cache rescan strategies.
 
 
 void rescan_cached_tokens(a_token_cache *cache,
-         /* Defaulted: */ a_boolean     discard_curr_token)
+        /* Defaulted: */  a_boolean     discard_curr_token)
 /*
 Put the tokens saved in *cache onto the rescan list so that they will be
 re-fetched by get_token.  On return, the current token is the first
@@ -19602,7 +19602,7 @@ for matching_msg at the position given by matching_pos.
 
 a_boolean required_token(a_token_kind      token,
                          an_error_code     error_code,
-      /* Defaulted: */   an_error_code     matching_code,
+       /* Defaulted: */  an_error_code     matching_code,
                          a_source_position *matching_start_pos)
 /*
 The current token is required to be "token".  If it is, advance normally by
@@ -19649,7 +19649,7 @@ up.
 
 a_boolean required_token_no_advance(a_token_kind      token,
                                     an_error_code     error_code,
-                 /* Defaulted: */   an_error_code     matching_code,
+                  /* Defaulted: */  an_error_code     matching_code,
                                     a_source_position *matching_start_pos)
 /*
 The current token is required to be "token".  If it is not, issue an error
@@ -23618,7 +23618,7 @@ a_type_and_template_arg_list.  Return TRUE if the key matches the entry.
 static a_type_ptr make_typeref_with_template_args(a_type_ptr          tp,
                                                   a_template_arg_ptr  arg_list)
 /*
-Return a new tk_typref entry with the given template argument list and whose
+Return a new tk_typeref entry with the given template argument list and whose
 underlying type is tp.
 */
 {
@@ -23665,7 +23665,7 @@ a_type_ptr make_typeref_with_name_qualifier(
                                 a_name_qualifier_ptr  name_qualifier,
                                 a_boolean             is_global_qualified_name)
 /*
-Return a new tk_typref entry with the given name qualifier (can be NULL if
+Return a new tk_typeref entry with the given name qualifier (can be NULL if
 is_global_qualified_name is TRUE) and whose underlying type is tp.
 */
 {
@@ -23696,9 +23696,9 @@ is_global_qualified_name is TRUE) and whose underlying type is tp.
 a_type_ptr make_typeref_with_lexical_information(a_type_ptr        tp,
                                                  a_symbol_locator  *locator)
 /*
-If the given locator represents a qualified name, return a new tk_typref entry
+If the given locator represents a qualified name, return a new tk_typeref entry
 with the given name qualifier and whose underlying type is tp.  If the given
-locator includes an original template argument list, return a new tk_typref
+locator includes an original template argument list, return a new tk_typeref
 entry with that template argument list and whose underlying type is tp.
 */
 {
