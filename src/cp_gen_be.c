@@ -3920,23 +3920,6 @@ End the writing of a preprocessing directive.
 }  /* end_pp_directive */
 
 
-static inline a_boolean is_lexical_typeref(a_type_ptr tp)
-/*
-Return TRUE if tp is a trk_template_arg_list or trk_name_qualifier typeref,
-FALSE otherwise.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (type_is(tp, tk_typeref) &&
-      (is_typeref_kind(tp, trk_template_arg_list) ||
-       is_typeref_kind(tp, trk_name_qualifier))) {
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* is_lexical_typeref */
-
-
 static inline a_boolean has_qual_typeref(a_type_ptr tp)
 /*
 Return TRUE if tp is a trk_name_qualifier typeref or a

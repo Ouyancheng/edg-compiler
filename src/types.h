@@ -56,6 +56,23 @@ this routine should not be used when checking type qualifiers.
 }  /* skip_typerefs */
 
 
+INLINE a_boolean is_lexical_typeref(a_type_ptr tp)
+/*
+Return TRUE if tp is a trk_template_arg_list or trk_name_qualifier typeref,
+FALSE otherwise.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_is(tp, tk_typeref) &&
+      (is_typeref_kind(tp, trk_template_arg_list) ||
+       is_typeref_kind(tp, trk_name_qualifier))) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_lexical_typeref */
+
+
 INLINE a_type_ptr skip_lexical_typerefs(a_type_ptr type_ptr)
 /*
 Strip any typeref entries that store information about the lexical form of the
@@ -64,9 +81,7 @@ trk_name_qualifier).
 */
 {
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-  while (type_is(type_ptr, tk_typeref) &&
-         (is_typeref_kind(type_ptr, trk_template_arg_list) ||
-          is_typeref_kind(type_ptr, trk_name_qualifier))) {
+  while (is_lexical_typeref(type_ptr)) {
     type_ptr = type_ptr->variant.typeref.type;
 #if EXPENSIVE_CHECKING
     check_assertion_str(type_ptr != NULL,
