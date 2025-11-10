@@ -5,8 +5,8 @@ Unified friend listing (IL CHANGE)
 
 The IL representation of a class's befriended entities (in
 a_class_type_supplement) has been unified; there is now a single list (the new
-friends field) representing all befriended entities (previously, there was both
-a friend_routines and friend_classes field).  Additionally, befriended
+friends field) representing all befriended entities (previously, there were
+friend_routines and friend_classes fields).  Additionally, befriended
 templates are now included in this list (previously, they could not easily be
 retrieved).
 
