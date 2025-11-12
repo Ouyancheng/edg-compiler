@@ -2072,7 +2072,8 @@ any translation unit.
   size_t this_tu_init = (num_bytes_allocated - num_bytes_freed);
 
   if (this_tu_init > max_mem_in_use_after_tu_init) {
-    max_mem_in_use_after_tu_init = this_tu_init;
+    max_mem_in_use_after_tu_init =
+                        (decltype(max_mem_in_use_after_tu_init))(this_tu_init);
   }  /* if */
 }  /* mem_manage_trans_unit_init_done */
 
