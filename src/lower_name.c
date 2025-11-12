@@ -6580,7 +6580,7 @@ mangling for the constant, is provided; otherwise, the list of expressions
                                            cp->variant.init_repeat.constant)) {
             /* No mangling to repeat. */
           } else {
-            count += cp->variant.init_repeat.count;
+            count += (unsigned long)cp->variant.init_repeat.count;
           }  /* if */
         } else {
           count++;
