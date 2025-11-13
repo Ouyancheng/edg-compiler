@@ -55836,7 +55836,8 @@ described previously).
     an_arg_list_elem_ptr    init_arg;
     an_operand              *init_opnd;
     an_expr_node            *orig_prvalue = NULL;
-    a_boolean               saved_defer_access_checks;
+    a_boolean               saved_defer_access_checks,
+                            init_type_is_ref = is_reference_type(init_type);
     a_memory_region_number  region_to_switch_back_to;
     a_conv_context_set      conv_context = CCO_TYPE_TRAITS_CHECK;
     /* Even though this is not an expression scan, make sure the expr_stack
@@ -55848,6 +55849,10 @@ described previously).
                     /*suppress_object_lifetime=*/TRUE);
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Make an expression of the initializer type. */
+    if (!init_type_is_ref &&
+        !is_class_struct_union_type(skip_array_types(init_type))) {
+      init_type = make_unqualified_type(init_type);
+    }  /* if */
     init_arg = make_declval_arg(init_type);
     if (init_arg == NULL) {
       /* The value creation expression is ill-formed: Return a "false"
@@ -55863,7 +55868,7 @@ described previously).
       if (op == bok_reference_constructs_from_temporary) {
         conv_context |= CCO_DIRECT_INITIALIZATION;
       }  /* if */
-      if (!is_reference_type(init_type)) {
+      if (!init_type_is_ref) {
         orig_prvalue = init_opnd->variant.expression;
         orig_prvalue->is_lvalue = FALSE;
         orig_prvalue->is_xvalue = FALSE;

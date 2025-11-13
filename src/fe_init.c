@@ -841,14 +841,18 @@ modes.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (gnu_version_is(>=130000) || clang_version_is(>=180000)) {
+  if (gnu_version_is(>=130000) || clang_version_is(>=180000) ||
+      ms_version_is(>=1951)) {
     enter_keyword(tok_reference_constructs_from_temporary,
                   "__reference_constructs_from_temporary");
   }  /* if */
-  if (gnu_version_is(>=130000) || clang_version_is(>=190000)) {
-    enter_keyword(tok_is_nothrow_convertible, "__is_nothrow_convertible");
+  if (gnu_version_is(>=130000) || clang_version_is(>=190000) ||
+      ms_version_is(>=1951)) {
     enter_keyword(tok_reference_converts_from_temporary,
                   "__reference_converts_from_temporary");
+  }  /* if */
+  if (gnu_version_is(>=130000) || clang_version_is(>=190000)) {
+    enter_keyword(tok_is_nothrow_convertible, "__is_nothrow_convertible");
   }  /* if */
   if (gnu_version_is(>=140000) || clang_version_is(>=160000)) {
     enter_keyword(tok_is_scoped_enum, "__is_scoped_enum");

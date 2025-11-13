@@ -1,5 +1,14 @@
 Version 6.8
 
+11/13/25 [EDGcpfe/28484]
+Microsoft compatibility: Reference initialization type traits
+
+In Microsoft mode with microsoft_version >= 1951 the front end now accepts the
+type trait helpers __reference_constructs_from_temporary and
+__reference_converts_from_temporary.  (These were previously already accepted
+in GCC and Clang compatibility modes.)
+
+
 11/10/25 [EDGcpfe/28477]
 Unified friend listing (IL CHANGE)
 
