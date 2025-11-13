@@ -3905,7 +3905,13 @@ floating point representation, put out "long double" in the generated C. */
 #endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
 /* Generating K&R C. */
+#if FP_LONG_DOUBLE_IS_80BIT_EXTENDED || FP_LONG_DOUBLE_IS_BINARY128
+/* long double is configured to be larger than double, so we cannot use
+   double for long double. */
+#define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C FALSE
+#else /* !(FP_LONG_DOUBLE_IS_80BIT_EXTENDED || ...) */
 #define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C TRUE
+#endif /* FP_LONG_DOUBLE_IS_80BIT_EXTENDED || FP_LONG_DOUBLE_IS_BINARY128 */
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
 #endif /* ifndef LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
 

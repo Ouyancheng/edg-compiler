@@ -82,7 +82,9 @@ FALSE in this header file.
 #define TARG_ALIGNOF_LONG_LONG 4
 #define TARG_ALIGNOF_SIGNED_LONG_ACCUM 4
 #define TARG_ALIGNOF_UNSIGNED_LONG_ACCUM 4
+#ifndef FP_LONG_DOUBLE_IS_BINARY128
 #define FP_LONG_DOUBLE_IS_80BIT_EXTENDED 1
+#endif /* defined(FP_LONG_DOUBLE_IS_BINARY128) */
 #endif /* ifdef __sparc */
 
 
