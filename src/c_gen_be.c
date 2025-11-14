@@ -10849,7 +10849,9 @@ if this routine has a body (dump nothing if it has no body).
          provided only for the purpose of inlining -- "extern inline".
          Put out the definition in that case. */
       has_defn = TRUE;
-      storage_class = (a_storage_class)sc_extern;
+      if (!rout->definition_for_inlining_only) {
+        storage_class = (a_storage_class)sc_extern;
+      }  /* if */
     }  /* if */
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
@@ -11034,7 +11036,8 @@ declare_routine:
          "static". */
       if (rout->superseded_external) {
         storage_class = (a_storage_class)sc_static;
-      } else if (storage_class == (a_storage_class)sc_unspecified) {
+      } else if (storage_class == (a_storage_class)sc_unspecified &&
+                 !rout->definition_for_inlining_only) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
     }  /* if */

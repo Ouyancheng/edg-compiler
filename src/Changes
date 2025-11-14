@@ -1,5 +1,38 @@
 Version 6.8
 
+11/15/25 [EDGcpfe/28530]
+C-generating back end: C99 inline function definitions
+
+According to the C99 and later Standards, the definition of an inline
+function is an "inline definition" if no file-scope declaration of the
+function in a given translation unit contains the "extern" keyword.  An
+inline definition does not provide an external definition for the function.
+Because a compiler is not required to replace a call to an inline function
+with an inline expansion but can instead generate a call to its external
+definition, an inline definition may result in linkage errors if no
+external definition of the function is provided in another translation
+unit.
+
+The C-generating back end previously put out declarations of an inline
+function with the "extern" keyword, regardless of whether the "extern"
+keyword appears in the original source, and thus incorrectly converted
+inline definitions to external definitions.  This is now fixed.  For
+example, in the following code the declaration and definition of "fun1"
+were previously incorrectly prefixed with the "extern" keyword in the
+generated code:
+
+  int x = 0;
+  inline void fun1() {   // Previously prefixed with "extern"
+    x = 1;
+  }
+  int main () {
+    fun1(); // Possible linkage error in the original, always succeeded with
+            // the generated C because fun1 became an external definition
+  }
+
+This is now fixed.
+
+
 11/15/25 [EDGcpfe/28531]
 C++-generating back end, Microsoft compatibility: address of overloaded
 static member function
