@@ -3897,12 +3897,14 @@ in generated C code.
 #ifndef LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
 #if C_GEN_BE_GENERATES_ANSI_C
 /* Generating ANSI C.  If "long double" or "__float128" is used as the host
-floating point representation, put out "long double" in the generated C. */
-#if USE_DOUBLE_FOR_HOST_FP_VALUE
+floating point representation or if double and long double have different
+representations, put out "long double" in the generated C. */
+#if USE_DOUBLE_FOR_HOST_FP_VALUE && \
+    TARG_SIZEOF_DOUBLE == TARG_SIZEOF_LONG_DOUBLE
 #define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C TRUE
-#else /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
+#else /* !(USE_DOUBLE_FOR_HOST_FP_VALUE && ...) */
 #define LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C FALSE
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE && ... */
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
 /* Generating K&R C. */
 #if FP_LONG_DOUBLE_IS_80BIT_EXTENDED || FP_LONG_DOUBLE_IS_BINARY128
