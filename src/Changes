@@ -1,5 +1,26 @@
 Version 6.8
 
+11/15/25 [EDGcpfe/28531]
+C++-generating back end, Microsoft compatibility: address of overloaded
+static member function
+
+MSVC reports a spurious error if an attempt is made to take the address of
+a static member function that is overloaded with a non-static member
+function unless the function name is written as a qualified name.  The
+C++-generating back end previously did not qualify the function name in
+this context, triggering the MSVC bug when the generated code was compiled.
+This is now fixed, and a qualifier is emitted for the name in such cases
+when msvc_is_generated_code_target is TRUE.  For example, with --microsoft:
+
+  struct S {
+    static void f(int) {}
+    void f() {}
+    void g() {
+      void (*fp)(int) = &S::f;   // Previously generated as "&f"
+    }
+  };
+
+
 11/13/25 [EDGcpfe/28484]
 Microsoft compatibility: Reference initialization type traits
 
