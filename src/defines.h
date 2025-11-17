@@ -352,9 +352,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #endif /* ifndef SUN_TEST_VERSION */
 
 #if SUN_TEST_VERSION
-/* Settings needed to make CodeCenter happy (it doesn't understand long
-   double). */
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 1
 #define FP_LONG_DOUBLE_IS_BINARY128 1
 #define TARG_SIZEOF_LONG_DOUBLE 16
 #define TARG_LDBL_MANT_DIG 113
