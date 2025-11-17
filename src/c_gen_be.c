@@ -10828,7 +10828,17 @@ if this routine has a body (dump nothing if it has no body).
 #endif /* IA64_ABI && ONE_INSTANTIATION_PER_OBJECT */
   a_boolean       is_marked_weak = FALSE;
   a_boolean       thread_local_init_case = FALSE;
+  a_boolean       for_inlining_only;
 
+  if (c99_mode && rout->definition_for_inlining_only &&
+      !gcc_version_is(< 50000)) {
+    /* This is a C99 "inline definition", so we must suppress the "extern"
+       keyword to avoid turning it into an external definition.  (gcc did
+       not support C99 inline semantics until version 5.1.0.) */
+    for_inlining_only = TRUE;
+  } else {
+    for_inlining_only = FALSE;
+  }  /* if */
 #if C_GEN_BE_GENERATES_C23
   if (rout->source_corresp.name != NULL &&
       rout->source_corresp.name[0] == 'b' &&
@@ -10849,7 +10859,7 @@ if this routine has a body (dump nothing if it has no body).
          provided only for the purpose of inlining -- "extern inline".
          Put out the definition in that case. */
       has_defn = TRUE;
-      if (!(c99_mode && rout->definition_for_inlining_only)) {
+      if (!for_inlining_only) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
     }  /* if */
@@ -11037,7 +11047,7 @@ declare_routine:
       if (rout->superseded_external) {
         storage_class = (a_storage_class)sc_static;
       } else if (storage_class == (a_storage_class)sc_unspecified &&
-                 !(c99_mode && rout->definition_for_inlining_only)) {
+                 !for_inlining_only) {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
     }  /* if */
