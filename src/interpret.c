@@ -4985,25 +4985,31 @@ is responsible for recording a failing evaluation.
   a_byte_count              total_offset = 0;
 
   fields[n++] = union_field;
-  /* Collect the (potential) chain of anonymous parent fields: */
-  au_parent = symbol_for(union_field)->variant.field.anonymous_parent_object;
-  while (au_parent != NULL && symbol_is(au_parent, sk_field)) {
-    /* The field is a member of an anonymous union or struct. */
-    if (!for_ctor_init &&
-        !type_is(skip_typerefs(au_parent->variant.field.ptr->type),
-                 tk_union)) {
-      /* For member selection in expression contexts, anonymous structs are
-         explicitly represented in the IL.  Do not re-apply the corresponding
-         adjustments here. */
-      break;
-    }  /* if */
-    fields[n++] = au_parent->variant.field.ptr;
-    if (n == MAX_LEVELS) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-    au_parent = au_parent->variant.field.anonymous_parent_object;
-  }  /* while */
+  if (!C_mode()) {
+    /* Collect the (potential) chain of implicit anonymous parent fields.
+       Don't do this in C modes because anonymous parent field selection is not
+       implicit in C-mode IL.  (It is not implicit for C++-mode nonstandard
+       anonymous struct selections.  See the break condition for the "while"
+       loop below.) */
+    au_parent = symbol_for(union_field)->variant.field.anonymous_parent_object;
+    while (au_parent != NULL && symbol_is(au_parent, sk_field)) {
+      /* The field is a member of an anonymous union or struct. */
+      if (!for_ctor_init &&
+          !type_is(skip_typerefs(au_parent->variant.field.ptr->type),
+                   tk_union)) {
+        /* For member selection in expression contexts, anonymous structs are
+           explicitly represented in the IL.  Do not re-apply the corresponding
+           adjustments here. */
+        break;
+      }  /* if */
+      fields[n++] = au_parent->variant.field.ptr;
+      if (n == MAX_LEVELS) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      au_parent = au_parent->variant.field.anonymous_parent_object;
+    }  /* while */
+  }  /* if */
   /* Traverse the fields from outer-to-inner, updating the path and the
      offset. */
   for (;;) {
