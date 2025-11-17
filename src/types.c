@@ -5753,7 +5753,7 @@ of the front end's target settings).
       default:             unexpected_condition();
     }  /* switch */
     /* Ensure the size is a multiple of the alignment: */
-    size = (size+alignment-1) & ~(alignment-1);
+    size = (size+alignment-1) & (a_targ_size_t)~(alignment-1);
   } else {
     /* Pointer to nonstatic data member. */
     switch (inh_kind) {
