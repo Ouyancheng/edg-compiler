@@ -296,6 +296,7 @@ pointed to by the rfp->func_info if needed.
     if (rfp == cssp->routine_fixup_list) {
       cssp->routine_fixup_list = rfp->next;
     }  /* if */
+    rfp->class_type = NULL;
   }  /* if */
   rfp->def_arg_expr_fixup_list = NULL;
   rfp->function_body_token_cache = a_shared_token_cache();
@@ -3122,7 +3123,7 @@ and for member functions of template classes.
       a_boolean is_friend;
       sym = rfp->symbol;
       is_friend = fixup_is_for_friend(rfp);
-      if (is_nonreal_template_instantiation &&
+      if (is_nonreal_template_instantiation && rfp->class_type != NULL &&
           (rfp->class_type->variant.class_struct_union.is_specialized ||
            rfp->class_type
               ->variant.class_struct_union.is_in_class_specialization)) {
@@ -3569,6 +3570,19 @@ member function template specializations.
        more is to be done. */
   } else if (use_deferred_friend_fixup_list &&
              !rp->is_constexpr && !rp->has_deducible_return_type) {
+    if (rfp->class_type != NULL) {
+      /* Remove the fixup entry from the list associated with
+         rfp->class_type. */
+      a_routine_fixup  **r;
+      r = &class_symbol_supp(symbol_for(rfp->class_type))->routine_fixup_list;
+      for (; *r != NULL; r = &(*r)->next) {
+        if (*r == rfp) {
+          *r = rfp->next;
+          if (rfp->next == NULL) break;
+          rfp->next = NULL;
+        }  /* if */
+      }  /* for */
+    }  /* if */
     rfp->deferred = TRUE;
     if (deferred_friend_fixup_list == NULL) deferred_friend_fixup_list = rfp;
     if (deferred_friend_fixup_list_tail != NULL) {
@@ -3577,8 +3591,10 @@ member function template specializations.
     deferred_friend_fixup_list_tail = rfp;
   } else if (rp->is_defaulted) {
     force_definition_of_compiler_generated_routine(rp);
-  } else {
+  } else if (rfp->class_type != NULL) {
     deferred_friend_function_fixup(rfp);
+  } else {
+    expect_error();
   }  /* if */
 }  /* add_to_deferred_friend_function_fixup_list */
 

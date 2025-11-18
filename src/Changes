@@ -1,5 +1,14 @@
 Version 6.8
 
+11/18/25 [EDGcpfe/28524]
+Abort due to use of a routine fixup entry that was freed
+
+The front end sometimes accidentally left a routine fixup entry on two
+distinct lists (a list associated with a class and one associated with a
+translation unit).  This could cause the entry to be processed twice: The
+first processing would free the entry and the second could then cause access
+
+
 11/15/25 [EDGcpfe/28530]
 C-generating back end: C99 inline function definitions
 
