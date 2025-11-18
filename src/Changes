@@ -7,6 +7,7 @@ The front end sometimes accidentally left a routine fixup entry on two
 distinct lists (a list associated with a class and one associated with a
 translation unit).  This could cause the entry to be processed twice: The
 first processing would free the entry and the second could then cause access
+to freed storage, which often resulted in an abort.  That is now fixed.
 
 
 11/15/25 [EDGcpfe/28530]
