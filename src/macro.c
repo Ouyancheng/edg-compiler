@@ -12014,7 +12014,7 @@ command line -D options.
             if (feature_support_list[i].gnu_support != 0) {
               effective_date = feature_support_list[i].gnu_support;
             } else {
-              effective_date = strtol(macro_value, NULL, 10);
+              effective_date = (uint32_t)strtol(macro_value, NULL, 10);
             }  /* if */
           }  /* if */
           if (macro_value != NULL && gpp_mode &&
