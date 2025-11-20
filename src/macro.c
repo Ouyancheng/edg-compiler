@@ -12005,7 +12005,7 @@ command line -D options.
          constexpr features are supported. */
       if (cpp23_mode) {
         (void)enter_predef_macro(local_static_constexpr_enabled ?
-                                   "202211L" : "202110L",
+                                                         "202211L" : "202110L",
                                  "__cpp_constexpr",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
