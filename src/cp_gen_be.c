@@ -17997,22 +17997,6 @@ gen_expr that might end up generating this expr as a temporary.
                that captures and uses "*this", e.g.,
                  [*this]() { S x = *this; } */
             write_tok_ch('&');
-            if (msvc_is_generated_code_target &&
-                node_is(operand_1, enk_routine)) {
-              a_routine_ptr rp = node_routine(operand_1);
-              if (rp->source_corresp.is_class_member &&
-                  rout_type_supp(skip_typerefs(rp->type))->this_class ==
-                                                                        NULL) {
-                /* When taking the address of a static member function that
-                   is overloaded with a non-static member function, MSVC
-                   reports a spurious error unless the member function name
-                   is qualified.  We cannot tell from the IL whether the
-                   operand is the name of an overloaded function, but
-                   adding the qualifier is harmless. */
-                (void)gen_class_qualifier(parent_class_of(rp), GN_NO_OPTIONS,
-                                          /*need_closing_paren=*/NULL);
-              }  /* if */
-            }  /* if */
           }  /* if */
           gen_expr_with_parens(operand_1);
           goto done_with_operation;
