@@ -4614,6 +4614,12 @@ STATIC_THREAD a_boolean
 			   feature test macro. */
 
 STATIC_THREAD a_boolean
+		implicit_move_enabled;
+			/* TRUE if the C++23 implicit move feature is
+			   enabled.  Used to support the
+			   __cpp_implicit_move feature test macro. */
+
+STATIC_THREAD a_boolean
 		c_alignas_enabled;
 			/* TRUE if the _Alignas specifier is enabled in C
 			   mode.  Used to support
@@ -4705,7 +4711,7 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     0,
     &char8_t_enabled,
     "__cpp_char8_t",
-    "201811L" },
+    "202207L" },
   { "",
     0,
     &concepts_enabled,
@@ -4720,7 +4726,7 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     0,
     &consteval_enabled,
     "__cpp_consteval",
-    "201811L" },
+    "202211L" },
   { "",
     0,
     &constexpr_dynamic_alloc_enabled,
@@ -4796,6 +4802,11 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     &spaceship_enabled,
     "__cpp_impl_three_way_comparison",
     "201907L" },
+  { "",
+    0,
+    &implicit_move_enabled,
+    "__cpp_implicit_move",
+    "202207L" },
   { "",
     0,
     &initializer_lists_enabled,
@@ -11739,6 +11750,7 @@ command line -D options.
   decltype_keyword_enabled = decltype_enabled &&
                                             !enable_underscore_decltype_only;
   initializer_lists_enabled = cpp11_mode;
+  implicit_move_enabled = cpp23_mode && rvalue_references_enabled;
   c_alignas_enabled = C_mode() && alignas_enabled;
   c_alignof_enabled = C_mode() && alignof_enabled;
   c_generic_enabled = c11_mode;
@@ -11993,7 +12005,7 @@ command line -D options.
          constexpr features are supported. */
       if (cpp23_mode) {
         (void)enter_predef_macro(local_static_constexpr_enabled ?
-                                   "202207L" : "202110L",
+                                   "202211L" : "202110L",
                                  "__cpp_constexpr",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
