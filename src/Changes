@@ -1,5 +1,21 @@
 Version 6.8
 
+11/20/25 [EDGcpfe/28556]
+GNU compatibility: defining feature-test macros in early versions
+
+Although g++ often enables various features from recent versions of the
+C++ Standard when an earlier version of the Standard is specified on the
+command line, it generally does not define the corresponding feature-test
+macro in such cases.  There are some exceptions to this rule, however.
+Binary literals were introduced in C++14, while inheriting constructors
+and hexadecimal floating-point literals were part of C++17.  Nevertheless,
+g++ defines __cpp_binary_literals, __cpp_inheriting_constructors, and
+__cpp_hex_float with -std=c++11.  The front end has now been changed to
+emulate this behavior in g++ mode.  For example, with --g++ --c++11:
+
+  long i = __cpp_hex_float;   // Previously an error, now has value 201603
+
+
 11/18/25 [EDGcpfe/28524]
 Abort due to use of a routine fixup entry that was freed
 

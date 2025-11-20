@@ -4562,6 +4562,18 @@ typedef struct a_feature_support {
 	*macro_value;	/* The value to which the WG21 SG10 macro is to be
 			   defined if the feature is supported.  NULL if
 			   there is no such macro. */
+  uint32_t
+	gnu_support;	/* Indicates the Standard version level at which
+			   g++ defines an SG10 macro.  This is generally
+			   the version following the date indicated by
+			   macro_value; in that case, gnu_support is 0.
+			   There are a few exceptions to that rule,
+			   however; in such cases, gnu_suport will have the
+			   value of the first std_version value at which
+			   the macro should be defined.  For example, the
+			   value of __cpp_hex_float is "201603L", but g++
+			   defines it with "-std=c++11", so gnu_support is
+			   201103. */
 } a_feature_support;
 
 /*
@@ -4711,7 +4723,8 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     0,
     &char8_t_enabled,
     "__cpp_char8_t",
-    "202207L" },
+    "202207L",
+    202002 },
   { "",
     0,
     &concepts_enabled,
@@ -4726,7 +4739,8 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     0,
     &consteval_enabled,
     "__cpp_consteval",
-    "202211L" },
+    "202211L",
+    202002 },
   { "",
     0,
     &constexpr_dynamic_alloc_enabled,
@@ -4781,7 +4795,8 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     0,
     &hex_floating_point_constants_allowed,
     "__cpp_hex_float",
-    "201603L" },
+    "201603L",
+    201103 },
   { "",
     0,
     &if_consteval_enabled,
@@ -4991,7 +5006,8 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     201402,
     &binary_literals_allowed,
     "__cpp_binary_literals",
-    "201304L" },
+    "201304L",
+    201103 },
   { "cxx_constexpr",
     201103,
     &constexpr_enabled,
@@ -5076,7 +5092,8 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     201103,
     &inheriting_constructors_enabled,
     "__cpp_inheriting_constructors",
-    "201511L" },
+    "201511L",
+     201103 },
   { "cxx_init_capture",
     201402,
     &init_capture_enabled,
@@ -5156,7 +5173,8 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     201103,
     NULL,
     "__cpp_runtime_arrays",
-    "201304L" },
+    "201304L",
+     201103 },
   { "cxx_rvalue_references",
     201103,
     &rvalue_references_enabled,
@@ -11991,12 +12009,21 @@ command line -D options.
           /* The feature is supported in the current execution of the front
              end.  Define the macro with the appropriate value. */
           a_const_char *macro_value = feature_support_list[i].macro_value;
+          uint32_t     effective_date = 0;
+          if (macro_value != NULL && gpp_mode) {
+            if (feature_support_list[i].gnu_support != 0) {
+              effective_date = feature_support_list[i].gnu_support;
+            } else {
+              effective_date = strtol(macro_value, NULL, 10);
+            }  /* if */
+          }  /* if */
           if (macro_value != NULL && gpp_mode &&
-              (long)std_version < strtol(macro_value, NULL, 10)) {
-            /* GCC and clang enable some C++ features in earlier modes (e.g.,
-               enable a C++17 feature in all modes), but apparently do not
-               enable the corresponding feature-test macros, so suppress such
-               macros here. */
+              std_version < effective_date) {
+            /* GCC and clang enable some C++ features in earlier modes
+               (e.g., enable a C++17 feature in all modes), but generally
+               do not define the corresponding feature-test macros
+               (exceptions are noted in the gnu_support value), so suppress
+               such macros here. */
           } else {
             (void)enter_predef_macro(macro_value,
                                      feature_support_list[i].macro_name,
