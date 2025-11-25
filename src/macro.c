@@ -11645,6 +11645,29 @@ file name.
 }  /* process_predefined_macro_file */
 
 
+static inline a_boolean suppress_gnu_feature_test_macro(a_const_char *value,
+                                                        uint32_t     date)
+/*
+Return TRUE if gpp_mode is TRUE and std_version is less than date (or, if
+date is 0, less than the result of converting the decimal string in value
+to an integer), and FALSE otherwise.  Both value and date encode the date
+in the same six-digit YYYYMM form as std_version.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (gpp_mode) {
+    if (date == 0) {
+      date = (uint32_t)strtol(value, NULL, 0);
+    }  /* if */
+    if (std_version < date) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* suppress_gnu_feature_test_macro */
+
+
 void init_predefined_macros(char  curr_date_time[26])
 /*
 Enter symbols for predefined macros, including those established by
@@ -12009,22 +12032,10 @@ command line -D options.
           /* The feature is supported in the current execution of the front
              end.  Define the macro with the appropriate value. */
           a_const_char *macro_value = feature_support_list[i].macro_value;
-          uint32_t     effective_date = 0;
-          if (macro_value != NULL && gpp_mode) {
-            if (feature_support_list[i].gnu_support != 0) {
-              effective_date = feature_support_list[i].gnu_support;
-            } else {
-              effective_date = (uint32_t)strtol(macro_value, NULL, 10);
-            }  /* if */
-          }  /* if */
-          if (macro_value != NULL && gpp_mode &&
-              std_version < effective_date) {
-            /* GCC and clang enable some C++ features in earlier modes
-               (e.g., enable a C++17 feature in all modes), but generally
-               do not define the corresponding feature-test macros
-               (exceptions are noted in the gnu_support value), so suppress
-               such macros here. */
-          } else {
+          if (macro_value != NULL &&
+              !suppress_gnu_feature_test_macro(
+                                        macro_value,
+                                        feature_support_list[i].gnu_support)) {
             (void)enter_predef_macro(macro_value,
                                      feature_support_list[i].macro_name,
                                      /*cannot_be_redefined=*/TRUE,
@@ -12125,9 +12136,11 @@ command line -D options.
            C++20 pack expansions in init-captures are allowed. */
         a_const_char *value;
         value = pack_init_capture_enabled ? "201803L" : "201304L";
-        (void)enter_predef_macro(value, "__cpp_init_captures",
-                                 /*cannot_be_redefined=*/TRUE,
-                                 /*ref_suppresses_pch_file=*/FALSE);
+        if (!suppress_gnu_feature_test_macro(value, 0)) {
+          (void)enter_predef_macro(value, "__cpp_init_captures",
+                                   /*cannot_be_redefined=*/TRUE,
+                                   /*ref_suppresses_pch_file=*/FALSE);
+        }  /* if */
       }  /* if */
       /* __cpp_generic_lambdas must be handled specially, as it will have
          different values depending on whether the C++14 or C++20 features
