@@ -14,9 +14,7 @@ Building the EDG C++ front end for a Windows Environment
     PLM, building for C++/CLI support requires the alink.h file, which is
     not part of the front end release but is included with installations
     of Visual Studio (beginning with Visual Studio 2012) as part of the
-    Windows 8 (and newer) SDKs.  The file can be found in:
-      \Program Files(x86)\Windows Kits\8.x\Include\um\alink.h
-    where 8.x is currently either 8.0 or 8.1.
+    Windows 8 (and newer) and .NET Framework SDKs.
 
   - If you want to link with the runtime library routines found in the
     lib_src directory in the release, you must define
