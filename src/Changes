@@ -1,5 +1,17 @@
 Version 6.9
 
+11/26/25 [EDGcpfe/28526]
+C++-generating back end, clang compatibility: user-defined literal names
+
+Early versions of clang did not accept the form of user-defined literal
+operator names in which the literal suffix appears following the double
+quotes with no intervening white space, e.g., operator""_x, so the
+C++-generating back end added a space before the suffix when generating
+code targeting clang.  Versions of clang beginning with 6.0 do accept this
+form of the operator name, however, so the C++-generating back end now only
+adds the space when clang_target_version_number is less than 60000.
+
+
 11/26/25 [EDGcpfe/28561]
 C++-generating back end: qualified pseudo-destructor names
 

@@ -4229,15 +4229,18 @@ a name.  Never generate a qualified name.
         ((a_routine_ptr)scp)->special_kind ==
                                    (a_special_function_kind)sfk_udl_operator) {
       a_const_char *suffix = ud_suffix_from_literal_operator_id(name);
-      if ((clang_is_generated_code_target && strcmp(suffix, "if") != 0) ||
+      if ((clang_is_generated_code_target &&
+           clang_target_version_number < 60000 &&
+           strcmp(suffix, "if") != 0) ||
           (gcc_is_generated_code_target &&
            gnu_target_version_number < 40900)) {
         /* The canonical form of literal-operator-id has no space between
            the "" and the ud-suffix, to prevent something like ""if, which
            is well-formed, from becoming "" if, which is ill-formed.
-           However, clang (except for the one special case of "if" as a
-           ud-suffix) and, for versions earlier than 4.9, g++ do not accept
-           the form without the space, so we have to add it here. */
+           However, clang versions earlier than 6.0 (except for the one
+           special case of "if" as a ud-suffix) and g++ versions earlier
+           than 4.9 do not accept the form without the space, so we have to
+           add it here. */
         m_write_tok_str(CANONICAL_LITERAL_OPERATOR_INTRO);
         m_write_space();
         m_write_tok_str(suffix);
