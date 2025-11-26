@@ -18594,6 +18594,17 @@ gen_expr that might end up generating this expr as a temporary.
             a_type_ptr prev_type;
             /* Explicit call of a destructor for a type that doesn't have one,
                e.g., "p->int::~int()". */
+            if (msvc_is_generated_code_target) {
+              /* MSVC has a bug in determining the type of a vacuous
+                 destructor call when the pseudo-destructor name is
+                 qualified, e.g.,
+                   struct S { };
+                   void f(S *p) { return p->S::~S(); }
+                 MSVC complains that a void function returns a value.  To
+                 avoid this problem, we explicitly cast the expression to
+                 void. */
+              gen_cast(expr->type);
+            }  /* if */
             gen_expr_with_parens(operand_1);
             if (op ==
                 (an_expr_operator_kind)eok_points_to_vacuous_destructor_call) {
