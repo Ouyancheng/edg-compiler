@@ -12135,8 +12135,15 @@ command line -D options.
         /* __cpp_init_captures has a different value depending on whether
            C++20 pack expansions in init-captures are allowed. */
         a_const_char *value;
-        value = pack_init_capture_enabled ? "201803L" : "201304L";
-        if (!suppress_gnu_feature_test_macro(value, 0)) {
+        if (pack_init_capture_enabled &&
+            !suppress_gnu_feature_test_macro("201803L", 0)) {
+          value = "201803L";
+        } else if (!suppress_gnu_feature_test_macro("201304L", 0)) {
+          value = "201304L";
+        } else {
+          value = NULL;
+        }  /* if */
+        if (value != NULL) {
           (void)enter_predef_macro(value, "__cpp_init_captures",
                                    /*cannot_be_redefined=*/TRUE,
                                    /*ref_suppresses_pch_file=*/FALSE);
