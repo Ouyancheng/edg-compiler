@@ -1,6 +1,6 @@
 Version 6.9
 
-11/226/25 [EDGcpfe/28561]
+11/26/25 [EDGcpfe/28561]
 C++-generating back end: qualified pseudo-destructor names
 
 MSVC has a bug in determining the type of a vacuous destructor call when the
