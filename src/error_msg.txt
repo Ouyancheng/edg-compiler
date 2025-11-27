@@ -3631,6 +3631,7 @@ ec_cannot_be_specialized;;"template with \"no_specializations\" attribute cannot
 ec_static_dimension_nonstandard;;"\"static\" is nonstandard here"
 ec_enum_previously_declared_without_explicit_base;;"%nd was previously declared without an explicit enum base"
 ec_missing_typename;;"missing \"typename\" is nonstandard here"
+ec_abbreviated_deduction_guide;;"abbreviated function template syntax is nonstandard for deduction guides"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

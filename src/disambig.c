@@ -173,7 +173,8 @@ the "::" at the start of a qualified name) is a type name.
                     /*in_type_check=*/FALSE,				\
                     ((flags) & DFS_IMPLICIT_TYPENAME_CONTEXT) != 0 &&	\
                       relaxed_typename_enabled,				\
-                    /*is_sizeof_context=*/FALSE) != NULL)
+                    /*is_sizeof_context=*/FALSE,			\
+                    concepts_enabled) != NULL)
 
 /*
 Macros to test bits in a disambiguation flag set.
@@ -1135,7 +1136,9 @@ part of a function declarator is found, may_be_decl is set to FALSE.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (trailing_return_types_enabled && curr_token == tok_arrow) {
+  if (trailing_return_types_enabled && curr_token == tok_arrow &&
+      (flags & (DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                DFS_REAL_DECLARATOR_ALLOWED)) != 0) {
     /* Cache the trailing return type.  This is not needed when the prescan is
        to identify "auto" parameters (and could trigger errors if the trailing
        return type refers back to parameters, which haven't been declared

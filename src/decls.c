@@ -21449,6 +21449,23 @@ placeholder type corresponding to the template name that was just scanned).
                       /*disallow_default_args=*/FALSE,
                       /*disallow_exception_spec=*/TRUE,
                       decl_pos_block);
+  if (dps->variant.auto_params != NULL) {
+    a_token_kind  final_token = tok_semicolon;
+    /* We ran into "auto" parameters: Reparse the declaration as a template
+       (i.e., this is an abbreviated function template).  Core issue 2697
+       clarified that this is actually ill-formed for deduction guides, but it
+       is widely accepted by compilers. */
+    if (!gnu_mode && !microsoft_mode) {
+      pos_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
+                                      : es_warning,
+                     ec_abbreviated_deduction_guide,
+                     &dps->variant.auto_params->start_pos);
+    }  /* if */
+    end_potential_abbr_func_templ_caching(dps,
+                                          /*remove_pack_descriptors=*/TRUE);
+    reparse_abbr_func_template(dps, &final_token);
+    goto done;
+  }  /* if */
   if (new_type_ptr->kind == (a_type_kind)tk_routine) {
     new_type_ptr->variant.routine.return_type = dps->specifiers_type;
     rout_type_supp(new_type_ptr)->this_class = placeholder_type;
@@ -21517,6 +21534,7 @@ placeholder type corresponding to the template name that was just scanned).
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
   process_curr_construct_pragmas(guide_sym, (a_statement_ptr)NULL);
+done:;
 }  /* scan_deduction_guide */
 
 
