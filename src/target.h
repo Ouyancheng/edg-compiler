@@ -395,12 +395,22 @@ EXTERN_THREAD a_boolean
                         /* TRUE if the target supports the 32-bit version of
                            the ARM instruction set. */
 
+EXTERN_THREAD a_boolean
+                targ_supports_riscv64;
+                        /* TRUE if the target supports the 64-bit version of
+                           the RISC-V instruction set. */
+
+EXTERN_THREAD a_boolean
+                targ_supports_riscv32;
+                        /* TRUE if the target supports the 32-bit version of
+                           the RISC-V instruction set. */
+
 inline a_boolean target_is_64_bits(void)
 /*
 Utility to return TRUE if the target has a 64-bit architecture.
 */
 {
-  return targ_supports_x86_64 || targ_supports_arm64;
+  return targ_supports_x86_64 || targ_supports_arm64 || targ_supports_riscv64;
 }  /* target_is_64_bits */
 
 
@@ -413,13 +423,22 @@ Utility to return TRUE if the target is based on an ARM architecture.
 }  /* target_is_arm_based */
 
 
+inline a_boolean target_is_riscv_based(void)
+/*
+Utility to return TRUE if the target is based on an RISC-V architecture.
+*/
+{
+  return targ_supports_riscv32 || targ_supports_riscv64;
+}  /* target_is_riscv_based */
+
+
 inline a_boolean target_is_x86_based(void)
 /*
 Utility to return TRUE if the target is based on an x86 architecture.
 Currently this is the default (but that may change in the future).
 */
 {
-  return !target_is_arm_based();
+  return !target_is_arm_based() && !target_is_riscv_based();
 }  /* target_is_x86_based */
 
 

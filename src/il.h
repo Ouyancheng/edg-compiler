@@ -1566,6 +1566,9 @@ extern a_type_ptr make_vector_type(a_type_ptr     element_type,
 extern a_type_ptr make_scalable_vector_type(a_type_ptr  element_type,
                                             uint8_t     n_tuple_elements);
 extern a_type_ptr scalable_vector_count_type(void);
+extern a_type_ptr make_riscv_vector_type(a_type_ptr  element_type,
+                                         int8_t      length_multiplier,
+                                         uint8_t     tuple_elements);
 extern a_type_ptr modal_8bit_floating_point_type(void);
 
 extern void eliminate_boolean_vector(a_type_ptr  *p_type);

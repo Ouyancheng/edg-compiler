@@ -2819,6 +2819,7 @@ from_auto is TRUE if the type was originally specified using an auto type.
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
     case tk_scalable_vector:
+    case tk_riscv_vector:
       err_code = ec_vector_template_parameter;
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

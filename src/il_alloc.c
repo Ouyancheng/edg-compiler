@@ -2210,6 +2210,11 @@ to default values.
       pte->variant.scalable_vector.element_type = NULL;
       pte->variant.scalable_vector.tuple_elements = 0;
       break;
+    case tk_riscv_vector:
+      pte->variant.riscv_vector.element_type = NULL;
+      pte->variant.riscv_vector.length_multiplier = 0;
+      pte->variant.riscv_vector.tuple_elements = 0;
+      break;
     case tk_scalable_vector_count:
     case tk_mfp8:
       break;

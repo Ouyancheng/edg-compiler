@@ -648,6 +648,9 @@ extern a_const_char *get_predefined_name_for_neon_vector_type(
 extern a_const_char *get_predefined_name_for_builtin_neon_vector_type(
                                                a_type_ptr     element_type,
                                                a_targ_size_t  vector_elements);
+
+Small_string<16> get_name_for_riscv_vector_type(a_const_char  *name_prefix,
+                                                a_type_ptr    vector_type);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */

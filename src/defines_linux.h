@@ -60,11 +60,14 @@ If the target architecture is unspecified, heuristically determine a target
 architecture from the host compiler.
 */
 #if !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM64) && \
-    !defined(TARG_SUPPORTS_ARM32)
+    !defined(TARG_SUPPORTS_ARM32) && !defined(TARG_SUPPORTS_RISCV64) && \
+    !defined(TARG_SUPPORTS_RISCV32)
 /* Default to an unspecified target. */
 #define TARG_SUPPORTS_X86_64 0
 #define TARG_SUPPORTS_ARM64 0
 #define TARG_SUPPORTS_ARM32 0
+#define TARG_SUPPORTS_RISCV64 0
+#define TARG_SUPPORTS_RISCV32 0
 #if defined(__x86_64)
 /* 64-bit x86. */
 #undef TARG_SUPPORTS_X86_64
@@ -181,9 +184,26 @@ additional target configuration will be added below.
 #endif /* HOST_ALIGNMENT_REQUIRED */
 #define TARG_JMP_BUF_NUM_ELEMENTS 39
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long_long)
-#elif TARG_SUPPORTS_ARM32
-/* ARM32. Untested currently (but can be configured manually). */
- #error Support for ARM32 is untested
+#elif TARG_SUPPORTS_RISCV64
+/* RISCV64. */
+#define TARG_HAS_SIGNED_CHARS FALSE
+#define TARG_SIZEOF_LONG 8
+#define TARG_ALIGNOF_LONG 8
+#define TARG_SIZEOF_POINTER 8
+#define TARG_ALIGNOF_POINTER 8
+#define TARG_SIZEOF_LONG_DOUBLE 16
+#define TARG_ALIGNOF_LONG_DOUBLE 16
+#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_int)
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
+#ifndef HOST_ALIGNMENT_REQUIRED
+#define HOST_ALIGNMENT_REQUIRED 8
+#endif /* HOST_ALIGNMENT_REQUIRED */
+#define TARG_JMP_BUF_NUM_ELEMENTS 26
+#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long)
+#elif TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_RISCV32
+/* ARM32/RISCV32. Untested currently (but can be configured manually). */
+ #error Support for ARM32/RISCV32 is untested
 #else /* Non-specific target. */
 /* Presume 32-bit x86. */
 #define TARG_ALIGNOF_LONG_DOUBLE 4
@@ -267,7 +287,8 @@ Linux.
 #endif /* defined(INCLUDE_ADDITIONAL_TARGET_CONFIGURATION) */
 
 #if INCLUDE_ADDITIONAL_TARGET_CONFIGURATION && \
-    !(TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64)
+    !(TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64 || \
+      TARG_SUPPORTS_RISCV32 || TARG_SUPPORTS_RISCV64)
 /*
 The legacy configuration (either a 32-bit or a 64-bit x86 configuration as
 dictated by the setting of TARG_SUPPORTS_X86_64) has been defined above.  Give
@@ -444,6 +465,8 @@ configurations can be created in the same manner.
 #define TARG_SSIZE_T_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_SUPPORTS_ARM32_linux_i686 0
 #define TARG_SUPPORTS_ARM64_linux_i686 0
+#define TARG_SUPPORTS_RISCV32_linux_i686 0
+#define TARG_SUPPORTS_RISCV64_linux_i686 0
 #define TARG_SUPPORTS_X86_64_linux_i686 0
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE_linux_i686 0
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_i686 0
@@ -612,6 +635,8 @@ configurations can be created in the same manner.
 #define TARG_SSIZE_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
 #define TARG_SUPPORTS_ARM32_linux_x86_64 0
 #define TARG_SUPPORTS_ARM64_linux_x86_64 0
+#define TARG_SUPPORTS_RISCV32_linux_x86_64 0
+#define TARG_SUPPORTS_RISCV64_linux_x86_64 0
 #define TARG_SUPPORTS_X86_64_linux_x86_64 1
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE_linux_x86_64 0
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_x86_64 0
@@ -779,6 +804,8 @@ configurations can be created in the same manner.
 #define TARG_SSIZE_T_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_SUPPORTS_ARM32_linux_i686 0
 #define TARG_SUPPORTS_ARM64_linux_i686 0
+#define TARG_SUPPORTS_RISCV32_linux_i686 0
+#define TARG_SUPPORTS_RISCV64_linux_i686 0
 #define TARG_SUPPORTS_X86_64_linux_i686 0
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE_linux_i686 0
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_i686 0
@@ -942,6 +969,8 @@ configurations can be created in the same manner.
 #define TARG_SSIZE_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
 #define TARG_SUPPORTS_ARM32_linux_x86_64 0
 #define TARG_SUPPORTS_ARM64_linux_x86_64 0
+#define TARG_SUPPORTS_RISCV32_linux_x86_64 0
+#define TARG_SUPPORTS_RISCV64_linux_x86_64 0
 #define TARG_SUPPORTS_X86_64_linux_x86_64 1
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE_linux_x86_64 0
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_x86_64 0

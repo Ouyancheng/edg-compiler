@@ -1302,6 +1302,10 @@ handle_next_entry:
             walk_ptr(eptr->variant.scalable_vector.element_type, a_type_ptr,
                      iek_type);
             break;
+          case tk_riscv_vector:
+            walk_ptr(eptr->variant.riscv_vector.element_type, a_type_ptr,
+                     iek_type);
+            break;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad type kind");

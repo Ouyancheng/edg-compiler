@@ -10209,6 +10209,7 @@ specified type.  Substitutions are not allocated for <builtin-type>s
     case tk_vector:
     case tk_scalable_vector:
     case tk_scalable_vector_count:
+    case tk_riscv_vector:
       /* The original mangling for vector types used a vendor extension
          (which required a substitution).  The newer mangling (i.e., "Dv")
          seems to also record a substitution (even though the "Dv" string
@@ -11085,6 +11086,17 @@ top_of_loop:
           mangled_name_with_length(s, mctl);
           goto have_whole_mangled_name;
         }
+        break;
+      case tk_riscv_vector:
+#if IA64_ABI
+        /* Mangle a RISC-V vector type as a vendor extended builtin type. */
+        add_to_mangled_name('u', mctl);
+#endif /* IA64_ABI */
+        mangled_name_with_length(
+                     get_name_for_riscv_vector_type("__rvv_",
+                                                    type).as_temp_characters(),
+                     mctl);
+        goto have_whole_mangled_name;
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:

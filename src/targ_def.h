@@ -164,9 +164,27 @@ setting for targ_supports_arm32.
 #define TARG_SUPPORTS_ARM32 FALSE
 #endif /* ifndef TARG_SUPPORTS_ARM32 */
 
-#if (TARG_SUPPORTS_X86_64 + TARG_SUPPORTS_ARM64 + TARG_SUPPORTS_ARM32) > 1
+/*
+Flag that is TRUE if the target is a 64-bit RISC-V platform.  Provides the
+initial setting for targ_supports_riscv64.
+*/
+#ifndef TARG_SUPPORTS_RISCV64
+#define TARG_SUPPORTS_RISCV64 FALSE
+#endif /* ifndef TARG_SUPPORTS_RISCV64 */
+
+/*
+Flag that is TRUE if the target is a 32-bit RISC-V platform.  Provides the
+initial setting for targ_supports_riscv32.
+*/
+#ifndef TARG_SUPPORTS_RISCV32
+#define TARG_SUPPORTS_RISCV32 FALSE
+#endif /* ifndef TARG_SUPPORTS_RISCV32 */
+
+#if (TARG_SUPPORTS_X86_64 + TARG_SUPPORTS_ARM64 + TARG_SUPPORTS_ARM32 + \
+     TARG_SUPPORTS_RISCV64 + TARG_SUPPORTS_RISCV32) > 1
  #error Only one TARG_SUPPORTS_* configuration macro can be TRUE
-#endif /* (TARG_SUPPORTS_X86_64 + TARG_SUPPORTS_ARM64 + TARG_SUPPORTS_ARM32) */
+#endif /* (TARG_SUPPORTS_X86_64 + TARG_SUPPORTS_ARM64 + TARG_SUPPORTS_ARM32 + \
+           TARG_SUPPORTS_RISCV64 + TARG_SUPPORTS_RISCV32) */
 
 #ifdef USE_X86_64
 /* USE_X86_64 is now deprecated; set TARG_SUPPORTS_X86_64 appropriately and

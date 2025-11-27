@@ -115,6 +115,10 @@ Linux using the gcc/g++ header files.
     (void)enter_predef_macro("1", "__ARM_32BIT_STATE",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
+  } else if (targ_supports_riscv32 || targ_supports_riscv64) {
+    /* Macro definitions for the RISC-V architecture. */
+    (void)enter_predef_macro("1", "__riscv__", /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
   } else if (targ_supports_x86_64) {
     /* Macro definitions for the 64-bit version of the x86 architecture. */
     (void)enter_predef_macro("1", "__x86_64", /*cannot_be_redefined=*/TRUE,
@@ -921,8 +925,23 @@ current emulation mode.
                                bdp->type_index, NULL);
         }  /* if */
     }  /* for */
-  }  /* if */
-  if (target_is_x86_based()) {
+  } else if (target_is_riscv_based()) {
+    for (bdp = builtin_riscv_table, i = 0; bdp->name != NULL; bdp++, i++) {
+      if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
+        preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i, bfc_riscv,
+                               bdp->kind, bdp->type_index, NULL);
+      }  /* if */
+    }  /* for */
+    function_category = target_is_64_bits() ? bfc_riscv_64 : bfc_riscv_32;
+    bdp = builtin_tables[function_category];
+    for (i = 0; bdp->name != NULL; bdp++, i++) {
+      if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
+        preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
+                               function_category, bdp->kind,
+                               bdp->type_index, NULL);
+        }  /* if */
+    }  /* for */
+  } else if (target_is_x86_based()) {
     for (bdp = builtin_x86_table, i = 0; bdp->name != NULL; bdp++, i++) {
       if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
         preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i, bfc_x86,
@@ -1640,6 +1659,143 @@ enter_scalable_vector_types for a description of the flags.
 }  /* enter_scalable_vector_types */
 
 
+Small_string<16> get_name_for_riscv_vector_type(a_const_char  *name_prefix,
+                                                a_type_ptr    vector_type)
+/*
+Returns the name of the given RISC-V vector type with the specified name
+prefix.
+*/
+{
+  Small_string<16>  name(name_prefix);
+  a_type_ptr        element_type;
+  int               length_multiplier;
+
+  check_assertion(vector_type->kind == tk_riscv_vector);
+  element_type = vector_type->variant.riscv_vector.element_type;
+  length_multiplier = vector_type->variant.riscv_vector.length_multiplier;
+  if (is_bool_type(element_type)) {
+    name.append("bool", length_multiplier, "_t");
+  } else {
+    unsigned tuple_elements = vector_type->variant.riscv_vector.tuple_elements;
+    if (element_type->kind == tk_integer) {
+      if (!is_signed_integral_type(element_type)) {
+        name.append("u");
+      }  /* if */
+      name.append("int", 8*element_type->size);
+    } else if (element_type->kind == tk_float) {
+      if (element_type->variant.float_kind == fk_std_bfloat16) {
+        name.append("bfloat16");
+      } else {
+        name.append("float", 8*element_type->size);
+      }  /* if */
+    } else {
+      unexpected_condition_str("unexpected element type kind");
+    }  /* if */
+    if (length_multiplier > 0) {
+      name.append("m", length_multiplier);
+    } else {
+      name.append("mf", -length_multiplier);
+    }  /* if */
+    if (tuple_elements != 1) {
+      name.append("x", tuple_elements);
+    }  /* if */
+    name.append("_t");
+  }  /* if */
+  return name;
+}  /* get_name_for_riscv_vector_type */
+
+
+static void enter_riscv_vector_types_for_element_type(
+                                               a_const_char  *name_prefix,
+                                               a_type_ptr    element_type,
+                                               a_boolean     enter_tuple_types)
+/*
+Enter predefined typedefs for all RISC-V vector types for the given element
+type.  If enter_tuple_types is TRUE, additionally create vector type for
+multiple tuple elements.
+*/
+{
+  unsigned  max_tuple_elements = enter_tuple_types ? 8 : 1;
+
+  for (unsigned multiplier = 1; multiplier <= 8; ++multiplier) {
+    for (unsigned tuple_elements = 1;
+         tuple_elements <= max_tuple_elements;
+         ++tuple_elements) {
+      a_type_ptr  vector_type;
+
+      if (multiplier*tuple_elements <= 8) {
+        vector_type = make_riscv_vector_type(element_type, (int8_t)multiplier,
+                                             (uint8_t)tuple_elements);
+        (void)enter_predefined_typedef(
+              get_name_for_riscv_vector_type(name_prefix,
+                                             vector_type).as_temp_characters(),
+              vector_type);
+      }  /* if */
+      if (multiplier > 1 && ((uint8_t)multiplier*element_type->size <= 8)) {
+        vector_type = make_riscv_vector_type(element_type, (int8_t)-multiplier,
+                                             (uint8_t)tuple_elements);
+        (void)enter_predefined_typedef(
+              get_name_for_riscv_vector_type(name_prefix,
+                                             vector_type).as_temp_characters(),
+              vector_type);
+      }  /* if */
+    }  /* for */
+  }  /* for */
+}  /* enter_riscv_vector_types_for_element_type */
+
+
+static void enter_all_riscv_vector_types(
+                                     a_const_char  *name_prefix,
+                                     a_boolean     enter_bfloat16_vector_types,
+                                     a_boolean     enter_tuple_types)
+/*
+Enter predefined typedefs for all RISC-V vector types.  If
+enter_bfloat16_vector_types is TRUE, include vector types for the bfloat16
+floating-point type.  If enter_tuple_types is TRUE, additionally create vector
+type for multiple tuple elements.
+*/
+{
+  a_type_ptr          element_type;
+  const a_float_kind  float_kinds[] = {fk_float16, fk_float, fk_double,
+                                       fk_last};
+
+  for (unsigned bits = 1; bits <= 64; bits *= 2) {
+    a_type_ptr  vector_type = make_riscv_vector_type(bool_type(), (int8_t)bits,
+                                                     1);
+    (void)enter_predefined_typedef(
+              get_name_for_riscv_vector_type(name_prefix,
+                                             vector_type).as_temp_characters(),
+              vector_type);
+  }  /* for */
+  for (unsigned bits = 8; bits <= 64; bits *= 2) {
+    unsigned    size_in_bytes = bits / 8;
+
+    element_type = integer_type(int_kind_for_size_and_alignment(
+                                               size_in_bytes,
+                                               (a_targ_alignment)size_in_bytes,
+                                               /*is_signed=*/TRUE));
+    enter_riscv_vector_types_for_element_type(name_prefix, element_type,
+                                              enter_tuple_types);
+    element_type = integer_type(int_kind_for_size_and_alignment(
+                                               size_in_bytes,
+                                               (a_targ_alignment)size_in_bytes,
+                                               /*is_signed=*/FALSE));
+    enter_riscv_vector_types_for_element_type(name_prefix, element_type,
+                                              enter_tuple_types);
+  }  /* for */
+  for (const a_float_kind *kind = float_kinds; *kind != fk_last; ++kind) {
+    element_type = float_type(*kind);
+    enter_riscv_vector_types_for_element_type(name_prefix, float_type(*kind),
+                                              enter_tuple_types);
+  }  /* for */
+  if (enter_bfloat16_vector_types) {
+    enter_riscv_vector_types_for_element_type(name_prefix,
+                                              float_type(fk_std_bfloat16),
+                                              enter_tuple_types);
+  }  /* if */
+}  /* enter_all_riscv_vector_types */
+
+
 using a_build_array_type_name_fn = a_boolean(char *, sizeof_t, a_const_char *,
                                              unsigned);
 			/* Type of a function to build the name of an array
@@ -2210,6 +2366,16 @@ Enter predeclared symbols as required by the implementation.
                                          modal_8bit_floating_point_type());
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (target_is_riscv_based() &&
+        (clang_version_is(>=140000) || gnu_version_is(>=130000))) {
+      a_boolean  tuple_types_supported = clang_version_is(>=170000) ||
+                                         gnu_version_is(>=140000);
+      a_boolean  bfloat16_supported = clang_version_is(>=190000) ||
+                                      gnu_version_is(>=150000);
+
+      enter_all_riscv_vector_types("__rvv_", bfloat16_supported,
+                                   tuple_types_supported);
     }  /* if */
     if (gnu_version_is(>=40800)) {
       /* GCC also predefines additional types for NEON builtins, starting with

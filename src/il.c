@@ -7560,6 +7560,21 @@ to refine the hash value developed in hash_constant.
         hash_value += 5*hash_constant(type->variant.vector.size_constant);
       }  /* if */
       break;
+    case tk_scalable_vector:
+      hash_value += hash_type(type->variant.scalable_vector.element_type);
+      hash_value += 17*type->variant.scalable_vector.tuple_elements;
+      break;
+    case tk_riscv_vector:
+      hash_value += hash_type(type->variant.riscv_vector.element_type);
+      if (type->variant.riscv_vector.length_multiplier >= 0) {
+        hash_value += 17*(a_hash_value)type->variant.riscv_vector
+                                                            .length_multiplier;
+      } else {
+        hash_value += 31*(a_hash_value)(-type->variant.riscv_vector
+                                                           .length_multiplier);
+      }  /* if */
+      hash_value += 83*type->variant.riscv_vector.tuple_elements;
+      break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_template_param:
       {
@@ -10854,6 +10869,26 @@ to it.
   }  /* if */
   return pit;
 }  /* scalable_vector_count_type */
+
+
+a_type_ptr make_riscv_vector_type(a_type_ptr     element_type,
+                                  int8_t         length_multiplier,
+                                  uint8_t        tuple_elements)
+/*
+Return a tk_riscv_vector type representing a vector of type element_type with
+the specified length multiplier and number of tuple elements.
+*/
+{
+  a_type_ptr  vtype = alloc_type(tk_riscv_vector);
+
+  /* RISC-V vector types are sizeless. */
+  vtype->size = 0;
+  vtype->alignment = 0;
+  vtype->variant.riscv_vector.element_type = element_type;
+  vtype->variant.riscv_vector.length_multiplier = length_multiplier;
+  vtype->variant.riscv_vector.tuple_elements = tuple_elements;
+  return vtype;
+}  /* make_riscv_vector_type */
 
 
 a_type_ptr modal_8bit_floating_point_type(void)

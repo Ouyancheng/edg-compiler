@@ -935,14 +935,15 @@ consider the underlying type.
 
 a_boolean is_scalable_type(a_type_ptr  tp)
 /*
-Return TRUE if the given type is a scalable vector type (tk_scalable_vector) or
-a scalable vector count type (tk_scalable_vector_count).  For typerefs,
-consider the underlying type.
+Return TRUE if the given type is a scalable vector type (tk_scalable_vector), a
+scalable vector count type (tk_scalable_vector_count), or a RISC-V vector type
+(tk_riscv_vector).  For typerefs, consider the underlying type.
 */
 {
   tp = skip_typerefs(tp);
   return type_is(tp, tk_scalable_vector) ||
-         type_is(tp, tk_scalable_vector_count);
+         type_is(tp, tk_scalable_vector_count) ||
+         type_is(tp, tk_riscv_vector);
 }  /* is_scalable_type */
 
 
@@ -2364,7 +2365,8 @@ Return TRUE if the given type is trivially copyable.
         result = FALSE;
       }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
-    } else if (type_is(tp, tk_vector) || type_is(tp, tk_scalable_vector)) {
+    } else if (type_is(tp, tk_vector) || type_is(tp, tk_scalable_vector) ||
+               type_is(tp, tk_riscv_vector)) {
       result = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else {
@@ -5810,6 +5812,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_scalable_vector:
       case tk_scalable_vector_count:
+      case tk_riscv_vector:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* These stay zero; they have no size directly.  However, a function
            type is considered complete. */
@@ -8303,6 +8306,21 @@ check_typerefs:
           identical = TRUE;
         }  /* if */
         break;
+      case tk_riscv_vector:
+        /* For RISC-V vectors, the length multiplier and the number of tuple
+           elements must be the same, and the element types must be
+           identical. */
+        if (f_identical_types(type_1->variant.riscv_vector.element_type,
+                              type_2->variant.riscv_vector.element_type,
+                              flags) &&
+            type_1->variant.riscv_vector.length_multiplier ==
+                              type_2->variant.riscv_vector.length_multiplier &&
+            type_1->variant.riscv_vector.tuple_elements ==
+                                 type_2->variant.riscv_vector.tuple_elements &&
+            type_1->alignment == type_2->alignment) {
+          identical = TRUE;
+        }  /* if */
+        break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
         /* The managed nullptr type and std::nullptr_t are distinguished by
@@ -9217,6 +9235,20 @@ check_typerefs:
           compat = TRUE;
         }  /* if */
         break;
+      case tk_riscv_vector:
+        /* For RISC-V vectors, the length multiplier and the number of tuple
+           elements must be the same, and the element types must be
+           identical. */
+        if (f_identical_types(type_1->variant.riscv_vector.element_type,
+                              type_2->variant.riscv_vector.element_type,
+                              flags) &&
+            type_1->variant.riscv_vector.length_multiplier ==
+                              type_2->variant.riscv_vector.length_multiplier &&
+            type_1->variant.riscv_vector.tuple_elements ==
+                                 type_2->variant.riscv_vector.tuple_elements) {
+          compat = TRUE;
+        }  /* if */
+        break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         default:
           unexpected_condition_str("f_types_are_compatible_full: bad type");
@@ -9649,6 +9681,16 @@ that are not present in standalone back ends and utilities.
                                         variant.scalable_vector.element_type,
                                               type_2->
                                         variant.scalable_vector.element_type));
+      break;
+    case tk_riscv_vector:
+      identical = (type_1->variant.riscv_vector.length_multiplier ==
+                              type_2->variant.riscv_vector.length_multiplier &&
+                   type_1->variant.riscv_vector.tuple_elements ==
+                                 type_2->variant.riscv_vector.tuple_elements &&
+                   standalone_identical_types(type_1->
+                                        variant.riscv_vector.element_type,
+                                              type_2->
+                                        variant.riscv_vector.element_type));
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_typeref:
@@ -14781,6 +14823,7 @@ calling disentangle_default_args).
         case tk_vector:
         case tk_scalable_vector:
         case tk_scalable_vector_count:
+        case tk_riscv_vector:
         case tk_mfp8:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         case tk_nullptr:
@@ -16448,6 +16491,12 @@ return type be examined? what about its parameters?).
         break;
       case tk_scalable_vector:
         tp = type_ptr->variant.scalable_vector.element_type;
+        if (tp != NULL) {
+          status = traverse_type_tree_full(tp, func, pofunc, flags);
+        }  /* if */
+        break;
+      case tk_riscv_vector:
+        tp = type_ptr->variant.riscv_vector.element_type;
         if (tp != NULL) {
           status = traverse_type_tree_full(tp, func, pofunc, flags);
         }  /* if */
@@ -18127,6 +18176,15 @@ make_new_type:
         new_type = alloc_type(tk_scalable_vector);
         copy_type(type, new_type);
         new_type->variant.scalable_vector.element_type = tp;
+      }  /* if */
+      break;
+    case tk_riscv_vector:
+      /* Ditto for the RISC-V vector case. */
+      if (func(type->variant.riscv_vector.element_type, flags, &tp)) {
+        /* Create a new RISC-V vector type. */
+        new_type = alloc_type(tk_riscv_vector);
+        copy_type(type, new_type);
+        new_type->variant.riscv_vector.element_type = tp;
       }  /* if */
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

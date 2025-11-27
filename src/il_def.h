@@ -5528,6 +5528,9 @@ enum a_type_kind : a_byte {
 			   but instead of representing a boolean predicate, it
 			   represents a counter predicate (which doesn't have a
 			   corresponding C++ element type). */
+  tk_riscv_vector,	/* RISC-V vector types.  These are similar to scalable
+			   vector types but have an additional length
+			   multiplier. */
   tk_mfp8,		/* Modal 8-bit floating-point type used by ARM vector
 			   extensions.  This is a storage-only type with no
 			   built-in arithmetic operations defined. */
@@ -10777,6 +10780,17 @@ typedef struct a_type {
       uint8_t	tuple_elements;
 			/* Number of tuple elements. */
     } scalable_vector;
+    /* When kind is tk_riscv_vector: */
+    struct {
+      a_type_ptr
+		element_type;
+			/* Type of the vector elements. */
+      int8_t	length_multiplier;
+			/* Length multiplier.  A negative value represents a
+                           fractional multiplier. */
+      uint8_t	tuple_elements;
+			/* Number of tuple elements. */
+    } riscv_vector;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
   } variant;
 } a_type;
@@ -11917,6 +11931,9 @@ enum a_builtin_function_category : a_byte {
 			   (arm_neon_sve_bridge.h). */
   bfc_arm_64_sme,	/* 64-bit ARM specific builtin function (arm_sme.h). */
   bfc_arm_64_sve,	/* 64-bit ARM specific builtin function (arm_sve.h). */
+  bfc_riscv,		/* RISC-V specific builtin function. */
+  bfc_riscv_32,		/* 32-bit RISC-V specific builtin function. */
+  bfc_riscv_64,		/* 64-bit RISC-V specific builtin function. */
   bfc_x86,		/* x86 specific builtin function. */
   bfc_x86_32,		/* 32-bit x86 specific builtin function. */
   bfc_x86_64,		/* 64-bit x86 specific builtin function. */

@@ -376,6 +376,8 @@ The minimum criteria for a configuration macro to be included in this list are:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   TARGET_MAP_MACRO(TARG_SUPPORTS_ARM32, targ_supports_arm32, _TC)
   TARGET_MAP_MACRO(TARG_SUPPORTS_ARM64, targ_supports_arm64, _TC)
+  TARGET_MAP_MACRO(TARG_SUPPORTS_RISCV32, targ_supports_riscv32, _TC)
+  TARGET_MAP_MACRO(TARG_SUPPORTS_RISCV64, targ_supports_riscv64, _TC)
   TARGET_MAP_MACRO(TARG_SUPPORTS_X86_64, targ_supports_x86_64, _TC)
   TARGET_MAP_MACRO(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE,
                    targ_too_large_shift_count_is_taken_modulo_size, _TC)

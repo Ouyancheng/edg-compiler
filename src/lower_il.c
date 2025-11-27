@@ -9591,6 +9591,9 @@ Do IL lowering of the indicated type and everything under it.
       case tk_scalable_vector:
         lower_type(type->variant.scalable_vector.element_type);
         break;
+      case tk_riscv_vector:
+        lower_type(type->variant.riscv_vector.element_type);
+        break;
       case tk_scalable_vector_count:
       case tk_mfp8:
         /* No processing required. */
