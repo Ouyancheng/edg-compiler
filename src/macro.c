@@ -12135,8 +12135,9 @@ command line -D options.
         /* __cpp_init_captures has a different value depending on whether
            C++20 pack expansions in init-captures are allowed. */
         a_const_char *value;
-        if (pack_init_capture_enabled &&
+        if (pack_init_capture_enabled && !clang_version_is(<100000) &&
             !suppress_gnu_feature_test_macro("201803L", 0)) {
+          /* Clang did not adopt the C++20 value until version 10.0.0. */
           value = "201803L";
         } else if (!suppress_gnu_feature_test_macro("201304L", 0)) {
           value = "201304L";
