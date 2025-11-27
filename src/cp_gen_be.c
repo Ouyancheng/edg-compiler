@@ -18599,8 +18599,8 @@ gen_expr that might end up generating this expr as a temporary.
                e.g., "p->int::~int()". */
             if (msvc_is_generated_code_target) {
               /* MSVC has a bug in determining the type of a vacuous
-                 destructor call when the pseudo-destructor name is
-                 qualified, e.g.,
+                 destructor call when the destructor name is qualified,
+                 e.g.,
                    struct S { };
                    void f(S *p) { return p->S::~S(); }
                  MSVC complains that a void function returns a value.  To

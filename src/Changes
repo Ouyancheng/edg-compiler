@@ -35,10 +35,10 @@ adds the space when clang_target_version_number is less than 60000.
 
 
 11/26/25 [EDGcpfe/28561]
-C++-generating back end: qualified pseudo-destructor names
+C++-generating back end: qualified trivial destructor names
 
-MSVC has a bug in determining the type of a vacuous destructor call when the
-pseudo-destructor name is qualified.  For example, given
+MSVC has a bug in determining the type of a trivial destructor call when
+the destructor name is qualified.  For example, given
 
   struct S { }; 
   void f(S *p) { return p->S::~S(); }
@@ -46,7 +46,7 @@ pseudo-destructor name is qualified.  For example, given
 MSVC complains that a void function returns a value.  The C++-generating
 back end generates qualified names in such cases, triggering the MSVC bug.
 Now, when msvc_is_generated_code_target is TRUE, the C++-generating back
-end explicitly casts vacuous destructor calls to void, so the expression in
+end explicitly casts trivial destructor calls to void, so the expression in
 the example above is put out as
 
   (void)p->S::~S()
