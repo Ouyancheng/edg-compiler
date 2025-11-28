@@ -199,7 +199,7 @@ additional target configuration will be added below.
 #ifndef HOST_ALIGNMENT_REQUIRED
 #define HOST_ALIGNMENT_REQUIRED 8
 #endif /* HOST_ALIGNMENT_REQUIRED */
-#define TARG_JMP_BUF_NUM_ELEMENTS 26
+#define TARG_JMP_BUF_NUM_ELEMENTS 43
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long)
 #elif TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_RISCV32
 /* ARM32/RISCV32. Untested currently (but can be configured manually). */
