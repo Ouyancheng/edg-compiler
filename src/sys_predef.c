@@ -1173,7 +1173,7 @@ instead of being mapped on an actual header file.
     if (target_is_arm_based() && !ms_compat) {
       /* The ARM __builtin_va_list type is struct __va_list. */
       tp = make_va_list_tag_type();
-    } else if (!target_is_32_bit_x86_based() && !ms_compat) {
+    } else if (target_is_x86_based() && target_is_64_bits() && !ms_compat) {
       /* The x86-64 __builtin_va_list type is defined as follows:
            struct __va_list_tag {
              unsigned int  gp_offset;
@@ -1188,8 +1188,9 @@ instead of being mapped on an actual header file.
       tp->variant.array.variant.number_of_elements = 1;
       set_type_size(tp);
     } else {
-      /* Use char* in Microsoft and GNU modes, and void* otherwise. */
-      if (ms_compat || gnu_mode) {
+      /* Use char* in Microsoft and GNU modes (other than for RISC-V), and
+         void* otherwise. */
+      if ((ms_compat || gnu_mode) && !target_is_riscv_based()) {
         tp = make_pointer_type(integer_type((an_integer_kind)ik_char));
       } else {
         tp = make_pointer_type(void_type());
@@ -1208,8 +1209,8 @@ Enter a predefined type __builtin_va_list.
 {
   /* On 32-bit x86 GCC implementations, __builtin_va_list is a type compatible
      with char*.  On x86-64 (at least on Linux), __builtin_va_list is an array
-     of one element of struct type, and on ARM32/ARM64, __builtin_va_list is a
-     struct type. */
+     of one element of struct type, on ARM32/ARM64, __builtin_va_list is a
+     struct type, and on RISCV32/RISCV64, it is void*. */
   builtin_va_list_type = enter_predefined_typedef("__builtin_va_list",
                                                   get_default_va_list_type());
   builtin_va_list_type->is_builtin_va_list = TRUE;

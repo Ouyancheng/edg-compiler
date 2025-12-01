@@ -35608,7 +35608,8 @@ For ARM32, the class is defined as follows:
                                            source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  check_assertion(!target_is_32_bit_x86_based());
+  check_assertion((target_is_arm_based() || target_is_x86_based()) &&
+                  !target_is_32_bit_x86_based());
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Don't issue source sequence entries for generated entities. */
   source_sequence_entries_disallowed = TRUE;
