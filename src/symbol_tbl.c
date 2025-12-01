@@ -169,7 +169,7 @@ struct an_inst_count {
                  tssp;
 			/* The "template symbol supplement" for the templated
 			   entity being tracked. */
-  unsigned long  count = 0, defined = 0;
+  unsigned long  count, defined;
 			/* The number of instances recorded for this templated
 			   entity, and the number of those instances that is
 			   considered "defined". */
