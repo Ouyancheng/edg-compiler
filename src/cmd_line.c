@@ -9824,6 +9824,16 @@ file.
 #else /* !defined(TARG_SUPPORTS_ARM64) */
   comment_undefined_macro_name(TARG_SUPPORTS_ARM64);
 #endif /* defined(TARG_SUPPORTS_ARM64) */
+#if defined(TARG_SUPPORTS_RISCV32)
+  define_numeric_valued_macro(TARG_SUPPORTS_RISCV32);
+#else /* !defined(TARG_SUPPORTS_RISCV32) */
+  comment_undefined_macro_name(TARG_SUPPORTS_RISCV32);
+#endif /* defined(TARG_SUPPORTS_RISCV32) */
+#if defined(TARG_SUPPORTS_RISCV64)
+  define_numeric_valued_macro(TARG_SUPPORTS_RISCV64);
+#else /* !defined(TARG_SUPPORTS_RISCV64) */
+  comment_undefined_macro_name(TARG_SUPPORTS_RISCV64);
+#endif /* defined(TARG_SUPPORTS_RISCV64) */
 #if defined(TARG_SUPPORTS_X86_64)
   define_numeric_valued_macro(TARG_SUPPORTS_X86_64);
 #else /* !defined(TARG_SUPPORTS_X86_64) */
