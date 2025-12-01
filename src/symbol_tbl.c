@@ -18533,7 +18533,7 @@ that were created for it (and the number of instances that are definitions).
 Output the top-n templates and associated counts to f_debug.
 */
 {
-  unsigned N = inst_counters->length();
+  unsigned N = (unsigned)inst_counters->length();
 
   n = min_val(N, n);
   for (unsigned k = 0; k<N; ++k) {
