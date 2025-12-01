@@ -40,11 +40,14 @@ If the target architecture is unspecified, heuristically determine a target
 architecture from the host compiler.
 */
 #if !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM64) && \
-    !defined(TARG_SUPPORTS_ARM32)
+    !defined(TARG_SUPPORTS_ARM32) && !defined(TARG_SUPPORTS_RISCV64) && \
+    !defined(TARG_SUPPORTS_RISCV32)
 /* Default to an unspecified target. */
 #define TARG_SUPPORTS_X86_64 0
 #define TARG_SUPPORTS_ARM64 0
 #define TARG_SUPPORTS_ARM32 0
+#define TARG_SUPPORTS_RISCV64 0
+#define TARG_SUPPORTS_RISCV32 0
 #if defined(__x86_64__)
 /* 64-bit x86. */
 #undef TARG_SUPPORTS_X86_64
