@@ -1,5 +1,15 @@
 Version 6.9
 
+12/1/25  [EDGcpfe/28569]
+Cross-translation-unit correspondences
+
+In configurations where the front end might have to deal with multiple
+translation unit simultaneously, it records "cross-translation unit
+correspondence" entries.  Previously, however, it also accidentally did so
+in other configurations (for some template instantiations).  That is now
+fixed.
+
+
 12/1/25  [EDGcpfe/28567]
 Regression resulting in a crash during PCH loading
 

@@ -34,6 +34,17 @@ trans_corresp.c -- Routines related to matching entities across
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+#undef record_builtin_type
+#undef record_instantiation
+#undef record_default_arg_instantiation
+#undef establish_class_instantiation_corresp
+#undef establish_function_instantiation_corresp
+#undef establish_variable_instantiation_corresp
+#undef establish_enum_instantiation_corresp
+#undef establish_block_extern_function_correspondence
+#undef establish_block_extern_variable_correspondence
+#undef establish_friend_type_correspondence
+
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 

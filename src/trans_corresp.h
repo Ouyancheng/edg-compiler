@@ -19,6 +19,9 @@ trans_corresp.h -- Declarations related to matching entities across
 #ifndef TRANS_CORRESP_H
 #define TRANS_CORRESP_H 1
 
+#define TRACK_TU_CORRESP \
+    (EXPORT_ENABLING_POSSIBLE || COMPILE_MULTIPLE_TRANSLATION_UNITS)
+
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
@@ -47,10 +50,15 @@ extern a_boolean f_same_name(char  *entity1,
 #define same_name(ptr1, ptr2)                                       \
   f_same_name((char*)(ptr1), (char*)(ptr2))
 
+#if TRACK_TU_CORRESP
 /*
 Routine to record builtin type correspondences.
 */
 extern void record_builtin_type(a_type_ptr  type);
+#else /* !TRACK_TU_CORRESP */
+#define record_builtin_type(tp)  /* Nothing */
+#endif /* TRACK_TU_CORRESP */
+
 
 /*
 Routines to retrieve the primary builtin types.
@@ -97,13 +105,13 @@ Return TRUE if we need to compare the canonical entries in order to determine
 if two pointers refer to the same entity.  This test is never needed in
 standalone utility programs.
 */
-#if !STANDALONE_UTILITY_PROGRAM
+#if !STANDALONE_UTILITY_PROGRAM && TRACK_TU_CORRESP
 #define canonical_test_needed(ptr1, ptr2)				\
   (secondary_translation_unit_seen() &&					\
     (ptr1) != NULL && (ptr2) != NULL)
-#else /* STANDALONE_UTILITY_PROGRAM */
+#else /* STANDALONE_UTILITY_PROGRAM || !TRACK_TU_CORRESP */
 #define canonical_test_needed(ptr1, ptr2) (FALSE)
-#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM && TRACK_TU_CORRESP */
 
 /*
 The following routine is used by the macros corresponding_* to determine
@@ -250,6 +258,7 @@ extern void set_trans_unit_correspondences(void);
 
 extern void set_correspondence_of_unvisited_entries(a_scope_ptr  scope);
 
+#if TRACK_TU_CORRESP
 extern void record_instantiation(a_symbol_ptr                      inst,
                                  a_template_symbol_supplement_ptr  tssp);
 
@@ -271,6 +280,25 @@ extern void establish_block_extern_variable_correspondence(
                                                       a_variable_ptr  var);
 
 extern void establish_friend_type_correspondence(a_type_ptr  type);
+#else /* !TRACK_TU_CORRESP */
+#define record_instantiation(inst, tssp)  /* Nothing */
+
+#define record_default_arg_instantiation(rp1, ptp1)  /* Nothing */
+
+#define establish_class_instantiation_corresp(type)  /* Nothing */
+
+#define establish_function_instantiation_corresp(routine)  /* Nothing */
+
+#define establish_variable_instantiation_corresp(var)  /* Nothing */
+
+#define establish_enum_instantiation_corresp(enum_type)  /* Nothing */
+
+#define establish_block_extern_function_correspondence(routine)  /* Nothing */
+
+#define establish_block_extern_variable_correspondence(var)  /* Nothing */
+
+#define establish_friend_type_correspondence(type)  /* Nothing */
+#endif /* TRACK_TU_CORRESP */
 
 extern void corresp_one_time_init(void);
 
