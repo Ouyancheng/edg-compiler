@@ -1,5 +1,19 @@
 Version 6.9
 
+12/1/25  [EDGcpfe/28553]
+Variadic expansion of attributes
+
+Consider, in GNU C++11 mode:
+
+  template<int ...Is> [[gnu::aligned(Is) ... ]] void g() {}
+  int main() {
+    g<2, 4, 8>();
+  }
+
+The front end previously failed to apply the expanded attribute to the instance
+of g.  That is now fixed.
+
+
 12/1/25  [EDGcpfe/28571]
 DEBUG option -d-top_templates
 

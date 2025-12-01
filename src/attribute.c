@@ -1943,6 +1943,14 @@ also considered.
     case tok_rbrace:
     case tok_rsplice:
       goto done;
+    case tok_identifier:
+      if (locator_for_curr_id.symbol_header != NULL) {
+        a_symbol  *sym = locator_for_curr_id.symbol_header->symbol;
+        if (sym != NULL) {
+          record_potential_pack_reference(sym, &pos_curr_token);
+        }  /* if */
+      }  /* if */
+      FALLTHROUGH
     default:
       closing_token = tok_last;
       break;
@@ -2213,6 +2221,9 @@ ak_unrecognized.
   } else {
     check_attr_config(*sig == '\0' || *sig == '?', ap,
                       "invalid attribute signature configuration");
+    if (curr_token == tok_ellipsis) {
+      pos_error(ec_expansion_contains_no_packs, &pos_curr_token);
+    }  /* if */
   }  /* if */
   remove_stop_token(tok_rparen);
 }  /* scan_attribute_args */
@@ -2571,13 +2582,23 @@ that appeared in a previous "using" prefix.  Can return NULL on error.
         *p_attribute = scan_attribute(af, using_ns_ap);
       }  /* if */
       { a_pack_expansion_descr_ptr pedep;
+        if (pesep != NULL &&
+            (*p_attribute == NULL || is_unrecognized_attr(*p_attribute))) {
+          /* For an unknown attribute, we do not know if packs encountered
+             within the attribute arguments were expanded within the pack or
+             should be expanded with the attribute as a whole.  By recording
+             the presence of an ellipsis, we avoid spurious diagnostics. */
+          record_pack_expansion_ellipsis_position(&pos_curr_token);
+          pesep->expansion_with_no_packs_diagnostic_issued = TRUE;
+        }  /* if */
         pedep = end_potential_pack_expansion_context(pesep,
                                                      /*is_declarator=*/FALSE);
         if (pedep != NULL) {
           if (*p_attribute == NULL) {
             /* In error cases, scan_attribute may not have produced an
-               attribute entry. */
-            expect_error();
+               attribute entry.  Alternatively, we may have run into an
+               unrecognized attribute. */
+            check_assertion_or_expect_error(!record_unrecognized_attributes);
           } else {
             (*p_attribute)->is_pack_expansion = TRUE;
             (*p_attribute)->pack_expansion_descr = pedep;
@@ -4213,11 +4234,24 @@ an error.
   a_boolean         err = FALSE, substitution_error_reported = FALSE;
   a_boolean         rescan_pushed = FALSE;
 
+  /* There are two doubly-nested loops here (i.e., a total of four nested loop
+     constructs).  The outer loop copies each attribute with an associated
+     immediately-nested loop to handle pack-expansion of attributes.  For
+     example:
+       template<int ... Ns> [[gnu::aligned(Ns)...]] int f();
+       int r = f<8, 16, 32>();
+     The innermost loops deal with copying the arguments for the outer loops
+     (one loop over the arguments of the original attributes, and another
+     immediately-nested one for any pack expansion within those). */
   for (ap = attributes; ap != NULL; ap = ap->next) {
+    a_ctws_state                      actws_state;
+    a_pack_expansion_descr_ptr        apedep;
+    a_pack_expansion_stack_entry_ptr  apesep;
+    a_boolean                         more_attributes;
     if (primary_only && !ap->on_primary_declaration) continue;
-    if (template_sym->kind == (a_symbol_kind)sk_class_template &&
-        is_partial_instantiation != attribute_applies_to_partial_instantiation(
-                                                (an_attribute_kind)ap->kind)) {
+    if (symbol_is(template_sym, sk_class_template) &&
+        is_partial_instantiation !=
+                       attribute_applies_to_partial_instantiation(ap->kind)) {
       /* For instantiations of class templates, apply the attribute at either
          partial instantiation time or full instantiation time (but not both),
          as determined by the attribute kind. */
@@ -4229,105 +4263,119 @@ an error.
       push_instantiation_scope_for_rescan(template_sym);
       rescan_pushed = TRUE;
     }  /* if */
-    copy_attribute(ap, *p_attr);
-    if ((*p_attr)->arguments != NULL) {
-      a_ctws_state		       ctws_state;
-      a_pack_expansion_descr_ptr       pedep;
-      a_pack_expansion_stack_entry_ptr pesep;
-      a_boolean                        any_more;
-      an_attribute_arg_ptr             *p_aap = &(*p_attr)->arguments;
-      an_attribute_arg_ptr             aap = *p_aap;
+    init_ctws_state(&actws_state);
+    apedep = ap->pack_expansion_descr;
+    more_attributes = begin_rescan_pack_expansion_context(
+                                                     apedep, t_params, t_args,
+                                                     &apesep, CTWS_NO_OPTIONS,
+                                                     &actws_state, &err);
+    while (more_attributes) {
+      copy_attribute(ap, *p_attr);
+      /* If the attribute was a parameter pack expansion, it's being expanded
+         now so reset the flag. */
+      (*p_attr)->is_pack_expansion = FALSE;
+      if ((*p_attr)->arguments != NULL) {
+        a_ctws_state		       ctws_state;
+        a_pack_expansion_descr_ptr       pedep;
+        a_pack_expansion_stack_entry_ptr pesep;
+        a_boolean                        any_more;
+        an_attribute_arg_ptr             *p_aap = &(*p_attr)->arguments;
+        an_attribute_arg_ptr             aap = *p_aap;
+        init_ctws_state(&ctws_state);
+        do {
+          *p_aap = alloc_attribute_arg();
+          **p_aap = *aap;
+          /* Boilerplate code for handling a pack expansion in an attribute
+             argument (alignas is currently the only case). */
+          pedep = aap->pack_expansion_descr;
+          any_more = begin_rescan_pack_expansion_context(
+                                          pedep, t_params, t_args, &pesep,
+                                          CTWS_NO_OPTIONS, &ctws_state, &err);
+          if (!any_more && aap->is_pack_expansion) {
+            /* Indicate an empty pack expansion. */
+            (*p_aap)->kind = (an_attribute_arg_kind)aak_empty;
+          }  /* if */
+          while (any_more) {
+            /* Substitute template parameters in the attribute arguments. */
+            switch (aap->kind) {
+              case aak_empty:
+              case aak_raw_token:
+              case aak_token:
+                /* Nothing to do. */
+                break;
+              case aak_constant:
+                if (constant_is(aap->variant.constant, ck_template_param)) {
+                  (*p_aap)->variant.constant = aap->variant.constant;
+                  substitute_attribute_arg_constant(*p_aap, t_params, t_args,
+                                                    parent_class, &ctws_state,
+                                                    &err);
 
-      init_ctws_state(&ctws_state);
-      do {
-        *p_aap = alloc_attribute_arg();
-        **p_aap = *aap;
-        /* Boilerplate code for handling a pack expansion in an attribute
-           argument (alignas is currently the only case). */
-        pedep = aap->pack_expansion_descr;
-        any_more = begin_rescan_pack_expansion_context(pedep, t_params, t_args,
-                                                       &pesep, CTWS_NO_OPTIONS,
-                                                       &ctws_state, &err);
-        if (!any_more && aap->is_pack_expansion) {
-          /* Indicate an empty pack expansion. */
-          (*p_aap)->kind = (an_attribute_arg_kind)aak_empty;
-        }  /* if */
-        while (any_more) {
-          /* Substitute template parameters in the attribute arguments. */
-          switch (aap->kind) {
-            case aak_empty:
-            case aak_raw_token:
-            case aak_token:
-              /* Nothing to do. */
-              break;
-            case aak_constant:
-              if (aap->variant.constant->kind ==
-                                    (a_constant_repr_kind)ck_template_param) {
-                (*p_aap)->variant.constant = aap->variant.constant;
-                substitute_attribute_arg_constant(*p_aap, t_params, t_args,
-                                                  parent_class, &ctws_state,
-                                                  &err);
-
-              } else {
-                an_expr_node_ptr      saved_expr = aap->variant.constant->expr;
-                a_memory_region_number  region_to_switch_back_to;
-                /* Do not copy the backing expression since it may have a
-                   dependent component (which we cannot easily substitute). */
-                aap->variant.constant->expr = NULL;
-                switch_to_file_scope_region(&region_to_switch_back_to);
-                (*p_aap)->variant.constant =
-                                alloc_unshared_constant(aap->variant.constant);
-                switch_back_to_original_region(region_to_switch_back_to);
-                if (saved_expr != NULL && in_file_scope(saved_expr)) {
-                  aap->variant.constant->expr = saved_expr;
+                } else {
+                  an_expr_node_ptr  saved_expr = aap->variant.constant->expr;
+                  a_memory_region_number
+                                    region_to_switch_back_to;
+                  /* Do not copy the backing expression since it may have a
+                     dependent component (which we cannot easily
+                     substitute). */
+                  aap->variant.constant->expr = NULL;
+                  switch_to_file_scope_region(&region_to_switch_back_to);
+                  (*p_aap)->variant.constant =
+                               alloc_unshared_constant(aap->variant.constant);
+                  switch_back_to_original_region(region_to_switch_back_to);
+                  if (saved_expr != NULL && in_file_scope(saved_expr)) {
+                    aap->variant.constant->expr = saved_expr;
+                  }  /* if */
                 }  /* if */
+                break;
+              case aak_type:
+                (*p_aap)->variant.type = aap->variant.type;
+                substitute_attribute_arg_type(*p_aap, t_params, t_args,
+                                              parent_class, &ctws_state, &err);
+                break;
+              case aak_expression:
+                (*p_aap)->variant.expr = substitute_attribute_expr(
+                                                       (*p_aap)->variant.expr,
+                                                       t_args, t_params,
+                                                       &((*p_aap)->position),
+                                                       &err, &ctws_state);
+                break;
+              default:
+                unexpected_condition();
+            }  /* switch */
+            if (err) {
+              /* A substitution error.  Issue a diagnostic for the first error
+                 if p_error is NULL (i.e., the caller cannot be notified
+                 directly of the error). */
+              if (p_error == NULL && !substitution_error_reported) {
+                pos_error(ec_bad_attribute_template_substitution,
+                          &aap->position);
+                substitution_error_reported = TRUE;
               }  /* if */
-              break;
-            case aak_type:
-              (*p_aap)->variant.type = aap->variant.type;
-              substitute_attribute_arg_type(*p_aap, t_params, t_args,
-                                            parent_class, &ctws_state, &err);
-              break;
-            case aak_expression:
-              (*p_aap)->variant.expr = substitute_attribute_expr(
-                                                        (*p_aap)->variant.expr,
-                                                        t_args, t_params,
-                                                        &((*p_aap)->position),
-                                                        &err, &ctws_state);
-              break;
-            default:
-              unexpected_condition();
-          }  /* switch */
-          if (err) {
-            /* A substitution error.  Issue a diagnostic for the first error if
-               p_error is NULL (i.e., the caller cannot be notified directly of
-               the error). */
-            if (p_error == NULL && !substitution_error_reported) {
-              pos_error(ec_bad_attribute_template_substitution,
-                        &aap->position);
-              substitution_error_reported = TRUE;
+              make_attr_unrecognized(*p_attr);
             }  /* if */
-            make_attr_unrecognized(*p_attr);
-          }  /* if */
-          /* If the argument was a parameter pack expansion, it's been expanded
-             now so reset the flag. */
-          (*p_aap)->is_pack_expansion = FALSE;
-          (void)end_potential_pack_expansion_context(pesep,
-                                                     /*is_declarator=*/FALSE);
-          any_more = advance_to_next_pack_element(pesep);
-          if (any_more) {
-            /* Allocate another attribute argument for the next element of
-               the pack expansion. */
-            p_aap = &(*p_aap)->next;
-            *p_aap = alloc_attribute_arg();
-            **p_aap = *aap;
-          }  /* if */
-        }  /* while */
-        p_aap = &(*p_aap)->next;
-        aap = aap->next;
-      } while (aap != NULL);
-    }  /* if */
-    p_attr = &(*p_attr)->next;
+            /* If the argument was a parameter pack expansion, it's been
+               expanded now so reset the flag. */
+            (*p_aap)->is_pack_expansion = FALSE;
+            (void)end_potential_pack_expansion_context(
+                                              pesep, /*is_declarator=*/FALSE);
+            any_more = advance_to_next_pack_element(pesep);
+            if (any_more) {
+              /* Allocate another attribute argument for the next element of
+                 the pack expansion. */
+              p_aap = &(*p_aap)->next;
+              *p_aap = alloc_attribute_arg();
+              **p_aap = *aap;
+            }  /* if */
+          }  /* while */
+          p_aap = &(*p_aap)->next;
+          aap = aap->next;
+        } while (aap != NULL);
+      }  /* if */
+      p_attr = &(*p_attr)->next;
+      (void)end_potential_pack_expansion_context(apesep,
+                                                 /*is_declarator=*/FALSE);
+      more_attributes = advance_to_next_pack_element(apesep);
+    }  /* while */
   }  /* for */
   if (rescan_pushed) {
     /* If a rescan context was pushed above, pop it now. */

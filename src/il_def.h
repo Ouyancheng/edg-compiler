@@ -3206,10 +3206,7 @@ typedef struct an_attribute {
   struct a_pack_expansion_descr
 		*pack_expansion_descr;
 			/* If non-NULL, the attribute is a pack expansion,
-			   and this points to the expansion description.
-			   Note that this field is set but not currently used;
-			   the standard doesn't specify any attributes that
-			   can be used in this manner. */
+			   and this points to the expansion description. */
 } an_attribute;
 
 
