@@ -156,6 +156,28 @@ STATIC_THREAD unsigned long
 		num_token_sequence_xrefs_allocated,
 		num_constexpr_if_cache_info_allocated,
 		num_exception_spec_error_descrs_allocated;
+
+
+/*
+A structure recording instance counts for templates.
+*/
+struct an_inst_count {
+  ~an_inst_count() {}  // To make it non-trivially-copyable.  Ask Wyatt.
+  a_symbol_kind  kind;
+			/* The kind of symbol associated with tssp. */
+  a_template_symbol_supplement_ptr
+                 tssp;
+			/* The "template symbol supplement" for the templated
+			   entity being tracked. */
+  unsigned long  count = 0, defined = 0;
+			/* The number of instances recorded for this templated
+			   entity, and the number of those instances that is
+			   considered "defined". */
+};
+
+STATIC_THREAD Dyn_array<an_inst_count>
+		 *inst_counters;
+
 #endif /* DEBUG */
 
 STATIC_THREAD a_namespace_list_entry_ptr
@@ -3849,7 +3871,10 @@ and return a pointer to it.
       unexpected_condition_str(
                           "alloc_template_symbol_supplement: bad symbol kind");
   }  /* switch */
-
+#if DEBUG
+  /* Record the supplement for convenient survey by -d-top_templates. */
+  inst_counters->push_back(an_inst_count{ kind, tssp, 0 });
+#endif /* DEBUG */
   db_exit();
   return tssp;
 }  /* alloc_template_symbol_supplement */
@@ -18500,6 +18525,71 @@ for space tracking purposes.
   return grand_total;
 }  /* show_symbol_space_used */
 
+
+void db_show_top_templates(unsigned  n)
+/*
+For every template recorded in inst_counters, count the number of instances
+that were created for it (and the number of instances that are definitions).
+Output the top-n templates and associated counts to f_debug.
+*/
+{
+  unsigned N = inst_counters->length();
+
+  n = min_val(N, n);
+  for (unsigned k = 0; k<N; ++k) {
+    a_symbol_list_entry_ptr  slep = NULL;
+    a_template_instance_ptr  tip = NULL;
+    an_inst_count            &inst = (*inst_counters)[k];
+    switch (inst.kind) {
+      case sk_function_template:
+      case sk_member_function:
+        tip = inst.tssp->variant.function.instantiations;
+        for (; tip != NULL; tip = tip->next) {
+          ++inst.count;
+          if (tip->instance_sym->defined) ++inst.defined;
+        }  /* for */
+        break;
+      case sk_variable_template:
+      case sk_static_data_member:
+        slep = inst.tssp->variant.variable.instantiations;
+        for (; slep != NULL; slep = slep->next) {
+          ++inst.count;
+          if (slep->symbol->defined) ++inst.defined;
+        }  /* for */
+        break;
+      case sk_concept_template:
+        break;
+      default:
+        slep = inst.tssp->variant.class_template.instantiations;
+        for (; slep != NULL; slep = slep->next) {
+          ++inst.count;
+          if (slep->symbol->defined) ++inst.defined;
+        }  /* for */
+        break;
+    }  /* switch */
+  }  /* for */
+  sort(inst_counters->begin(), inst_counters->end(),
+       [](an_inst_count const &x, an_inst_count const &y) {
+         return  x.count > y.count;
+       });
+  for (unsigned k = 0; k<(unsigned)n; ++k) {
+    an_inst_count  &inst = (*inst_counters)[k];
+    a_template     *templ = inst.tssp->il_template_entry;
+    if (inst.count == 0) break;
+    fprintf(f_debug, "%6lu instances (%6lu defs) of ",
+            inst.count, inst.defined);
+    if (templ != NULL && symbol_for(templ) != NULL) {
+      db_symbol_name(symbol_for(templ));
+    } else if (unmangled_name_of(&templ->source_corresp) != NULL) {
+      fprintf(f_debug, "%s",
+              unmangled_name_of(&templ->source_corresp));
+    } else {
+      fprintf(f_debug, "<unknown>");
+    }  /* if */
+    fprintf(f_debug, "\n");
+  }  /* if */
+}  /* db_show_top_templates */
+
 #endif /* DEBUG */
 
 
@@ -19298,6 +19388,7 @@ are handled in symbol_tbl_init.)
                          num_prop_or_event_accessor_header_lookups_allocated),
       pch_saved_var_array_elem(num_ms_attr_alt_name_entries_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      pch_saved_var_array_elem(inst_counters),
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -19524,6 +19615,8 @@ of the front end.
                                                 = 0;
   num_ms_attr_alt_name_entries_allocated        = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  inst_counters = alloc_fe_of_type(Dyn_array<an_inst_count>);
+  construct(inst_counters, /*cap=*/256u);
 #endif /* DEBUG */
   init_intrinsic_symbol_headers();
 }  /* symbol_tbl_init */

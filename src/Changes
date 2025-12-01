@@ -1,5 +1,12 @@
 Version 6.9
 
+12/1/25  [EDGcpfe/28571]
+DEBUG option -d-top_templates
+
+In configurations with DEBUG set to TRUE, the front end now supports an option
+-d-top_templates to report the templates with the most instances.
+
+
 12/1/25  [EDGcpfe/28569]
 Cross-translation-unit correspondences
 

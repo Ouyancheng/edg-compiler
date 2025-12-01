@@ -7690,6 +7690,9 @@ extern void form_symbol_name(a_symbol_ptr                          sym,
 #if DEBUG
 /* Show and return the amount of memory used by symbol table entries. */
 extern unsigned long show_symbol_space_used(void);
+
+extern void db_show_top_templates(unsigned  n);
+
 /* Display a symbol table entry. */
 extern void db_symbol(a_symbol_ptr sym,
                       a_const_char *string,
