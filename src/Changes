@@ -1,5 +1,13 @@
 Version 6.9
 
+12/1/25  [EDGcpfe/28567]
+Regression resulting in a crash during PCH loading
+
+With the changes for EDGcpfe/27955 (in version 6.8), the front end could
+sometimes segfault from using memory freed during the PCH loading process.
+This is now fixed.
+
+
 11/27/25 [EDGcpfe/24985,EDGcpfe/25973,EDGcpfe/26112,EDGcpfe/28367]
 Abbreviated function template syntax for deduction guides
 

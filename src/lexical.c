@@ -30185,6 +30185,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(name_linkage_constants),
       pch_saved_var_array_elem(curr_stop_token_stack_entry),
       pch_saved_var_array_elem(curr_lexical_state_stack_entry),
+      pch_saved_var_array_elem(cached_token_rescan_stack),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(whitespace_keywords),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
