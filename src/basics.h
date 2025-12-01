@@ -1031,6 +1031,33 @@ typedef struct a_simple_source_position {
 		column;
 } a_simple_source_position;
 
+
+inline a_boolean operator<(const a_simple_source_position &p1,
+                           const a_simple_source_position &p2)
+/* Returns TRUE if p1 has a simple source position less than p2. */
+{
+  return (a_boolean)(p1.seq < p2.seq ||
+                     (p1.seq == p2.seq && p1.column < p2.column));
+}  /* operator< */
+
+
+inline a_boolean operator>(const a_simple_source_position &p1,
+                           const a_simple_source_position &p2)
+/* Returns TRUE if p1 has a simple source position greater than p2. */
+{
+  return (a_boolean)(p1.seq > p2.seq ||
+                     (p1.seq == p2.seq && p1.column > p2.column));
+}  /* operator> */
+
+
+inline a_boolean operator==(const a_simple_source_position &p1,
+                            const a_simple_source_position &p2)
+/* Returns TRUE if p1 has a simple source position equal to p2. */
+{
+  return (a_boolean)(p1.seq == p2.seq && p1.column == p2.column);
+}  /* operator== */
+
+
 enum a_C_dialect {
   /* Possible C/C++ dialects to compile. */
   C_dialect_ANSI,	/* ANSI C. */

@@ -635,8 +635,8 @@ STATIC_THREAD an_error_file_index_ptr
 /*
 Type used to track diagnostic (e.g., pk_diag*) pragmas.  Such pragmas are
 "immediate" and for each one that is encountered (except pk_diag_once),
-an element of this type is entered into the pragma_diag_list Dyn_array.
-Elements in that dynamic array are kept sorted by source location (i.e.,
+an element of this type is entered into the pragma_diag_list linked list.
+Elements in that list are kept sorted by source location (i.e.,
 src/column).  Note that a_source_location is not used here because it
 potentially contains additional fields and there is a desire to keep this
 structure small.
@@ -647,6 +647,8 @@ struct a_pragma_diag_elem {
   inline a_pragma_diag_elem(a_pragma_kind     kind,
                             a_source_position *pos,
                             int               error_number);
+  struct a_pragma_diag_elem
+                *next;  /* Next entry on the list. */
   a_simple_source_position
                 spos;   /* Source position of the pragma. */
   a_pragma_kind kind;   /* The pk_diag* pragma kind. */
@@ -654,11 +656,11 @@ struct a_pragma_diag_elem {
                         /* TRUE if this corresponds to a "diagnostic pop". */
   union {
     /* When kind == pk_diagnostic: */
-    a_ptrdiff   corresponding_push;
-                        /* When is_pop is TRUE, this entry is the index into
-                           pragma_diag_list for the corresponding "push".
-                           For "pop" entries that have no corresponding
-                           "push" entry, -1 is used. */
+    a_pragma_diag_elem
+                *corresponding_push;
+                        /* When is_pop is TRUE, this entry is a pointer to
+                           the corresponding "push".  For "pop" entries that
+                           have no corresponding "push" entry, NULL is used. */
     /* When kind != pk_diagnostic: */
     int         error_number;
                         /* The error number specified by the pragma. */
@@ -688,9 +690,10 @@ Constructor for pk_diagnostic entries.
   , is_pop(FALSE)
 {
   check_assertion(kind == pk_diagnostic);
+  this->next = NULL;
   this->spos.seq = pos->seq;
   this->spos.column = pos->column;
-  this->variant.corresponding_push = -1; /* Moot because is_pop is FALSE. */
+  this->variant.corresponding_push = NULL;
 }  /* a_pragma_diag_elem::a_pragma_diag_elem */
 
 
@@ -704,6 +707,7 @@ Constructor for pk_diag_* (and pk_none) entries.
   , is_pop(FALSE)
 {
   check_assertion(kind != pk_diagnostic);
+  this->next = NULL;
   this->spos.seq = pos->seq;
   this->spos.column = pos->column;
   this->variant.error_number = error_number;
@@ -727,19 +731,20 @@ data members.
 }  /* operator== */
 
 
-STATIC_THREAD Dyn_array<a_pragma_diag_elem>
-                *pragma_diag_list;
-                        /* A pointer to a dynamic array of a_pragma_diag_elem
-                           entries that represent all of the "diagnostic"
-                           pragmas in the compilation.  The array is ordered
-                           by source location (which occurs naturally except
-                           for the case of _Pragmas in instantiations which
-                           must be inserted at the proper location). */
-STATIC_THREAD Dyn_array<size_t>
-                *pragma_diag_stack;
+STATIC_THREAD a_pragma_diag_elem
+                *pragma_diag_list, *pragma_diag_tail;
+                        /* Head and tail pointers to a linked list of
+                           a_pragma_diag_elem entries that represent all of the
+                           "diagnostic" pragmas in the compilation.  The list
+                           is ordered by source location (which generally
+                           occurs naturally except for the case of _Pragmas in
+                           instantiations which must be inserted at the proper
+                           location). */
+STATIC_THREAD Dyn_array<a_pragma_diag_elem*>
+                *pragma_push_stack;
                         /* A stack that keeps track of "diagnostic push"
-                           pragma indices so that they can later be matched
-                           with the corresponding "diagnostic pop". */
+                           pragmas so that they can later be matched with their
+                           corresponding "diagnostic pop". */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -3453,47 +3458,8 @@ expected_error.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-STATIC_THREAD a_pragma_diag_elem
-                *pdl_lower_bound;
-                        /* During a call to pragma_diag_list_lower_bound this
-                           variable is used to keep track of the greatest
-                           element of pragma_diag_list that matches the
-                           criteria. */
-
-static int compare_pragma_diag(a_const_void_ptr key,
-                               a_const_void_ptr candidate)
-/*
-Function called by bsearch to compare two a_pragma_diag_elem entries.
-Note that finding an exact match is unusual and that pdl_lower_bound is used
-to keep track of the desired result.
-*/
-{
-  int                result;
-  a_pragma_diag_elem *p1 = (a_pragma_diag_elem*)key;
-  a_pragma_diag_elem *p2 = (a_pragma_diag_elem*)candidate;
-
-  result = (int)((long long)p1->spos.seq - (long long)p2->spos.seq);
-  if (result > 0) {
-    pdl_lower_bound = p2;
-  } else if (result == 0) {
-    result = (int)p1->spos.column - (int)p2->spos.column;
-    if (result >= 0) {
-      pdl_lower_bound = p2;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* compare_pragma_diag */
-
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-static a_pragma_diag_elem *pragma_diag_list_lower_bound(
-                                                 const a_pragma_diag_elem &key)
+INLINE static a_pragma_diag_elem *pragma_diag_list_lower_bound(
+                                                 const a_pragma_diag_elem *pos)
 /*
 Return a pointer to the element in pragma_diag_list with the greatest source
 location that is also less than or equal to the source location in the
@@ -3503,22 +3469,21 @@ the list represent source locations of pragmas and we're searching for
 a source location of an error (that is typically not on a #pragma line).
 */
 {
-  a_pragma_diag_elem *result = NULL;
+  a_pragma_diag_elem *ptr, *result = NULL;
 
-  if (pragma_diag_list != NULL && !pragma_diag_list->is_empty()) {
-    /* Eventual result will be stored in pdl_lower_bound. */
-    pdl_lower_bound = NULL;
-    result = (a_pragma_diag_elem*)bsearch(
-                                (a_bsearch_arg_type)&key,
-                                (a_bsearch_arg_type)pragma_diag_list->begin(),
-                                size_t_arg(pragma_diag_list->length()),
-                                sizeof(a_pragma_diag_elem),
-                                compare_pragma_diag);
-    if (result != NULL) {
-      check_assertion(result == pdl_lower_bound);
-    } else {
-      result = pdl_lower_bound;
-    }  /* if */
+  if (pragma_diag_tail != NULL && pragma_diag_tail->spos < pos->spos) {
+    /* It's often the case that the position is past all of the entries, so
+       check for that. */
+    result = pragma_diag_tail;
+  } else {
+    for (ptr = pragma_diag_list; ptr != NULL; ptr = ptr->next) {
+      if (ptr->spos > pos->spos) {
+        /* This entry in the list is past the given source position (so the
+           last entry is the one we want). */
+        break;
+      }  /* if */
+      result = ptr;
+    }  /* for */
   }  /* if */
   return result;
 }  /* pragma_diag_list_lower_bound */
@@ -3593,35 +3558,20 @@ in the source.
            compiled. */
         pos = &error_position;
       }  /* if */
-      if (pragma_diag_list == NULL) {
-        /* During early error processing, the list may not be allocated. */
-      } else if (pragma_diag_list->is_empty()) {
-        /* There are no entries on the list. */
-      } else if (pragma_diag_list->back_elem().spos.seq < pos->seq ||
-                 (pragma_diag_list->back_elem().spos.seq == pos->seq &&
-                  pragma_diag_list->back_elem().spos.column < pos->column)) {
-        /* A common case is that the error being reported is after all of the
-           pragmas in the array.  In that case, no search is needed. */
-        ptr = &pragma_diag_list->back_elem();
-      } else {
-        /* Find the appropriate location in pragma_diag_list. */
-        ptr = pragma_diag_list_lower_bound({pk_none, pos, 0});
-      }  /* if */
+      /* Find the appropriate location in pragma_diag_list. */
+      a_pragma_diag_elem dummy = {pk_none, pos, 0};
+      ptr = pragma_diag_list_lower_bound(&dummy);
       if (ptr != NULL) {
         /* Search backwards (i.e., towards the beginning of the list) to see
            if there is any pk_diag* pragma that refers to the error code at
            hand.  If we find a "diagnostic pop", skip to the corresponding
            "diagnostic push". */
         while (TRUE) {
-          check_assertion(ptr >= pragma_diag_list->begin() &&
-                          ptr < pragma_diag_list->end());
           if (ptr->kind == pk_diagnostic) {
             if (ptr->is_pop) {
-              if (ptr->variant.corresponding_push != -1) {
+              if (ptr->variant.corresponding_push != NULL) {
                 /* Skip to the corresponding "push" for this "pop". */
-                size_t push_idx = size_t_arg(ptr->variant.corresponding_push);
-
-                ptr = &(*pragma_diag_list)[push_idx];
+                ptr = ptr->variant.corresponding_push;
                 continue;
               } else {
                 /* There is no corresponding "push" for this "pop" (a warning
@@ -3634,11 +3584,20 @@ in the source.
             new_severity = get_severity_from_pragma(ptr, error_code);
             break;
           }  /* if */
-          if (ptr == pragma_diag_list->begin()) {
+          if (ptr == pragma_diag_list) {
             /* At the beginning. */
             break;
           }  /* if */
-          ptr--;
+          /* Because pragma_diag_list isn't doubly-linked, retrieving the
+             previous entry on the list requires a loop.  Luckily
+             this operation is performed very infrequently. */
+          for (a_pragma_diag_elem *p = pragma_diag_list;
+               p != NULL;
+               p = p->next) {
+            if (p->next == ptr) {
+              ptr = p;
+            }  /* if */
+          }  /* for */
         }  /* while */
       }  /* if */
     }  /* if */
@@ -8100,40 +8059,51 @@ diagnostic is associated; error_code indicates the message to be issued.
 
 
 static a_pragma_diag_elem *insert_into_pragma_diag_list(
-                                                const a_pragma_diag_elem &elem)
+                                               const a_pragma_diag_elem &entry)
 /*
-Insert the element into the proper place in the pragma_diag_list (which is
-kept sorted by source location).  No action is taken if the element is already
-on the list.  This can be a rather expensive operation since the underlying
-data type is a Dyn_array.  Return a pointer to the element in the array
-(or NULL if it was already there).
+Allocate and insert an element (with the values given by entry) into the proper
+place in the pragma_diag_list (which is kept sorted by source location).  No
+action is taken if an element with the same source position is already on the
+list.  Return a pointer to the newly allocated element in the array (or NULL if
+it was already there).
 */
 {
-  a_pragma_diag_elem *result = NULL;
+  a_pragma_diag_elem *elem = alloc_fe_of_type(a_pragma_diag_elem);
 
-  if (pragma_diag_list->is_empty()) {
+  *elem = entry;
+  if (pragma_diag_list == NULL) {
     /* Empty list. */
-    pragma_diag_list->push_back(elem);
-    result = pragma_diag_list->begin();
+    pragma_diag_list = elem;
+    pragma_diag_tail = elem;
+    check_assertion(elem->next == NULL);
+  } else if (pragma_diag_tail->spos < elem->spos) {
+    /* Typical case: new element goes at the end of the list. */
+    pragma_diag_tail->next = elem;
+    pragma_diag_tail = elem;
+    check_assertion(elem->next == NULL);
   } else {
     a_pragma_diag_elem *found;
     found = pragma_diag_list_lower_bound(elem);
     if (found == NULL) {
       /* Didn't find anything; insert as the first entry. */
-      pragma_diag_list->insert(0, elem);
-      result = pragma_diag_list->begin();
+      elem->next = pragma_diag_list;
+      pragma_diag_list = elem;
     } else {
-      if (elem == *found) {
+      if (elem->spos == found->spos) {
         /* Nothing to do; this entry is already on the list. */
+        free_fe(elem);
+        elem = NULL;
       } else {
-        /* Insert the element after the one that was found. */
-        size_t idx = (size_t)(found - pragma_diag_list->begin() + 1);
-        pragma_diag_list->insert(idx, elem);
-        result = &(*pragma_diag_list)[idx];
+        /* Insert item after the one we found. */
+        elem->next = found->next;
+        found->next = elem;
+        if (pragma_diag_tail == found) {
+          pragma_diag_tail = elem;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-  return result;
+  return elem;
 }  /* insert_into_pragma_diag_list */
 
 
@@ -8285,24 +8255,22 @@ parsed except during instantiations).
     }  /* if */
     if (ptr != NULL) {
       if (is_push) {
-        /* Push the index onto a stack so it can be associated with a later
+        /* Push the entry onto a stack so it can be associated with a later
            "pop". */
-        check_assertion(pragma_diag_list->length() > 0);
-        size_t ptr_index = (size_t)(ptr - &(*pragma_diag_list)[0]);
-        pragma_diag_stack->push_back(ptr_index);
+        check_assertion(pragma_diag_list != NULL);
+        pragma_push_stack->push_back(ptr);
       } else {
         /* Link to associated "push". */
         ptr->is_pop = TRUE;
-        if (!pragma_diag_stack->is_empty()) {
-          size_t last_push = pragma_diag_stack->back_elem();
-          check_assertion((*pragma_diag_list)[last_push].kind ==
-                                                               pk_diagnostic &&
-                          !(*pragma_diag_list)[last_push].is_pop);
-          ptr->variant.corresponding_push = (a_ptrdiff)last_push;
-          pragma_diag_stack->pop_back();
+        if (!pragma_push_stack->is_empty()) {
+          a_pragma_diag_elem *last_push = pragma_push_stack->back_elem();
+          check_assertion(last_push->kind == pk_diagnostic &&
+                          !last_push->is_pop);
+          ptr->variant.corresponding_push = last_push;
+          pragma_push_stack->pop_back();
         } else {
           /* There was no "push" associated with this "pop". */
-          ptr->variant.corresponding_push = -1;
+          ptr->variant.corresponding_push = NULL;
           pos_warning(ec_no_corresponding_push, &pos_curr_token);
         }  /* if */
       }  /* if */
@@ -8470,7 +8438,8 @@ are handled in error_init.)
       pch_saved_var_array_elem(error_position),
       pch_array_saved_var_array_elem(error_codes),
       pch_saved_var_array_elem(pragma_diag_list),
-      pch_saved_var_array_elem(pragma_diag_stack),
+      pch_saved_var_array_elem(pragma_diag_tail),
+      pch_saved_var_array_elem(pragma_push_stack),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -8488,10 +8457,10 @@ Initialize variables that are specific to a given translation unit.
 */
 {
 #if !STANDALONE_UTILITY_PROGRAM
-  pragma_diag_list = alloc_fe_of_type(Dyn_array<a_pragma_diag_elem>);
-  construct(pragma_diag_list, /*cap=*/256u);
-  pragma_diag_stack = alloc_fe_of_type(Dyn_array<size_t>);
-  construct(pragma_diag_stack, /*cap=*/16u);
+  pragma_diag_list = NULL;
+  pragma_diag_tail = NULL;
+  pragma_push_stack = alloc_fe_of_type(Dyn_array<a_pragma_diag_elem*>);
+  construct(pragma_push_stack, /*cap=*/16u);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* error_trans_unit_init */
 
