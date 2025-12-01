@@ -127,14 +127,21 @@ overridden by explicitly selecting a target architecture).  If none of these
 macros have been set, the implicit assumption is that the target is a 32-bit
 x86 target.
 */
-#if !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM32) && \
-    !defined(TARG_SUPPORTS_ARM64)
+#if !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM64) && \
+    !defined(TARG_SUPPORTS_ARM32) && !defined(TARG_SUPPORTS_RISCV64) && \
+    !defined(TARG_SUPPORTS_RISCV32)
 #if defined(__x86_64) || defined(__x86_64__)
 #define TARG_SUPPORTS_X86_64 TRUE
 #elif defined(__aarch64__)
 #define TARG_SUPPORTS_ARM64 TRUE
 #elif defined(__arm__)
 #define TARG_SUPPORTS_ARM32 TRUE
+#elif defined(__riscv)
+#if defined(__LP64)
+#define TARG_SUPPORTS_RISCV64 TRUE
+#else /* !defined(__LP64__) */
+#define TARG_SUPPORTS_RISCV32 TRUE
+#endif /* defined(__LP64__) */
 #elif defined(_WIN64)
 #define TARG_SUPPORTS_X86_64 TRUE
 #endif /* defined(__x86_64) || defined(__x86_64__) */
@@ -5497,11 +5504,11 @@ of the prefix allocated as part of each IL entry.  When checking code is
 enabled, the value of this macro is checked when the front end is executed.
 */
 #ifndef HOST_POINTER_ALIGNMENT
-#if TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64
+#if TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64 || TARG_SUPPORTS_RISCV64
 #define HOST_POINTER_ALIGNMENT 8
-#else /* !(TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64) */
+#else /* !(TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64 || ...) */
 #define HOST_POINTER_ALIGNMENT 4
-#endif /* TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64 */
+#endif /* TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64 || ... */
 #endif /* ifndef HOST_POINTER_ALIGNMENT */
 
 /*

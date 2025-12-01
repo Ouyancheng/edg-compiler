@@ -76,7 +76,7 @@ architecture from the host compiler.
 /* 64-bit ARM. */
 #undef TARG_SUPPORTS_ARM64
 #define TARG_SUPPORTS_ARM64 1
-#elif defined(__riscv) && defined(_LP64)
+#elif defined(__riscv) && defined(__LP64__)
 /* 64-bit RISC-V. */
 #undef TARG_SUPPORTS_RISCV64
 #define TARG_SUPPORTS_RISCV64 1
