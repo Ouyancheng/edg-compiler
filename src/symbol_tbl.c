@@ -162,7 +162,7 @@ STATIC_THREAD unsigned long
 A structure recording instance counts for templates.
 */
 struct an_inst_count {
-  ~an_inst_count() {}  // To make it non-trivially-copyable.  Ask Wyatt.
+  ~an_inst_count() {}	/* To make an_inst_count non-trivially-copyable. */
   a_symbol_kind  kind;
 			/* The kind of symbol associated with tssp. */
   a_template_symbol_supplement_ptr
@@ -3873,7 +3873,7 @@ and return a pointer to it.
   }  /* switch */
 #if DEBUG
   /* Record the supplement for convenient survey by -d-top_templates. */
-  inst_counters->push_back(an_inst_count{ kind, tssp, 0 });
+  inst_counters->push_back(an_inst_count{ kind, tssp, 0, 0 });
 #endif /* DEBUG */
   db_exit();
   return tssp;
