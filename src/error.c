@@ -714,23 +714,6 @@ Constructor for pk_diag_* (and pk_none) entries.
 }  /* a_pragma_diag_elem::a_pragma_diag_elem */
 
 
-static inline a_boolean operator==(const a_pragma_diag_elem &e1,
-                                   const a_pragma_diag_elem &e2)
-/*
-Return TRUE if e1 and e2 have the same values for all applicable non-static
-data members.
-*/
-{
-  return (e1.kind == e2.kind &&
-          e1.spos.seq == e2.spos.seq &&
-          e1.spos.column == e2.spos.column &&
-          (e1.kind == pk_diagnostic ?
-           (!e1.is_pop ||
-            e1.variant.corresponding_push == e2.variant.corresponding_push) :
-           e1.variant.error_number == e2.variant.error_number));
-}  /* operator== */
-
-
 STATIC_THREAD a_pragma_diag_elem
                 *pragma_diag_list, *pragma_diag_tail;
                         /* Head and tail pointers to a linked list of
