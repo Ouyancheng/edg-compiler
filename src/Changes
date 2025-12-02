@@ -83,7 +83,7 @@ In configurations with DEBUG set to TRUE, the front end now supports an option
 Cross-translation-unit correspondences
 
 In configurations where the front end might have to deal with multiple
-translation unit simultaneously, it records "cross-translation unit
+translation units simultaneously, it records "cross-translation unit
 correspondence" entries.  Previously, however, it also accidentally did so
 in other configurations (for some template instantiations).  That is now
 fixed.
