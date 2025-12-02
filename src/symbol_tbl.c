@@ -171,7 +171,7 @@ struct an_inst_count {
 			   entity being tracked. */
   unsigned long  count, defined;
 			/* The number of instances recorded for this templated
-			   entity, and the number of those instances that is
+			   entity, and the number of those instances that are
 			   considered "defined". */
 };
 
