@@ -177,6 +177,10 @@ struct an_inst_count {
 
 STATIC_THREAD Dyn_array<an_inst_count>
 		 *inst_counters;
+			/* A dynamic array used to collect all templated
+			   entities in DEBUG configurations, and later used
+			   to potentially determining the most-used templates
+			   (with the "-d-top_templates" debug option). */
 
 #endif /* DEBUG */
 
@@ -18587,7 +18591,7 @@ Output the top-n templates and associated counts to f_debug.
       fprintf(f_debug, "<unknown>");
     }  /* if */
     fprintf(f_debug, "\n");
-  }  /* if */
+  }  /* for */
 }  /* db_show_top_templates */
 
 #endif /* DEBUG */
