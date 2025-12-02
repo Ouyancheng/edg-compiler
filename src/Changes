@@ -1,5 +1,13 @@
 Version 6.9
 
+12/2/25  [EDGcpfe/28575]
+Regression resulting in a crash during PCH loading
+
+With the changes for EDGcpfe/28019 (in version 6.8), the front end (when built
+on platforms where the size_t and long types differ in size) would segfault
+when reading a PCH file.  This is now fixed.
+
+
 12/2/25  [EDGcpfe/28568]
 Erroneous IL produced for aggregate initializer containing pointer to function
 

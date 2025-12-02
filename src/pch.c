@@ -130,7 +130,7 @@ STATIC_THREAD a_mem_alloc_history_ptr
 			/* The memory allocation history information
 			   read from the precompiled header file. */
 
-STATIC_THREAD size_t
+STATIC_THREAD a_mem_alloc_history_number
 		new_alloc_history_entries;
 			/* Number of entries in new_alloc_history. */
 
@@ -172,12 +172,26 @@ error.
 
 
 /*
-Macro to read a value from the PCH input file.
+Macro to read a value from the PCH input file.  If the value read originates
+from a global variable that is different from the variable being read into,
+prefer pch_read_size_checked_value; this ensures the sizes do not diverge over
+time.
 */
 #define pch_read_value(value)						\
   if (fread((a_stdio_arg)&(value), sizeof((value)), 1, f_pch_input) != 1) { \
     bad_pch_file();							\
   }  /* if */
+
+
+/*
+Macro to read a value from the PCH input file into a variable that differs from
+the source variable (e.g., if the value of "foo" is written and read into "bar"
+value is the variable bar and src_variable is the variable foo).
+*/
+#define pch_read_size_checked_value(value, src_variable)                      \
+  pch_read_value(value);                                                      \
+  static_assert((sizeof(value) == sizeof(src_variable)),                      \
+                "the sizes of " #value " and " #src_variable " must match");
 
 
 /*
@@ -1232,10 +1246,11 @@ restore the memory regions.
   /* Read the memory allocation history information.  Read it into
      a separate area so that it can be compared with the existing
      information. */
-  pch_read_value(new_size);
+  pch_read_size_checked_value(new_size, size_of_mem_alloc_history);
   /* coverity[+taint_source: arg-0] */
-  pch_read_value(new_alloc_history_entries);
-  bytes_in_new_alloc_history = new_alloc_history_entries *
+  pch_read_size_checked_value(new_alloc_history_entries,
+                              mem_alloc_history_entries_used);
+  bytes_in_new_alloc_history = size_t_arg(new_alloc_history_entries) *
                                                  sizeof(a_mem_alloc_history);
   new_alloc_history = (a_mem_alloc_history_ptr)alloc_general
                              (bytes_in_new_alloc_history);
@@ -1364,7 +1379,7 @@ the PCH file.
   free_mapped_mem_blocks();
   /* Get the current input file position. */
   offset = (sizeof_t)ftell(f_pch_input);
-  for (i = 0; i < new_alloc_history_entries; ++i) {
+  for (i = 0; i < size_t_arg(new_alloc_history_entries); ++i) {
     a_mem_alloc_history_ptr	mahp = &new_alloc_history[i];
     offset = do_page_alignment(offset);
     /* coverity[leaked_storage] */
@@ -1492,7 +1507,7 @@ header information about the memory regions such as the mem_region_table.
   db_enter(4, "read_memory_regions");
   check_file_section_id(pfs_memory_regions);
   /* Read the copy of the IL header. */
-  pch_read_value(il_header_from_pch);
+  pch_read_size_checked_value(il_header_from_pch, il_header);
   /* Read the memory region table and the region_scope_entry table from
      the IL header.  Note that index_for_il_file is not written. */
   /* coverity[+taint_source: arg-0] */
@@ -2375,8 +2390,8 @@ may be used.
     if (new_alloc_history != NULL) {
       /* Free the new allocation history information. */
       free_general((a_void_ptr)new_alloc_history,
-                   (sizeof_t)(new_alloc_history_entries *
-                                             sizeof(a_mem_alloc_history)));
+                   (size_t_arg(new_alloc_history_entries) *
+                                                 sizeof(a_mem_alloc_history)));
     }  /* if */
     /* Save the sequence number as of this point.  seq_number_last_read is
        used rather than curr_seq_number because in some cases curr_seq_number
