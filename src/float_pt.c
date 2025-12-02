@@ -665,17 +665,17 @@ the radix point (set in host_envir_early_init).
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #if USE_FLOAT128_FOR_HOST_FP_VALUE
 
-static __float128 str_to_float128(a_const_char *str)
+static a_host_fp_value str_to_float128(a_const_char *str)
 /*
 Convert a string to a __float128.  This routine either relies on the GNU
 quadmath library (when USE_QUADMATH_LIBRARY is TRUE) or it uses the internal
 floating point routines (when USE_QUADMATH_LIBRARY is FALSE).
 */
 {
-  __float128    result;
-  a_boolean     err = FALSE;
+  a_host_fp_value  result;
+  a_boolean        err = FALSE;
 #if USE_QUADMATH_LIBRARY
-  a_const_char  *ptr;
+  a_const_char     *ptr;
 
   result = strtoflt128(str, (char**)NULL);
   if (result == 0.0L) {
@@ -697,7 +697,7 @@ floating point routines (when USE_QUADMATH_LIBRARY is FALSE).
     err = nonzero;
   } else {
     /* Check for overflow. */
-    err = !is_finite(*(a_host_fp_value*)&result);
+    err = !is_finite(result);
   }  /* if */
 #else /* !USE_QUADMATH_LIBRARY */
   an_fp_return_type res = read_float128((unsigned char *)&result, str,

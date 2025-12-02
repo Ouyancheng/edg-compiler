@@ -2398,7 +2398,12 @@ USE_LONG_DOUBLE_FOR_HOST_FP_VALUE is configured to FALSE.
 
 #if defined(USE_FLOAT128_FOR_HOST_FP_VALUE)
 #if USE_FLOAT128_FOR_HOST_FP_VALUE
+/* Use either __float128 or _Float128, depending on the platform. */
+#if defined(__x86_64) || defined(__i386)
 typedef __float128 a_host_fp_value;
+#else /* !(defined(__x86_64) || defined(__i386)) */
+typedef _Float128 a_host_fp_value;
+#endif /* defined(__x86_64) || defined(__i386) */
 #define HOST_FP_TYPE_SELECTED TRUE
 #endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
 #else /* !defined(USE_FLOAT128_FOR_HOST_FP_VALUE) */

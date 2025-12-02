@@ -1,5 +1,14 @@
 Version 6.9
 
+12/2/25  [EDGcpfe/27044]
+Compilation issues when building on non-x86 platforms
+
+Support for the __float128 type is not widely available on non-x86 platforms,
+which can lead to compilation issues with the default configuration on Linux.
+A change has been made to use _Float128 instead of __float128 as the host
+floating point type on non-x86 platforms.
+
+
 12/2/25  [EDGcpfe/28565]
 Support for RISC-V processors (IL CHANGE)
 
