@@ -1,5 +1,17 @@
 Version 6.9
 
+12/2/25  [EDGcpfe/28565]
+Support for RISC-V processors (IL CHANGE)
+
+Two new configuration macros, TARG_SUPPORTS_RISCV32 and TARG_SUPPORTS_RISCV64
+(and corresponding global variables targ_supports_riscv32 and
+targ_supports_riscv64) have been added to support RISC-V processors.  This
+change also adds support for builtins on RISC-V architectures with the
+exception of builtins for the RISC-V vector extension.  Support for
+RISC-V-specific vector types has also been added, which are represented as
+tk_riscv_vector types in the IL.
+
+
 12/1/25  [EDGcpfe/28552]
 Assertion failure in diagnostic_pragma
 
