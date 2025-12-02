@@ -1,5 +1,23 @@
 Version 6.9
 
+12/2/25  [EDGcpfe/28568]
+Erroneous IL produced for aggregate initializer containing pointer to function
+
+Consider:
+
+  void g();
+  int main() {
+    void (*apf[2])(void) = { nullptr, &g };
+  }
+
+The changes for EDGcpfe/28480 (in version 6.8) cause the front end to sometimes
+emit a ck_init_repeat entry when multiple aggregate initializers are equal
+after folding.  A bug in the determination of "equality" for null pointers
+resulted in this mechanism being triggered erroneously when a null pointer is
+followed by a non-null function pointer (as in the example above).  That is
+now fixed.
+
+
 12/2/25  [EDGcpfe/27044]
 Compilation issues when building on non-x86 platforms
 

@@ -4338,7 +4338,7 @@ This is used to compare pointer values (null pointer values in particular).
                                                &ovfl);
       if (!ovfl && val == 0) {
         clear_address(ptr1, (a_byte*)0);
-        compat = TRUE;
+        compat = !is_function_address(ptr2);
       }  /* if */
     }  /* if */
   } else if (is_runtime_data_address(ptr2)) {
@@ -4349,7 +4349,7 @@ This is used to compare pointer values (null pointer values in particular).
                                                &ovfl);
       if (!ovfl && val == 0) {
         clear_address(ptr2, (a_byte*)0);
-        compat = TRUE;
+        compat = !is_function_address(ptr1);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -20606,7 +20606,7 @@ Evaluate the given new-expression.
                 init_subobject_to_zero(ips, elem, elem_type, complete_obj);
                 continue;
               } else if (constant_is(elem_cp, ck_init_repeat) &&
-                  elem_cp->variant.init_repeat.count == 0) {
+                         elem_cp->variant.init_repeat.count == 0) {
                 /* A ck_init_repeat entry with zero count indicates that the
                    remainder of the array should be filled with that
                    initializer. */
