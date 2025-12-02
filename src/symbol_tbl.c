@@ -179,7 +179,7 @@ STATIC_THREAD Dyn_array<an_inst_count>
 		 *inst_counters;
 			/* A dynamic array used to collect all templated
 			   entities in DEBUG configurations, and later used
-			   to potentially determining the most-used templates
+			   to potentially determine the most-used templates
 			   (with the "-d-top_templates" debug option). */
 
 #endif /* DEBUG */
