@@ -8047,7 +8047,7 @@ static a_pragma_diag_elem *insert_into_pragma_diag_list(
 Allocate and insert an element (with the values given by entry) into the proper
 place in the pragma_diag_list (which is kept sorted by source location).  No
 action is taken if an element with the same source position is already on the
-list.  Return a pointer to the newly allocated element in the array (or NULL if
+list.  Return a pointer to the newly-allocated element in the array (or NULL if
 it was already there).
 */
 {
@@ -8109,12 +8109,12 @@ as _Pragma that are not parsed except during instantiations).
   a_source_position		pos;
 
   begin_rescan_of_pragma_tokens(ppp);
-  pos = pos_curr_token;
   /* Bypass the optional "=". */
   if (curr_token == tok_assign) (void)get_token();
   do {
     a_boolean			err = FALSE;
     a_host_large_integer	error_number = 0;
+    pos = pos_curr_token;
     if (curr_token == tok_int_constant) {
       /* The argument is an integer, which is expected to be an error
          number. */
