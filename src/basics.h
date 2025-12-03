@@ -821,7 +821,7 @@ Flag that is TRUE if a macro invocation record should contain a copy of the
 arguments used in the invocation of a function-like macro.
 */
 #ifndef RECORD_MACRO_ARGS
-#define RECORD_MACRO_ARGS ALSE
+#define RECORD_MACRO_ARGS FALSE
 #endif /* ifndef RECORD_MACRO_ARGS */
 
 #if RECORD_MACRO_INVOCATIONS && !RECORD_MACROS_IN_IL
