@@ -6804,6 +6804,12 @@ offset idx.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_simple_source_position("end", &mirp->end);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_MACRO_ARGS
+  if (mirp->arguments != NULL) {
+    disp_name("arguments");
+    disp_null_term_string(mirp->arguments);
+  }  /* if */
+#endif /* RECORD_MACRO_ARGS */
 }  /* disp_macro_invocation_record */
 
 

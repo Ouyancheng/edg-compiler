@@ -17259,6 +17259,13 @@ typedef struct a_macro_invocation_record {
 			   the closing parenthesis for a function-like
 			   macro. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_MACRO_ARGS
+  a_const_char	*arguments;
+			/* For an invocation of a function-like macro, a
+			   null-terminated string containing the arguments
+			   (with canonicalized white space separating the
+			   tokens); NULL for an object-like macro. */
+#endif /* RECORD_MACRO_ARGS */
 } a_macro_invocation_record;
 
 /*

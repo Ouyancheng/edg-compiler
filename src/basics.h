@@ -816,9 +816,17 @@ effective for conditional fields in a_source_position.
 #endif /* RECORD_MACRO_INVOCATIONS */
 #endif /* ifndef RECORD_MACRO_INVOCATIONS */
 
+/*
+Flag that is TRUE if a macro invocation record should contain a copy of the
+arguments used in the invocation of a function-like macro.
+*/
+#ifndef RECORD_MACRO_ARGS
+#define RECORD_MACRO_ARGS ALSE
+#endif /* ifndef RECORD_MACRO_ARGS */
+
 #if RECORD_MACRO_INVOCATIONS && !RECORD_MACROS_IN_IL
  #error -- RECORD_MACROS_IN_IL must be TRUE when \
-          RECORD MACRO_INVOCATIONS is set.
+           RECORD MACRO_INVOCATIONS is set.
 #endif /* MACRO_INVOCATION_TREE_IN_IL && !RECORD_MACROS_IN_IL */
 
 #if RECORD_MACRO_INVOCATIONS && !FULLY_RESOLVED_MACRO_POSITIONS
@@ -830,6 +838,11 @@ effective for conditional fields in a_source_position.
  #error -- RECORD_MACRO_INVOCATIONS must be TRUE when \
            MACRO_INVOCATION_TREE_IN_IL is set.
 #endif /* MACRO_INVOCATION_TREE_IN_IL && !RECORD_MACRO_INVOCATIONS */
+
+#if RECORD_MACRO_ARGS && !RECORD_MACRO_INVOCATIONS
+ #error -- RECORD_MACRO_INVOCATIONS must be TRUE when \
+           RECORD_MACRO_ARGS is set.
+#endif /* RECORD_MACRO_ARGS && !RECORD_MACRO_INVOCATIONS */
 
 /*
 Flag that is TRUE to add an extra seq/column pair to source positions, giving

@@ -1282,6 +1282,9 @@ invocation.  The return value is the index of the newly-added record, and
   /* Record the original location of the macro name in this invocation. */
   mirp->start.seq = macro_name_pos->orig_seq;
   mirp->start.column = macro_name_pos->orig_column;
+#if RECORD_MACRO_ARGS
+  mirp->arguments = NULL;
+#endif /* RECORD_MACRO_ARGS */
   if (stack_depth > max_macro_invocation_depth) {
     max_macro_invocation_depth = stack_depth;
   }  /* if */
@@ -5740,6 +5743,62 @@ both expansions begin with the name of the same macro, FALSE otherwise.
   return result;
 }  /* same_macro_at_beginning */
 
+#if RECORD_MACRO_ARGS
+
+static a_const_char *copy_macro_args(a_macro_arg_ptr first_macro_arg)
+/*
+Return a pointer to a null-terminated string in file-scope IL memory
+containing the raw text (minus any lexical escapes) of the macro arguments
+beginning with first_macro_arg; arguments will be separated by a comma and
+a space.  If map is NULL, return an empty string.
+*/
+{
+  a_const_char *p;
+  char         *result;
+
+  pos_in_temp_text_buffer = 0;
+  for (a_macro_arg_ptr map = first_macro_arg; map != NULL; map = map->next) {
+    /* In general, whitespace (or the absence thereof) between tokens is
+       canonicalized to a single space character.  The one exception to
+       that is with the Microsoft traditional preprocessor when a '+' or
+       '-' is immediately followed by a digit.  In that case, the space is
+       suppressed, to allow concatenation between, e.g., "1e" and "-1" to
+       produce the single token "1e-1", which could not occur if a space
+       occurred between the '-' and the '1'. */
+    a_boolean last_ch_was_blank = FALSE;
+    if (map != first_macro_arg) {
+      put_str_to_temp_text_buffer(", ");
+      last_ch_was_blank = TRUE;
+    }  /* if */
+    for (a_const_char *p = map->raw_text; p < map->raw_text + map->raw_len;
+         ++p) {
+      if (*p == LE_ESCAPE) {
+        if (!last_ch_was_blank) {
+          put_ch_to_temp_text_buffer(' ');
+          last_ch_was_blank = TRUE;
+        }  /* if */
+        ++p;
+      } else {
+        if (*p == ' ') {
+          if (!last_ch_was_blank) {
+            put_ch_to_temp_text_buffer(' ');
+            last_ch_was_blank = TRUE;
+          }  /* if */
+        } else {
+          put_ch_to_temp_text_buffer(*p);
+          last_ch_was_blank = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* for */
+  put_ch_to_temp_text_buffer('\0');
+  result = alloc_il((sizeof_t) pos_in_temp_text_buffer);
+  strcpy(result, temp_text_buffer);
+  return result;
+}  /* copy_macro_args */
+
+#endif /* RECORD_MACRO_ARGS */
+
 
 a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
                               a_boolean     *rescan)
@@ -7501,6 +7560,11 @@ end_arg_expansion:;
         this_mirp->end.column = pos_curr_token.orig_column;
       }  /* if */
 #endif /* RECORD_MACRO_INVOCATIONS && EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_MACRO_ARGS
+      this_mirp->arguments = copy_macro_args(prev_end_of_macro_arg_list != NULL
+                                             ? prev_end_of_macro_arg_list->next
+                                             : macro_arg_list);
+#endif /* RECORD_MACRO_ARGS */
     }  /* if */
     in_macro_arg_list = saved_in_macro_arg_list;
   }  /* if */

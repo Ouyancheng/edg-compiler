@@ -1,5 +1,21 @@
 Version 6.9
 
+12/2/25  [EDGcpfe/28500]
+Recording macro arguments
+
+When configured with RECORD_MACRO_ARGS set to TRUE, the front end now adds
+the field "arguments" to a_macro_invocation_record.  For invocations of
+function-like macros, the new field points to a null-terminated string
+containing the text of the unexpanded macro arguments in the corresponding
+invocation.  The tokens of each argument are separated by a single space
+character, and the arguments are separated by a comma-space pair.  The
+field is NULL for object-like macros.  For example:
+
+  #define M(x,y)  /* Nothing */
+  #define X a
+  M(X /* */ b,c  ,   d+1)   // Argument string is "X b, c, d + 1"
+
+
 12/2/25  [EDGcpfe/28575]
 Regression resulting in a crash during PCH loading
 

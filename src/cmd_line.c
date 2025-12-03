@@ -8754,6 +8754,11 @@ file.
 #else /* !defined(RECORD_MACROS_IN_IL) */
   comment_undefined_macro_name(RECORD_MACROS_IN_IL);
 #endif /* defined(RECORD_MACROS_IN_IL) */
+#if defined(RECORD_MACRO_ARGS)
+  define_numeric_valued_macro(RECORD_MACRO_ARGS);
+#else /* !defined(RECORD_MACRO_ARGS) */
+  comment_undefined_macro_name(RECORD_MACRO_ARGS);
+#endif /* defined(RECORD_MACRO_ARGS) */
 #if defined(RECORD_MACRO_INVOCATIONS)
   define_numeric_valued_macro(RECORD_MACRO_INVOCATIONS);
 #else /* !defined(RECORD_MACRO_INVOCATIONS) */

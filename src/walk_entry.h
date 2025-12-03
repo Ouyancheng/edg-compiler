@@ -2554,6 +2554,9 @@ do_set_proper_definition_needed_flag:
         [] (a_macro_invocation_record_block_ptr mirbp) {
           for (int i = 0; i < MACRO_INVOCATION_RECORDS_PER_BLOCK; ++i) {
             remap_ptr(mirbp->records[i].assoc_macro, a_macro_ptr, iek_macro);
+#if RECORD_MACRO_ARGS
+            walk_string_ptr(mirbp->records[i].arguments, iek_other_text, 0);
+#endif /* RECORD_MACRO_ARGS*/
           }  /* for */
         } (eptr);
         walk_ptr(eptr->right_subtree, a_macro_invocation_record_block_ptr,
