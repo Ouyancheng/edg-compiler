@@ -667,9 +667,9 @@ the radix point (set in host_envir_early_init).
 
 static a_host_fp_value str_to_float128(a_const_char *str)
 /*
-Convert a string to a __float128.  This routine either relies on the GNU
-quadmath library (when USE_QUADMATH_LIBRARY is TRUE) or it uses the internal
-floating point routines (when USE_QUADMATH_LIBRARY is FALSE).
+Convert a string to a 128-bit floating point value.  This routine either relies
+on the GNU quadmath library (when USE_QUADMATH_LIBRARY is TRUE) or it uses the
+internal floating point routines (when USE_QUADMATH_LIBRARY is FALSE).
 */
 {
   a_host_fp_value  result;
