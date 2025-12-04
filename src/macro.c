@@ -5750,7 +5750,7 @@ static a_const_char *copy_macro_args(a_macro_arg_ptr first_macro_arg)
 Return a pointer to a null-terminated string in file-scope IL memory
 containing the raw text (minus any lexical escapes) of the macro arguments
 beginning with first_macro_arg; arguments will be separated by a comma and
-a space.  If map is NULL, return an empty string.
+a space.  If first_macro_arg is NULL, return an empty string.
 */
 {
   a_const_char *p;
