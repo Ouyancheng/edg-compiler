@@ -23437,13 +23437,14 @@ static inline void diagnose_no_specializations(an_attribute_ptr  attributes,
 /*
 Issue an error if the attribute list (from an instance of a function, class, or
 variable template) has a [[clang::no_specializations]] attribute in it.  If an
-error needs to be generated, it will be at err_pos.
+error needs to be generated, it will be at err_pos.  No diagnostic is issued in
+system headers.
 */
 {
 #if GNU_EXTENSIONS_ALLOWED
   if (clang_mode && attributes != NULL) {
     an_attribute_ptr ap = find_attribute(ak_no_specializations, attributes);
-    if (ap != NULL) {
+    if (ap != NULL && !seq_is_in_system_header(err_pos->seq)) {
       a_diag_list       diag_list;
       a_diagnostic_ptr  dp;
       clear_diag_list(&diag_list);

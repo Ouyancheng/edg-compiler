@@ -1,5 +1,17 @@
 Version 6.9
 
+12/4/25  [EDGcpfe/28579]
+[[clang::no_specializations]] and system headers
+
+The front end no longer issues an error for explicit specialization of a
+template declared with [[clang::no_specializations]] (or equivalent).  This
+is a workaround for the front end not supporting the
+
+  #pragma clang diagnostic ignored "-Winvalid-specialization"
+
+directive and that directive is used in LLVM libc++ headers.
+
+
 12/4/25  [EDGcpfe/28573]
 C++-generating back end: default template argument in explicit specialization
 
