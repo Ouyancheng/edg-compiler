@@ -4,8 +4,9 @@ Version 6.9
 [[clang::no_specializations]] and system headers
 
 The front end no longer issues an error for explicit specialization of a
-template declared with [[clang::no_specializations]] (or equivalent).  This
-is a workaround for the front end not supporting the
+template declared with [[clang::no_specializations]] (or equivalent) if that
+explicit specialization appears in a system header.  This is a workaround for
+the front end not supporting the
 
   #pragma clang diagnostic ignored "-Winvalid-specialization"
 
