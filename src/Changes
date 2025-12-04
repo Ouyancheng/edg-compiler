@@ -13,7 +13,7 @@ field is NULL for object-like macros.  For example:
 
   #define M(x,y)  /* Nothing */
   #define X a
-  M(X /* */ b,c  ,   d+1)   // Argument string is "X b, c, d + 1"
+  M(X /* */ b,c  ,   d+e)   // Argument string is "X b, c, d + e"
 
 
 12/2/25  [EDGcpfe/28575]
