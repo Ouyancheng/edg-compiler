@@ -2801,7 +2801,8 @@ typedef struct an_attribute_arg {
 		ptr;	/* The argument expression. */
       a_routine_ptr
 		enclosing_routine;
-			/* FIXME */
+			/* Points to the enclosing routine when an expression
+			   is in a local function (as is typical). */
     } expr;
   } variant;
 } an_attribute_arg;

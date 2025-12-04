@@ -14602,7 +14602,7 @@ is returned, but some IL entities (as indicated by kind) don't begin with
 a_source_correspondence and those need to be handled separately.
 */
 {
-  a_routine_ptr *result;
+  a_routine_ptr *result = NULL;
 
   switch (kind) {
     case lerk_attribute_arg_expr:
