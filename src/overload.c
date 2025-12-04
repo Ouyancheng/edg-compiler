@@ -5566,7 +5566,7 @@ is used in the constraint, its evaluation will fail.
       failed = TRUE;
       break;
     }  /* if */
-    expr = aap->variant.expr;
+    expr = aap->variant.expr.ptr;
     if (t_args != NULL) {
       /* The expression may depend on template parameters.  Substitute any such
          parameters with the provided (likely deduced) arguments. */
@@ -8943,8 +8943,9 @@ converse is true, return -1.  Otherwise, return 0.
             /* Something was wrong with the attribute argument. */
             break;
           } else if (!compare_expressions(
-                                     aap1->variant.expr, aap2->variant.expr,
-                                     CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
+                                      aap1->variant.expr.ptr,
+                                      aap2->variant.expr.ptr,
+                                      CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
             /* The expressions are not equivalent.  We therefore don't
                compare further. */
             break;

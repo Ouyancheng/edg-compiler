@@ -14590,6 +14590,39 @@ entry.
   return vlap;
 }  /* find_vla_dimension */
 
+
+inline a_routine_ptr *enclosing_routine_ptr_for_local_expr_node_ref(
+                                          char                       *referrer,
+                                          a_local_expr_node_ref_kind kind)
+/*
+Return a pointer to a pointer to the enclosing_routine associated with
+referrer.  For most cases, referrer is an IL entity whose first entry is
+a_source_correspondence and a pointer to the enclosing_routine field in that
+is returned, but some IL entities (as indicated by kind) don't begin with
+a_source_correspondence and those need to be handled separately.
+*/
+{
+  a_routine_ptr *result;
+
+  switch (kind) {
+    case lerk_attribute_arg_expr:
+      result = &((an_attribute_arg*)referrer)->variant.expr.enclosing_routine;
+      break;
+    case lerk_none:
+    case lerk_generic_sizeof:
+    case lerk_tpl_param_expr:
+    case lerk_array_bound:
+    case lerk_dep_array_bound:
+    case lerk_decltype:
+    case lerk_bit_field_width:
+    case lerk_constant_expr:
+      result = &((a_source_correspondence*)referrer)->enclosing_routine;
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* enclosing_routine_ptr_for_local_expr_node_ref */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 void make_local_expr_node_ref(an_expr_node_ptr            expr,
@@ -14615,7 +14648,7 @@ The expression can then be recovered using find_local_expr_node.
                   func_scope != NULL);
   check_assertion(scope_is(func_scope, sck_function));
   rp = func_scope->variant.routine.ptr;
-  ((a_source_correspondence*)referrer)->enclosing_routine = rp;
+  *enclosing_routine_ptr_for_local_expr_node_ref(referrer, kind) = rp;
   memory_region = mem_region_for_routine(rp);
   if (memory_region != curr_il_region_number) {
     region_to_switch_back_to = curr_il_region_number;
@@ -14697,8 +14730,8 @@ and the latter has an associated a_local_expr_node_ref entry of the given kind.
 Duplicate that entry but associate it with the given referrer.
 */
 {
-  a_source_correspondence  *scp = (a_source_correspondence*)new_referrer;
-  a_routine                *rp = scp->enclosing_routine;
+  a_routine *rp =
+            *enclosing_routine_ptr_for_local_expr_node_ref(new_referrer, kind);
 
   if (rp->function_def_number != NULL_function_def_number) {
     a_scope_ptr  scope = scope_for_routine(rp);
@@ -14771,12 +14804,12 @@ a_local_expr_node_ref entries.  kind represents the kind of entry that is
 expected to hold a pointer to the expression being searched for.)
 */
 {
-  a_source_correspondence  *scp = (a_source_correspondence*)referrer;
-  an_expr_node_ptr         result;
+  an_expr_node_ptr result;
+  a_routine_ptr    enclosing_routine =
+                *enclosing_routine_ptr_for_local_expr_node_ref(referrer, kind);
 
-  if (scp->enclosing_routine->function_def_number !=
-                                                   NULL_function_def_number) {
-    a_scope_ptr  scope = scope_for_routine(scp->enclosing_routine);
+  if (enclosing_routine->function_def_number != NULL_function_def_number) {
+    a_scope_ptr  scope = scope_for_routine(enclosing_routine);
     result = find_local_expr_node_in_scope(referrer, kind, scope);
   } else {
     result = NULL;
@@ -14874,7 +14907,7 @@ attribute is allocated in the file scope memory region).  Scope can be NULL
 in cases where the expression is in the file scope memory region.
 */
 {
-  an_expr_node_ptr result = aap->variant.expr;
+  an_expr_node_ptr result = aap->variant.expr.ptr;
 
   check_assertion(aap->kind == aak_expression);
   if (aap->local_expr_ref) {

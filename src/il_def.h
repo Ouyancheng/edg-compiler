@@ -2796,8 +2796,13 @@ typedef struct an_attribute_arg {
     a_type_ptr
 		type;	/* The argument type. */
     /* When kind == aak_expression: */
-    an_expr_node_ptr
-		expr;	/* The argument expression. */
+    struct {
+      an_expr_node_ptr
+		ptr;	/* The argument expression. */
+      a_routine_ptr
+		enclosing_routine;
+			/* FIXME */
+    } expr;
   } variant;
 } an_attribute_arg;
 
@@ -14573,6 +14578,13 @@ typedef struct an_eh_prologue_supplement {
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
 
+/* Enumeration of cases for which a local expression (in a function scope)
+   might end up being referred to from the file scope memory region (thereby
+   violating the memory model of the front end).  In such cases, an
+   a_local_expr_node_ref entry is allocated (see below).  Generally, the IL
+   entity associated with these entries has a_source_correspondence at the
+   beginning of the entity, but if that's not the case, a modification to
+   enclosing_routine_ptr_for_local_expr_node_ref will need to be made. */
 enum a_local_expr_node_ref_kind : a_byte {
   lerk_none,		/* Used for initialization only. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL

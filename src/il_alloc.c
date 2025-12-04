@@ -5638,7 +5638,8 @@ Allocate an attribute argument in file scope memory and return a pointer to it.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   aap->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  aap->variant.token = NULL;
+  aap->variant.expr.ptr = NULL;
+  aap->variant.expr.enclosing_routine = NULL;
   return aap;
 }  /* alloc_attribute_arg */
 

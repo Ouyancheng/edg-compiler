@@ -1,5 +1,16 @@
 Version 6.9
 
+12/5/25  [EDGcpfe/28578]
+Expressions in attributes caused IL overwriting
+
+The changes for EDGcpfe/25517,EDGcpfe/25844 (in version 6.8) introduced
+a bug that could overwrite IL when an expression argument in an attribute
+was used (currently only the case with "assume" and "enable_if" attributes).
+That is now fixed.  For example:
+
+  void f() { __attribute__((__assume__(unsigned()))); }
+
+
 12/4/25  [EDGcpfe/28577]
 Incorrect legacy configuration macro name
 

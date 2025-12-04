@@ -8674,8 +8674,9 @@ types are compatible.
           compatible = FALSE;
           break;
         } else if (!compare_expressions(
-                                     aap1->variant.expr, aap2->variant.expr,
-                                     CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
+                                      aap1->variant.expr.ptr,
+                                      aap2->variant.expr.ptr,
+                                      CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
           compatible = FALSE;
           break;
         }  /* if */

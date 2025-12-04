@@ -17587,7 +17587,7 @@ keep the folded result recorded in the attribute.
   if (aap == NULL || aap->kind != (an_attribute_arg_kind)aak_expression) {
     /* Something went wrong with scanning the attribute. */
   } else {
-    an_expr_node_ptr  cond = aap->variant.expr;
+    an_expr_node_ptr  cond = aap->variant.expr.ptr;
     a_constant_ptr    il_cp = NULL;
     if (is_constant_node(cond)) {
       il_cp = node_constant(cond);
@@ -17602,7 +17602,7 @@ keep the folded result recorded in the attribute.
         a_memory_region_number region_to_switch_back_to;
         switch_to_file_scope_region(&region_to_switch_back_to);
         il_cp = move_local_constant_to_il(&cp);
-        aap->variant.expr = alloc_node_for_constant(il_cp);
+        aap->variant.expr.ptr = alloc_node_for_constant(il_cp);
         switch_back_to_original_region(region_to_switch_back_to);
       }  /* if */
       discard_more_info_list(&diag_list);

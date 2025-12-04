@@ -6455,7 +6455,7 @@ Display the indicated attribute argument entry.
       disp_ptr("type", (char*)aap->variant.type, iek_type);
       break;
     case aak_expression:
-      disp_ptr("expression", (char*)aap->variant.expr, iek_expr_node);
+      disp_ptr("expression", (char*)aap->variant.expr.ptr, iek_expr_node);
       break;
     default:
       /* Do nothing. */
