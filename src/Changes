@@ -1,5 +1,17 @@
 Version 6.9
 
+12/4/25  [EDGcpfe/28577]
+Incorrect legacy configuration macro name
+
+The changes for EDGcpfe/27947 (in version 6.8) introduced a new
+configuration macro, BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG, that made an
+existing similar macro, KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION,
+obsolete.  An attempt was made to ease the transition by defaulting the
+value of the new macro to that of the older macro; unfortunately, the name
+of the older macro was incorrect in this setting, disabling the implicit
+migration.  That is now fixed.
+
+
 12/2/25  [EDGcpfe/28500]
 Recording macro arguments
 
