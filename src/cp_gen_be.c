@@ -11928,7 +11928,6 @@ qualifier to be used in the class name.
   a_class_type_supplement_ptr
                     ctsp = type->variant.class_struct_union.extra_info;
 
-  type->has_been_declared = TRUE;
   construct_pragma_pack_if_needed(type);
   /* Advance past the source sequence entry for the class itself. */
   check_and_take_source_seq_entry_for_type(type);
@@ -11995,6 +11994,7 @@ qualifier to be used in the class name.
     /* Do not insert code here. */
     gen_name(&type->source_corresp, iek_type, options,
              (a_boolean *)NULL);
+    type->has_been_declared = TRUE;
     write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target) {

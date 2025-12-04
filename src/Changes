@@ -1,5 +1,27 @@
 Version 6.9
 
+12/4/25  [EDGcpfe/28573]
+C++-generating back end: default template argument in explicit specialization
+
+The C++-generating back end sometimes omitted default template arguments
+in the template-id in an explicit specialization, which could result in
+errors compiling the generated code.  This is now fixed, and all template
+arguments are emitted in that context.  For example:
+
+  enum E { O };
+  template<typename> struct K;
+  template<typename T, E k = K<T>::e> constexpr E e() {
+    return k;
+  }
+  template<typename T, E = e<T>()> struct L;
+  template<> struct L<int, O>   // Previously omitted second argument
+    { };
+  template<> struct K<int> {
+    static constexpr E e = O;
+  };
+  L<int> l;
+
+
 12/5/25  [EDGcpfe/28578]
 Expressions in attributes caused IL overwriting
 
