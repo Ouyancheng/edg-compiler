@@ -38,7 +38,7 @@ arguments are emitted in that context.  For example:
   L<int> l;
 
 
-12/5/25  [EDGcpfe/28578]
+12/4/25  [EDGcpfe/28578]
 Expressions in attributes caused IL overwriting
 
 The changes for EDGcpfe/25517,EDGcpfe/25844 (in version 6.8) introduced
