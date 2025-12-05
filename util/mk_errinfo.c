@@ -594,6 +594,74 @@ should be used to determine the length.
 
 
 static
+void me_output_rst_doc_string(a_const_char *string,
+                              int          length,
+                              a_font_kind  font)
+/*
+Output characters that are part of the error text.  Make sure that
+certain characters are put in the right font, when needed.
+If the length specified is zero, the string is null terminated and strlen
+should be used to determine the length.
+*/
+{
+  int	i;
+
+  if (curr_font != font) {
+    a_const_char *rst_marker_str;
+    /* We need to switch fonts.  Terminate the previous font. */
+    switch (curr_font) {
+      case fk_normal: rst_marker_str = ""; break;
+      case fk_tt: rst_marker_str = "`` "; break;
+      case fk_em: rst_marker_str = "* "; break;
+      case fk_none: rst_marker_str = ""; break;
+      default: me_internal_error("unexpected font");
+    }  /* switch */
+    fprintf(doc_output_file, "%s", rst_marker_str);
+    /* Begin the new font. */
+    switch (font) {
+      case fk_normal: rst_marker_str = ""; break;
+      case fk_tt: rst_marker_str = "``"; break;
+      case fk_em: rst_marker_str = "*"; break;
+      case fk_none: rst_marker_str = ""; break;
+      default: me_internal_error("unexpected font");
+    }  /* switch */
+    fprintf(doc_output_file, "%s", rst_marker_str);
+    curr_font = font;
+  }  /* if */
+  if (length == 0) length = (int)strlen(string);
+  for (i = 0; i < length; ++i) {
+    char	ch = string[i];
+
+    /* Just a normal character. */
+    putc(ch, doc_output_file);
+  }  /* if */
+}  /* me_output_rst_doc_string */
+
+
+static void me_write_rst_item_header(int          number,
+                                     a_const_char *tag)
+/*
+Write the header information for a given error message to the latex
+documentation file.
+*/
+{
+  a_const_char *ptr;
+
+  /* Write the item command containing the number. */
+  fprintf(doc_output_file, "   * - ``%04d``\n", number);
+  /* Write the content cell. */
+  fprintf(doc_output_file, "     - | ``");
+  /* Write the tag name. */
+  ptr = tag;
+  while (*ptr != '\0') {
+    putc(*ptr, doc_output_file);
+    ptr++;
+  }  /* while */
+  fprintf(doc_output_file, "``:\n       | ");
+}  /* me_write_rst_item_header */
+
+
+static
 void me_output_mml_doc_string(a_const_char *string,
                               int          length,
                               a_font_kind  font)
@@ -953,6 +1021,7 @@ int main(int argc, char *argv[])
 {
   int		argpos = 1;
   a_boolean	doc_mode = FALSE;
+  a_boolean	rst_doc = FALSE;
 
   if (argc < 5) me_command_line_error();
   if (strcmp(argv[argpos], "-d") == 0) {
@@ -960,6 +1029,13 @@ int main(int argc, char *argv[])
     doc_mode = TRUE;
     output_doc_string = me_output_latex_doc_string;
     write_item_header = me_write_latex_item_header;
+    argpos++;
+  } else if (strcmp(argv[argpos], "-rst") == 0) {
+    /* We should generate a RST documentation output file. */
+    doc_mode = TRUE;
+    rst_doc = TRUE;
+    output_doc_string = me_output_rst_doc_string;
+    write_item_header = me_write_rst_item_header;
     argpos++;
   } else if (strcmp(argv[argpos], "-mml") == 0) {
     /* We should generate a MML documentation output file. */
@@ -994,6 +1070,11 @@ int main(int argc, char *argv[])
     doc_output_file = fopen(doc_output_file_name, "w");
     if (doc_output_file == NULL) {
       me_error("cannot open %s", doc_output_file_name);
+    }  /* if */
+    if (rst_doc) {
+      fputs("==============\nError Messages\n==============\n\n"
+            ".. list-table::\n\n",
+            doc_output_file);
     }  /* if */
   } else {
     /* Open the tag input file. */
