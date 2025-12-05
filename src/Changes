@@ -123,7 +123,7 @@ Regression resulting in all PCH files failing to load
 
 With the changes for EDGcpfe/28019 (in version 6.8), the front end (when built
 on platforms where the size_t and long types differ in size) would fail to
-read the all PCH files.  This is now fixed.
+read all PCH files.  This is now fixed.
 
 
 12/2/25  [EDGcpfe/28568]
