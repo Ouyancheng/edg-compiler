@@ -1712,7 +1712,7 @@ static void enter_riscv_vector_types_for_element_type(
                                                a_boolean     enter_tuple_types)
 /*
 Enter predefined typedefs for all RISC-V vector types for the given element
-type.  If enter_tuple_types is TRUE, additionally create vector type for
+type.  If enter_tuple_types is TRUE, additionally create vector types for
 multiple tuple elements.
 */
 {
@@ -1753,7 +1753,7 @@ static void enter_all_riscv_vector_types(
 Enter predefined typedefs for all RISC-V vector types.  If
 enter_bfloat16_vector_types is TRUE, include vector types for the bfloat16
 floating-point type.  If enter_tuple_types is TRUE, additionally create vector
-type for multiple tuple elements.
+types for multiple tuple elements.
 */
 {
   a_type_ptr          element_type;

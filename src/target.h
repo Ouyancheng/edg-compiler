@@ -425,7 +425,7 @@ Utility to return TRUE if the target is based on an ARM architecture.
 
 inline a_boolean target_is_riscv_based(void)
 /*
-Utility to return TRUE if the target is based on an RISC-V architecture.
+Utility to return TRUE if the target is based on a RISC-V architecture.
 */
 {
   return targ_supports_riscv32 || targ_supports_riscv64;

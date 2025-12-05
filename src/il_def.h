@@ -10790,7 +10790,7 @@ typedef struct a_type {
 			/* Type of the vector elements. */
       int8_t	length_multiplier;
 			/* Length multiplier.  A negative value represents a
-                           fractional multiplier. */
+			   fractional multiplier. */
       uint8_t	tuple_elements;
 			/* Number of tuple elements. */
     } riscv_vector;
