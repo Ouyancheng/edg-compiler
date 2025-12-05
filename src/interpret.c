@@ -15909,8 +15909,8 @@ DEFINE_type_transform(std_meta, type_add_pointer,
 
 DEFINE_type_transform(std_meta, type_remove_cvref,
   ([&]{
-    if (is_reference_type(tp)) tp = skip_typerefs(type_pointed_to(tp));
-    result_tp = tp;
+    if (is_reference_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
+    result_tp = remove_qualifiers(tp, TQ_CONST | TQ_VOLATILE);
   }))
 
 

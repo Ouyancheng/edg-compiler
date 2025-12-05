@@ -37,6 +37,112 @@ sys_predef.c -- System dependent predefined macros and assertions.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/*
+Functions implementing intrinsic alias templates.  (See the description of
+NS_alias_templ_intrinsic.)
+*/
+
+static a_boolean subst_std_remove_cv_t(a_template_arg  *t_args,
+                                       a_type          **p_tp)
+/*
+t_args represents a template argument passed to std::remove_cv_t<T>.  Place in
+*p_tp the resulting type.  Return TRUE.
+*/
+{
+  check_assertion(t_args != NULL && t_args->kind == tak_type);
+  *p_tp = remove_qualifiers(t_args->variant.type, TQ_CONST | TQ_VOLATILE);
+  return TRUE;
+}  /* subst_std_remove_cv_t */
+
+
+static a_boolean subst_std_remove_const_t(a_template_arg  *t_args,
+                                          a_type          **p_tp)
+/*
+t_args represents a template argument passed to std::remove_const_t<T>.  Place
+in *p_tp the resulting type.  Return TRUE.
+*/
+{
+  check_assertion(t_args != NULL && t_args->kind == tak_type);
+  *p_tp = remove_qualifiers(t_args->variant.type, TQ_CONST);
+  return TRUE;
+}  /* subst_std_remove_const_t */
+
+
+static a_boolean subst_std_remove_volatile_t(a_template_arg  *t_args,
+                                             a_type          **p_tp)
+/*
+t_args represents a template argument passed to std::remove_volatile_t<T>.
+Place in *p_tp the resulting type.  Return TRUE.
+*/
+{
+  check_assertion(t_args != NULL && t_args->kind == tak_type);
+  *p_tp = remove_qualifiers(t_args->variant.type, TQ_VOLATILE);
+  return TRUE;
+}  /* subst_std_remove_volatile_t */
+
+
+static a_boolean subst_std_remove_reference_t(a_template_arg  *t_args,
+                                              a_type          **p_tp)
+/*
+t_args represents a template argument passed to std::remove_reference_t<T>.
+Place in *p_tp the resulting type.  Return TRUE.
+*/
+{
+  a_type  *tp;
+
+  check_assertion(t_args != NULL && t_args->kind == tak_type);
+  tp = t_args->variant.type;
+  if (is_reference_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
+  *p_tp = tp;
+  return TRUE;
+}  /* subst_std_remove_reference_t */
+
+
+static a_boolean subst_std_remove_cvref_t(a_template_arg  *t_args,
+                                          a_type          **p_tp)
+/*
+t_args represents a template argument passed to std::remove_cvref_t<T>.  Place
+in *p_tp the resulting type.  Return TRUE.
+*/
+{
+  a_type  *tp;
+
+  check_assertion(t_args != NULL && t_args->kind == tak_type);
+  tp = t_args->variant.type;
+  if (is_reference_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
+  *p_tp = remove_qualifiers(tp, TQ_CONST | TQ_VOLATILE);
+  return TRUE;
+}  /* subst_std_remove_cvref_t */
+
+
+a_boolean eval_intrinsic_alias_templ(int             idx,
+                                     a_template_arg  *t_args,
+                                     a_type_ptr      *substituted_tp)
+/*
+Substitute the intrinsic alias template with the given index idx (corresponding
+to the enumerators of an_alias_templ_intrinsic) with the template arguments
+described by t_args.  If successful, return TRUE and set *substituted_tp to
+the resulting type.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  switch (idx) {
+    case ati_error:
+      break;
+#define ATI_dispatch(ns, name) \
+    case ati_##ns##_##name: \
+      result = subst_##ns##_##name(t_args, substituted_tp); \
+      break;
+    NS_alias_templ_intrinsics(ATI_dispatch)
+#undef ATI_dispatch
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* eval_intrinsic_alias_templ */
+
+
 #ifdef __linux__
 
 static a_const_char *int_kind_name_for_macro(an_integer_kind kind)

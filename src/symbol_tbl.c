@@ -18970,6 +18970,142 @@ interpreter) and if so mark it as such.
 
 
 /*
+A structure identifying a particular alias template that the front end might
+encounter and handle intrinsically.
+*/
+struct an_alias_templ_intrinsic_descr {
+  a_const_char	*name;	/* The name of an alias template known to the front
+			   end. */
+  a_symbol_ptr	*p_namespace_sym;
+			/* A pointer to a (global) variable pointing to the
+			   symbol representing the parent namespace of this
+			   template.  This uses an additional level of
+			   indirection because we cannot statically namespace
+			   pointers (because namespace symbols are created
+			   after front end startup). */
+};
+
+STATIC_THREAD an_alias_templ_intrinsic_descr
+		alias_templ_intrinsic_descriptions[] = {
+  { NULL, NULL },
+#define ATI_descr(ns, name) \
+  { #name, &symbol_for_namespace_##ns },
+  NS_alias_templ_intrinsics(ATI_descr)
+#undef ATI_DESCR
+};
+
+#define N_ALIAS_TEMPL_INTRINSIC_DESCRIPTIONS \
+   ((int)(sizeof(alias_templ_intrinsic_descriptions) \
+                              /sizeof(alias_templ_intrinsic_descriptions[0])))
+
+/*
+A structure describing a particular identifier in a specific class or namespace
+scope.
+*/
+struct a_scoped_identifier {
+  a_symbol_header
+		*name;
+			/* The symbol header corresponding to this
+			   identifier. */
+  a_symbol_ptr
+		scope;
+			/* The entity (class or namespace) that directly owns
+			   the scope in which the name is considered. */
+};
+
+
+static inline a_boolean operator==(a_scoped_identifier  x,
+                                   a_scoped_identifier  y)
+/*
+Return TRUE if the given scoped names are identical.
+*/
+{
+  return x.name == y.name && x.scope == y.scope;
+}  /* operator== */
+
+
+static inline a_boolean operator!=(a_scoped_identifier  x,
+                                   a_scoped_identifier  y)
+/*
+Return TRUE if the given scoped names are different.
+*/
+{
+  return !(x == y);
+}  /* operator== */
+
+
+static inline uintptr_t hash_ptr(a_scoped_identifier  sn)
+/*
+Return a hash value for a constraint test description.
+*/
+{
+  uintptr_t  result = 17*31 + hash_ptr((void*)sn.name);
+  result = result*31 + hash_ptr((void*)sn.scope);
+  return result;
+}  /* hash_ptr */
+
+
+using an_alias_templ_intrinsic_descr_table =
+		Ptr_map<a_scoped_identifier, int>;
+			/* The type of a table that maps intrinsic identifiers
+			   to the index of descriptions of alias templates that
+			   the front end knows how to substitute. */
+
+STATIC_THREAD an_alias_templ_intrinsic_descr_table
+		*alias_templ_intrinsic_descr_table;
+			/* A map from symbol headers for alias templates to
+			   descriptions identifying those templates and their
+			   intrinsic treatment in the front end. */
+
+void init_alias_templ_intrinsic_descriptions(void)
+/*
+Pre-enter headers for some templates names so they can efficiently be
+recognized during parsing.  Also, record associated information in a Ptr_map
+to efficiently dispatch substitutions that can be handled intrinsically.
+*/
+{
+  int  n;
+
+  alias_templ_intrinsic_descr_table =
+                       alloc_fe_of_type(an_alias_templ_intrinsic_descr_table);
+  if (alias_templ_intrinsics_enabled) {
+    construct(alias_templ_intrinsic_descr_table, /*mask_width=*/8u);
+    /* Note that we start at index 1 since index 0 is used as an indication
+       that there is no corresponding intrinsic. */
+    for (n = 1; n<N_ALIAS_TEMPL_INTRINSIC_DESCRIPTIONS; ++n) {
+      a_symbol_locator  loc;
+      an_alias_templ_intrinsic_descr
+                        &descr = alias_templ_intrinsic_descriptions[n];
+      (void)find_symbol(descr.name, strlen(descr.name), &loc);
+      loc.symbol_header->has_intrinsic_name = TRUE;
+      alias_templ_intrinsic_descr_table->map(
+         a_scoped_identifier{ loc.symbol_header, *descr.p_namespace_sym }, n);
+    }  /* for */
+  } else {
+    construct(alias_templ_intrinsic_descr_table, /*mask_width=*/1u);
+  }  /* if */
+}  /* init_alias_templ_intrinsic_descriptions */
+
+
+int get_intrinsic_alias_templ_idx(a_symbol  *t_sym)
+/*
+If the given template is an alias template that the front end should treat
+intrinsically, return an index identifying that alias template (the index
+corresponds to an enumerator of type an_alias_templ_intrinsic).
+*/
+{
+  int  idx = 0;
+
+  if (!t_sym->is_class_member && t_sym->parent.namespace_ptr != NULL) {
+    a_symbol_ptr  ns_sym = symbol_for(t_sym->parent.namespace_ptr);
+    idx = alias_templ_intrinsic_descr_table->get(
+                                a_scoped_identifier{ t_sym->header, ns_sym });
+  }  /* if */
+  return idx;
+}  /* get_intrinsic_alias_templ_idx */
+
+
+/*
 Like intrinsic_names, these are names of interest to the front end, but they
 should also be associated with token kinds (for context-sensitive promotion to
 keywords).

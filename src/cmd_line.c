@@ -2394,6 +2394,7 @@ STATIC_THREAD a_flag_name
 #if REFLECTION_ENABLING_POSSIBLE
   { "reflection", &reflection_enabled },
 #endif /* REFLECTION_ENABLING_POSSIBLE */
+  { "alias_templ_intrinsics", &alias_templ_intrinsics_enabled },
   { "lazy_field_initializers", &always_delay_field_initializer_processing },
   { "core_constant_expr_is_noexcept", &core_constant_expr_is_noexcept },
   { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
@@ -6704,6 +6705,11 @@ file.
 #else /* !defined(DEFAULT_ADD_MATCH_NOTES) */
   comment_undefined_macro_name(DEFAULT_ADD_MATCH_NOTES);
 #endif /* defined(DEFAULT_ADD_MATCH_NOTES) */
+#if defined(DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED)
+  define_numeric_valued_macro(DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED);
+#else /* !defined(DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED);
+#endif /* defined(DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED) */
 #if defined(DEFAULT_ALLOW_ANACHRONISMS)
   define_numeric_valued_macro(DEFAULT_ALLOW_ANACHRONISMS);
 #else /* !defined(DEFAULT_ALLOW_ANACHRONISMS) */
@@ -13503,6 +13509,7 @@ variables declared in cmd_line.h.
   builtin_functions_enabled = FALSE;
   preload_builtin_functions = FALSE;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+  alias_templ_intrinsics_enabled = DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED;
   utf8_char_literals_enabled = FALSE;
   deduced_return_types_enabled = FALSE;
   warn_on_deduced_return_types = FALSE;

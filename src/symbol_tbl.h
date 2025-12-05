@@ -5381,6 +5381,8 @@ extern void enter_symbol_for_namespace_std(a_symbol_locator  *locator);
 
 extern void enter_symbol_for_namespace_std_meta(a_symbol_locator  *locator);
 
+extern void init_alias_templ_intrinsic_descriptions(void);
+
 #if IA64_ABI
 EXTERN_THREAD a_symbol_ptr
 		symbol_for_namespace_abi;
@@ -7959,6 +7961,8 @@ and evaluates the associated constraint.
 
 extern void check_for_constexpr_intrinsic(a_routine_ptr     rp,
                                           a_symbol_header  *sym_hdr);
+
+extern int get_intrinsic_alias_templ_idx(a_symbol  *t_sym);
 
 extern a_boolean is_intrinsic_type_transform_name(a_symbol_header  *hdr);
 

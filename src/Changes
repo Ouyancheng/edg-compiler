@@ -1,5 +1,26 @@
 Version 6.9
 
+12/5/25  [EDGcpfe/28580]
+Intrinsic treatment of commonly-occurring alias templates
+
+The front end now has the capability to recognize certain alias templates and
+handle their substitution "intrinsically".  The initial implementation provides
+support for std::remove_cv_t, std::remove_const_t, std::remove_volatile_t,
+std::remove_reference_t, and std::remove_cvref_t.  When the capability is
+enabled, substitution of these aliases ignores the definition in the source
+code and produces the standard underlying types (which normally should be
+equivalent to what the source code specifies).  This often bypasses the
+instantiation of associated class templates (like std::remove_cv) resulting in
+better performance (incl. reduced memory usage).  Occasionally, it may also
+affect diagnostics that previously mentioned these associated templates and
+now only mention the underlying type instead.  The intrinsic treatment is
+enabled when the global variable alias_templ_intrinsics_enabled is TRUE.  That
+variable is initialized by the new (TRUE by default) configuration macro
+DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED.  The variable can also be controlled
+from the command line with the --set_flag/--clear_flag options.  See the
+comments in sys_predef.h for how to add support for additional alias templates.
+
+
 12/5/25  [EDGcpfe/28217]
 Nonstandard SVR4 lookup quirk in C modes
 

@@ -1067,6 +1067,16 @@ TRUE).
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !BUILTIN_FUNCTIONS... */
 
 /*
+Flag that is TRUE if the front end should recognize some alias templates and
+treat them intrinsically (instead of performing more costly generic
+substitution of the definition as it appeared in the source).  For example,
+the std::remove_cvref_t alias template can be handled directly by navigating
+the type tree, rather than by matching template partial specializations. */
+#ifndef DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED
+#define DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED TRUE
+#endif /* ifndef DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED */
+
+/*
 Flag that is TRUE if a "__thread" specifier (to indicate that a variable should
 be stored in thread-local storage) should be supported.  Note that this is
 different from the C++11 "thread_local" specifier.

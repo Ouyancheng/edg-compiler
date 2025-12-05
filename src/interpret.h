@@ -86,7 +86,7 @@ by a macro of the form:
 Different parts of the front end invoke NS_scope_constexpr_intrinsics to
   1) define (here, in interpret.h) enumerator constants identifying the
      intrinsics by number
-  2) define a table (in symbol_tbl.h) used to (a) mark associated symbol
+  2) define a table (in symbol_tbl.c) used to (a) mark associated symbol
      headers for efficient identification, and (b) build a Ptr_map to
      associate a "signature" to match function declarations with
   3) produce switch cases (in interpret.c) to handle evaluation dispatch

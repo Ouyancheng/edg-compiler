@@ -47,6 +47,7 @@ templates.c -- Support for C++ templates.
 #include "exprutil.h"
 #endif /* ifdef lint */
 
+
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
@@ -10652,6 +10653,77 @@ in the result type) are instantiation dependent.
 }  /* set_alias_nonreal_flag */
 
 
+static a_boolean process_intrinsic_alias_templ(a_symbol        *t_sym,
+                                               a_template_arg  *t_args,
+                                               a_type_ptr      *substituted_tp)
+/*
+t_sym is an alias template X taking the given template arguments <Args...>.  
+If X is an alias template that the front end handles intrinsically, attempt to
+substitute X<Args...> intrinsically and, if successful, return TRUE and set
+*substituted_tp to the resulting type.  Otherwise, result FALSE.
+*/
+{
+  return eval_intrinsic_alias_templ(get_intrinsic_alias_templ_idx(t_sym),
+                                    t_args, substituted_tp);
+}  /* process_intrinsic_alias_templ */
+
+
+static a_type_ptr substitute_intrinsic_alias_templ(
+			a_symbol_ptr			template_sym,
+			a_type_ptr			orig_type,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
+/*
+If template_sym is alias template the front end can handle intrinsically,
+perform the substitution and return the resulting type.  See
+copy_template_alias_reference_with_substitution for the meaning of the
+parameters.
+*/
+{
+  a_type_ptr  result_type = NULL;
+  int         idx = get_intrinsic_alias_templ_idx(template_sym);
+
+  if (idx != 0) {
+    a_template_arg_ptr			tap;
+    a_template_param_ptr			tpp;
+    a_template_symbol_supplement_ptr	tssp;
+    a_typeref_type_supplement_ptr		ttsp;
+    a_template_arg_ptr			new_list;
+    
+    ttsp = orig_type->variant.typeref.extra_info;
+    tssp = template_sym->variant.template_info;
+    tap = ttsp->orig_template_arg_list;
+    tpp = tssp->cache->decl_info->parameters;
+    check_assertion(tpp != NULL);
+    /* Make a copy of the template argument list, doing substitution. */
+    if (tpp == templ_param_list) {
+      /* If the parameter list to substitute is the same, we can just use a
+         copy of the template argument list directly. */
+      new_list = copy_template_arg_list(templ_arg_list);
+    } else {
+      new_list = copy_template_arg_list_with_substitution(
+                                             template_sym, tap, tpp,
+                                             (a_template_param_ptr)NULL,
+                                             templ_arg_list, templ_param_list, 
+                                             source_pos, options, copy_error,
+                                             ctws_state);
+    }  /* if */
+    if (!*copy_error) {
+      if (!eval_intrinsic_alias_templ(idx, new_list, &result_type)) {
+        *copy_error = TRUE;
+      }  /* if */
+    }  /* if */
+    if (new_list != NULL) free_template_arg_list(new_list);
+  }  /* if */
+  return result_type;
+}  /* substitute_intrinsic_alias_templ */
+
+
+
 static a_symbol_ptr instantiate_template_alias(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	template_arg_list,
@@ -10763,10 +10835,14 @@ error type is used.
                               instantiate_type_pack_element(template_arg_list);
   } else if (template_sym == symbol_for_builtin_common_type_alias) {
     /* This is the builtin alias template __builtin_common_type; the template
-       is instantiated programatically rather than by scanning the cache
+       is instantiated programmatically rather than by scanning the cache
        for the template. */
     type->variant.typeref.type =
                             instantiate_builtin_common_type(template_arg_list);
+  } else if (!any_dependent_args && template_sym->header->has_intrinsic_name &&
+             process_intrinsic_alias_templ(template_sym, template_arg_list,
+                                           &type->variant.typeref.type)) {
+    /* This was a substitution handled intrinsically (i.e., procedurally). */
   } else {
     /* The instantiation process may rescan various things and invalidate the
        current token positions as a result.  Save these positions so that they
@@ -17209,9 +17285,25 @@ a pointer over a reference type or creating an array of references.
               a_typeref_type_supplement_ptr	ttsp;
               a_symbol_ptr			template_sym;
               a_template_symbol_supplement_ptr	tssp = NULL;
+
               ttsp = type->variant.typeref.extra_info;
               template_sym = symbol_for(ttsp->assoc_template);
               if (template_sym != NULL) {
+                /* Check for the case of an alias template that the front end
+                   handles intrinsically. */
+                if (template_sym->header->has_intrinsic_name &&
+                    !(options & (CTWS_IS_PARTIAL_SPECIALIZATION_CHECK |
+                                 CTWS_IS_PARTIAL_ORDER_CHECK |
+                                 CTWS_MAY_BE_RESCANNED |
+                                 CTWS_PRESERVE_DEDUCED_PACKS))) {
+                  new_type = substitute_intrinsic_alias_templ(
+                                        template_sym, type, templ_arg_list,
+                                        templ_param_list, source_pos, options,
+                                        copy_error, ctws_state);
+                  if (new_type != NULL) {
+                    break;
+                  }  /* if */
+                }  /* if */
                 tssp = template_supplement_for_symbol(template_sym);
               }  /* if */
               /* If we don't have a template symbol, or if the alias has

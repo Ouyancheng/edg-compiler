@@ -2742,6 +2742,12 @@ EXTERN_THREAD a_boolean
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 EXTERN_THREAD a_boolean
+		alias_templ_intrinsics_enabled;
+			/* TRUE if some known alias templates (e.g., from the
+			   standard library) should be handled
+			   intrinsically. */
+
+EXTERN_THREAD a_boolean
 		utf8_char_literals_enabled;
 			/* TRUE if character literals of the form u8'x' are
 			   accepted (a C++17 feature). */

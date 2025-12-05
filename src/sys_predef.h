@@ -20,6 +20,58 @@ sys_predef.h -- System dependent predefined macros and assertions.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/*
+The following macro (NS_alias_templ_intrinsics) describes alias templates in
+namespace std that the front end recognizes and attempts to substitute
+intrinsically.  The macro takes a macro M that should be replaced
+by a macro of the form:
+
+  #define MACRO(ns, name)
+
+Different parts of the front end invoke NS_alias_templ_intrinsics to
+  1) define (here, in sys_predef.h) enumerator constants identifying the
+     intrinsics by number,
+  2) define a table (in symbol_tbl.c) used to (a) mark associated symbol
+     headers for efficient identification, and (b) build a Ptr_map to
+     associate a "signature" to match function declarations with, and
+  3) produce switch cases (in sys_predef.c) to handle substitution dispatch.
+
+To recognize a new alias template intrinsic named xyz in a namespace N:
+  a) Ensure there exists a variable of type a_symbol_ptr named
+     symbol_for_namespace_NS (for some unique identifier NS) that 
+     represents namespace N.  See, e.g., make_symbol_for_namespace_std,
+     which initializes symbol_for_namespace_std (NS = std) and
+     symbol_for_namespace_std_meta (NS = std_meta).
+  b) Add a line
+         M(NS, xyz)
+     in the macro below.
+  c) Add a function named subst_NS_xyz in sys_predef.c that resolves the
+     alias (see, e.g., subst_std_remove_cv_t for the required signature and
+     an example definition).
+*/
+
+#define NS_alias_templ_intrinsics(M) \
+  M(std, remove_cv_t) \
+  M(std, remove_const_t) \
+  M(std, remove_volatile_t) \
+  M(std, remove_reference_t) \
+  M(std, remove_cvref_t) \
+  /* End of NS_alias_templ_intrinsics. */
+
+
+enum an_alias_templ_intrinsic {
+  ati_error,
+#define ATI_name(ns, name) ati_##ns##_##name,
+  NS_alias_templ_intrinsics(ATI_name)
+#undef ATI_name
+  ati_last
+};
+
+EXTERN a_boolean eval_intrinsic_alias_templ(int             idx,
+                                            a_template_arg  *t_args,
+                                            a_type_ptr      *substituted_tp);
+
+
 #if BUILTIN_FUNCTIONS_ENABLED
 
 /*
