@@ -4025,6 +4025,7 @@ handle_class_type_supplement_for_class:
         conditionally_clear_fe_pointer(eptr->pack_expansion_descr);
         switch (eptr->kind) {
           case aak_empty:
+          case aak_last:
             /* Nothing to do. */
             break;
           case aak_token:
@@ -4038,10 +4039,14 @@ handle_class_type_supplement_for_class:
             walk_ptr(eptr->variant.type, a_type_ptr, iek_type);
             break;
           case aak_expression:
-            walk_ptr(eptr->variant.expr.ptr, an_expr_node_ptr, iek_expr_node);
+            if (eptr->local_expr_ref) {
+              walk_ptr(eptr->variant.sexpr, a_scoped_expression_ptr,
+                       iek_scoped_expression);
+            } else {
+              walk_ptr(eptr->variant.expr, an_expr_node_ptr, iek_expr_node);
+            }  /* if */
             break;
-          default:
-            unexpected_condition();
+          default_is_unexpected();
         }  /* switch */
 #undef eptr
       }
@@ -4182,6 +4187,12 @@ handle_class_type_supplement_for_class:
     case iek_token_sequence_entry:
 #define eptr ((a_token_sequence_entry*)entry_ptr)
       walk_string_ptr(eptr->spelling, iek_other_text, 0);
+#undef eptr
+      break;
+    case iek_scoped_expression:
+#define eptr ((a_scoped_expression*)entry_ptr)
+      walk_source_corresp(eptr->source_corresp);
+      walk_ptr(eptr->expr, an_expr_node_ptr, iek_expr_node);
 #undef eptr
       break;
     case iek_id_name:

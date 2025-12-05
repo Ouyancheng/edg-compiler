@@ -5561,12 +5561,12 @@ is used in the constraint, its evaluation will fail.
     an_attribute_arg_ptr  aap = ap->arguments;
     an_expr_node_ptr      expr;
     a_boolean             cond = TRUE;
-    if (aap == NULL || aap->kind != (an_attribute_arg_kind)aak_expression) {
+    if (aap == NULL || aap->kind != aak_expression) {
       expect_error();
       failed = TRUE;
       break;
     }  /* if */
-    expr = aap->variant.expr.ptr;
+    expr = expr_node_from_attribute_arg(aap);
     if (t_args != NULL) {
       /* The expression may depend on template parameters.  Substitute any such
          parameters with the provided (likely deduced) arguments. */
@@ -8938,13 +8938,12 @@ converse is true, return -1.  Otherwise, return 0.
           /* Check whether the enable_if expressions are equivalent. */
           an_attribute_arg_ptr  aap1 = ap1->arguments, aap2 = ap2->arguments;
           if (aap1 == NULL || aap2 == NULL ||
-              aap1->kind != (an_attribute_arg_kind)aak_expression ||
-              aap2->kind != (an_attribute_arg_kind)aak_expression) {
+              aap1->kind != aak_expression || aap2->kind != aak_expression) {
             /* Something was wrong with the attribute argument. */
             break;
           } else if (!compare_expressions(
-                                      aap1->variant.expr.ptr,
-                                      aap2->variant.expr.ptr,
+                                      expr_node_from_attribute_arg(aap1),
+                                      expr_node_from_attribute_arg(aap2),
                                       CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
             /* The expressions are not equivalent.  We therefore don't
                compare further. */

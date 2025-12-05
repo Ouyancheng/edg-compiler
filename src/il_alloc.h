@@ -429,6 +429,8 @@ extern a_module_ptr alloc_module(a_module_kind kind);
 
 extern a_module_import_decl_ptr alloc_module_import_decl(void);
 
+extern a_scoped_expression_ptr alloc_scoped_expression(void);
+
 #if DEBUG
 unsigned long show_il_alloc_space_used(unsigned long grand_total);
 #endif /* DEBUG */

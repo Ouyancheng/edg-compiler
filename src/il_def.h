@@ -104,6 +104,8 @@ typedef struct a_module_interface
                               *a_module_interface_ptr;
 typedef struct a_module_entity
                               *a_module_entity_ptr;
+typedef struct a_scoped_expression
+                              *a_scoped_expression_ptr;
 
 /* Opaque type definition for an_arg_operand (used in the expression
    processing routines, but a pointer to it appears in a front-end only
@@ -809,6 +811,7 @@ enum an_il_entry_kind : a_byte {
   iek_token_sequence, 	/* a_token_sequence */
   iek_token_sequence_entry,
 			/* a_token_sequence_entry */
+  iek_scoped_expression,/* a_scoped_expression */
   iek_last		/* Marks the end of the list. */
 };
 
@@ -984,6 +987,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, il_entry_kind_names, iek_last + 1)
 /* iek_module_import_decl */		"mod-import-decl",
 /* iek_token_sequence */		"token-sequence",
 /* iek_token_sequence_entry */		"token-sequence-entry",
+/* iek_scoped_expression */		"scoped-expression",
 /* iek_last */				"last"
 }
 #endif /* VAR_INITIALIZERS */
@@ -2795,15 +2799,21 @@ typedef struct an_attribute_arg {
     /* When kind == aak_type: */
     a_type_ptr
 		type;	/* The argument type. */
-    /* When kind == aak_expression: */
-    struct {
-      an_expr_node_ptr
-		ptr;	/* The argument expression. */
-      a_routine_ptr
-		enclosing_routine;
-			/* Points to the enclosing routine when an expression
-			   is in a local function (as is typical). */
-    } expr;
+    /* When kind == aak_expression and local_expr_ref is FALSE: */
+    an_expr_node_ptr
+                expr;	/* The argument expression (when the expression is in
+			   the file scope).  Use expr_node_from_attribute_arg
+			   to access the expression (to be agnostic to the
+			   value of local_expr_ref). */
+    /* When kind == aak_expression and local_expr_ref is TRUE: */
+    a_scoped_expression_ptr
+                sexpr;	/* A dummy IL entry with an initial
+			   a_source_correspondence field that can be used as a
+			   key to retrieve the local-expr-node reference to the
+			   expression because the expression resides in a
+			   function memory region.  Always use
+			   expr_node_from_attribute_arg to retrieve the value
+			   of the expression. */
   } variant;
 } an_attribute_arg;
 
@@ -14579,13 +14589,6 @@ typedef struct an_eh_prologue_supplement {
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
 
-/* Enumeration of cases for which a local expression (in a function scope)
-   might end up being referred to from the file scope memory region (thereby
-   violating the memory model of the front end).  In such cases, an
-   a_local_expr_node_ref entry is allocated (see below).  Generally, the IL
-   entity associated with these entries has a_source_correspondence at the
-   beginning of the entity, but if that's not the case, a modification to
-   enclosing_routine_ptr_for_local_expr_node_ref will need to be made. */
 enum a_local_expr_node_ref_kind : a_byte {
   lerk_none,		/* Used for initialization only. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
@@ -14607,8 +14610,8 @@ enum a_local_expr_node_ref_kind : a_byte {
   lerk_bit_field_width,	/* The expression for the width of a bit-field that
 			   refers to a local variable. */
   lerk_constant_expr,	/* The backing expression of a constant entry. */
-  lerk_attribute_arg_expr
-			/* The expression for some attribute arguments. */
+  lerk_scoped_expr,	/* A "scoped expression" (currently used only for
+                           attribute arguments). */
 };
 
 
@@ -18484,6 +18487,18 @@ typedef struct a_module_import_decl {
 
 
 /*
+Entry currently used only expressions in attribute arguments where the
+expression is in a function scope.
+*/
+struct a_scoped_expression {
+  a_source_correspondence
+                source_corresp;
+                        /* A source correspondence. */
+  an_expr_node_ptr
+                expr;   /* An expression. */
+};
+
+/*
 Header for the entire intermediate language tree.  Note that the pointers
 here are into the file scope memory region.
 
@@ -19168,7 +19183,8 @@ EXTERN_CONSTINIT_ARRAY(sizeof_t, sizeof_il_entry, iek_last)
   sizeof(a_module),
   sizeof(a_module_import_decl),
   sizeof(a_token_sequence),
-  sizeof(a_token_sequence_entry)
+  sizeof(a_token_sequence_entry),
+  sizeof(a_scoped_expression)
 }
 #endif /* VAR_INITIALIZERS */
 EXTERN_CONSTINIT_ARRAY_END(sizeof_il_entry)

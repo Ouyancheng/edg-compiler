@@ -7334,6 +7334,9 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
       break;
     }  /* if */
     switch (aap->kind) {
+      case aak_empty:
+      case aak_last:
+        break;
       case aak_raw_token:
         write_tok_str(aap->variant.token);
         break;
@@ -7366,11 +7369,9 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
         gen_type(aap->variant.type);
         break;
       case aak_expression:
-        gen_expression(expr_node_from_attribute_arg(aap,
-                                                    innermost_function_scope));
+        gen_expression(expr_node_from_attribute_arg(aap));
         break;
-      default:
-        unexpected_condition();
+      default_is_unexpected();
     }  /* switch */
     if (aap->is_pack_expansion) write_tok_str("...");
     if (aap->next != NULL) {

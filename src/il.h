@@ -314,6 +314,7 @@ map_il_type_to_kind(a_module, iek_module)
 map_il_type_to_kind(a_module_import_decl, iek_module_import_decl)
 map_il_type_to_kind(a_token_sequence, iek_token_sequence)
 map_il_type_to_kind(a_token_sequence_entry, iek_token_sequence_entry)
+map_il_type_to_kind(a_scoped_expression, iek_scoped_expression)
 
 
 template<typename an_IL_type>
@@ -1897,9 +1898,7 @@ extern an_expr_node_ptr expr_node_from_tpck_expression(const a_constant *cp);
 
 extern an_expr_node_ptr expr_node_from_constant(a_constant_ptr cp);
 
-extern an_expr_node_ptr expr_node_from_attribute_arg(
-                                                   an_attribute_arg_ptr aap,
-                                                   a_scope_ptr          scope);
+extern an_expr_node_ptr expr_node_from_attribute_arg(an_attribute_arg_ptr aap);
 
 extern void make_local_scope_ref(a_scope_ptr            scope,
                                  char                   *referrer,

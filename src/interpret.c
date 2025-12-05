@@ -8099,22 +8099,13 @@ evaluates to false.
     a_boolean            assertion_value;
     an_attribute_arg_ptr aap = ap->arguments;
     an_expr_node_ptr     expr;
-    a_call_frame_ptr     frame = ips->curr_call_frame;
-    a_scope_ptr          callee_scope = innermost_function_scope;
     a_boolean            saved_side_effects_disabled =
                                                    ips->side_effects_disabled;
     a_diagnostic_ptr     dp = ips->diag_list.tail;
 
     ips->side_effects_disabled = TRUE;
     check_assertion(ap->kind == ak_assume && aap->kind == aak_expression);
-    /* Find the last function scope we entered: */
-    for (; frame != NULL; frame = frame->parent) {
-      if (frame->routine != NULL) {
-        callee_scope = scope_for_routine(frame->routine);
-        break;
-      }  /* if */
-    }  /* for */
-    expr = expr_node_from_attribute_arg(aap, callee_scope);
+    expr = expr_node_from_attribute_arg(aap);
     if (expr == NULL || is_error_type(expr->type)) {
       do_constexpr_fail(result);
     } else if (eval_bool_assertion(ips, expr, &assertion_value)) {

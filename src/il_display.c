@@ -1054,6 +1054,16 @@ Display the indicated module-import-declaration.
 }  /* disp_module_import_decl */
 
 
+static void disp_scoped_expression(a_scoped_expression *ptr)
+/*
+Display the indicated scoped expression.
+*/
+{
+  disp_source_corresp(&ptr->source_corresp, iek_scoped_expression);
+  disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+}  /* disp_scoped_expression */
+
+
 static void disp_template_param_coordinate(a_template_param_coordinate *ptr)
 /*
 Display the indicated template parameter coordinate.
@@ -4618,8 +4628,8 @@ local) memory region.
     case lerk_constant_expr:
       (void)fprintf(f_display, "constant-expr");
       break;
-    case lerk_attribute_arg_expr:
-      (void)fprintf(f_display, "attribute-arg-expr");
+    case lerk_scoped_expr:
+      (void)fprintf(f_display, "scoped-expr");
       break;
     default:
       (void)fprintf(f_display, "**BAD LOCAL-EXPR-NODE-REF KIND**");
@@ -6410,7 +6420,7 @@ static void disp_attribute_arg(an_attribute_arg_ptr  aap)
 Display the indicated attribute argument entry.
 */
 {
-  a_const_char *kind_name;
+  a_const_char *kind_name = "";
 
   switch (aap->kind) {
     case aak_empty:              kind_name = "empty";               break;
@@ -6419,7 +6429,8 @@ Display the indicated attribute argument entry.
     case aak_constant:           kind_name = "constant";            break;
     case aak_type:               kind_name = "type";                break;
     case aak_expression:         kind_name = "expression";          break;
-    default:                     kind_name = "** BAD KIND **";      break;
+    case aak_last:                                                  break;
+    default_is_unexpected();
   }  /* switch */
   disp_name("kind");
   (void)fprintf(f_display, "%s\n", kind_name);
@@ -6455,11 +6466,13 @@ Display the indicated attribute argument entry.
       disp_ptr("type", (char*)aap->variant.type, iek_type);
       break;
     case aak_expression:
-      disp_ptr("expression", (char*)aap->variant.expr.ptr, iek_expr_node);
+      if (aap->local_expr_ref) {
+        disp_ptr("sexpr", (char*)aap->variant.sexpr, iek_scoped_expression);
+      } else {
+        disp_ptr("expr", (char*)aap->variant.expr, iek_expr_node);
+      }  /* if */
       break;
-    default:
-      /* Do nothing. */
-      break;
+    default_is_unexpected();
   }  /* switch */
 }  /* disp_attribute_arg */
 
@@ -8451,6 +8464,9 @@ This routine is called during IL walking.
           break;
         case iek_module_import_decl:
           disp_module_import_decl((a_module_import_decl_ptr)entry_ptr);
+          break;
+        case iek_scoped_expression:
+          disp_scoped_expression((a_scoped_expression_ptr)entry_ptr);
           break;
         default:
           (void)fprintf(f_display, "**BAD ENTRY KIND**\n");

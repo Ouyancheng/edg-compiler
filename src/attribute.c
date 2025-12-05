@@ -1733,12 +1733,12 @@ NULL.  Otherwise, return a pointer to the argument's representation.
   expr = scan_expr_for_attribute(precedence);
   if (!is_error_node(expr)) {
     aap = alloc_attribute_arg();
-    aap->kind = (an_attribute_arg_kind)aak_expression;
+    aap->kind = aak_expression;
     aap->position = arg_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     aap->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    aap->variant.expr.ptr = expr;
+    aap->variant.expr = expr;
   } else {
     make_attr_unrecognized(ap);
   }  /* if */
@@ -2254,6 +2254,7 @@ families need not be equal.
       } else {
         switch (aap1->kind) {
           case aak_empty:
+          case aak_last:
             break;
           case aak_raw_token:
           case aak_token:
@@ -2267,12 +2268,11 @@ families need not be equal.
             result = identical_types(aap1->variant.type, aap2->variant.type);
             break;
           case aak_expression:
-            result = compare_expressions(aap1->variant.expr.ptr,
-                                         aap2->variant.expr.ptr,
+            result = compare_expressions(expr_node_from_attribute_arg(aap1),
+                                         expr_node_from_attribute_arg(aap2),
                                          CC_NO_OPTIONS);
             break;
-          default:
-            unexpected_condition();
+          default_is_unexpected();
         }  /* switch */
       }  /* if */
       aap1 = aap1->next;
@@ -3712,6 +3712,7 @@ Output the given attribute to f_debug.
     for (; aap != NULL; aap = aap->next) {
       switch (aap->kind) {
         case aak_empty:
+        case aak_last:
           break;
         case aak_raw_token:
         case aak_token:
@@ -3724,10 +3725,9 @@ Output the given attribute to f_debug.
           db_abbreviated_type(aap->variant.type);
           break;
         case aak_expression:
-          db_expression(aap->variant.expr.ptr);
+          db_expression(expr_node_from_attribute_arg(aap));
           break;
-        default:
-          (void)fprintf(f_debug, "**BAD ATTR ARG**");
+        default_is_unexpected();
       }  /* switch */
       if (aap->next != NULL) {
         /* Another argument follows.  Separate raw tokens by whitespace, and
@@ -4301,6 +4301,7 @@ an error.
               case aak_empty:
               case aak_raw_token:
               case aak_token:
+              case aak_last:
                 /* Nothing to do. */
                 break;
               case aak_constant:
@@ -4333,14 +4334,13 @@ an error.
                                               parent_class, &ctws_state, &err);
                 break;
               case aak_expression:
-                (*p_aap)->variant.expr.ptr = substitute_attribute_expr(
-                                                    (*p_aap)->variant.expr.ptr,
-                                                    t_args, t_params,
-                                                    &((*p_aap)->position),
-                                                    &err, &ctws_state);
+                (*p_aap)->variant.expr = substitute_attribute_expr(
+                                          expr_node_from_attribute_arg(*p_aap),
+                                          t_args, t_params,
+                                          &((*p_aap)->position),
+                                          &err, &ctws_state);
                 break;
-              default:
-                unexpected_condition();
+              default_is_unexpected();
             }  /* switch */
             if (err) {
               /* A substitution error.  Issue a diagnostic for the first error
@@ -4593,14 +4593,22 @@ use a local expr node reference to "point" to it (because all attributes are
 allocated in the file scope memory region).
 */
 {
-  an_expr_node_ptr expr = aap->variant.expr.ptr;
+  an_expr_node_ptr expr = aap->variant.expr;
 
   check_assertion(aap->kind == aak_expression && expr != NULL);
   if (!in_file_scope(expr)) {
+    /* The mechanism for local-expr-nodes assumes that all "referrers" are
+       IL entities whose first field is of type a_source_correspondence.
+       Allocate a "dummy" a_scoped_expression IL entry that has such a field.
+       No values are actually used in this IL entry (except that
+       source_corresp.enclosing_routine is set and later used to find the
+       original expression). */
     check_assertion(innermost_function_scope != NULL);
-    make_local_expr_node_ref(expr, lerk_attribute_arg_expr,
-                             (char*)aap, innermost_function_scope);
-    aap->variant.expr.ptr = NULL;
+    a_scoped_expression *sexpr = alloc_scoped_expression();
+    make_local_expr_node_ref(expr, lerk_scoped_expr, (char*)sexpr,
+                             innermost_function_scope);
+    aap->local_expr_ref = TRUE;
+    aap->variant.sexpr = sexpr;
   }  /* if */
 }  /* make_local_expr_node_ref_if_needed */
 
@@ -4899,10 +4907,10 @@ entity).
                   aap->kind == aak_expression &&
                   aap->next == NULL);
   stmt = (a_statement_ptr)entity;
-  expr = aap->variant.expr.ptr;
+  expr = expr_node_from_attribute_arg(aap);
   check_assertion(!is_error_node(expr));
   expr = process_boolean_attribute_expression(expr);
-  aap->variant.expr.ptr = expr;
+  aap->variant.expr = expr;
   /* It's likely that the expression resides in a function scope memory
      region, so fix that if needed. */
   make_local_expr_node_ref_if_needed(aap);
@@ -5777,14 +5785,12 @@ to it and return the entity.
   an_attribute_arg_ptr  aap = ap->arguments;
   an_expr_node_ptr      expr;
 
-  check_assertion(entity_kind == iek_type &&
-                  aap != NULL &&
-                  aap->kind == (an_attribute_arg_kind)aak_expression &&
-                  aap->next != NULL);
-  expr = aap->variant.expr.ptr;
+  check_assertion(entity_kind == iek_type && aap != NULL &&
+                  aap->kind == aak_expression && aap->next != NULL);
+  expr = expr_node_from_attribute_arg(aap);
   check_assertion(!is_error_node(expr));
   expr = process_boolean_attribute_expression(expr);
-  aap->variant.expr.ptr = expr;
+  aap->variant.expr = expr;
   /* It's possible that the expression is in a function scope memory region;
      if so, use a local_expr_ref for it. */
   make_local_expr_node_ref_if_needed(aap);
@@ -6863,8 +6869,8 @@ and return the entity.
   if (aap != NULL) {
     /* If one (or more) argument(s) are specified, make sure the first one
        is a routine (or a cast of a routine). */
-    check_assertion(aap->kind == (an_attribute_arg_kind)aak_expression);
-    an_expr_node_ptr expr = aap->variant.expr.ptr;
+    check_assertion(aap->kind == aak_expression);
+    an_expr_node_ptr expr = expr_node_from_attribute_arg(aap);
     if (!is_routine_node(expr) &&
         !(is_operation_node(expr) &&
           node_operator_is(expr, eok_cast) &&
@@ -10457,13 +10463,12 @@ Returns TRUE if any of the arguments to the attribute are template-dependent.
   a_boolean             result = FALSE;
 
   for (aap = ap->arguments; aap != NULL; aap = aap->next) {
-    if ((aap->kind == (an_attribute_arg_kind)aak_constant &&
-         aap->variant.constant->kind ==
-                                    (a_constant_repr_kind)ck_template_param) ||
-        (aap->kind == (an_attribute_arg_kind)aak_type &&
+    if ((aap->kind == aak_constant &&
+         aap->variant.constant->kind == ck_template_param) ||
+        (aap->kind == aak_type &&
          is_template_dependent_type(aap->variant.type)) ||
-        (aap->kind == (an_attribute_arg_kind)aak_expression &&
-         is_template_dependent_type(aap->variant.expr.ptr->type))) {
+        (aap->kind == aak_expression &&
+         is_template_dependent_type(expr_node_from_attribute_arg(aap)->type))){
       result = TRUE;
       break;
     }  /* if */

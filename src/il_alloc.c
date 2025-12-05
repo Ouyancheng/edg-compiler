@@ -5638,8 +5638,7 @@ Allocate an attribute argument in file scope memory and return a pointer to it.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   aap->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  aap->variant.expr.ptr = NULL;
-  aap->variant.expr.enclosing_routine = NULL;
+  aap->variant.token = NULL;
   return aap;
 }  /* alloc_attribute_arg */
 
@@ -5710,6 +5709,18 @@ pointer to it.  The entry is allocated in the current memory region.
   entry->impl_unit_importing_self = FALSE;
   return entry;
 }  /* alloc_module_import_decl */
+
+
+a_scoped_expression_ptr alloc_scoped_expression(void)
+/*
+Allocate an entry for a_scoped_expression in the file scope memory region.
+*/
+{
+  a_scoped_expression_ptr entry = alloc_il_of_type(a_scoped_expression);
+  set_default_source_corresp(&entry->source_corresp);
+  entry->expr = NULL;
+  return entry;
+}  /* alloc_scoped_expression */
 
 #if DEBUG
 

@@ -14590,39 +14590,6 @@ entry.
   return vlap;
 }  /* find_vla_dimension */
 
-
-inline a_routine_ptr *enclosing_routine_ptr_for_local_expr_node_ref(
-                                          char                       *referrer,
-                                          a_local_expr_node_ref_kind kind)
-/*
-Return a pointer to a pointer to the enclosing_routine associated with
-referrer.  For most cases, referrer is an IL entity whose first entry is
-a_source_correspondence and a pointer to the enclosing_routine field in that
-is returned, but some IL entities (as indicated by kind) don't begin with
-a_source_correspondence and those need to be handled separately.
-*/
-{
-  a_routine_ptr *result = NULL;
-
-  switch (kind) {
-    case lerk_attribute_arg_expr:
-      result = &((an_attribute_arg*)referrer)->variant.expr.enclosing_routine;
-      break;
-    case lerk_none:
-    case lerk_generic_sizeof:
-    case lerk_tpl_param_expr:
-    case lerk_array_bound:
-    case lerk_dep_array_bound:
-    case lerk_decltype:
-    case lerk_bit_field_width:
-    case lerk_constant_expr:
-      result = &((a_source_correspondence*)referrer)->enclosing_routine;
-      break;
-    default_is_unexpected();
-  }  /* switch */
-  return result;
-}  /* enclosing_routine_ptr_for_local_expr_node_ref */
-
 #if !STANDALONE_UTILITY_PROGRAM
 
 void make_local_expr_node_ref(an_expr_node_ptr            expr,
@@ -14636,7 +14603,8 @@ that function's memory region to represent an implicit reference from referrer
 to expr.  kind indicates the nature of the referrer.  (This is needed because
 file scope memory entries cannot directly point to entries in function scope
 memory regions.)  func_scope describes the function where the expression is
-stored.
+stored.  Note that referrer must be an IL entity that has an initial
+a_source_correspondence field.
 The expression can then be recovered using find_local_expr_node.
 */
 {
@@ -14648,7 +14616,7 @@ The expression can then be recovered using find_local_expr_node.
                   func_scope != NULL);
   check_assertion(scope_is(func_scope, sck_function));
   rp = func_scope->variant.routine.ptr;
-  *enclosing_routine_ptr_for_local_expr_node_ref(referrer, kind) = rp;
+  ((a_source_correspondence*)referrer)->enclosing_routine = rp;
   memory_region = mem_region_for_routine(rp);
   if (memory_region != curr_il_region_number) {
     region_to_switch_back_to = curr_il_region_number;
@@ -14709,13 +14677,13 @@ The expression can then be recovered using find_local_expr_node.
       check_assertion(!((a_constant_ptr)referrer)->local_expr_ref);
       ((a_constant_ptr)referrer)->local_expr_ref = TRUE;
       break;
-    case lerk_attribute_arg_expr:
-      new_ref->referrer.kind = iek_attribute_arg;
-      check_assertion(!((an_attribute_arg_ptr)referrer)->local_expr_ref);
-      ((an_attribute_arg_ptr)referrer)->local_expr_ref = TRUE;
+    case lerk_scoped_expr:
+      /* Note that an_attribute_arg::local_expr_ref is set in the caller. */
+      new_ref->referrer.kind = iek_scoped_expression;
       break;
-    default:
-      unexpected_condition();
+    case lerk_none:
+      break;
+    default_is_unexpected();
   }  /* switch */
   func_scope->expr_node_refs = new_ref;
 }  /* make_local_expr_node_ref */
@@ -14730,8 +14698,8 @@ and the latter has an associated a_local_expr_node_ref entry of the given kind.
 Duplicate that entry but associate it with the given referrer.
 */
 {
-  a_routine *rp =
-            *enclosing_routine_ptr_for_local_expr_node_ref(new_referrer, kind);
+  a_source_correspondence  *scp = (a_source_correspondence*)new_referrer;
+  a_routine                *rp = scp->enclosing_routine;
 
   if (rp->function_def_number != NULL_function_def_number) {
     a_scope_ptr  scope = scope_for_routine(rp);
@@ -14804,12 +14772,12 @@ a_local_expr_node_ref entries.  kind represents the kind of entry that is
 expected to hold a pointer to the expression being searched for.)
 */
 {
-  an_expr_node_ptr result;
-  a_routine_ptr    enclosing_routine =
-                *enclosing_routine_ptr_for_local_expr_node_ref(referrer, kind);
+  a_source_correspondence  *scp = (a_source_correspondence*)referrer;
+  an_expr_node_ptr         result;
 
-  if (enclosing_routine->function_def_number != NULL_function_def_number) {
-    a_scope_ptr  scope = scope_for_routine(enclosing_routine);
+  if (scp->enclosing_routine->function_def_number !=
+                                                   NULL_function_def_number) {
+    a_scope_ptr  scope = scope_for_routine(scp->enclosing_routine);
     result = find_local_expr_node_in_scope(referrer, kind, scope);
   } else {
     result = NULL;
@@ -14898,22 +14866,26 @@ necessary.
 }  /* expr_node_from_constant */
 
 
-an_expr_node_ptr expr_node_from_attribute_arg(an_attribute_arg_ptr aap,
-                                              a_scope_ptr          scope)
+an_expr_node_ptr expr_node_from_attribute_arg(an_attribute_arg_ptr aap)
 /*
 Return the expression associated with the aak_expression attribute argument.
-Scope is the function scope in which the attribute appears (though the
-attribute is allocated in the file scope memory region).  Scope can be NULL
-in cases where the expression is in the file scope memory region.
+This routine is used to hide whether or not the expression is in a different
+memory region.
 */
 {
-  an_expr_node_ptr result = aap->variant.expr.ptr;
+  an_expr_node_ptr result = NULL;
 
   check_assertion(aap->kind == aak_expression);
   if (aap->local_expr_ref) {
-    check_assertion(result == NULL && scope != NULL);
-    result = find_local_expr_node_in_scope((char*)aap, lerk_attribute_arg_expr,
+    a_scoped_expression *sexpr = aap->variant.sexpr;
+    check_assertion(result == NULL &&
+                    sexpr->source_corresp.enclosing_routine != NULL);
+    a_scope_ptr scope = scope_for_routine(
+                                      sexpr->source_corresp.enclosing_routine);
+    result = find_local_expr_node_in_scope((char*)sexpr, lerk_scoped_expr,
                                            scope);
+  } else {
+    result = aap->variant.expr;
   }  /* if */
   return result;
 }  /* expr_node_from_attribute_arg */
