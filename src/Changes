@@ -1,5 +1,25 @@
 Version 6.9
 
+12/5/25  [EDGcpfe/28217]
+Nonstandard SVR4 lookup quirk in C modes
+
+Consider, in C mode:
+
+  int f1(void) {
+    extern void f();
+    extern int i;
+  }
+  int f2() {
+    f();       // Invalid.
+    return i;  // Invalid.
+  }
+
+SVR4 C (an old C dialect) accepts this even though f() and i should not be
+visible outside f1().  The front end previously extended that lenience to
+other nonstrict C modes, but that is not common practice for other C compilers.
+Now, this quirk is only accepted in SVR4 C modes.
+
+
 12/4/25  [EDGcpfe/28579]
 [[clang::no_specializations]] and system headers
 
