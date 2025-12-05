@@ -6452,6 +6452,7 @@ Display the indicated attribute argument entry.
   }  /* if */
   switch (aap->kind) {
     case aak_empty:
+    case aak_last:
       /* No variant field. */
       break;
     case aak_raw_token:
