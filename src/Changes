@@ -14,7 +14,7 @@ directive and that directive is used in LLVM libc++ headers.
 
 
 12/4/25  [EDGcpfe/28573]
-C++-generating back end: default template argument in explicit specialization
+C++-generating back end: default template arguments in explicit specializations
 
 The C++-generating back end sometimes omitted default template arguments
 in the template-id in an explicit specialization, which could result in
@@ -27,8 +27,11 @@ arguments are emitted in that context.  For example:
     return k;
   }
   template<typename T, E = e<T>()> struct L;
-  template<> struct L<int, O>   // Previously omitted second argument
-    { };
+  template<> struct L<int, O> {  // Previously generated as "L<int>", causing
+                                 // failed deduction for e<T>() in default arg
+                                 // during instantiation of L<int> below since
+                                 // K<int> is not defined at this point
+  };
   template<> struct K<int> {
     static constexpr E e = O;
   };
