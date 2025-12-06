@@ -1,5 +1,36 @@
 Version 6.9
 
+12/6/25  [EDGcpfe/28576]
+C++-generating back end, GNU C compatibility: arrays of unknown bound in
+compound literals
+
+There is a bug in gcc that results in incorrect processing of a C-language
+compound literal if the type is an array with a bound of 0.  For example,
+gcc compiles the following code without error:
+
+  void f() {
+    typedef struct { int i; char *s; } A;
+    const A a[] = {
+      { .i = 0, .s = (char[]){} },   // #1
+      { .i = 1, .s = (char[]){1} }
+    };
+    _Static_assert(sizeof(a) == 2 * sizeof(A));
+  }
+
+If the commented line is changed to read
+
+      { .i = 0, .s = (char[0]){} },
+
+gcc reports that the static assertion failed.  When the array bound is
+omitted, as in the original form of the example, the front end deduces the
+bound from the initializer, giving a bound of 0 for the initializer "{}",
+and the C++-generating back end previously put out "char[0]" for the type,
+triggering the gcc bug when the generated code was compiled.  This has now
+been changed; when gcc_is_generated_code_target is TRUE, the C++-generating
+back end now emits the type of an array of zero bound as, e.g., "char[]",
+avoiding the gcc bug.
+
+
 12/5/25  [EDGcpfe/28580]
 Intrinsic treatment of commonly-occurring alias templates
 

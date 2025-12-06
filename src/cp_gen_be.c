@@ -7762,8 +7762,27 @@ compound literal.
      omit the cast-like prefix and the surrounding parentheses. */
   if ((!transparent_case && !is_compound_literal_string) ||
       embed_directive_in_output) {
+    a_boolean bound_is_zero;
+    if (gcc_is_generated_code_target && type_is(literal_type, tk_array) &&
+        !literal_type->variant.array.is_variable_size_array &&
+        !literal_type->variant.array.is_template_dependent_size_array &&
+        literal_type->variant.array.variant.number_of_elements == 0) {
+      /* Gcc has a bug handling a bound of 0 in a compound literal type, so
+         presumably this bound may have been omitted in the source and
+         deduced from the initializer, e.g., "(int[]){}".  Force the output
+         to use an unknown bound ("[]") to avoid the bug.  (This shouldn't
+         cause problems even if the 0 was explicit in the source in a
+         context in which the bug does not manifest.) */
+      bound_is_zero = literal_type->variant.array.bound_is_zero;
+      literal_type->variant.array.bound_is_zero = FALSE;
+    } else {
+      bound_is_zero = FALSE;
+    }  /* if */
     write_tok_ch('(');
     gen_cast(literal_type);
+    if (bound_is_zero) {
+      literal_type->variant.array.bound_is_zero = TRUE;
+    }  /* if */
   }  /* if */
   if (!is_aggregate && !is_compound_literal_string) {
     /* Scalar initialization.  Put an extra set of braces around the
