@@ -122,7 +122,7 @@ BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 #ifdef TARGET_CONFIGURATION_9
  #error Need to add additional TARGET_CONFIGURATION_X entries
-#endif /* TARGET_CONFIGURATION_7 */
+#endif /* TARGET_CONFIGURATION_9 */
 
 /*
 This structure is used to associate a target configuration name with routines

@@ -1029,7 +1029,7 @@ current emulation mode.
         preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i,
                                function_category, bdp->kind,
                                bdp->type_index, NULL);
-        }  /* if */
+      }  /* if */
     }  /* for */
   } else if (target_is_riscv_based()) {
     for (bdp = builtin_riscv_table, i = 0; bdp->name != NULL; bdp++, i++) {
