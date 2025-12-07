@@ -1,5 +1,19 @@
 Version 6.9
 
+12/7/25  [EDGcpfe/28574]
+C++-generating back end: explicit enumerator values
+
+The C++-generating back end generally suppressed explicit enumerator values
+if the value is that of the preceding enumerator plus one, regardless of
+whether the value was explicit in the source code.  Now, however, it will
+put out an explicit enumerator value if it was specified in the source as a
+hexadecimal or octal literal.  For example:
+
+  enum { A = 0x7FFFFFFFUL,
+         B = 0x80000000UL   // Previously omitted "= 0x80000000UL"
+  };
+
+
 12/6/25  [EDGcpfe/28576]
 C++-generating back end, GNU C compatibility: arrays of unknown bound in
 compound literals

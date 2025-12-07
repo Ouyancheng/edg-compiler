@@ -11277,9 +11277,12 @@ qualifier to be used in the enumeration name.
              expected value, i.e., one more than the previous one.  An
              explicit expression is also needed if the next_enum_value
              calculation overflowed.  Also, C++/CLI requires explicit
-             expressions for enumerations with a boolean "base type". */
+             expressions for enumerations with a boolean "base type".
+             Finally, if the value was explicit in the source as a
+             hexadecimal or octal literal, we also include it in the
+             generated code. */
           explicit_enum_expr =
-                   next_value_calc_overflowed ||
+                   next_value_calc_overflowed || enum_con->non_arithmetic ||
                    (cmp_integer_constants(enum_con, next_enum_value) != 0) ||
                    (cli_or_cx_enabled && base_type != NULL &&
                     is_bool_type(base_type));
