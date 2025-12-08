@@ -45,8 +45,8 @@ NS_alias_templ_intrinsic.)
 static a_boolean subst_std_remove_cv_t(a_template_arg  *t_args,
                                        a_type          **p_tp)
 /*
-t_args represents a template argument passed to std::remove_cv_t<T>.  Place in
-*p_tp the resulting type.  Return TRUE.
+t_args represents the single template argument passed to std::remove_cv_t<T>.
+Place in *p_tp the resulting type.  Return TRUE.
 */
 {
   check_assertion(t_args != NULL && t_args->kind == tak_type);
@@ -58,8 +58,8 @@ t_args represents a template argument passed to std::remove_cv_t<T>.  Place in
 static a_boolean subst_std_remove_const_t(a_template_arg  *t_args,
                                           a_type          **p_tp)
 /*
-t_args represents a template argument passed to std::remove_const_t<T>.  Place
-in *p_tp the resulting type.  Return TRUE.
+t_args represents the single template argument passed to
+std::remove_const_t<T>.  Place in *p_tp the resulting type.  Return TRUE.
 */
 {
   check_assertion(t_args != NULL && t_args->kind == tak_type);
@@ -71,8 +71,8 @@ in *p_tp the resulting type.  Return TRUE.
 static a_boolean subst_std_remove_volatile_t(a_template_arg  *t_args,
                                              a_type          **p_tp)
 /*
-t_args represents a template argument passed to std::remove_volatile_t<T>.
-Place in *p_tp the resulting type.  Return TRUE.
+t_args represents the single template argument passed to
+std::remove_volatile_t<T>.  Place in *p_tp the resulting type.  Return TRUE.
 */
 {
   check_assertion(t_args != NULL && t_args->kind == tak_type);
@@ -84,8 +84,8 @@ Place in *p_tp the resulting type.  Return TRUE.
 static a_boolean subst_std_remove_reference_t(a_template_arg  *t_args,
                                               a_type          **p_tp)
 /*
-t_args represents a template argument passed to std::remove_reference_t<T>.
-Place in *p_tp the resulting type.  Return TRUE.
+t_args represents the single template argument passed to
+std::remove_reference_t<T>.  Place in *p_tp the resulting type.  Return TRUE.
 */
 {
   a_type  *tp;
@@ -101,8 +101,8 @@ Place in *p_tp the resulting type.  Return TRUE.
 static a_boolean subst_std_remove_cvref_t(a_template_arg  *t_args,
                                           a_type          **p_tp)
 /*
-t_args represents a template argument passed to std::remove_cvref_t<T>.  Place
-in *p_tp the resulting type.  Return TRUE.
+t_args represents the single template argument passed to
+std::remove_cvref_t<T>.  Place in *p_tp the resulting type.  Return TRUE.
 */
 {
   a_type  *tp;

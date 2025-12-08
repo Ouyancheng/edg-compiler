@@ -63,7 +63,7 @@ enabled, substitution of these aliases ignores the definition in the source
 code and produces the standard underlying types (which normally should be
 equivalent to what the source code specifies).  This often bypasses the
 instantiation of associated class templates (like std::remove_cv) resulting in
-better performance (incl. reduced memory usage).  Occasionally, it may also
+better performance (including reduced memory usage).  Occasionally, it may also
 affect diagnostics that previously mentioned these associated templates and
 now only mention the underlying type instead.  The intrinsic treatment is
 enabled when the global variable alias_templ_intrinsics_enabled is TRUE.  That

@@ -23,8 +23,7 @@ BEGIN_EDG_NAMESPACE
 /*
 The following macro (NS_alias_templ_intrinsics) describes alias templates in
 namespace std that the front end recognizes and attempts to substitute
-intrinsically.  The macro takes a macro M that should be replaced
-by a macro of the form:
+intrinsically.  The macro takes another macro M that should be of the form:
 
   #define MACRO(ns, name)
 

@@ -18980,9 +18980,9 @@ struct an_alias_templ_intrinsic_descr {
 			/* A pointer to a (global) variable pointing to the
 			   symbol representing the parent namespace of this
 			   template.  This uses an additional level of
-			   indirection because we cannot statically namespace
-			   pointers (because namespace symbols are created
-			   after front end startup). */
+			   indirection because we cannot statically initialize
+			   namespace pointers (because namespace symbols are
+			   created after front end startup). */
 };
 
 STATIC_THREAD an_alias_templ_intrinsic_descr
@@ -19010,14 +19010,14 @@ struct a_scoped_identifier {
   a_symbol_ptr
 		scope;
 			/* The entity (class or namespace) that directly owns
-			   the scope in which the name is considered. */
+			   the scope in which the name belongs. */
 };
 
 
 static inline a_boolean operator==(a_scoped_identifier  x,
                                    a_scoped_identifier  y)
 /*
-Return TRUE if the given scoped names are identical.
+Return TRUE if the given scoped identifiers are identical.
 */
 {
   return x.name == y.name && x.scope == y.scope;
@@ -19027,7 +19027,7 @@ Return TRUE if the given scoped names are identical.
 static inline a_boolean operator!=(a_scoped_identifier  x,
                                    a_scoped_identifier  y)
 /*
-Return TRUE if the given scoped names are different.
+Return TRUE if the given scoped identifiers are different.
 */
 {
   return !(x == y);
@@ -19036,7 +19036,7 @@ Return TRUE if the given scoped names are different.
 
 static inline uintptr_t hash_ptr(a_scoped_identifier  sn)
 /*
-Return a hash value for a constraint test description.
+Return a hash value for the given scoped identifier.
 */
 {
   uintptr_t  result = 17*31 + hash_ptr((void*)sn.name);
@@ -19048,14 +19048,15 @@ Return a hash value for a constraint test description.
 using an_alias_templ_intrinsic_descr_table =
 		Ptr_map<a_scoped_identifier, int>;
 			/* The type of a table that maps intrinsic identifiers
-			   to the index of descriptions of alias templates that
-			   the front end knows how to substitute. */
+			   to the descriptions of alias templates that the
+			   front end knows how to substitute. */
 
 STATIC_THREAD an_alias_templ_intrinsic_descr_table
 		*alias_templ_intrinsic_descr_table;
-			/* A map from symbol headers for alias templates to
-			   descriptions identifying those templates and their
-			   intrinsic treatment in the front end. */
+			/* A map from scoped identifiers denoting alias
+			   templates to descriptions identifying those
+			   templates and their intrinsic treatment in the
+			   front end. */
 
 void init_alias_templ_intrinsic_descriptions(void)
 /*

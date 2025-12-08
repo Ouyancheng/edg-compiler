@@ -10660,7 +10660,7 @@ static a_boolean process_intrinsic_alias_templ(a_symbol        *t_sym,
 t_sym is an alias template X taking the given template arguments <Args...>.  
 If X is an alias template that the front end handles intrinsically, attempt to
 substitute X<Args...> intrinsically and, if successful, return TRUE and set
-*substituted_tp to the resulting type.  Otherwise, result FALSE.
+*substituted_tp to the resulting type.  Otherwise, return FALSE.
 */
 {
   return eval_intrinsic_alias_templ(get_intrinsic_alias_templ_idx(t_sym),
@@ -10678,7 +10678,7 @@ static a_type_ptr substitute_intrinsic_alias_templ(
 			a_boolean			*copy_error,
 			a_ctws_state_ptr		ctws_state)
 /*
-If template_sym is alias template the front end can handle intrinsically,
+If template_sym is an alias template the front end can handle intrinsically,
 perform the substitution and return the resulting type.  See
 copy_template_alias_reference_with_substitution for the meaning of the
 parameters.
@@ -10688,16 +10688,11 @@ parameters.
   int         idx = get_intrinsic_alias_templ_idx(template_sym);
 
   if (idx != 0) {
-    a_template_arg_ptr			tap;
-    a_template_param_ptr			tpp;
-    a_template_symbol_supplement_ptr	tssp;
-    a_typeref_type_supplement_ptr		ttsp;
-    a_template_arg_ptr			new_list;
-    
-    ttsp = orig_type->variant.typeref.extra_info;
-    tssp = template_sym->variant.template_info;
-    tap = ttsp->orig_template_arg_list;
-    tpp = tssp->cache->decl_info->parameters;
+    a_typeref_type_supplement  *ttsp = typeref_supp(orig_type);
+    a_template_arg             *tap = ttsp->orig_template_arg_list, *new_list;
+    a_template_symbol_supplement
+                               *tssp = template_sym->variant.template_info;
+    a_template_param           *tpp = tssp->cache->decl_info->parameters;
     check_assertion(tpp != NULL);
     /* Make a copy of the template argument list, doing substitution. */
     if (tpp == templ_param_list) {
