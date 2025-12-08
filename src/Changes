@@ -1,5 +1,12 @@
 Version 6.9
 
+12/8/25  [EDGcpfe/28582]
+GNU/Clang compatibility: enable asm statements with --ms_extensions
+
+A change has been made to enable "asm" statements in GNU/Clang mode with
+--ms_extensions.
+
+
 12/7/25  [EDGcpfe/28574]
 C++-generating back end: explicit enumerator values
 
