@@ -4606,7 +4606,7 @@ after a call to this routine.
       if (sym == NULL && SVR4_C_mode &&
           (options & IDL_TENTATIVE_TYPE_LOOKUP) == 0 &&
           (options & IDL_IS_LOOKUP_TO_CHECK_FOR_NAME_HIDING) == 0) {
-        /* This is a SVR4 compatibility feature.  A symbol declared as
+        /* This is an SVR4 compatibility feature.  A symbol declared as
            a block extern in a block that is no longer in scope may be
            referenced later.  Look for an external variable or routine that
            matches the name being looked up.  This is not done during
