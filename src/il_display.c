@@ -6420,7 +6420,7 @@ static void disp_attribute_arg(an_attribute_arg_ptr  aap)
 Display the indicated attribute argument entry.
 */
 {
-  a_const_char *kind_name = "";
+  a_const_char *kind_name = "** BAD KIND **";
 
   switch (aap->kind) {
     case aak_empty:              kind_name = "empty";               break;

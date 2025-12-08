@@ -18487,7 +18487,7 @@ typedef struct a_module_import_decl {
 
 
 /*
-Entry currently used only expressions in attribute arguments where the
+Entry currently used only for expressions in attribute arguments where the
 expression is in a function scope.
 */
 struct a_scoped_expression {
