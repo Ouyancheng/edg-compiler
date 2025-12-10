@@ -19031,7 +19031,7 @@ Return TRUE if the given scoped identifiers are different.
 */
 {
   return !(x == y);
-}  /* operator== */
+}  /* operator!= */
 
 
 static inline uintptr_t hash_ptr(a_scoped_identifier  sn)
