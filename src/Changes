@@ -1,5 +1,28 @@
 Version 6.9
 
+12/11/25 [EDGcpfe/26434]
+Incorrect lowered IL generated for some range-based for statements
+
+In some cases, the lowered IL generated for a range-based for statement
+could generate a temporary variable that was used in an outer scope but
+defined in an inner scope.  With the C-generating back end, the following
+example (with --c++20) had generated C code that would not compile:
+
+  struct A {
+    constexpr int operator*() const { return 0; }
+    A& operator++() { return *this; }
+    friend bool operator==(const A& l, const A& r) { return true; }
+  };
+  struct B {
+    A begin() const { return A{}; }
+    A end() const { return A{}; }
+  };
+  void f() {
+    auto rng = B{};
+    for (const auto& e : rng) {}
+  }
+
+
 12/8/25  [EDGcpfe/28582]
 GNU/Clang compatibility: enable asm statements with --ms_extensions
 

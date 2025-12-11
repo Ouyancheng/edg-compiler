@@ -19792,6 +19792,8 @@ Notes:
   /* Lower the dependent statement as well as expressions which will be
      used in the lowered "for" statement. */
   lower_statement(sub_statement);
+  /* Insert any pending stmk_init statements that may have been generated. */
+  insert_pending_stmk_init_statements(inner_block);
   if (iterator_scope->lifetime != NULL) {
     /* Insert any needed destructions. */
     set_insert_location(sub_statement, &inner_insert_location);
