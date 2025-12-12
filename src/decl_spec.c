@@ -6914,8 +6914,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   record_strongest_alignment_attr(dps, iek_type, &enum_type->source_corresp,
                                   is_redeclaration, is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (new_type_created && ms_extensions && !is_scoped_enum &&
-      explicit_base_kind == (an_integer_kind)ik_none) {
+  if (new_type_created && !is_scoped_enum && explicit_base_kind == ik_none &&
+      (microsoft_mode || (clang_mode && ms_compat))) {
     /* In Microsoft compatibility mode (unscoped) enum types can be declared
        without being defined and can also be used.  The use requires that
        the size be set. */
