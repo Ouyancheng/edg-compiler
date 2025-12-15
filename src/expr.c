@@ -51123,8 +51123,42 @@ for the converted result in *constant (which must be in the file scope
 memory region).  Do various error checks.
 */
 {
+  a_memory_region_number orig_region = curr_il_region_number;
+
   db_enter(3, "prep_nontype_template_argument_initializer");
   check_assertion(constant != NULL && in_file_scope(constant));
+  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
+    /* Check to see if we need to switch to the file scope memory region
+       to avoid creating a backing expression tree with mixed memory
+       regions. */
+    an_expr_node_ptr *epp = NULL;
+    if (is_expression_operand(operand)) {
+      epp = &operand->variant.expression;
+    } else if (is_constant_operand(operand)) {
+      epp = &operand->variant.constant.expr;
+    }  /* if */
+    if (epp != NULL && *epp != NULL) {
+      /* There is a potential backing expression. */
+      if (in_file_scope(*epp)) {
+        /* The top of the tree is in the file scope region. */
+        if (mixed_regions_in_expr_tree(*epp)) {
+          /* Some of the tree is in a routine scope memory region, so we
+             need to copy the whole tree there. */
+          *epp = copy_expr_tree(*epp, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
+        } else {
+          /* The whole tree is (so far) in the file scope region.  Switch
+             to the file scope region to avoid creating any nodes in the
+             routine scope region that is currently in effect. */
+          switch_il_region(FILE_SCOPE_REGION_NUMBER);
+        }  /* if */
+      } else if (mixed_regions_in_expr_tree(*epp)) {
+        /* The top of the tree is in a routine scope, but there are nodes
+           in the tree in the file scope region.  Copy the tree into the
+           routine scope region that is currently in effect. */
+        copy_expr_tree(*epp, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (ms_version_is(<1310) &&
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_expression_operand(operand) &&
@@ -51157,34 +51191,13 @@ memory region).  Do various error checks.
       make_template_param_constant_from_operand(operand, constant,
                                                 (a_type_ptr)NULL);
     } else {
-      an_expr_node_ptr       *epp = NULL;
-      a_memory_region_number region = curr_il_region_number;
-      if (is_expression_operand(operand)) {
-        epp = &operand->variant.expression;
-      } else if (is_constant_operand(operand) &&
-                 operand->variant.constant.expr != NULL) {
-        epp = &operand->variant.constant.expr;
-      }  /* if */
-      if (epp != NULL && region != FILE_SCOPE_REGION_NUMBER) {
-        /* Ensure that the entire expression tree resides in a single
-           memory region. */
-        if (mixed_regions_in_expr_tree(*epp)) {
-          /* Copy the expression tree into the current memory region. */
-          *epp = copy_expr_tree(*epp, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
-        } else if (in_file_scope(*epp)) {
-          /* Ensure that any entries created by
-             extract_constant_from_operand will be allocated in file-scope
-             memory. */
-          curr_il_region_number = FILE_SCOPE_REGION_NUMBER;
-        }  /* if */
-      }  /* if */
       extract_constant_from_operand(operand, constant);
 #if BACK_END_IS_CP_GEN_BE
       if (constant->expr != NULL) {
         constant->expr->needed_in_cp_gen_be = TRUE;
       }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
-      curr_il_region_number = region;
+      switch_il_region(orig_region);
       if (constant_addresses_local_var(constant)) {
         expr_pos_error(ec_constant_addresses_local_variable,
                        &operand->position);

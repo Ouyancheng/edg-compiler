@@ -1,5 +1,14 @@
 Version 6.9
 
+12/15/25 [EDGcpfe/28583]
+Excessive memory use for non-type template argument backing expressions
+
+The changes for EDGcpfe/27947 in release 6.8 resulted in unnecessary copies
+of some backing expressions for non-type template arguments; in large
+programs, the additional memory burden could be significant.  This has now
+been addressed and the unnecessary copies are no longer created.
+
+
 12/15/25 [EDGcpfe/28595]
 Clang compatibility: Abort on __builtin_invoke
 
