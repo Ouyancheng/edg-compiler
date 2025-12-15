@@ -7307,6 +7307,8 @@ and bound_function_selector are expected to be NULL in that case.
   a_routine_ptr     operand_routine;
   a_builtin_call_adjustment
                     bca, *bcap = NULL;
+  an_arg_list_elem_ptr
+                    delay_free_arg_list_elem = NULL;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   a_boolean         call_may_be_folded = FALSE;
   a_boolean         do_arg_dep_lookup = FALSE;
@@ -7975,6 +7977,13 @@ and bound_function_selector are expected to be NULL in that case.
       /* Special handling for __builin_invoke. */
       an_operand_ptr  first_operand;
 
+      if (arg_list == NULL) {
+        if (expr_error_should_be_issued()) {
+          expr_pos_error(ec_too_few_arguments, &closing_paren_position);
+        }  /* if */
+        make_error_operand(result);
+        goto done;
+      }  /* if */
       check_arg_list_elem_is_expression(arg_list);
       first_operand = operand_of_arg_list_elem(arg_list);
       do_operand_transformations(first_operand,
@@ -8047,8 +8056,17 @@ and bound_function_selector are expected to be NULL in that case.
             if (mbr_pointer) {
               /* For a pointer to member, the second operand should be of class
                  type (or pointer to class type). */
-              an_operand_ptr  second_operand =
-                                            operand_of_arg_list_elem(arg_list);
+              an_operand_ptr  second_operand;
+              if (arg_list == NULL) {
+                free_arg_list_elem(first_arg);
+                if (expr_error_should_be_issued()) {
+                  expr_pos_error(ec_too_few_arguments,
+                                 &closing_paren_position);
+                }  /* if */
+                make_error_operand(result);
+                goto done;
+              }  /* if */
+              second_operand = operand_of_arg_list_elem(arg_list);
               if (!is_template_dependent_type(second_operand->type)) {
                 a_type_ptr  cls_type = second_operand->type;
                 free_arg_list_elem(first_arg);
@@ -8094,7 +8112,7 @@ and bound_function_selector are expected to be NULL in that case.
           }  /* if */
         }  /* if */
         if (!unknown_dependent_function) {
-          free_arg_list_elem(first_arg);
+          delay_free_arg_list_elem = first_arg;
         } else {
           arg_list = first_arg;
         }  /* if */
@@ -8104,6 +8122,7 @@ and bound_function_selector are expected to be NULL in that case.
            based on the parameter list. */
         an_arg_check_block  arg_block;
         start_call_argument_processing(routine_type, NULL, &arg_block);
+        arg_block.closing_paren_position = closing_paren_position;
         process_call_argument_list(arg_list, &arg_block);
         argument_list = arg_block.argument_head;
         free_init_component_list(arg_list);
@@ -8356,6 +8375,9 @@ and bound_function_selector are expected to be NULL in that case.
          calls. */
       cast_operand(bcap->result_type, result, /*is_implicit_cast=*/TRUE);
     }  /* if */
+  }  /* if */
+  if (delay_free_arg_list_elem != NULL) {
+    free_arg_list_elem(delay_free_arg_list_elem);
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 done:

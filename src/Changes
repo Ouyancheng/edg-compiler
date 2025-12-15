@@ -1,5 +1,25 @@
 Version 6.9
 
+12/15/25 [EDGcpfe/28595]
+Clang compatibility: Abort on __builtin_invoke
+
+Previously, the front end could abort with a failed assertion in
+conv_expr_function_designator_to_ptr_to_function when applying __builtin_invoke
+to a constexpr function call operator template or a generic lambda.  For
+example, with --c++ --clang_version 210100:
+
+  int f(int);
+  int i = __builtin_invoke([](auto v) -> int { // Previously triggered an
+      return f(v);                             // assertion failure.  Now okay.
+    }, 1);
+
+This change also fixes an abort due to a null pointer indirection when
+attempting to use __builtin_invoke with too few arguments.  For example, with
+--c++ --clang_version 210100:
+
+  int j = __builtin_invoke();  // Previously segfaulted.  Now an error.
+
+
 12/12/25 [EDGcpfe/27897,EDGcpfe/28594]
 GNU/Clang compatibility: packed attribute on enums with --ms_extensions
 
