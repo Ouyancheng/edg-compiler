@@ -8087,7 +8087,7 @@ it was already there).
       pragma_diag_list = elem;
       check_assertion(elem->prev == NULL);
     } else {
-      if (elem == found) {
+      if (*elem == *found) {
         /* Nothing to do; this entry is already on the list. */
         free_fe(elem);
         elem = NULL;
