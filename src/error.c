@@ -649,6 +649,8 @@ struct a_pragma_diag_elem {
                             int               error_number);
   struct a_pragma_diag_elem
                 *next;  /* Next entry on the list. */
+  struct a_pragma_diag_elem
+                *prev;  /* Previous entry on the list. */
   a_simple_source_position
                 spos;   /* Source position of the pragma. */
   a_pragma_kind kind;   /* The pk_diag* pragma kind. */
@@ -691,6 +693,7 @@ Constructor for pk_diagnostic entries.
 {
   check_assertion(kind == pk_diagnostic);
   this->next = NULL;
+  this->prev = NULL;
   this->spos.seq = pos->seq;
   this->spos.column = pos->column;
   this->variant.corresponding_push = NULL;
@@ -708,10 +711,28 @@ Constructor for pk_diag_* (and pk_none) entries.
 {
   check_assertion(kind != pk_diagnostic);
   this->next = NULL;
+  this->prev = NULL;
   this->spos.seq = pos->seq;
   this->spos.column = pos->column;
   this->variant.error_number = error_number;
 }  /* a_pragma_diag_elem::a_pragma_diag_elem */
+
+
+static inline a_boolean operator==(const a_pragma_diag_elem &e1,
+                                   const a_pragma_diag_elem &e2)
+/*
+Return TRUE if e1 and e2 have the same values for all applicable non-static
+data members.
+*/
+{
+  return (e1.kind == e2.kind &&
+          e1.spos.seq == e2.spos.seq &&
+          e1.spos.column == e2.spos.column &&
+          (e1.kind == pk_diagnostic ?
+           (!e1.is_pop ||
+            e1.variant.corresponding_push == e2.variant.corresponding_push) :
+           e1.variant.error_number == e2.variant.error_number));
+}  /* operator== */
 
 
 STATIC_THREAD a_pragma_diag_elem
@@ -3571,16 +3592,8 @@ in the source.
             /* At the beginning. */
             break;
           }  /* if */
-          /* Because pragma_diag_list isn't doubly-linked, retrieving the
-             previous entry on the list requires a loop.  Luckily
-             this operation is performed very infrequently. */
-          for (a_pragma_diag_elem *p = pragma_diag_list;
-               p != NULL;
-               p = p->next) {
-            if (p->next == ptr) {
-              ptr = p;
-            }  /* if */
-          }  /* for */
+          ptr = ptr->prev;
+          check_assertion(ptr != NULL);
         }  /* while */
       }  /* if */
     }  /* if */
@@ -8058,9 +8071,10 @@ it was already there).
     /* Empty list. */
     pragma_diag_list = elem;
     pragma_diag_tail = elem;
-    check_assertion(elem->next == NULL);
+    check_assertion(elem->next == NULL && elem->prev == NULL);
   } else if (pragma_diag_tail->spos < elem->spos) {
     /* Typical case: new element goes at the end of the list. */
+    elem->prev = pragma_diag_tail;
     pragma_diag_tail->next = elem;
     pragma_diag_tail = elem;
     check_assertion(elem->next == NULL);
@@ -8071,13 +8085,15 @@ it was already there).
       /* Didn't find anything; insert as the first entry. */
       elem->next = pragma_diag_list;
       pragma_diag_list = elem;
+      check_assertion(elem->prev == NULL);
     } else {
-      if (elem->spos == found->spos) {
+      if (elem == found) {
         /* Nothing to do; this entry is already on the list. */
         free_fe(elem);
         elem = NULL;
       } else {
         /* Insert item after the one we found. */
+        elem->prev = found;
         elem->next = found->next;
         found->next = elem;
         if (pragma_diag_tail == found) {
