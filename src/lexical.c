@@ -27758,16 +27758,15 @@ information.
   }
   /* Resume fetching tokens from the previous source. */
   pop_string_insert_cache_entry();
-  /* Get the next token from the normal input stream.  This is needed because
-     the correct current token must be available for rescan_cached_tokens. */
-  (void)get_token();
+  /* Discard the newline token from the buffer when rescanning from the token
+     cache. */
   if (!insert_after) {
     /* If the string is inserted before the current token, rescan the current
        token. */
-    rescan_cached_tokens(curr_token_cache.ptr());
+    rescan_cached_tokens(curr_token_cache.ptr(), /*discard_curr_token=*/TRUE);
   }  /* if */
   /* Scan the tokens from the cache. */
-  rescan_cached_tokens(cache.ptr());
+  rescan_cached_tokens(cache.ptr(), insert_after);
   /* Restore the original token caching state. */
   curr_lexical_state_stack_entry->suspend_caching_tokens =
                                                    save_suspend_caching_tokens;
