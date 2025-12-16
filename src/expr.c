@@ -51127,6 +51127,8 @@ memory region).  Do various error checks.
 
   db_enter(3, "prep_nontype_template_argument_initializer");
   check_assertion(constant != NULL && in_file_scope(constant));
+#if BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG && \
+    !COMPILE_MULTIPLE_TRANSLATION_UNITS
   if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
     /* Check to see if we need to switch to the file scope memory region
        to avoid creating a backing expression tree with mixed memory
@@ -51159,6 +51161,7 @@ memory region).  Do various error checks.
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG && ... */
   if (ms_version_is(<1310) &&
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_expression_operand(operand) &&
@@ -51192,12 +51195,15 @@ memory region).  Do various error checks.
                                                 (a_type_ptr)NULL);
     } else {
       extract_constant_from_operand(operand, constant);
+#if BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG && \
+    !COMPILE_MULTIPLE_TRANSLATION_UNITS
 #if BACK_END_IS_CP_GEN_BE
       if (constant->expr != NULL) {
         constant->expr->needed_in_cp_gen_be = TRUE;
       }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
       switch_il_region(orig_region);
+#endif /* BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG && ... */
       if (constant_addresses_local_var(constant)) {
         expr_pos_error(ec_constant_addresses_local_variable,
                        &operand->position);
