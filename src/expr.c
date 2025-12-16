@@ -51123,12 +51123,11 @@ for the converted result in *constant (which must be in the file scope
 memory region).  Do various error checks.
 */
 {
-  a_memory_region_number orig_region = curr_il_region_number;
-
   db_enter(3, "prep_nontype_template_argument_initializer");
   check_assertion(constant != NULL && in_file_scope(constant));
 #if BACKING_EXPR_FOR_NONTYPE_TEMPL_ARG && \
     !COMPILE_MULTIPLE_TRANSLATION_UNITS
+  a_memory_region_number orig_region = curr_il_region_number;
   if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
     /* Check to see if we need to switch to the file scope memory region
        to avoid creating a backing expression tree with mixed memory
