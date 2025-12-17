@@ -1,5 +1,37 @@
 Version 6.9
 
+12/17/25 [EDGcpfe/28605]
+Missing skip_typerefs could lead to undefined behavior
+
+A missing skip_typerefs could lead to undefined behavior in some
+configurations.  For example:
+
+  namespace N {
+    struct A {
+      constexpr A() noexcept = default;
+      static constexpr A str(const int& str) noexcept {
+        return A{};
+      }
+    };
+    struct B {
+      constexpr B(const char* str) noexcept {}
+      constexpr operator A() const noexcept {
+        return A();
+      }
+    };
+    enum class V { U };
+    template<A A, V Vr> void f(const B&); 
+  }
+  template<N::B tag, N::V Vr> struct A {
+    virtual void operator<<(int) {
+      f<tag, Vr>(tag);
+    }
+  };
+  void f() {
+     A<"()", N::V::U> i;
+  }
+
+
 12/16/25 [EDGcpfe/28589]
 Spurious user-defined literal lookup errors
 

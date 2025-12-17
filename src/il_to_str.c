@@ -6770,7 +6770,7 @@ precedence confusion.  Do the output in the way described by octl.
              determined by its type (the enumeration's parent scope or, for
              a scoped enumeration, the associated scope of the type itself)
              so that the name's qualification will be correct. */
-          a_type_ptr tp = constant->type;
+          a_type_ptr tp = skip_typerefs(constant->type);
           if (tp->variant.integer.is_scoped_enum) {
             constant->source_corresp.parent_scope =
                                      tp->variant.integer.enum_info.assoc_scope;
