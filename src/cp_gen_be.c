@@ -21875,6 +21875,8 @@ one that yields the value) of a statement expression.
         suppress_trailing_space = TRUE;
       } else {        
         an_asm_entry_ptr asm_entry = statement->variant.asm_entry;
+        gen_attributes(asm_entry->source_corresp.attributes, al_prefix,
+                       /*primary_only=*/FALSE);
         /* GNU C does not treat "asm" as a keyword in some (e.g., C99)
            modes. */
         write_tok_str((char *)(gcc_or_clang_is_generated_code_target ?
@@ -25421,8 +25423,10 @@ one associated with the asm.
                                             an_asm_entry_ptr);
   a_const_char     *asm_keyword;
 
-  /* Advance past the source sequence entry for the variable. */
+  /* Advance past the source sequence entry for the construct. */
   adv_curr_source_sequence_entry();
+  gen_attributes(asm_entry->source_corresp.attributes, al_prefix,
+                 /*primary_only=*/FALSE);
   /* Position the output file to the declaration position. */
   set_decl_position(&asm_entry->source_corresp,
                     (a_src_seq_secondary_decl_ptr)NULL);

@@ -1,5 +1,14 @@
 Version 6.9
 
+12/17/25 [EDGcpfe/28584]
+Attributes on asm declarations
+
+The front end now potentially accepts attributes on asm declarations.  This
+implements the resolution of Core issue 2262.  For example:
+
+  [[]] asm("nop");  // Now accepted by the front end.
+
+
 12/17/25 [EDGcpfe/28605]
 Missing skip_typerefs could lead to undefined behavior
 

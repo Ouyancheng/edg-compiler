@@ -14794,9 +14794,8 @@ This may appear only at function or block scope.  The operand-spec tells
 the compiler how to map C/C++ variables into and out of the assembly
 instruction's operands.
 
-*p_attributes points to any prefix attributes (NULL if none).  Such attributes
-are invalid: If *p_attributes is non-NULL issue an error and set *p_attributes
-to NULL.
+*p_attributes points to any prefix attributes (NULL if none).  Apply them to
+the resulting asm entry if applicable.
 */
 {
   a_constant_ptr            asm_string = local_constant();
@@ -14826,8 +14825,6 @@ to NULL.
     /* Issue diagnostics on pragmas that are trying to bind to an asm
        declaration. */
     cannot_bind_to_curr_construct();
-    /* Prefix attributes are not allowed on asm declarations. */
-    disallow_attributes(p_attributes, es_error);
   }  /* if */
   copy_source_position(pos_curr_token, asm_pos);
   if (curr_token == tok_microsoft_asm) {
@@ -14991,6 +14988,10 @@ to NULL.
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
     if (gnu_asm_form) {
       validate_operands_and_clobbers(ap);
+    }  /* if */
+    if (*p_attributes != NULL) {
+      attach_attributes(*p_attributes, (char*)ap, iek_asm_entry);
+      *p_attributes = NULL;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (!is_asm_statement) {

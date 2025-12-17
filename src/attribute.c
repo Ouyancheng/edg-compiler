@@ -519,6 +519,8 @@ typedef struct an_attr_appl_descr {
 			       (no property switches)
 			     "l"  : labels
 			       (no property switches)
+			     "a"  : asm declarations/statements
+			       (no property switches)
 			     "0"  : stand-alone attribute (no target entity)
 			       (no property switches)
 			   A switch is optionally followed by a "!" to indicate
@@ -3388,6 +3390,18 @@ attribute ap applied to the given label matches those constraints.
 }  /* check_simple_label_constraints */
 
 
+static void check_simple_asm_constraints(a_const_char                *constr,
+                                         ARG_UNUSED an_attribute_ptr ap,
+                                         ARG_UNUSED an_asm_entry_ptr label)
+/*
+constr encodes a simple target constraint for an asm declaration.  Check that
+the attribute ap applied to the given entry matches those constraints.
+*/
+{
+  check_assertion(constr[0] == 'a');
+}  /* check_simple_asm_constraints */
+
+
 static void check_simple_namespace_constraints(
                                            a_const_char                *constr,
                                            ARG_UNUSED an_attribute_ptr ap,
@@ -3490,6 +3504,14 @@ appropriate and set ap->kind to ak_unrecognized).
             break;
           }  /* if */
           if (!weak_mismatch) check_simple_type_constraints(constr, ap, tp);
+          match_found = TRUE;
+        }  /* if */
+        break;
+      case 'a':
+        if (entity_kind == iek_asm_entry) {
+          if (!weak_mismatch) {
+            check_simple_asm_constraints(constr, ap, (an_asm_entry_ptr)entity);
+          }  /* if */
           match_found = TRUE;
         }  /* if */
         break;
@@ -3644,6 +3666,7 @@ this is &scp.attributes.)
     case iek_label:
     case iek_namespace:
     case iek_constant:
+    case iek_asm_entry:
       p_attributes = &((a_source_correspondence*)entity)->attributes;
       break;
     case iek_param_type:
