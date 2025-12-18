@@ -5334,6 +5334,7 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   typedef a_Value a_value;
   typedef Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> an_allocator;
   typedef Ptr_map_entry<a_key, a_value> an_entry;
+  typedef an_entry const* an_iterator;
   INLINE Ptr_map(unsigned int       mask_width,
                  const an_allocator &a = an_allocator());
   INLINE ~Ptr_map();
@@ -5370,10 +5371,10 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
 #if DEBUG
   void db_ptrs() const;
 #endif /* DEBUG */
-  INLINE an_entry const *begin() const
+  INLINE an_iterator begin() const
     /*lint -e{1535}*/
     { return table; }
-  INLINE an_entry const *end() const
+  INLINE an_iterator end() const
     /*lint -e{1535}*/
     { return &table[hash_mask+1]; }
 private:
@@ -5881,6 +5882,8 @@ struct Ptr_multi_map {
   typedef Small_dyn_array<a_Value, a_Capacity> a_multi_value;
   typedef Allocator<a_multi_value> a_value_allocator;
   typedef Allocator<Ptr_map_entry<a_Ptr_key, a_multi_value*>> a_map_allocator;
+  typedef typename Ptr_map<a_Ptr_key, a_multi_value*, Allocator>::an_iterator
+                                                                   an_iterator;
 
   INLINE Ptr_multi_map(unsigned int            mask_width,
                        const a_map_allocator   &ma = a_map_allocator(),
@@ -5892,6 +5895,14 @@ struct Ptr_multi_map {
   INLINE auto take(a_Ptr_key key) -> a_multi_value;
   INLINE void remove(a_Ptr_key key);
   INLINE void clear();
+
+  INLINE auto number_of_elements() -> size_t
+    { return this->backing_map.number_of_elements(); }
+
+  INLINE an_iterator begin() const
+    { return this->backing_map.begin(); }
+  INLINE an_iterator end() const
+    { return this->backing_map.end(); }
 private:
   INLINE void dealloc(a_multi_value *values);
   Ptr_map<a_Ptr_key, a_multi_value*, Allocator>
