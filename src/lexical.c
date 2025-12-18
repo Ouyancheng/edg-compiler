@@ -25220,6 +25220,7 @@ selection operator, in which case it points to the type of the left operand.
       /* A construct like int::Parse("1").  Use the corresponding C++/CLI
          system type determined above. */
       qualifier_sym = symbol_for(cli_system_type_for_keyword);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_resolved_id_pseudo_token(curr_token)) {
       qualifier_sym = resolve_id_pseudo_token_to_sym();
       if (qualifier_sym == NULL) {
@@ -25231,7 +25232,6 @@ selection operator, in which case it points to the type of the left operand.
                                               &locator_for_curr_id);
         locator_for_curr_id.source_position = pos_curr_token;
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       an_id_lookup_options_set	lookup_kind;
       a_boolean			might_be_vacuous_dtor_or_finalizer;
