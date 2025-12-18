@@ -14825,6 +14825,15 @@ the resulting asm entry if applicable.
     /* Issue diagnostics on pragmas that are trying to bind to an asm
        declaration. */
     cannot_bind_to_curr_construct();
+    if (*p_attributes != NULL &&
+        strict_ansi_mode && !cpp17_mode && !C_mode()) {
+      /* Attributes on asm declarations were introduced by C++17, but all
+         implementations treat that change as a DR (defect report), and accept
+         such attributes in C++11.  Enforce the standard only in strict C++
+         modes. */
+      pos_diagnostic(es_discretionary_error, ec_invalid_attribute_location,
+                     &(*p_attributes)->group->position);
+    }  /* if */
   }  /* if */
   copy_source_position(pos_curr_token, asm_pos);
   if (curr_token == tok_microsoft_asm) {
