@@ -1,5 +1,18 @@
 Version 6.9
 
+12/18/25 [EDGcpfe/28613]
+C++-generating back end: Unnecessary qualification of template-ids
+
+As a result of the changes for EDGcpfe/26294 in version 6.8, the
+C++-generating back end could add unnecessary qualification in uses of the
+names of some template instances.  This is now fixed.  For example:
+
+  template<typename T> struct A { static const bool v = false; };
+  template<typename T> struct B : public A<T> { };
+  template<bool> struct C { };
+  template<typename T> struct D : C<A<T>::v> { };  // Previously "::C"
+
+
 12/17/25 [EDGcpfe/28584]
 Attributes on asm declarations
 
