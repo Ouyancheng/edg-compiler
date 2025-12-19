@@ -9584,9 +9584,13 @@ elaborated-type-specifier, even if it would be required in some contexts.
         } else {
           /* Use the normal qualification provided by gen_name. */
           a_gen_name_options_set noqual_options = options |
-                                                  GN_FORCE_QUALIFIED_NAME |
                                                   GN_NO_TEMPLATE_ARGS |
                                                   GN_TEMPLATE;
+          if (name_qual_suppressed) {
+            /* Since the original reference was qualified, force gen_name to
+               produce a qualified name. */
+            noqual_options |= GN_FORCE_QUALIFIED_NAME;
+          }  /* if */
           if (suppress_typename_kwd || typename_kwd_emitted) {
             noqual_options |= GN_SUPPRESS_TYPENAME_KEYWORD;
           }  /* if */
