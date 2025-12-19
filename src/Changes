@@ -1,5 +1,32 @@
 Version 6.9
 
+12/19/25 [EDGcpfe/28598]
+Incorrect handling of constant-folded default arguments
+
+Consider:
+
+  struct X {
+    int x;
+    constexpr X(): x(0) {}
+    constexpr X(X const& a): x(a.x) {}
+  };
+  int f(X a = {}) {
+    return ++a.x;
+  }
+  int main() {
+    return f() + f() - 2;
+  }
+
+Previously, the front end generated code for the calls f() that involved an
+enk_constant argument node pointing to the same constant -- obtained by folding
+the default argument -- for each call f().  Lowering then proceeded to create
+a single variable holding that constant value and erroneously passing that
+variable "by hidden reference" to the lowered function f(...). That is now
+fixed: The argument to the call f() is now an enk_temp_init node initialized
+with the folded constant, thereby ensuring that every call sees a distinct
+argument object.
+
+
 12/19/25 [EDGcpfe/28614]
 Constant-evaluation of relational operators involving NaNs
 

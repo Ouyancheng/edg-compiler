@@ -49622,6 +49622,30 @@ interpreter.)
        transformations. */
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
+  if (is_constant_operand(&result) &&
+      ptp != NULL && !is_any_reference_type(ptp->type) &&
+      is_class_struct_union_type(result.type) &&
+      !is_incomplete_type(result.type)) {
+    /* If the default argument was a class value folded to a constant, be
+       sure to initialize a temporary with it.  Leaving it as a bare constant
+       can cause lowering to treat all uses of it as uses of the same object
+       (which could then conceivably mutate between uses).   For example:
+         struct X {
+           int x;
+           constexpr X(): x(0) {}
+           constexpr X(X const& a): x(a.x) {}
+         };
+         int f(X a = {}) {
+           return ++a.x;
+         }
+         int main() {
+           return f() + f() - 2;
+         }
+       Here, the two calls of f() should not result in modifying the same
+       object (which would happen if we passed in enk_constant entries
+       pointing to the same constant). */
+    temp_init_from_operand_full(&result, result.type, is_an_lvalue(&result));
+  }  /* if */
   node = make_node_from_operand(&result);
   if (ptp == NULL ||
       /* Eliminate object lifetimes in prototype instantiations if

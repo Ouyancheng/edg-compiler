@@ -23905,7 +23905,7 @@ void temp_init_from_operand_full(an_operand *operand,
                                  a_boolean  result_is_lvalue)
 /*
 Create an enk_temp_init node that initializes a temporary of type temp_type to
-the value of the indicated operand (eithery by copy, or, if the indicated
+the value of the indicated operand (either by copy, or, if the indicated
 operand is a constant, by simple dik_constant initialization).  temp_type
 should be the same as the operand type or differ only in cv-qualification.  If
 it's NULL, operand->type is used.  The source operand can be an rvalue or an
