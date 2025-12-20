@@ -6252,13 +6252,50 @@ the overridden symbol.
             complete_type_is_needed(tp1);
             /* We don't need to test the completeness of the classes.  This
                is done by find_base_class_of. */
+            /* Check that the overridden returned class type is an accessible
+               and unambiguous base of the overriding function.  This is
+               complicated by the fact that the accessibility should be
+               in the context of the last overriding step.  For example:
+                 class C1;
+                 class BR {};
+                 class DR : private BR {
+                   friend class C1;
+                   friend class C2;
+                 };
+                 class B { virtual BR *f(); };
+                 class C1 : B { DR *f(); };
+                 class D1 : C1 { DR *f(); };
+                 class C2 : B { BR *f(); };
+                 class D2 : C2 { DR *f(); };  // Error: BR inaccessible.
+               Here C1 and D1 are fine because the C1 member requires a
+               conversion from DR to BR (and C1 is a friend of DR) and the D1
+               member doesn't require a conversion relative to the C1 member.
+               The D2 override, however, requires a conversion from DR to BR
+               in D2's context, which runs into an access error. */
             bcp = find_base_class_of(tp1, tp2);
-            if (bcp != NULL) {
-              /* tp2 is a base class of tp1.  Be sure it's unambiguous and
-                 accessible in tp1. */
-              if (!bcp->ambiguous && is_accessible_base_class(bcp)) {
+            if (bcp != NULL && !bcp->ambiguous) {
+              *return_adjustment_bcp = bcp;
+              if (is_accessible_base_class(bcp)) {
                 compatible = TRUE;
-                *return_adjustment_bcp = bcp;
+              } else {
+                a_base_class  *base = base_class;
+                a_routine     *brp = overridden_sym->variant.routine.ptr;
+                find_final_overrider(&base, &brp);
+                if (base != base_class) {
+                  tp2 = skip_typerefs(brp->type)->variant.routine.return_type;
+                  tp2 = skip_typerefs(tp2);
+                  if (type_is(tp2, tk_pointer)) {
+                    tp2 = skip_typerefs(tp2->variant.pointer.type);
+                  }  /* if */
+                  if (tp1 == tp2) {
+                    compatible = TRUE;
+                  } else {
+                    bcp = find_base_class_of(tp1, tp2);
+                    if (bcp != NULL) {
+                      compatible = TRUE;
+                    }  /* if */
+                  }  /* if */
+                }  /* if */
               }  /* if */
             }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */

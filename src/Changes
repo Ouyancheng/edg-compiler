@@ -1,5 +1,23 @@
 Version 6.9
 
+12/19/25 [EDGcpfe/28585]
+Covariant overrides and accessibility
+
+Consider:
+
+  class C;
+  class BR {};
+  class DR: private BR { friend C; };
+  class B { virtual BR *f(); };
+  class C: B { DR *f(); };
+  class D: C { DR *f(); };  // Previously an error.  Now okay.
+
+Previously, the front end produced an error claiming the return type of D::f()
+is not covariant with the function it overrides.  This was triggered because
+it checked accessibility for the conversion of DR* to BR* in the context of D,
+even though that conversion is only needed for C::f().  That is now fixed.
+
+
 12/19/25 [EDGcpfe/28598]
 Incorrect handling of constant-folded default arguments
 
