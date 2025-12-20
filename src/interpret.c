@@ -10170,6 +10170,7 @@ the parameters.
   } else {
     an_integer_value  *val = (an_integer_value*)arg_bytes[0];
     a_boolean         ovflo = FALSE;
+    /* Perform the operation will full signed precision. */
     switch (kind) {
       case bfk_add_overflow_p:
       case bfk_add_overflow:
@@ -10180,7 +10181,7 @@ the parameters.
       case bfk_saddl_overflow:
       case bfk_saddll_overflow:
         add_integer_values(val, (an_integer_value*)arg_bytes[1],
-                           is_signed, &ovflo);
+                           /*is_signed=*/TRUE, &ovflo);
         break;
       case bfk_sub_overflow_p:
       case bfk_sub_overflow:
@@ -10191,7 +10192,7 @@ the parameters.
       case bfk_usubl_overflow:
       case bfk_usubll_overflow:
         subtract_integer_values(val, (an_integer_value*)arg_bytes[1],
-                                is_signed, &ovflo);
+                                /*is_signed=*/TRUE, &ovflo);
         break;
       case bfk_mul_overflow_p:
       case bfk_mul_overflow:
@@ -10202,7 +10203,7 @@ the parameters.
       case bfk_umull_overflow:
       case bfk_umulll_overflow:
         multiply_integer_values(val, (an_integer_value*)arg_bytes[1],
-                                is_signed, &ovflo);
+                                /*is_signed=*/TRUE, &ovflo);
         break;
       default:
         unexpected_condition();
@@ -10227,10 +10228,12 @@ the parameters.
           p_min = &zero_int;
         }  /* if */
       }  /* if */
-      if (!ovflo) {
       /* Check if the result fits in the destination. */
-        ovflo = cmp_integer_values(val, is_signed, p_max, is_signed) > 0 ||
-                cmp_integer_values(val, is_signed, p_min, is_signed) < 0;
+      if (!ovflo) {
+        ovflo = cmp_integer_values(val, /*is_signed=*/TRUE,
+                                   p_max, /*is_signed=*/TRUE) > 0 ||
+                cmp_integer_values(val, /*is_signed=*/TRUE,
+                                   p_min, /*is_signed=*/TRUE) < 0;
       }  /* if */
       *(an_integer_value*)result_storage = ovflo ? one_int : zero_int;
       if (store) {

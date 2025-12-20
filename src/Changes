@@ -1,5 +1,22 @@
 Version 6.9
 
+12/19/25 [EDGcpfe/28586]
+__builtin_add_overflow, etc.
+
+The changes for EDGcpfe/18917 (etc.) added support for folding of arithmetic
+operation intrinsics (like __builtin_add_overflow, etc.) that record the
+occurrence of overflow.  Some cases combining signed source types and an
+unsigned destination type did not produce the correct result.  For example:
+
+  constexpr bool f() {
+    unsigned b{};
+    return  __builtin_sub_overflow(0, -1, &b);
+  }
+  static_assert(!f(), "");  // Previously failed.  Now okay.
+
+That is now fixed.
+
+
 12/19/25 [EDGcpfe/28585]
 Covariant overrides and accessibility
 
