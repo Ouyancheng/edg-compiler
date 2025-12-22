@@ -10170,7 +10170,7 @@ the parameters.
   } else {
     an_integer_value  *val = (an_integer_value*)arg_bytes[0];
     a_boolean         ovflo = FALSE;
-    /* Perform the operation will full signed precision. */
+    /* Perform the operation with full signed precision. */
     switch (kind) {
       case bfk_add_overflow_p:
       case bfk_add_overflow:
