@@ -1236,7 +1236,8 @@ and associated routines.
   if ((is_type_specifier() &&
        !(is_expr_context && list_init_enabled &&
          (is_type_keyword(curr_token) ||
-          (cpp23_mode && curr_token == tok_auto)) &&
+          (curr_token == tok_auto &&
+           (auto_cast_enabled || gpp_version_is(>=120000)))) &&
          next_token() == tok_lbrace)) ||
       is_type_qualifier() || is_function_specifier() ||
       curr_token == tok_constexpr || curr_token == tok_consteval ||

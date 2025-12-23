@@ -1731,7 +1731,8 @@ types separated by commas (when single_type_required is FALSE).
      to make sure we didn't guess incorrectly about this being a type.
      In normal mode, we assume this to be a cast when the type start is
      not followed by a "(". */
-  if ((curr_token == tok_auto && !cpp23_mode) ||
+  if ((curr_token == tok_auto &&
+       !(auto_cast_enabled || gpp_version_is(>=120000))) ||
       curr_token == tok_c11_atomic) {
     /* "auto" is a type specifier, but prior to C++23 it cannot be part of a
        function-style cast; "auto(" is only valid as part of a declarative
