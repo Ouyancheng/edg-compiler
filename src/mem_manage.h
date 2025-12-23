@@ -218,7 +218,7 @@ is used for allocation of general front end memory (i.e., not IL).
          extensions if this header is marked as trimmed.  If the original
          header was not trimmed, reset this header's trimmed state so memory
          region allocation doesn't allocate small blocks going forward. */
-      hdr->trimmed = region_trimmed;
+      hdr->trimmed = (a_byte_boolean)region_trimmed;
     }  /* if */
   }  /* if */
   if (use_dedicated_mem_block) {

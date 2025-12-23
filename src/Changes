@@ -1,5 +1,13 @@
 Version 6.9
 
+12/23/25 [EDGcpfe/28587]
+Build warnings with Visual Studio
+
+In some configurations, a few data types and constructs were resulting in
+warnings when the front end was compiled with recent versions of Visual
+Studio.  These have now been addressed.
+
+
 12/22/25 [EDGcpfe/28593]
 Internal error with C11 _Generic construct
 

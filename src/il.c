@@ -3362,8 +3362,8 @@ in front of the list pointed by *p_epp (which might be NULL).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-int compare_source_positions(a_source_position	*pos1,
-			     a_source_position  *pos2)
+int compare_source_positions(const a_source_position	*pos1,
+                             const a_source_position  *pos2)
 /*
 Compare two source positions.
 

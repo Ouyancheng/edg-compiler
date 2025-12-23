@@ -23554,9 +23554,9 @@ to a type and name qualifier pair.
 {
   a_type_and_name_qualifier
                 *info = (a_type_and_name_qualifier*)key;
-  a_hash_value  value = 31*hash_ptr(info->type) +
-                        hash_ptr(info->name_qualifier) +
-                        13*info->is_global_qualified_name;
+  a_hash_value  value = (a_hash_value)(31*hash_ptr(info->type) +
+                                       hash_ptr(info->name_qualifier) +
+                                       13*info->is_global_qualified_name);
   return value;
 }  /* hash_type_and_name_qualifier */
 
@@ -23589,7 +23589,7 @@ pointer to a type and template argument list pair.
 {
   a_type_and_template_arg_list
                 *info = (a_type_and_template_arg_list*)key;
-  a_hash_value  value = hash_ptr(info->type);
+  a_hash_value  value = (a_hash_value)hash_ptr(info->type);
   value = 31*value + hash_lexical_template_arg_list(info->template_arg_list);
   return value;
 }  /* hash_type_and_template_arg_list */

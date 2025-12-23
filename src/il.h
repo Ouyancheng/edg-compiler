@@ -1374,8 +1374,8 @@ extern void prepend_element_positions(an_element_position_ptr  new_epp,
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-extern int compare_source_positions(a_source_position  *pos1,
-				    a_source_position  *pos2);
+extern int compare_source_positions(const a_source_position  *pos1,
+                                    const a_source_position  *pos2);
 
 /*
 Dynamically-allocated and expandable buffer used for short-lived text.

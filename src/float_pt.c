@@ -875,7 +875,8 @@ underflow.  If the conversion can be done, return the result in "result".
       (void)read_long_double((unsigned char *)&host_fp_flt_max, str_flt_max,
                              len);
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-      (void)read_double((unsigned char *)&host_fp_flt_max, str_flt_max, len);
+      (void)read_double((unsigned char *)&host_fp_flt_max, str_flt_max,
+                        (int)len);
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
     }
 #endif /* USE_HOST_FP_CONVERSION_ROUTINES */
