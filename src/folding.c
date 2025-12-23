@@ -888,6 +888,12 @@ depending on the floating-point mode.
     fp_change_kind(&old_constant->variant.float_value, old_kind,
                    &new_constant->variant.float_value, new_kind,
                    &err, depends_on_fp_mode);
+    if (err && C_mode() && !strict_ansi_mode &&
+        curr_expr_kind_is(ek_init_constant)) {
+      /* GCC and Clang issue a warning but not an error in this case. */
+      *err_code = ec_float_to_float_conversion;
+      err = FALSE;
+    }  /* if */
   }  /* if */
   if (err) {
     *err_code = ec_float_to_float_conversion;
@@ -2713,7 +2719,7 @@ done_with_folding:
     issue_folding_diagnostic(err_code, err_severity, constant_context,
                              evaluated_context,
                              /*silence_warning=*/!is_implicit_cast,
-                             did_not_fold,error_detected, err_pos,
+                             did_not_fold, error_detected, err_pos,
                              new_constant);
     if (err_severity == es_error) depends_on_fp_mode = FALSE;
   }  /* if */

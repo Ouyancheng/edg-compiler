@@ -1,5 +1,19 @@
 Version 6.9
 
+12/23/25 [EDGcpfe/19447,EDGcpfe/28601]
+Severity of floating-point conversion diagnostics
+
+In nonstrict C modes the front end now reduces the severity of certain
+floating-point conversion diagnostics to a warning instead of an error.
+For example (assuming a 32-bit IEEE-754 float type):
+
+  float sf = 2.4674957095607889277282112901141e-77;
+
+Previously, this resulted in an error in C mode because the initializer must
+be constant but the given constant underflows to zero.  Now, the example is
+accepted with a warning.
+
+
 12/23/25 [EDGcpfe/28600]
 auto(...) and auto{...} in non-C++23 modes
 
