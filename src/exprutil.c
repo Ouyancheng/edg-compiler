@@ -22474,6 +22474,27 @@ lvalue_adjust:
     simple_glvalue_to_prvalue(node, converted->type);
     processed = TRUE;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+  } else if (node_is(node, enk_c11_generic)) {
+    /* Apply the conversion to the selected node. */
+    an_expr_node_ptr  selected, *p_slot, converted;
+    a_boolean         local_constant_case;
+    a_boolean         *allow_folding = NULL;
+    p_slot = &node->variant.c11_generic.operands;
+    selected = node->variant.c11_generic.result;
+    while (*p_slot != selected) p_slot = &(*p_slot)->next;
+    *p_slot = selected->next;
+    if (constant_case != NULL) allow_folding = &local_constant_case;
+    converted = conv_glvalue_expr_to_prvalue(selected, allow_folding,
+                                             (a_constant_ptr *)NULL, err_pos);
+    node->variant.c11_generic.result = converted;
+    converted->next = *p_slot;
+    *p_slot = converted;
+    if (allow_folding != NULL && is_constant_node(converted)) {
+      /* The operand is now constant so the overall expression is constant. */
+      con_expr_value = node_constant(converted);
+    }  /* if */
+    simple_glvalue_to_prvalue(node, converted->type);
+    processed = TRUE;
   }  /* if */
   /* At this point,
        -- If con_expr_value != NULL, the expression has a constant value.

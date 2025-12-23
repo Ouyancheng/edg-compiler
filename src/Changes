@@ -1,5 +1,15 @@
 Version 6.9
 
+12/22/25 [EDGcpfe/28593]
+Internal error with C11 _Generic construct
+
+In configurations with REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL, the front end
+could abort with an internal error in Microsoft C11 modes when processing a
+C11 _Generic construct: The internal error triggered in the function
+conv_glvalue_expr_to_prvalue (exprutil.c, with message "bad expr").  That is
+now fixed.
+
+
 12/19/25 [EDGcpfe/28586]
 __builtin_add_overflow, etc.
 
