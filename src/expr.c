@@ -50762,16 +50762,15 @@ is the value of an enumerator.  The value of the constant is returned in
     an_expr_stack_entry expr_stack_entry;
     an_expr_stack_entry *saved_expr_stack;
     save_expr_stack(&saved_expr_stack);
-    push_expr_stack((an_expression_kind)ek_integral_constant,
-                    &expr_stack_entry,
+    push_expr_stack(ek_integral_constant, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
     transfer_expr_context_if_applicable(saved_expr_stack);
+    if (is_array_bound) expr_stack->in_constant_array_dimension = TRUE;
     /* Scan the constant expression. */
     scan_expr(&result, prec_level, EOPT_DISALLOW_COMMA_OPERATOR);
     if (is_immediate_class_type(result.type) &&
-        result.type->variant.class_struct_union.extra_info->
-                                                     is_lambda_closure_class) {
+        class_type_supp(result.type)->is_lambda_closure_class) {
       expr_pos_error(ec_lambda_not_allowed_here, &result.position);
       set_error_constant(constant);
     } else if (constexpr_enabled) {

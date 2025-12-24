@@ -1064,6 +1064,8 @@ typedef struct an_expr_stack_entry {
 			/* TRUE if this is the expression or braced initializer
 			   that determines the range of a range-based-for loop
 			   to iterate over. */
+  a_bit_field	in_constant_array_dimension:1;
+			/* TRUE if this is an array dimension expression. */
   a_const_eval_reattempt_state
 		const_eval_reattempt_state;
 			/* The current constant evaluation reattempt state
@@ -1450,6 +1452,9 @@ the context of preparing a coroutine's descriptor block.
 */
 #define initializing_coroutine_descriptor() \
   (expr_stack != NULL && expr_stack->in_coroutine_desc_init)
+
+#define in_constant_array_dimension() \
+  (expr_stack != NULL && expr_stack->in_constant_array_dimension)
 
 /*
 TRUE if the current mode allows binding an rvalue reference to an lvalue

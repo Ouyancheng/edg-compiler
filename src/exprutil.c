@@ -1760,6 +1760,8 @@ as in a decltype.
   new_entry->in_coroutine_desc_init |= old_entry->in_coroutine_desc_init;
   new_entry->paren_as_aggregate_init |= old_entry->paren_as_aggregate_init;
   new_entry->range_based_for_range |= old_entry->range_based_for_range;
+  new_entry->in_constant_array_dimension |=
+                                       old_entry->in_constant_array_dimension;
   if (direct) {
     new_entry->evaluated = old_entry->evaluated;
     new_entry->potentially_evaluated = old_entry->potentially_evaluated;
@@ -1882,6 +1884,7 @@ is pushed regardless of any of the other factors.
   new_entry->likely_not_evaluated = FALSE;
   new_entry->trace_unevaluated_lambdas = FALSE;
   new_entry->range_based_for_range = FALSE;
+  new_entry->in_constant_array_dimension = FALSE;
   new_entry->const_eval_reattempt_state = {};
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;

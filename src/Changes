@@ -1,5 +1,17 @@
 Version 6.9
 
+12/24/25 [EDGcpfe/27832]
+Constant evaluation of null pointer offsets
+
+The front end now accepts some null pointer "offset" computations at compile
+time in Clang C++ modes, particularly in array dimension expressions.
+For example:
+
+  int arr1[(long)(char*)0];  // Previously an error.  Now okay.
+  struct S { int i; };
+  int arr2[(((long long)&(((S*)0)->i)) == 0)? 1 : -1];  // Ditto.
+
+
 12/23/25 [EDGcpfe/19447,EDGcpfe/28601]
 Severity of floating-point conversion diagnostics
 

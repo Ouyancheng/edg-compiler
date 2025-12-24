@@ -2335,8 +2335,10 @@ result of calls to std::is_constant_evaluated().
   ips->input_error = FALSE;
   ips->call_seen = FALSE;
   ips->permit_address_of_local_temporary = FALSE;
-  ips->permit_null_pointer_offsets = (gpp_mode && !clang_mode) ||
-                                     microsoft_mode;
+  ips->permit_null_pointer_offsets = gpp_version_is(<90000) ||
+                                     microsoft_mode ||
+                                     (gpp_mode &&
+                                      in_constant_array_dimension());
   ips->permit_leftover_dyn_alloc = FALSE;
   ips->delay_final_destructions = FALSE;
   ips->static_lifetime_init = FALSE;
