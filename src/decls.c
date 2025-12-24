@@ -2694,7 +2694,7 @@ the function non-constexpr in that case).
   if (local_static_constexpr_enabled || clang_version_is(>=150000)) {
     /* No constraints to check at declaration time.  Instead, the interpreter
        is responsible for catching attempts to evaluate invalid cases. */
-    if (!local_static_constexpr_enabled &&
+    if (clang_mode && !ms_extensions && !cpp23_mode &&
         var_has_static_or_thread_storage_duration(vp) &&
         vp->storage_class != sc_extern) {
       /* Newer Clang versions accept this with a warning in pre-C++23 modes,
