@@ -2691,10 +2691,11 @@ the function non-constexpr in that case).
   /* Prior to C++23, variables in C++14-style constexpr function declarations
      must have automatic storage duration, a literal type, and be
      initialized. */
-  if (cpp23_mode || clang_version_is(>=150000)) {
+  if (local_static_constexpr_enabled || clang_version_is(>=150000)) {
     /* No constraints to check at declaration time.  Instead, the interpreter
        is responsible for catching attempts to evaluate invalid cases. */
-    if (!cpp23_mode && var_has_static_or_thread_storage_duration(vp) &&
+    if (!local_static_constexpr_enabled &&
+        var_has_static_or_thread_storage_duration(vp) &&
         vp->storage_class != sc_extern) {
       /* Newer Clang versions accept this with a warning in pre-C++23 modes,
          except that in a lambda that is not explicitly declared constexpr or

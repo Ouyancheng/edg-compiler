@@ -3251,6 +3251,9 @@ option values if they were not already set by a command line option.
             extended_range_based_for_lifetime = TRUE;
           }  /* if */
           static_call_operator_enabled = TRUE;
+          if (relaxed_constexpr_enabled) {
+            local_static_constexpr_enabled = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1950) {
