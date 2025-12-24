@@ -3780,23 +3780,6 @@ found.
 }  /* low_bound */
 
 
-template<typename T>
-INLINE ptrdiff_t array_lower_bound(T         *t_start,
-                                   size_t    num_elements,
-                                   const T   &value)
-/*
-Search for the first element in an array of num_elements elements beginning at
-t_start, that is not less than (i.e., greater or equal to) value.  Return the
-index of said element or -1 if no such element is found.
-*/
-{
-  auto read_array_element_at = [t_start](ptrdiff_t idx) {
-    return *(t_start + idx);
-  };
-  return low_bound(num_elements, value, read_array_element_at);
-}  /* array_lower_bound */
-
-
 template<typename T, typename a_Value_Fn>
 INLINE ptrdiff_t bin_search(size_t     num_elements,
                             const T    &value,
