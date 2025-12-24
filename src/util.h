@@ -3700,9 +3700,9 @@ extern EDG_THREAD a_boolean
 #endif /* EXPENSIVE_CHECKING && !STANDALONE_UTILITY_PROGRAM */
 
 template<typename T, typename a_Value_Fn>
-inline ptrdiff_t lower_bound(size_t     num_elements,
-                             const T    &value,
-                             a_Value_Fn value_fn)
+inline ptrdiff_t low_bound(size_t     num_elements,
+                           const T    &value,
+                           a_Value_Fn value_fn)
 /*
 Search for the first element in a container of num_elements elements that is
 not less than (i.e., greater or equal to) value using value_fn to retrieve
@@ -3777,7 +3777,7 @@ found.
     result = (ptrdiff_t)begin_idx;
   }  /* if */
   return result;
-}  /* lower_bound */
+}  /* low_bound */
 
 
 template<typename T>
@@ -3793,7 +3793,7 @@ index of said element or -1 if no such element is found.
   auto read_array_element_at = [t_start](ptrdiff_t idx) {
     return *(t_start + idx);
   };
-  return lower_bound(num_elements, value, read_array_element_at);
+  return low_bound(num_elements, value, read_array_element_at);
 }  /* array_lower_bound */
 
 
@@ -3809,7 +3809,7 @@ and return the value of type T at that index.  Return the index of said element
 or -1 if no such element is found.
 */
 {
-  ptrdiff_t result_idx = lower_bound(num_elements, value, value_fn);
+  ptrdiff_t result_idx = low_bound(num_elements, value, value_fn);
 
   /* If we received a valid result index into our container, check to see if
      the value at the result index matches the value we were searching for.

@@ -4008,9 +4008,8 @@ token in the cache.
     auto      get_tsn = [cache](size_t idx) -> a_token_sequence_number {
       return (*cache)[idx]->get_starting_seq_number();
     };
-    ptrdiff_t first_idx = lower_bound(cache->length(),
-                                      first_token_number,
-                                      get_tsn);
+    ptrdiff_t first_idx = low_bound(cache->length(), first_token_number,
+                                    get_tsn);
 
     if (first_idx == -1) {
       first_idx = (ptrdiff_t)(cache->length() - 1);
@@ -4038,9 +4037,8 @@ token in the cache.
     auto      get_tsn = [cache](size_t idx) -> a_token_sequence_number {
       return (*cache)[idx]->get_ending_seq_number();
     };
-    ptrdiff_t last_idx = lower_bound(cache->length(),
-                                     last_token_number + 1,
-                                     get_tsn);
+    ptrdiff_t last_idx = low_bound(cache->length(), last_token_number + 1,
+                                   get_tsn);
 
     if (last_idx == -1) {
       last_idx = (ptrdiff_t)(cache->length() - 1);
