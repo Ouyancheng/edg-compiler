@@ -1,5 +1,19 @@
 Version 6.9
 
+12/29/25 [EDGcpfe/28609]
+C++-generating back end: initializer for decltype(auto) variable
+
+The changes in version 6.8 for EDGcpfe/28434 contained a logic error that
+inadvertently omitted significant parentheses around a variable name used
+as the initializer for a variable declared with the "decltype(auto)" type.
+This is now fixed.  For example, with --c++23:
+
+  void g() {
+    int x;
+    decltype(auto) y = (x);   // Previously omitted parens around "x"
+  }
+
+
 12/24/25 [EDGcpfe/28621]
 Microsoft C++23: Local non-automatic variables in constant evaluation
 
@@ -1632,7 +1646,7 @@ For example:
   };
 
 
-9/11/25  [EDGcpfe/434]
+9/11/25  [EDGcpfe/28434]
 C++-generating back end: member access expression in decltype(auto) initializer
 
 In a declaration in which the type is "decltype(auto)" and the initializer

@@ -23097,13 +23097,17 @@ handle_dynamic_init:
                 dip->kind == (a_dynamic_init_kind)dik_expression) {
               an_expr_node_ptr init_expr =
                                   skip_implicit_steps(dip->variant.expression);
-              if (!(node_is(init_expr, enk_variable) ||
-                    (node_is(init_expr, enk_operation) &&
-                     (node_operator_is(init_expr, eok_dot_field) ||
-                      node_operator_is(init_expr, eok_points_to_field))))) {
-                /* Add parens for a case like
-                     decltype(auto) x = (y);
-                   where omitting the parens would give the wrong type. */
+              if (node_is(init_expr, enk_variable) ||
+                  (node_is(init_expr, enk_operation) &&
+                   (node_operator_is(init_expr, eok_dot_field) ||
+                    node_operator_is(init_expr, eok_points_to_field)))) {
+                /* The presence or absence of parentheses around a variable
+                   or member access expression in the initializer of a
+                   decltype(auto) variable determines whether the deduced
+                   type is a reference or not, so we must reflect the
+                   source form accurately. */
+                need_parens = init_expr->is_parenthesized;
+              } else {
                 need_parens = TRUE;
               }  /* if */
             }  /* if */
