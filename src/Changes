@@ -1,5 +1,25 @@
 Version 6.9
 
+12/29/25 [EDGcpfe/28607]
+C++-generating back end, Microsoft compatibility: class-type explicit temporary
+as non-type template argument
+
+MSVC has a bug that results in a fatal compiler error when an explicit
+temporary of class type is used as a non-type template argument in a block
+scope.  For example, the following code,
+
+  struct A { int x; };
+  template<A> void f() { }
+  int main() {
+    (void(*)())&f<A{0}>;
+  }
+
+results in MSVC exiting with fatal error C1903.  Enclosing the template
+argument in parentheses, i.e., "f<(A{0})>", avoids the MSVC bug, and the
+C++-generating back end has now been changed to add parentheses in such
+cases when msvc_is_generated_code_target is TRUE.
+
+
 12/29/25 [EDGcpfe/28609]
 C++-generating back end: initializer for decltype(auto) variable
 

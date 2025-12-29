@@ -19217,6 +19217,19 @@ to render.  suppress_parens is TRUE if top-level parentheses should not be
 added to the output.
 */
 {
+  if (suppress_parens && msvc_is_generated_code_target &&
+      octl.processing_nontype_template_argument &&
+      node_is(expr, enk_temp_init) &&
+      curr_name_context != NULL && curr_name_context->assoc_scope != NULL &&
+      (scope_is(curr_name_context->assoc_scope, sck_function) ||
+       scope_is(curr_name_context->assoc_scope, sck_block) ||
+       scope_is(curr_name_context->assoc_scope, sck_condition)) &&
+      is_immediate_class_type(skip_typerefs(expr->type))) {
+    /* MSVC has a bug that causes a fatal error when an explicit temporary
+       of class type appears as a template argument in a block scope.
+       Enclosing the argument in parentheses appears to avoid the bug. */
+    suppress_parens = FALSE;
+  }  /* if */
   gen_expr(expr, !suppress_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
 }  /* f_gen_expression */
 
