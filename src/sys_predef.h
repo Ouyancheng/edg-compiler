@@ -66,9 +66,48 @@ enum an_alias_templ_intrinsic {
   ati_last
 };
 
-EXTERN a_boolean eval_intrinsic_alias_templ(int             idx,
+extern a_boolean eval_intrinsic_alias_templ(int             idx,
                                             a_template_arg  *t_args,
                                             a_type_ptr      *substituted_tp);
+
+
+/*
+NS_var_templ_intrinsics is similar to NS_alias_templ_intrinsics (see above)
+but for variable templates whose constant integral-type initializer is
+intrinsically instantiated.
+
+To recognize a new variable template intrinsic named xyz in a namespace N:
+  a) Ensure there exists a variable of type a_symbol_ptr named
+     symbol_for_namespace_NS (for some unique identifier NS) that 
+     represents namespace N.  See, e.g., make_symbol_for_namespace_std,
+     which initializes symbol_for_namespace_std (NS = std) and
+     symbol_for_namespace_std_meta (NS = std_meta).
+  b) Add a line
+         M(NS, xyz)
+     in the macro below.
+  c) Add a function named value_of_NS_xyz in sys_predef.c that determines the
+     initializer value of instances (see, e.g., value_of_std_is_object_v for
+     the required signature and an example definition).
+*/
+
+#define NS_var_templ_intrinsics(M) \
+  M(std, is_integral_v) \
+  M(std, is_object_v) \
+  /* End of NS_var_templ_intrinsics. */
+
+
+enum a_var_templ_intrinsic {
+  vti_error,
+#define VTI_name(ns, name) vti_##ns##_##name,
+  NS_var_templ_intrinsics(VTI_name)
+#undef VTI_name
+  vti_last
+};
+
+extern
+a_boolean get_intrinsic_var_templ_value(a_symbol              *vsym,
+                                        int                   idx,
+                                        a_host_large_integer  *p_val);
 
 
 #if BUILTIN_FUNCTIONS_ENABLED

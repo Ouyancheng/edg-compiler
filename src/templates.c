@@ -7639,7 +7639,6 @@ static void scan_template_variable_declaration(
 			a_template_cache_ptr			decl_cache,
 			a_decl_parse_state_ptr			dps);
 
-
 void instantiate_template_variable(a_template_instance_ptr  tip,
                                    a_boolean                is_new,
                                    a_boolean                is_use)
@@ -7653,11 +7652,11 @@ has been seen).  is_use is TRUE if this a use (i.e., a reference from an
 expression context) rather than a declaration.
 */
 {
-  a_symbol_ptr				var_sym;
+  a_symbol_ptr				var_sym = tip->instance_sym;
+  a_symbol_ptr				template_sym = tip->template_sym;
   a_template_symbol_supplement_ptr	tssp;
   a_variable_ptr			var_ptr;
   a_decl_parse_state			dps;
-  a_symbol_ptr				template_sym;
   a_boolean				is_var_templ_instance;
   a_variable_ptr			proto_var;
   a_symbol_ptr				template_sym_of_prototype;
@@ -7668,12 +7667,26 @@ expression context) rather than a declaration.
   a_push_scope_options_set		ps_options = PS_NO_OPTIONS;
   a_template_cache_ptr			body_cache;
   a_template_cache_ptr			decl_cache;
+  int                                   idx = 0;
+  a_host_large_integer                  intrinsic_val;
 
-  var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
-  template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
-  if (is_var_templ_instance) {
+  if (template_sym->header->has_intrinsic_name) {
+    idx = get_intrinsic_var_templ_idx(template_sym);
+    if (idx != 0 &&
+        !get_intrinsic_var_templ_value(var_sym, idx, &intrinsic_val)) {
+      /* The variable template is one that allows "intrinsic handling", but
+         something went wrong.  Proceed with normal processing. */
+      idx = 0;
+    }  /* if */
+  }  /* if */
+  if (idx != 0) {
+    /* For intrinsically-handled variable templates, ignore partial
+       specializations.  Such templates are currently never class members. */
+    template_sym_of_prototype = template_sym;
+    tssp_of_prototype = tssp;
+  } else if (is_var_templ_instance) {
     template_sym = check_variable_template_partial_specializations(tip);
     tssp = template_supplement_for_symbol(template_sym);
     /* For variable templates, get the information about the prototype
@@ -7751,8 +7764,8 @@ expression context) rather than a declaration.
                                    /*push_lex_state=*/TRUE,
                                    ps_options);
    /* Record the token sequence number of the declarator in the scope stack
-      entry.  This is used to allow the template argument list of
-      a partial specialization to be ignored. */
+      entry.  This is used to allow the template argument list of a partial
+      specialization to be ignored. */
    scope_stack_top().var_templ_decl_name_tsn =
                       tssp_of_prototype->variant.variable.declarator_name_tsn;
   /* Scan or rescan the declaration of the variable template or static
@@ -7838,16 +7851,25 @@ expression context) rather than a declaration.
   if (is_var_templ_instance && is_use) {
     update_variable_decl_info(var_ptr, &dps, is_definition);
   }  /* if */
-  if ((is_definition ||
-       (is_use && var_ptr->init_kind == (an_init_kind)initk_none)) &&
-      !body_cache->tokens.is_empty()) {
+  if (idx != 0) {
+    a_type_ptr  tp = skip_typerefs(var_ptr->type);
+    check_assertion(type_is(tp, tk_integer));
+    var_ptr->storage_class = sc_unspecified;
+    var_ptr->init_kind = initk_static;
+    var_ptr->initializer.constant = fs_constant(ck_integer);
+    var_ptr->initializer.constant->type = tp;
+    set_integer_constant(var_ptr->initializer.constant, intrinsic_val,
+                         tp->variant.integer.int_kind);
+  } else if ((is_definition ||
+             (is_use && var_ptr->init_kind == initk_none)) &&
+             !body_cache->tokens.is_empty()) {
     /* An initializer was specified in the template declaration. */
     a_boolean	has_parenthesized_initializer;
     a_boolean	is_constant_member;
     a_boolean	reset_has_deduced_type = FALSE;
     if (var_ptr->storage_class == (a_storage_class)sc_extern &&
         is_definition) {
-      var_ptr->storage_class = (a_storage_class)sc_unspecified;
+      var_ptr->storage_class = sc_unspecified;
     }  /* if */
     is_constant_member = var_ptr->initializer_in_class &&
                          is_const_qualified_type(var_ptr->type);

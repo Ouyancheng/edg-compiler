@@ -602,6 +602,7 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   init_alias_templ_intrinsic_descriptions();
+  init_var_templ_intrinsic_descriptions();
 }  /* predeclare_entities */
 
 

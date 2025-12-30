@@ -1077,6 +1077,16 @@ the type tree, rather than by matching template partial specializations. */
 #endif /* ifndef DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED */
 
 /*
+Flag that is TRUE if the front end should recognize some variable templates
+and treat them intrinsically (instead of performing more costly generic
+instantiation of the definition as it appeared in the source).  For example,
+the std::is_integral_v variable template can be handled directly by navigating
+the type tree, rather than by matching template partial specializations. */
+#ifndef DEFAULT_VAR_TEMPL_INTRINSICS_ENABLED
+#define DEFAULT_VAR_TEMPL_INTRINSICS_ENABLED TRUE
+#endif /* ifndef DEFAULT_VAR_TEMPL_INTRINSICS_ENABLED */
+
+/*
 Flag that is TRUE if a "__thread" specifier (to indicate that a variable should
 be stored in thread-local storage) should be supported.  Note that this is
 different from the C++11 "thread_local" specifier.

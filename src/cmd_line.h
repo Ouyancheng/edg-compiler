@@ -2748,6 +2748,12 @@ EXTERN_THREAD a_boolean
 			   intrinsically. */
 
 EXTERN_THREAD a_boolean
+		var_templ_intrinsics_enabled;
+			/* TRUE if some known variable templates (e.g., from
+			   the standard library) should be handled
+			   intrinsically. */
+
+EXTERN_THREAD a_boolean
 		utf8_char_literals_enabled;
 			/* TRUE if character literals of the form u8'x' are
 			   accepted (a C++17 feature). */

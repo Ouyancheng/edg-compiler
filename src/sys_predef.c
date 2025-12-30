@@ -143,6 +143,58 @@ the resulting type.  Otherwise, return FALSE.
 }  /* eval_intrinsic_alias_templ */
 
 
+a_boolean value_of_std_is_integral_v(a_template_arg  *t_args,
+                                     a_boolean       *okay)
+/*
+Return TRUE if *t_args represent an integral type.
+*/
+{
+  check_assertion(t_args != NULL && t_args->kind == tak_type);
+  return is_std_integral_type(t_args->variant.type);
+}  /* value_of_std_is_integral_v */
+
+
+a_boolean value_of_std_is_object_v(a_template_arg  *t_args,
+                                   a_boolean       *okay)
+/*
+Return TRUE if *t_args represent an integral type.
+*/
+{
+  check_assertion(t_args != NULL && t_args->kind == tak_type);
+  return is_object_type(t_args->variant.type);
+}  /* value_of_std_is_object_v */
+
+
+a_boolean get_intrinsic_var_templ_value(a_symbol              *vsym,
+                                        int                   idx,
+                                        a_host_large_integer  *p_val)
+/*
+vsym represents an instance of a variable template whose instantiated constant
+initializer value (of integral type) can be determined intrinsically.  idx
+identifies the template (it corresponds to the enumerators of enum type
+a_var_templ_intrinsic).  Determine that initial value and return it through
+*p_val if possible.  Return TRUE if successful, FALSE otherwise.
+*/
+{
+  a_boolean       okay = TRUE;
+  a_template_arg  *t_args = vsym->variant.variable.ptr->template_info
+                                                      ->template_arg_list;
+
+  switch (idx) {
+#define VTI_dispatch(ns, name) \
+    case vti_##ns##_##name: \
+      *p_val = value_of_##ns##_##name(t_args, &okay); \
+      break;
+    NS_var_templ_intrinsics(VTI_dispatch)
+#undef VTI_dispatch
+    case vti_error:
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return okay;
+}  /* get_intrinsic_var_templ_value */
+
+
 #ifdef __linux__
 
 static a_const_char *int_kind_name_for_macro(an_integer_kind kind)

@@ -2395,6 +2395,7 @@ STATIC_THREAD a_flag_name
   { "reflection", &reflection_enabled },
 #endif /* REFLECTION_ENABLING_POSSIBLE */
   { "alias_templ_intrinsics", &alias_templ_intrinsics_enabled },
+  { "var_templ_intrinsics", &var_templ_intrinsics_enabled },
   { "lazy_field_initializers", &always_delay_field_initializer_processing },
   { "core_constant_expr_is_noexcept", &core_constant_expr_is_noexcept },
   { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
@@ -7489,6 +7490,11 @@ file.
 #else /* !defined(DEFAULT_USR_INCLUDE) */
   comment_undefined_macro_name(DEFAULT_USR_INCLUDE);
 #endif /* defined(DEFAULT_USR_INCLUDE) */
+#if defined(DEFAULT_VAR_TEMPL_INTRINSICS_ENABLED)
+  define_numeric_valued_macro(DEFAULT_VAR_TEMPL_INTRINSICS_ENABLED);
+#else /* !defined(DEFAULT_VAR_TEMPL_INTRINSICS_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_VAR_TEMPL_INTRINSICS_ENABLED);
+#endif /* defined(DEFAULT_VAR_TEMPL_INTRINSICS_ENABLED) */
 #if defined(DEFAULT_VARIADIC_MACROS_ALLOWED)
   define_numeric_valued_macro(DEFAULT_VARIADIC_MACROS_ALLOWED);
 #else /* !defined(DEFAULT_VARIADIC_MACROS_ALLOWED) */
@@ -13513,6 +13519,7 @@ variables declared in cmd_line.h.
   preload_builtin_functions = FALSE;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   alias_templ_intrinsics_enabled = DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED;
+  var_templ_intrinsics_enabled = DEFAULT_VAR_TEMPL_INTRINSICS_ENABLED;
   utf8_char_literals_enabled = FALSE;
   deduced_return_types_enabled = FALSE;
   warn_on_deduced_return_types = FALSE;

@@ -18970,12 +18970,11 @@ interpreter) and if so mark it as such.
 
 
 /*
-A structure identifying a particular alias template that the front end might
-encounter and handle intrinsically.
+A structure identifying a particular alias or variable template that the front
+end might encounter and handle intrinsically.
 */
-struct an_alias_templ_intrinsic_descr {
-  a_const_char	*name;	/* The name of an alias template known to the front
-			   end. */
+struct a_templ_intrinsic_descr {
+  a_const_char	*name;	/* The name of a template known to the front end. */
   a_symbol_ptr	*p_namespace_sym;
 			/* A pointer to a (global) variable pointing to the
 			   symbol representing the parent namespace of this
@@ -18985,7 +18984,7 @@ struct an_alias_templ_intrinsic_descr {
 			   created after front end startup). */
 };
 
-STATIC_THREAD an_alias_templ_intrinsic_descr
+STATIC_THREAD a_templ_intrinsic_descr
 		alias_templ_intrinsic_descriptions[] = {
   { NULL, NULL },
 #define ATI_descr(ns, name) \
@@ -18997,6 +18996,19 @@ STATIC_THREAD an_alias_templ_intrinsic_descr
 #define N_ALIAS_TEMPL_INTRINSIC_DESCRIPTIONS \
    ((int)(sizeof(alias_templ_intrinsic_descriptions) \
                               /sizeof(alias_templ_intrinsic_descriptions[0])))
+
+STATIC_THREAD a_templ_intrinsic_descr
+		var_templ_intrinsic_descriptions[] = {
+  { NULL, NULL },
+#define VTI_descr(ns, name) \
+  { #name, &symbol_for_namespace_##ns },
+  NS_var_templ_intrinsics(ATI_descr)
+#undef VTI_DESCR
+};
+
+#define N_VAR_TEMPL_INTRINSIC_DESCRIPTIONS \
+   ((int)(sizeof(var_templ_intrinsic_descriptions) \
+                              /sizeof(var_templ_intrinsic_descriptions[0])))
 
 /*
 A structure describing a particular identifier in a specific class or namespace
@@ -19045,13 +19057,13 @@ Return a hash value for the given scoped identifier.
 }  /* hash_ptr */
 
 
-using an_alias_templ_intrinsic_descr_table =
+using a_templ_intrinsic_descr_table =
 		Ptr_map<a_scoped_identifier, int>;
 			/* The type of a table that maps intrinsic identifiers
-			   to the descriptions of alias templates that the
-			   front end knows how to substitute. */
+			   to the descriptions of templates that the front end
+			   knows how to instantiate. */
 
-STATIC_THREAD an_alias_templ_intrinsic_descr_table
+STATIC_THREAD a_templ_intrinsic_descr_table
 		*alias_templ_intrinsic_descr_table;
 			/* A map from scoped identifiers denoting alias
 			   templates to descriptions identifying those
@@ -19068,14 +19080,14 @@ to efficiently dispatch substitutions that can be handled intrinsically.
   int  n;
 
   alias_templ_intrinsic_descr_table =
-                       alloc_fe_of_type(an_alias_templ_intrinsic_descr_table);
+                              alloc_fe_of_type(a_templ_intrinsic_descr_table);
   if (alias_templ_intrinsics_enabled) {
     construct(alias_templ_intrinsic_descr_table, /*mask_width=*/8u);
     /* Note that we start at index 1 since index 0 is used as an indication
        that there is no corresponding intrinsic. */
     for (n = 1; n<N_ALIAS_TEMPL_INTRINSIC_DESCRIPTIONS; ++n) {
       a_symbol_locator  loc;
-      an_alias_templ_intrinsic_descr
+      a_templ_intrinsic_descr
                         &descr = alias_templ_intrinsic_descriptions[n];
       (void)find_symbol(descr.name, strlen(descr.name), &loc);
       loc.symbol_header->has_intrinsic_name = TRUE;
@@ -19104,6 +19116,61 @@ corresponds to an enumerator of type an_alias_templ_intrinsic).
   }  /* if */
   return idx;
 }  /* get_intrinsic_alias_templ_idx */
+
+
+STATIC_THREAD a_templ_intrinsic_descr_table
+		*var_templ_intrinsic_descr_table;
+			/* A map from scoped identifiers denoting variable
+			   templates to descriptions identifying those
+			   templates and their intrinsic treatment in the
+			   front end. */
+
+void init_var_templ_intrinsic_descriptions(void)
+/*
+Pre-enter headers for some templates names so they can efficiently be
+recognized during parsing.  Also, record associated information in a Ptr_map
+to efficiently dispatch substitutions that can be handled intrinsically.
+*/
+{
+  int  n;
+
+  var_templ_intrinsic_descr_table =
+                              alloc_fe_of_type(a_templ_intrinsic_descr_table);
+  if (var_templ_intrinsics_enabled) {
+    construct(var_templ_intrinsic_descr_table, /*mask_width=*/8u);
+    /* Note that we start at index 1 since index 0 is used as an indication
+       that there is no corresponding intrinsic. */
+    for (n = 1; n<N_VAR_TEMPL_INTRINSIC_DESCRIPTIONS; ++n) {
+      a_symbol_locator  loc;
+      a_templ_intrinsic_descr
+                        &descr = var_templ_intrinsic_descriptions[n];
+      (void)find_symbol(descr.name, strlen(descr.name), &loc);
+      loc.symbol_header->has_intrinsic_name = TRUE;
+      var_templ_intrinsic_descr_table->map(
+         a_scoped_identifier{ loc.symbol_header, *descr.p_namespace_sym }, n);
+    }  /* for */
+  } else {
+    construct(var_templ_intrinsic_descr_table, /*mask_width=*/1u);
+  }  /* if */
+}  /* init_var_templ_intrinsic_descriptions */
+
+
+int get_intrinsic_var_templ_idx(a_symbol  *t_sym)
+/*
+If the given template is a variable template that the front end should treat
+intrinsically, return an index identifying that variable template (the index
+corresponds to an enumerator of type a_var_templ_intrinsic).
+*/
+{
+  int  idx = 0;
+
+  if (!t_sym->is_class_member && t_sym->parent.namespace_ptr != NULL) {
+    a_symbol_ptr  ns_sym = symbol_for(t_sym->parent.namespace_ptr);
+    idx = var_templ_intrinsic_descr_table->get(
+                                a_scoped_identifier{ t_sym->header, ns_sym });
+  }  /* if */
+  return idx;
+}  /* get_intrinsic_var_templ_idx */
 
 
 /*
