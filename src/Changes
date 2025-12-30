@@ -1,5 +1,30 @@
 Version 6.9
 
+12/29/25 [EDGcpfe/28606]
+C++-generating back end: qualification resulting in inaccessible names
+
+In some cases, the C++-generating back end added qualification to a name
+from a base class, even though naming it in that class would result in the
+name being inaccessible in the current scope.  This is now fixed.  For
+example, with --c++23:
+
+  class D;
+  namespace N {
+    class B {
+      friend class ::D;
+      static void f(::D&);  // private
+      static void f(int);   // private
+    };
+  }
+  struct D : private N::B {
+    using N::B::f;   // public
+  };
+  void g()   {
+    D *dp;
+    dp->f(*dp);   // Previously generated as (inaccessible) "dp->N::B::f"
+  }
+
+
 12/29/25 [EDGcpfe/27514,EDGcpfe/28491]
 Intrinsic treatment of commonly-occurring variable templates
 

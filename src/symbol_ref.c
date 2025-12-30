@@ -1073,9 +1073,22 @@ hidden name checking on its own members, too.
               }  /* if */
             }  /* for */
           }  /* if */
-          if (ambiguous ||
-              (access == (an_access_specifier)as_inaccessible &&
-               !found_using_decl)) {
+          if (access == as_inaccessible) {
+            /* Check to see if class_type names the current class as a
+               friend. */
+            for (an_il_entity_list_entry_ptr frp =
+                                          class_type_supp(class_type)->friends;
+                 frp != NULL; frp = frp->next) {
+              if (frp->entity.kind == iek_type &&
+                  a_type_ptr(frp->entity.ptr) == sp->variant.assoc_type) {
+                /* The current class is a friend, so the symbol is
+                   accessible. */
+                access = as_public;
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+          if (ambiguous || (access == as_inaccessible && !found_using_decl)) {
             /* This symbol is either ambiguous or inaccessible in the class
                whose scope we are processing -- mark it as hidden to force
                references to it in this context to be generated as
