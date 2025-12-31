@@ -1,5 +1,17 @@
 Version 6.9
 
+12/31/25 [EDGcpfe/28562]
+C++-generating back end: injected-class-name in templated function definition
+
+In some complex cases, using the template parameters as template arguments
+when naming the injected-class-name of a class template in the definition
+of a member function of that class template could result in errors during
+the instantiation of that member function when the generated code was
+compiled.  This is now fixed, and the C++-generating back end now puts out
+only the name of the class template with no arguments when referring to its
+injected-class-name.
+
+
 12/29/25 [EDGcpfe/28606]
 C++-generating back end: qualification resulting in inaccessible names
 

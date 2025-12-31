@@ -4613,6 +4613,18 @@ defaulted.
     tap = templ_args;
     render_args = tap != NULL;
     insert_space = FALSE;
+  } else if (scp != NULL && entry_kind == iek_type &&
+             is_immediate_class_type(a_type_ptr(scp)) &&
+             a_type_ptr(scp)->
+                       variant.class_struct_union.is_prototype_instantiation &&
+             class_is_in_name_context_stack(
+                                     a_type_ptr(scp),
+                                     /*include_base_classes=*/FALSE,
+                                     /*ignore_field_selecgtion_contexts=*/TRUE,
+                                     /*is_access_check=*/FALSE)) {
+    /* This is the injected-class-name of a class template, so no template
+       arguments are needed. */
+    render_args = FALSE;
   } else {
     render_args = name_has_template_arguments(scp, entry_kind, &tap, &tpp,
                                               &insert_space);
