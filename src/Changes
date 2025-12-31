@@ -8,10 +8,10 @@ from a base class, even though naming it in that class would result in the
 name being inaccessible in the current scope.  This is now fixed.  For
 example, with --c++23:
 
-  class D;
+  struct D;
   namespace N {
     class B {
-      friend class ::D;
+      friend struct ::D;
       static void f(::D&);  // private
       static void f(int);   // private
     };
