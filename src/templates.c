@@ -7652,23 +7652,20 @@ has been seen).  is_use is TRUE if this a use (i.e., a reference from an
 expression context) rather than a declaration.
 */
 {
-  a_symbol_ptr				var_sym = tip->instance_sym;
-  a_symbol_ptr				template_sym = tip->template_sym;
-  a_template_symbol_supplement_ptr	tssp;
-  a_variable_ptr			var_ptr;
-  a_decl_parse_state			dps;
-  a_boolean				is_var_templ_instance;
-  a_variable_ptr			proto_var;
-  a_symbol_ptr				template_sym_of_prototype;
-  a_template_symbol_supplement_ptr	tssp_of_prototype;
-  a_boolean				is_definition = FALSE;
-  a_boolean				incomplete_type_error_reported = FALSE;
-  a_template_arg_ptr			templ_arg_list;
-  a_push_scope_options_set		ps_options = PS_NO_OPTIONS;
-  a_template_cache_ptr			body_cache;
-  a_template_cache_ptr			decl_cache;
-  int                                   idx = 0;
-  a_host_large_integer                  intrinsic_val;
+  a_symbol_ptr                      var_sym = tip->instance_sym;
+  a_symbol_ptr                      template_sym = tip->template_sym;
+  a_symbol_ptr                      template_sym_of_prototype;
+  a_template_symbol_supplement_ptr  tssp, tssp_of_prototype;
+  a_variable_ptr                    var_ptr, proto_var;
+  a_decl_parse_state                dps;
+  a_boolean                         is_var_templ_instance;
+  a_boolean                         is_definition = FALSE;
+  a_boolean                         incomplete_type_error_reported = FALSE;
+  a_template_arg_ptr                templ_arg_list;
+  a_push_scope_options_set          ps_options = PS_NO_OPTIONS;
+  a_template_cache_ptr              body_cache, decl_cache;
+  int                               idx = 0;
+  a_host_large_integer              intrinsic_val;
 
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
   tssp = template_supplement_for_symbol(template_sym);

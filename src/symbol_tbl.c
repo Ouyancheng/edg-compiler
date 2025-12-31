@@ -19072,7 +19072,7 @@ STATIC_THREAD a_templ_intrinsic_descr_table
 
 void init_alias_templ_intrinsic_descriptions(void)
 /*
-Pre-enter headers for some templates names so they can efficiently be
+Pre-enter headers for some template names so they can efficiently be
 recognized during parsing.  Also, record associated information in a Ptr_map
 to efficiently dispatch substitutions that can be handled intrinsically.
 */
@@ -19127,7 +19127,7 @@ STATIC_THREAD a_templ_intrinsic_descr_table
 
 void init_var_templ_intrinsic_descriptions(void)
 /*
-Pre-enter headers for some templates names so they can efficiently be
+Pre-enter headers for some template names so they can efficiently be
 recognized during parsing.  Also, record associated information in a Ptr_map
 to efficiently dispatch substitutions that can be handled intrinsically.
 */
