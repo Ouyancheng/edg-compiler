@@ -3,13 +3,30 @@ Version 6.9
 12/31/25 [EDGcpfe/28562]
 C++-generating back end: injected-class-name in templated function definition
 
-In some complex cases, using the template parameters as template arguments
-when naming the injected-class-name of a class template in the definition
-of a member function of that class template could result in errors during
-the instantiation of that member function when the generated code was
-compiled.  This is now fixed, and the C++-generating back end now puts out
-only the name of the class template with no arguments when referring to its
-injected-class-name.
+In general, the injected-class-name of a class template can be referred to
+using either the template name by itself or its template parameters as the
+corresponding template arguments, and the C++-generating back end previously
+used the latter form.  However, a member name in the class template
+definition can hide the name of a template parameter in the definition of
+a member of the class template, rendering the longer form unusable in such
+cases.  The C++-generating back end has now been changed to use only the
+class template name by itself when referring to the template's
+injected-class-name, avoiding this issue.  For example:
+
+  template <class T, class> struct A {
+    typedef T U;
+    T f(const int&);
+    T f(int, int);
+  };
+  template <class T, class U> T A<T, U>::f(const int& a) {
+    // Templ param U is hidden by A::U, so "A<T,U>" would mean A<T, A::U>
+    return A::f(a, 0); // Previously generated as A<T,U>::f, which is an error
+                       // because A<T,A::U>::f is a member of a different type
+                       // from the injected-class-name A and thus requires an
+                       // object expression.
+  }
+  A<char,int> x;
+  char z = x.f(0);
 
 
 12/29/25 [EDGcpfe/28606]
