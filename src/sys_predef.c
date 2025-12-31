@@ -147,7 +147,7 @@ a_boolean value_of_std_is_integral_v(a_template_arg        *t_args,
                                      ARG_UNUSED a_boolean  *okay)
 /*
 Return TRUE if *t_args represents an integral type.  (*okay is unused.  It
-would be set to FALSE if there were as case where this determination can fail.)
+would be set to FALSE if there were a case where this determination can fail.)
 */
 {
   check_assertion(t_args != NULL && t_args->kind == tak_type);
@@ -159,7 +159,7 @@ a_boolean value_of_std_is_object_v(a_template_arg        *t_args,
                                    ARG_UNUSED a_boolean  *okay)
 /*
 Return TRUE if *t_args represents an object type.  (*okay is unused.  It would
-be set to FALSE if there were as case where this determination can fail.)
+be set to FALSE if there were a case where this determination can fail.)
 */
 {
   check_assertion(t_args != NULL && t_args->kind == tak_type);
