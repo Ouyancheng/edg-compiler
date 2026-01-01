@@ -21,12 +21,12 @@ C++-generating back end: injected-class-name in templated function definition
 
 In general, the injected-class-name of a class template can be referred to
 using either the template name by itself or with its template parameters as
-the corresponding template arguments, and the C++-generating back end
+the corresponding template arguments; the C++-generating back end
 previously used the latter form.  However, a member name in the class
 template definition can hide the name of a template parameter in the
-definition of a member of the class template, rendering the longer form
-unusable in such cases.  The C++-generating back end has now been changed
-to use only the class template name by itself when referring to the
+definition of a member of the class template, potentially making the longer
+form incorrect in such cases.  The C++-generating back end has now been
+changed to use only the class template name by itself when referring to the
 template's injected-class-name, avoiding this issue.  For example:
 
   template <class T, class> struct A {
@@ -34,15 +34,25 @@ template's injected-class-name, avoiding this issue.  For example:
     T f(const int&);
     T f(int, int);
   };
-  template <class T, class U> T A<T, U>::f(const int& a) {
-    // Template parameter U is hidden by A::U; "A<T,U>" would mean A<T, A::U>
-    return A::f(a, 0); // Previously generated as A<T,U>::f, which is an error
-                       // because A<T,A::U>::f is a member of a different type
-                       // from the injected-class-name A and thus calling it
-                       // requires an object expression.
+  template <class T, class U> T A<T, U>::f(const int &a) {
+    return A::f(a, 0);   // #1
   }
   A<char,int> x;
-  char z = x.f(0);
+  char z = x.f(0);   // #2
+
+The C++-generating back end previously put out the name of the member
+function on the line marked #1 as "A<T,U>::f".  However, at that point the
+template parameter U is hidden by the member typedef A::U, so the meaning
+of "A<T,U>" is "A<T,A::U>", which is a different type unless the arguments
+for T and U denote the same type.
+
+When A<char,int>::f(const int&) is instantiated at #2, in the original
+source form, the call "A::f(a,0)" refers to a non-static member of the same
+class, A<char,int>, so "this->" is implicitly added to the call.  With the
+form previously used by the C++-generating back end, however, the qualifier
+denotes A<char,char> instead of A<char,int>, and the call elicits an error
+because of a missing object expression in the reference to the non-static
+member function A<char,char>::f(int,int).
 
 
 12/29/25 [EDGcpfe/28606]
