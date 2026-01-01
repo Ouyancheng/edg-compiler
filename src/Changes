@@ -20,14 +20,14 @@ is now allowed in C mode (with --gcc --ms_extensions):
 C++-generating back end: injected-class-name in templated function definition
 
 In general, the injected-class-name of a class template can be referred to
-using either the template name by itself or its template parameters as the
-corresponding template arguments, and the C++-generating back end previously
-used the latter form.  However, a member name in the class template
-definition can hide the name of a template parameter in the definition of
-a member of the class template, rendering the longer form unusable in such
-cases.  The C++-generating back end has now been changed to use only the
-class template name by itself when referring to the template's
-injected-class-name, avoiding this issue.  For example:
+using either the template name by itself or with its template parameters as
+the corresponding template arguments, and the C++-generating back end
+previously used the latter form.  However, a member name in the class
+template definition can hide the name of a template parameter in the
+definition of a member of the class template, rendering the longer form
+unusable in such cases.  The C++-generating back end has now been changed
+to use only the class template name by itself when referring to the
+template's injected-class-name, avoiding this issue.  For example:
 
   template <class T, class> struct A {
     typedef T U;
@@ -35,11 +35,11 @@ injected-class-name, avoiding this issue.  For example:
     T f(int, int);
   };
   template <class T, class U> T A<T, U>::f(const int& a) {
-    // Templ param U is hidden by A::U, so "A<T,U>" would mean A<T, A::U>
+    // Template parameter U is hidden by A::U; "A<T,U>" would mean A<T, A::U>
     return A::f(a, 0); // Previously generated as A<T,U>::f, which is an error
                        // because A<T,A::U>::f is a member of a different type
-                       // from the injected-class-name A and thus requires an
-                       // object expression.
+                       // from the injected-class-name A and thus calling it
+                       // requires an object expression.
   }
   A<char,int> x;
   char z = x.f(0);
