@@ -3,7 +3,7 @@ Version 6.9
 12/31/25 [EDGcpfe/28627]
 Allow use of type containing an unknown-sized array with --ms_extensions
 
-The use of a type containing an unknown-sized array is allows in Microsoft
+The use of a type containing an unknown-sized array is allowed in Microsoft
 mode but had been disallowed in GNU/Clang modes with --ms_extensions.  This
 is now allowed in C mode (with --gcc --ms_extensions):
 
