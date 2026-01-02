@@ -4618,10 +4618,10 @@ defaulted.
              a_type_ptr(scp)->
                        variant.class_struct_union.is_prototype_instantiation &&
              class_is_in_name_context_stack(
-                                     a_type_ptr(scp),
-                                     /*include_base_classes=*/FALSE,
-                                     /*ignore_field_selecgtion_contexts=*/TRUE,
-                                     /*is_access_check=*/FALSE)) {
+                                      a_type_ptr(scp),
+                                      /*include_base_classes=*/FALSE,
+                                      /*ignore_field_selection_contexts=*/TRUE,
+                                      /*is_access_check=*/FALSE)) {
     /* This is the injected-class-name of a class template, so no template
        arguments are needed. */
     render_args = FALSE;
