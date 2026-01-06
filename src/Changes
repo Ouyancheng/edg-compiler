@@ -1,5 +1,13 @@
 Version 6.9
 
+1/5/26   [EDGcpfe/28618]
+Regression causing segfault in extract_member_bodies
+
+With the changes for EDGcpfe/27955 (in version 6.8), in rare cases, a segfault
+could occur during sorting of template cache segments within
+extract_member_bodies.  This is now fixed.
+
+
 12/31/25 [EDGcpfe/28627]
 Allow use of type containing an unknown-sized array with --ms_extensions
 

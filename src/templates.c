@@ -5889,7 +5889,22 @@ and a list of the unprocessed entries is returned to the caller.
   auto                          cmp_cache_segment =
                                  [](a_template_cache_segment *a,
                                     a_template_cache_segment *b) -> a_boolean {
-    return a->last_token_number < b->first_token_number;
+    /* Sort the cache segments so that the deepest token cache segments are
+       last (e.g.):
+
+         [10, 100],
+         [10, 5],
+         [15, 65]
+         [15, 45],
+         [16, 18],
+         [120, 125]
+
+       This minimizes shifts of the underlying token cache vector and ensures
+       token caches formed by this algorithm aren't temporarily over-sized.
+     */
+    return (a->first_token_number < b->first_token_number ||
+            (a->first_token_number == b->first_token_number &&
+             a->last_token_number > b->last_token_number));
   };
 
   sort(*cache_segments, cmp_cache_segment);
