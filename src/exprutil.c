@@ -26812,11 +26812,24 @@ p_fatal and p_copy_error are NULL by default.
             init_ctws_state(&new_ctws_state);
             ctws_state = &new_ctws_state;
           }  /* if */
-          expr = copy_template_param_expr(expr, template_arg_list,
-                                          template_param_list,
-                                          (a_type_ptr)NULL, &expr->position,
-                                          options, &copy_error, ctws_state,
-                                          cp, &allocated_cp);
+          if (expr != constraint && expr->kind == enk_constant) {
+            /* If the expression wraps a constant from a partially-substituted
+               constraint, use that constant for the final substitution. */
+            allocated_cp = copy_template_param_con(expr->variant.constant.ptr,
+                                                   template_arg_list,
+                                                   template_param_list,
+                                                   (a_type_ptr)NULL,
+                                                   &expr->position, options,
+                                                   &copy_error, ctws_state,
+                                                   cp);
+            expr = NULL;
+          } else {
+            expr = copy_template_param_expr(expr, template_arg_list,
+                                            template_param_list,
+                                            (a_type_ptr)NULL, &expr->position,
+                                            options, &copy_error, ctws_state,
+                                            cp, &allocated_cp);
+          }  /* if */
           if (copy_error) {
             constraint_result = a_test_constraint_result::subst_failed;
           }  /* if */
