@@ -10105,6 +10105,7 @@ the parameters.
 */
 {
   a_boolean         interpreted = FALSE, store = TRUE, is_signed = FALSE;
+  a_boolean         opnds_have_max_width = TRUE;
   an_expr_node_ptr  arg, args = call_node->variant.operation.operands->next;
   a_byte            *arg_bytes[3];
   int               k = 0, bit_length = -1;
@@ -10161,6 +10162,12 @@ the parameters.
                       &call_node->position, ips);
         do_constexpr_fail(*p_result);
         goto done;
+      }  /* if */
+      if (tp->size * targ_char_bit < BITS_IN_AN_INTEGER_VALUE) {
+        /* If the operands have a width smaller than what an_integer_value
+           handles, we have to check the result against the destination
+           type. */
+        opnds_have_max_width = FALSE;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -10231,7 +10238,7 @@ the parameters.
         }  /* if */
       }  /* if */
       /* Check if the result fits in the destination. */
-      if (!ovflo) {
+      if (!ovflo && !opnds_have_max_width) {
         ovflo = cmp_integer_values(val, /*is_signed=*/TRUE,
                                    p_max, /*is_signed=*/TRUE) > 0 ||
                 cmp_integer_values(val, /*is_signed=*/TRUE,
