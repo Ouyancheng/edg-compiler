@@ -1,5 +1,21 @@
 Version 6.9
 
+1/6/26   [EDGcpfe/28619]
+Lambda-vs-designator disambiguation with lambda attributes
+
+Consider, in C++23 mode:
+
+  struct F { template<typename T> F(T) {} };
+  auto r = F{ [] [[]] () {} };  // Previously an error.  Now okay.
+
+The front end previously treated the first bracket ("[") in the initializer of
+r as the beginning of an array designator.  This was caused by the presence of
+attributes following the leading "[]" and resulted in spurious syntax errors.
+The disambiguation for this case has now be fixed to correctly handle lambda
+attributes (a C++23 feature; see the Changes for EDGcpfe/25076,EDGcpfe/26487
+in version 6.6).
+
+
 1/5/26   [EDGcpfe/28618]
 Regression causing segfault in extract_member_bodies
 

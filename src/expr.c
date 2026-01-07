@@ -45180,12 +45180,23 @@ looks like the latter.
     /* Put the current token (tok_rbracket) in the cache. */
     cache_curr_token(cache.ptr());
     (void)get_token();
+    /* Skip additional bracketed constructs (attributes or array
+       designators). */
+    while (curr_token == tok_lbracket) {
+      if (!cache_token_stream_until_matching_token(cache.ptr(),
+                                                   CTS_NO_OPTIONS)) {
+        cache_curr_token(cache.ptr());
+        (void)get_token();
+      } else {
+        expect_error();
+        break;
+      }  /* if */
+    }  /* for */
     /* Assume a designator if the next token is a "=" or if it looks like
-       the beginning of another designator.  We don't consider GNU C-style
+       the beginning of a field designator.  We don't consider GNU C-style
        array designators (i.e., without a trailing "=") here, since g++
        doesn't either. */
-    result = curr_token == tok_assign || curr_token == tok_lbracket ||
-             curr_token == tok_period;
+    result = curr_token == tok_assign || curr_token == tok_period;
   }  /* if */
   rescan_cached_tokens(cache.ptr());
   return result;
