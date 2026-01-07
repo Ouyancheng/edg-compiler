@@ -27152,6 +27152,9 @@ will be an lvalue instead of the usual prvalue.
           if (!issue_errors) eff_is->no_diagnostics = TRUE;
           if (!generate_il) eff_is->check_validity_only = TRUE;
           if (is_cast) eff_is->force_dynamic_init = TRUE;
+          if ((conv_context & CCO_FUNC_NOTATION_CAST) != 0) {
+            eff_is->functional_cast = TRUE;
+          }  /* if */
         }  /* if */
         if (arg_match != NULL) {
           if (is_array_type(dest_type)) {
