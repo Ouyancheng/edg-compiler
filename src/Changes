@@ -18,7 +18,7 @@ a warning in various other cases that ought to be errors, but the front end
 already emulated those other cases).
 
 
-1/7/26   [EDGcpfe/28632]
+1/7/26   [EDGcpfe/28397,EDGcpfe/28632]
 Abort on checking of nested constraints
 
 With the changes for EDGcpfe/27599 (in version 6.7), the front end could abort
