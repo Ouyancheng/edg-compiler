@@ -2066,9 +2066,12 @@ to default values.
       pte->variant.class_struct_union.dtor_decl_suppressed = FALSE;
       pte->variant.class_struct_union.inc_class_used_in_array_type = FALSE;
       pte->variant.class_struct_union.max_member_alignment = 0;
-#if BACK_END_IS_CP_GEN_BE && TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if BACK_END_IS_CP_GEN_BE
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       pte->variant.class_struct_union.scan_record = NULL;
-#endif /* BACK_END_IS_CP_GEN_BE && ... */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      pte->variant.class_struct_union.do_not_suppress_templ_arg = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
       /* Allocate the class type supplement. */
       {
         a_class_type_supplement_ptr  ctsp;

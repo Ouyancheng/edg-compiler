@@ -10550,7 +10550,8 @@ typedef struct a_type {
 			   by "#pragma pack". (A zero value means that each
 			   nonstatic data member's alignment is based solely
 			   on its type.) */
-#if BACK_END_IS_CP_GEN_BE && TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if BACK_END_IS_CP_GEN_BE
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_type_scan_record_ptr
 		scan_record;
 			/* When the C++-generating back end scans types to
@@ -10564,7 +10565,19 @@ typedef struct a_type {
 			   record if this type is being or has already been
 			   processed during that scan and thus should be
 			   skipped; otherwise, it is NULL. */
-#endif /* BACK_END_IS_CP_GEN_BE && ... */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      a_bit_field
+		do_not_suppress_templ_arg:1;
+			/* If TRUE, the C++-generating back end will put
+			   out the template argument list of the prototype
+			   instantiation of a class template, even if it
+			   would otherwise be suppressed.  This flag is set
+			   and cleared only in the C++-generating back end
+			   and is used to indicate when the
+			   injected-class-name is referenced using the
+			   qualified name of the class template and not the
+			   bare template name. */
+#endif /* BACK_END_IS_CP_GEN_BE */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {

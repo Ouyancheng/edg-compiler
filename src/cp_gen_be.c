@@ -4617,6 +4617,8 @@ defaulted.
              is_immediate_class_type(a_type_ptr(scp)) &&
              a_type_ptr(scp)->
                        variant.class_struct_union.is_prototype_instantiation &&
+             !a_type_ptr(scp)->
+                        variant.class_struct_union.do_not_suppress_templ_arg &&
              class_is_in_name_context_stack(
                                       a_type_ptr(scp),
                                       /*include_base_classes=*/FALSE,
@@ -6718,6 +6720,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                 options & (GN_PARENS_IF_GLOBAL_QUALIFIER |
                                            GN_ELAB_TYPE_SPEC_AS_DECL),
                                 need_closing_paren);
+        used_qualified_name = TRUE;
         if (class_type != NULL && clang_is_generated_code_target &&
             class_type->variant.class_struct_union.is_template_class &&
             class_type->variant.class_struct_union.is_nonreal_class &&
@@ -6787,7 +6790,19 @@ unqualified_part:
   } else if (is_decltype) {
     gen_type_operator((a_type_ptr)scp);
   } else {
+    if (used_qualified_name && entry_kind == iek_type &&
+        is_immediate_class_type(a_type_ptr(scp))) {
+      /* Ensure that the template argument list is used when a class
+         template instance is referred to using a qualified name. */
+      a_type_ptr(scp)->variant.class_struct_union.do_not_suppress_templ_arg =
+                                                                          TRUE;
+    }  /* if */
     gen_unqualified_name(scp, entry_kind);
+    if (used_qualified_name && entry_kind == iek_type &&
+        is_immediate_class_type(a_type_ptr(scp))) {
+      a_type_ptr(scp)->variant.class_struct_union.do_not_suppress_templ_arg =
+                                                                         FALSE;
+    }  /* if */
   }  /* if */
 }  /* gen_name */
 
