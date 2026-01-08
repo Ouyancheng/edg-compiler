@@ -1,5 +1,26 @@
 Version 6.9
 
+1/8/25   [EDGcpfe/28604]
+Regression causing assertion failure when using implicit includes
+
+The changes for EDGcpfe/27955 (in version 6.8), introduced a regression causing
+an assertion failure in f_entity_can_be_instantiated.  This assertion failure
+occurs when parsing the following example with "--c++17 --implicit_include":
+
+  struct I { static constexpr int one = 1; };
+  template<typename T> struct S {
+    static constexpr int N = T::one;
+    S() {}
+    S(E<N> x) {}
+  };
+  void g() {
+    S<I> x;
+    S y(x);
+  }
+
+This is now fixed.
+
+
 1/8/26   [EDGcpfe/28633]
 Use of uninitialized variable in conv_utf8_buffer (Windows only)
 

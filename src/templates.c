@@ -37034,7 +37034,7 @@ template entities.
            source file that will provide the definition.  Then check
            again to see if a template definition is present. */
         do_implicit_include_if_needed(tip);
-        template_def = !cache_for_template(tssp)->tokens->is_empty();
+        template_def = !cache_for_template(tssp)->tokens.is_empty();
       }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     }  /* if */
@@ -37198,7 +37198,7 @@ this overrides an "extern template" directive.
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
       do_implicit_include_if_needed(tip);
-      template_def = !cache_for_template(tssp)->tokens->is_empty();
+      template_def = !cache_for_template(tssp)->tokens.is_empty();
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
