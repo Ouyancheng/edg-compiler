@@ -3888,50 +3888,47 @@ void copy_tokens_from_cache(const a_token_cache     *src_cache,
                             a_boolean               include_last_token,
                             a_token_cache_ptr       dest_cache)
 /*
-Copy the tokens from src_cache to dest_cache that are in the range
-of token sequence numbers from first_tsn to last_tsn.  last_tsn
-is actually the first token to not be included in the cache.
-If include_last_token is TRUE, last_tsn is included in the cache.
+Copy the tokens from src_cache to dest_cache that are in the range of token
+sequence numbers from first_tsn to last_tsn.  last_tsn is actually the first
+token sequence number to not be included in the cache.  If include_last_token
+is TRUE, last_tsn + 1 is the first token sequence number to not be included in
+the cache.
 */
 {
   a_const_token_cache_iterator before_start_of_copy_it;
   a_const_token_cache_iterator end_of_copy_it;
 
-  src_cache->find_first_and_last(first_tsn, last_tsn,
-                                 &before_start_of_copy_it, &end_of_copy_it);
+  if (!include_last_token && first_tsn == last_tsn &&
+      last_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
+    /* There's nothing to copy. */
+  } else {
+    a_token_sequence_number last_included_tsn = last_tsn;
 
-  /* The final token sequence number will be greater than last_tsn if the
-     token referred to by last_tsn is the second ">" of a ">>" that was
-     split into two tokens.  The code below will copy the ">>" and the copied
-     token will then be adjusted to a ">". */
-  a_boolean              adjust_final_token =
-             (last_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
-              end_of_copy_it != src_cache->end() &&
-              (*end_of_copy_it)->get_starting_seq_number() == (last_tsn - 1));
-  /* Copy the specified range of tokens to the destination cache. */
-  a_const_token_cache_iterator cpy_it = before_start_of_copy_it;
-  a_const_token_cache_iterator cpy_it_end = end_of_copy_it;
-  if (include_last_token && end_of_copy_it != src_cache->end()) {
-    ++cpy_it_end;
-  }  /* if */
-  if (before_start_of_copy_it != cpy_it_end) {
-    ++cpy_it;
-  }  /* if */
+    if (last_tsn != NO_TOKEN_SEQUENCE_NUMBER && !include_last_token) {
+      /* The last token should not be included; find_first_and_last returns
+         iterators representing an inclusive range so the last token sequence
+         number should be reduced by one. */
+      --last_included_tsn;
+    }  /* if */
+    src_cache->find_first_and_last(first_tsn, last_included_tsn,
+                                   &before_start_of_copy_it, &end_of_copy_it);
 
-  if (cpy_it != cpy_it_end) {
-    sizeof_t num_elems = distance(cpy_it, cpy_it_end);
-    dest_cache->reserve(dest_cache->length() + num_elems);
-    for (; cpy_it != cpy_it_end; ++cpy_it) {
-      dest_cache->append_token(*cpy_it);
-    }  /* for */
-    if (adjust_final_token) {
-      a_token_cache_iterator final_tok_it = dest_cache->get_last_token_iter();
-      a_cached_token         final_tok = **final_tok_it;
+    /* Copy the specified range of tokens to the destination cache. */
+    a_const_token_cache_iterator cpy_it = before_start_of_copy_it;
+    a_const_token_cache_iterator cpy_it_end = end_of_copy_it;
+    if (end_of_copy_it != src_cache->end()) {
+      ++cpy_it_end;
+    }  /* if */
+    if (before_start_of_copy_it != cpy_it_end) {
+      ++cpy_it;
+    }  /* if */
+    if (cpy_it != cpy_it_end) {
+      sizeof_t num_elems = distance(cpy_it, cpy_it_end);
 
-      /* Change the last token copied from a ">>" to a ">". */
-      check_assertion(final_tok.is(tok_shift_right));
-      final_tok.set_kind(tok_gt);
-      *final_tok_it = move_from(&final_tok);
+      dest_cache->reserve(dest_cache->length() + num_elems);
+      for (; cpy_it != cpy_it_end; ++cpy_it) {
+        dest_cache->append_token(*cpy_it);
+      }  /* for */
     }  /* if */
   }  /* if */
 }  /* copy_tokens_from_cache */

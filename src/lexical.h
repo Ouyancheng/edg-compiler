@@ -3988,9 +3988,9 @@ INLINE void find_first_and_last_impl(
                                 an_Iterator_type        *last_token_it)
 /*
 This function sets *before_first_token_it to the token immediately preceding
-the first token with a starting token sequence number greater than or equal to
-first_token_number.  *last_token_number is set to the last token in the cache
-with an ending token sequence number equal to or less than
+the first (non-pragma) token with a starting token sequence number greater than
+or equal to first_token_number.  *last_token_number is set to the last token in
+the cache with an ending token sequence number equal to or less than
 last_token_number.
 
 If first_token_number is NO_TOKEN_SEQUENCE_NUMBER *before_first_token_it is set
@@ -4046,11 +4046,7 @@ token in the cache.
     for (; last_idx != -1; --last_idx) {
       const a_shared_token &tok = (*cache)[(size_t)last_idx];
 
-      if (tok->is_pragma()) {
-        continue;
-      }  /* if */
-
-      a_token_sequence_number curr_tsn = tok->get_starting_seq_number();
+      a_token_sequence_number curr_tsn = tok->get_ending_seq_number();
       if (curr_tsn <= last_token_number) {
         *last_token_it = an_Iterator_type(cache, (int)last_idx);
         break;
