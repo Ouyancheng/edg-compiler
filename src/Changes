@@ -1,5 +1,13 @@
 Version 6.9
 
+1/8/26   [EDGcpfe/28633]
+Use of uninitialized variable in conv_utf8_buffer (Windows only)
+
+The front end in configurations without CPPCLI_ENABLING_POSSIBLE set used an
+uninitialized variable in the conv_utf8_buffer function (i.e., when processing
+UTF-8 paths on Windows).  This could lead to crashes and is now fixed.
+
+
 1/7/26   [EDGcpfe/27257]
 GCC compatibility: Severity of narrowing in brace-notation cast
 

@@ -6753,9 +6753,7 @@ This is done before command line processing.
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 #if !STANDALONE_UTILITY_PROGRAM
 #if EDG_WIN32
-#if CPPCLI_ENABLING_POSSIBLE
   conv_utf8_buffer = NULL;
-#endif /* CPPCLI_ENABLING_POSSIBLE */
 #else /* !EDG_WIN32 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   default_cpp_cli_import_flags = (int)cpp_cli_none;
