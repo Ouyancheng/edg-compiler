@@ -9489,6 +9489,7 @@ elaborated-type-specifier, even if it would be required in some contexts.
       a_type_ptr         refp = trp->variant.typeref.type;
       a_template_arg_ptr arg_list = NULL;
       a_boolean          name_qual_suppressed = FALSE;
+      a_boolean          name_qual_emitted = FALSE;
       a_boolean          typename_kwd_emitted = FALSE;
       if (skip_lexical_typerefs(type)->definition_delayed) {
         check_assertion(is_typeref_kind(type, trk_name_qualifier));
@@ -9572,6 +9573,7 @@ elaborated-type-specifier, even if it would be required in some contexts.
             write_space();
           }  /* if */
           if (gen_qualifier_from_typeref(trp)) {
+            name_qual_emitted = TRUE;
             global_qual_emitted = FALSE;
             if (options == GN_DEPENDENT &&
                 name_has_template_arguments(
@@ -9600,6 +9602,7 @@ elaborated-type-specifier, even if it would be required in some contexts.
             /* A name reference pointer can be NULL if only the global
                qualifier "::" was used. */
             write_tok_str("::");
+            name_qual_emitted = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -9645,7 +9648,16 @@ elaborated-type-specifier, even if it would be required in some contexts.
                  GN_SUPPRESS_TYPENAME_KEYWORD | GN_FORCE_QUALIFIED_NAME,
                  /*need_closing_paren=*/NULL);
       } else {
+        if (is_immediate_class_type(refp)) {
+          /* Ensure that the template argument list is used when a class
+             template instance is referred to using a qualified name. */
+          refp->variant.class_struct_union.do_not_suppress_templ_arg =
+                                                             name_qual_emitted;
+        }  /* if */
         gen_unqualified_name(&refp->source_corresp, iek_type);
+        if (is_immediate_class_type(refp)) {
+          refp->variant.class_struct_union.do_not_suppress_templ_arg = FALSE;
+        }  /* if */
       }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
     } else {
