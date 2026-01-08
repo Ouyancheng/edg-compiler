@@ -26923,6 +26923,14 @@ will be an lvalue instead of the usual prvalue.
            force_operand_to_constant_if_possible permits some results that
            we do not want to accept in this context. */
         force_operand_to_constant_if_possible(&operand);
+        if (check_narrowing && gpp_version_is(any_version) &&
+            !is_constant_operand(&operand) &&
+            curr_expr_is_potentially_evaluated()) {
+          /* GCC doesn't issue an error for narrowing that is not from a
+             constant value (it issues a warning instead). */
+          check_narrowing = FALSE;
+          warning_on_narrowing = TRUE;
+        }  /* if */
       }  /* if */
       if (check_narrowing &&
           check_narrowing_conversion(&operand,
@@ -27152,9 +27160,6 @@ will be an lvalue instead of the usual prvalue.
           if (!issue_errors) eff_is->no_diagnostics = TRUE;
           if (!generate_il) eff_is->check_validity_only = TRUE;
           if (is_cast) eff_is->force_dynamic_init = TRUE;
-          if ((conv_context & CCO_FUNC_NOTATION_CAST) != 0) {
-            eff_is->functional_cast = TRUE;
-          }  /* if */
         }  /* if */
         if (arg_match != NULL) {
           if (is_array_type(dest_type)) {

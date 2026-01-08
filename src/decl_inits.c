@@ -4330,7 +4330,6 @@ the type pointed to is opaque to declaration processing.
                   scope_stack_top().decl_parse_state->sym != NULL &&
                   variable_for_symbol(
                          scope_stack_top().decl_parse_state->sym) != NULL) ||
-                 is->functional_cast ||
                  is->return_expression)))) {
     /* GCC, Clang, and Microsoft generally treat narrowing as an error, but
        sometimes it's just a warning (particularly when the initializer is

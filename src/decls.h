@@ -654,9 +654,6 @@ typedef struct an_init_state {
   a_bit_field	return_expression:1;
 			/* TRUE when the "initializer" is really a return
 			   expression. */
-  a_bit_field	functional_cast:1;
-			/* TRUE when the "initializer" is the operand of a
-			   cast. */
   a_bit_field	check_consteval_functions:1;
 			/* TRUE when the initializer might contain references
 			   to consteval functions that need to be validated. */
