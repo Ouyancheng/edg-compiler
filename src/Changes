@@ -111,13 +111,16 @@ C++-generating back end: injected-class-name in templated function definition
 
 In general, the injected-class-name of a class template can be referred to
 using either the template name by itself or with its template parameters as
-the corresponding template arguments; the C++-generating back end
-previously used the latter form.  However, a member name in the class
-template definition can hide the name of a template parameter in the
-definition of a member of the class template, potentially making the longer
-form incorrect in such cases.  The C++-generating back end has now been
-changed to use only the class template name by itself when referring to the
-template's injected-class-name, avoiding this issue.  For example:
+the corresponding template arguments (the latter form is required when
+there is a name qualifier, because the qualified name refers to the
+template itself, not directly to the injected-class-name).  The
+C++-generating back end previously always used the latter form, even in
+unqualified names.  However, a member name in the class template definition
+can hide the name of a template parameter in the definition of a member of
+the class template, potentially making the longer form incorrect in such
+cases.  The C++-generating back end has now been changed to use only the
+class template name by itself when referring to the template's unqualified
+injected-class-name, avoiding this issue.  For example:
 
   template <class T, class> struct A {
     typedef T U;
