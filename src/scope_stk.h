@@ -1440,14 +1440,14 @@ typedef struct a_scope_stack_entry {
 		decl_seq_for_lookup;
 			/* If this is not NO_DECL_SEQUENCE_NUMBER, this value
 			   is used for normal lookups. */
-  a_pending_pragma_ptr
-		pending_pragmas;
+  a_pending_pragma_list
+		*pending_pragmas;
 			/* A list of pragmas that have been cached by
 			   the lexical routines but have not yet been
 			   fully processed.  This list contains only
 			   pbk_other pragmas. */
-  a_pending_pragma_ptr
-		curr_construct_pragmas;
+  a_pending_pragma_list
+		*curr_construct_pragmas;
 			/* Points to the list of pbk_next_construct
 			   pragmas for the construct that is currently
 			   being scanned.  This is in the scope stack entry

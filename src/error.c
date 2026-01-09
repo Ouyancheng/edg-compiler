@@ -8176,23 +8176,11 @@ as _Pragma that are not parsed except during instantiations).
                                             /*make_default=*/FALSE);
         check_assertion(!err);
       } else {
-        if (is_nonspecialized_instantiation_context()) {
-          /* Generally, #pragmas have already been added to the list so
-             no action is needed during instantiations, but that's not the
-             case for function-like pragmas (e.g., _Pragma), so insert those
-             now.  Subsequent instantiations will find the previous entries
-             (they are not duplicated). */
-          if (ppp->is_function_style_pragma) {
-            (void)insert_into_pragma_diag_list(
-                                              {kind, &pos, (int)error_number});
-          }  /* if */
-        } else {
-          /* Add the #pragma to the list.  #pragmas are generally encountered
-             only once, but in the case of deferred class fixups, may be
-             encountered more than once.  In that case this entry is
-             effectively discarded (as it's already on the list). */
-          (void)insert_into_pragma_diag_list({kind, &pos, (int)error_number});
-        }  /* if */
+        /* Add the #pragma to the list.  #pragmas are generally encountered
+           only once, but in the case of deferred class fixups, may be
+           encountered more than once.  In that case this entry is
+           effectively discarded (as it's already on the list). */
+        (void)insert_into_pragma_diag_list({kind, &pos, (int)error_number});
       }  /* if */
     }  /* if */
   } while (loop_token(tok_comma));
@@ -8237,23 +8225,13 @@ parsed except during instantiations).
     err = TRUE;
   }  /* if */
   if (!err) {
-    a_pragma_diag_elem *ptr = NULL;
-    if (is_nonspecialized_instantiation_context()) {
-      /* Generally, #pragmas have already been added to the list so
-         no action is needed during instantiations, but that's not the
-         case for function-like pragmas (e.g., _Pragma), so insert those
-         now.  Subsequent instantiations will find the previous entries
-         (they are not duplicated and ptr will be NULL). */
-      if (ppp->is_function_style_pragma) {
-        ptr = insert_into_pragma_diag_list({pk_diagnostic, &pos_curr_token});
-      }  /* if */
-    } else {
-      /* Add the #pragma to the list.  #pragmas are generally encountered
-         only once, but in the case of deferred class fixups, may be
-         encountered more than once.  In that case this entry will not be
-         inserted (and ptr will be NULL). */
-      ptr = insert_into_pragma_diag_list({pk_diagnostic, &pos_curr_token});
-    }  /* if */
+    /* Add the #pragma to the list.  #pragmas are generally encountered
+       only once, but in the case of deferred class fixups, may be
+       encountered more than once.  In that case this entry will not be
+       inserted (and ptr will be NULL). */
+    a_pragma_diag_elem *ptr =
+                insert_into_pragma_diag_list({pk_diagnostic, &pos_curr_token});
+
     if (ptr != NULL) {
       if (is_push) {
         /* Push the entry onto a stack so it can be associated with a later

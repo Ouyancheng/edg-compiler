@@ -249,11 +249,11 @@ enum an_identifier_lookup_mode {
 extern a_constant_ptr alloc_cached_constant();
 extern void free_cached_token_constant(a_constant_ptr cp);
 
-/* Forward declaration of make_fresh_copy_of_pragmas_on_list and
-   free_pending_pragma_list (defined in pragma.c). */
-extern a_pending_pragma_ptr make_copy_of_pragma_list(
-                                       a_pending_pragma const* const old_list);
-extern void free_pending_pragma_list(a_pending_pragma_ptr ppp);
+/* Forward declaration of make_fresh_copy_of_pragmas_on_list (defined in
+   pragma.c). */
+extern a_pending_pragma_list make_copy_of_pragma_list(
+                                        const a_pending_pragma_list &old_list);
+extern void free_pending_pragma_list(a_pending_pragma_list *pplp);
 
 /*
 Forward declaration of types of extra information associated with a token
@@ -533,9 +533,9 @@ struct a_cached_token_base {
     { return &this->extra_info.locator; }
   INLINE const a_symbol_locator* get_symbol_locator() const
     { return &this->extra_info.locator; }
-  INLINE a_pending_pragma** get_pragma_list()
+  INLINE a_pending_pragma_list* get_pragma_list()
     { return &this->extra_info.pragmas; }
-  INLINE a_const_pending_pragma_list* get_pragma_list() const
+  INLINE const a_pending_pragma_list* get_pragma_list() const
     { return &this->extra_info.pragmas; }
   INLINE a_pp_token_descr* get_pp_token_descr()
     { return &this->extra_info.pp_token_descr; }
@@ -615,8 +615,8 @@ protected:
 			/* Pointer to a constant entry (in front end storage)
 			   giving the value for the literal constant. */
     /* When extra_info_kind == teik_pragma: */
-    struct a_pending_pragma
-		*pragmas;
+    a_pending_pragma_list
+		pragmas;
 			/* A list of pragmas associated with the next token
 			   in the cache. */
     /* When extra_info_kind == teik_pp_token: */
@@ -694,7 +694,7 @@ Copy-construct a new cached token base object from the given cached token base.
       }
       break;
     case teik_pragma:
-      this->extra_info.pragmas = make_copy_of_pragma_list(
+      new (&this->extra_info.pragmas) a_pending_pragma_list(
                                                      other.extra_info.pragmas);
       break;
     case teik_pp_token:
@@ -753,7 +753,8 @@ Move-construct a new cached token base object from the given cached token base.
       this->extra_info.constant = other.extra_info.constant;
       break;
     case teik_pragma:
-      this->extra_info.pragmas = other.extra_info.pragmas;
+      new (&this->extra_info.pragmas) a_pending_pragma_list(
+                                         move_from(&other.extra_info.pragmas));
       break;
     case teik_pp_token:
       new (&this->extra_info.pp_token_descr) a_pp_token_descr(
@@ -804,7 +805,7 @@ Destroy the current cached token base object.
       free_cached_token_constant(this->extra_info.constant);
       break;
     case teik_pragma:
-      free_pending_pragma_list(this->extra_info.pragmas);
+      free_pending_pragma_list(&this->extra_info.pragmas);
       break;
     case teik_pp_token:
       this->extra_info.pp_token_descr.~a_pp_token_descr();
@@ -3990,10 +3991,9 @@ INLINE void find_first_and_last_impl(
                                 an_Iterator_type        *last_token_it)
 /*
 This function sets *before_first_token_it to the token immediately preceding
-the first (non-pragma) token with a starting token sequence number greater than
-or equal to first_token_number.  *last_token_number is set to the last token in
-the cache with an ending token sequence number equal to or less than
-last_token_number.
+the first token with a starting token sequence number greater than or equal to
+first_token_number.  *last_token_number is set to the last token in the cache
+with an ending token sequence number equal to or less than last_token_number.
 
 If first_token_number is NO_TOKEN_SEQUENCE_NUMBER *before_first_token_it is set
 to the position immediately before the first token in the cache.  If
@@ -4022,9 +4022,6 @@ token in the cache.
       const a_shared_token &tok = (*cache)[(size_t)first_idx];
 
       curr_tsn = tok->get_starting_seq_number();
-      if (tok->is_pragma()) {
-        continue;
-      }  /* if */
 
       if (curr_tsn < first_token_number) {
         *before_first_token_it = an_Iterator_type(cache, (int)first_idx);

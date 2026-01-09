@@ -1860,8 +1860,8 @@ typedef struct a_member_decl_info {
 		named_overrides;
 			/* A list of symbols representing named override
 			   specifiers in C++/CLI mode. */
-  a_pending_pragma_ptr
-		suspended_pragmas;
+  a_pending_pragma_list
+		*suspended_pragmas;
 			/* A list of current construct pragmas that were
 			   temporarily "suspended" because this declaration's
 			   processing may have to be delayed until after other
@@ -28907,7 +28907,7 @@ storage specifier may affect whether the property/event is static or not.
 {
   a_member_decl_info_ptr  decl_info = class_state->pe_info;
   a_decl_parse_state      *dps = &decl_info->decl_state;
-  a_pending_pragma_ptr    new_pragmas;
+  a_pending_pragma_list   *new_pragmas;
 
   /* Since the property or event "head" was scanned, we may have encountered
      new pragmas: Temporarily set them aside and restore any pragmas that were

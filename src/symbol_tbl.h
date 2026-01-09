@@ -70,7 +70,20 @@ typedef struct a_def_arg_expr_fixup *a_def_arg_expr_fixup_ptr;
    itself is defined in pragma.h.  This allows the pointer to be made
    available to symbol_tbl.h without creating recursive reference problems. */
 typedef struct a_pending_pragma *a_pending_pragma_ptr;
-typedef struct a_pending_pragma const* const a_const_pending_pragma_list;
+
+/* Specialize the copy constructor to prevent issues with a_pending_pragma
+   being an incomplete type. */
+template<>
+Shared_obj<a_pending_pragma, FE_allocator>::Shared_obj(
+                            const Shared_obj<a_pending_pragma, FE_allocator>&);
+
+using a_shared_pending_pragma = Shared_obj<a_pending_pragma>;
+			/* The type used for a pending pragma potentially
+			   shared between multiple pending pragma lists. */
+
+using a_pending_pragma_list = Dyn_array<a_shared_pending_pragma>;
+			/* The type used for a list of pending pragmas. */
+
 
 /* The pointer to a_translation_unit is declared here even though the struct
    itself is defined in trans_unit.h.  This allows the pointer to be made
@@ -2714,8 +2727,8 @@ typedef struct a_template_symbol_supplement {
 			   instantiated in the current scope stack, this is the
 			   symbol for the template instantiation that triggered
 			   the suppression; otherwise, NULL. */
-  a_pending_pragma_ptr
-		pragmas_bound_to_template;
+  a_pending_pragma_list
+		*pragmas_bound_to_template;
 			/* A list of pbk_next_construct pragmas to be bound
 			   to each instance generated from this template. */
   a_token_sequence_number

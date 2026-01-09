@@ -14072,34 +14072,28 @@ state, as indicated by a comment immediately preceding the current function
 definition.
 */
 {
-  a_pending_pragma_ptr           ppp;
-  a_routine_type_supplement_ptr  rtsp = NULL;
-  
-  rtsp = routine_symbol_type(rout_sym)->variant.routine.extra_info;
   /* Determine whether a lint argsused comment immediately preceded this
      function definition. */
-  ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_argsused, rout_sym,
-                                 (a_statement_ptr)NULL,
-                                 /*curr_scope_only=*/FALSE);
-  if (ppp != NULL) {
+  a_routine_type_supplement_ptr  rtsp =
+                     routine_symbol_type(rout_sym)->variant.routine.extra_info;
+  a_pending_pragma_list          ppl = extract_specific_pragmas(
+                                                    pk_lint_argsused, rout_sym,
+                                                    (a_statement_ptr)NULL,
+                                                    /*curr_scope_only=*/FALSE);
+
+  if (!ppl.is_empty()) {
     /* There is a currently active argsused comment. */
     rtsp->lint_argsused_flag = TRUE;
-    /* The pending-pragma entry has been unlinked from the scope stack entry
-       list, but it still must be returned to the available list. */
-    free_pending_pragma_list(ppp);
   }  /* if */
   if (!rtsp->prototyped) {
     /* Determine whether a lint varargs count comment immediately preceded this
        function definition. */
-    ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_varargs_count,
-                                   rout_sym, (a_statement_ptr)NULL,
+    ppl = extract_specific_pragmas(pk_lint_varargs_count, rout_sym,
+                                   (a_statement_ptr)NULL,
                                    /*curr_scope_only=*/FALSE);
-    if (ppp != NULL) {
+    if (!ppl.is_empty()) {
       /* There is a currently active varargs comment. */
-      rtsp->lint_varargs_count = ppp->variant.lint_varargs_count;
-      /* The pending-pragma entry has been unlinked from the scope stack entry
-         list, but it still must be returned to the available list. */
-      free_pending_pragma_list(ppp);
+      rtsp->lint_varargs_count = ppl[0]->variant.lint_varargs_count;
     }  /* if */
   }  /* if */
 }  /* record_lint_argsused_and_varargs_state */

@@ -250,9 +250,10 @@ processed by the front-end proper.
 */
 /* a_pending_pragma_ptr declared earlier. */
 typedef struct a_pending_pragma {
-  a_pending_pragma_ptr
-		next;
-			/* Next element in a list of pragmas. */
+  a_pending_pragma(a_pragma_kind_description_ptr pkdp);
+  INLINE a_pending_pragma(const a_pending_pragma &other) = default;
+  ~a_pending_pragma();
+
   a_pragma_kind_description_ptr
 		descr_ptr;
 			/* Pointer to the structure that describes the
@@ -335,8 +336,8 @@ EXTERN_THREAD a_pragma_kind_description_ptr
                 pragma_kind_descriptions;
 			/* Pointer to a linked list of pragma descriptions. */
 
-EXTERN_THREAD a_pending_pragma_ptr
-		curr_token_pragmas;
+EXTERN_THREAD a_pending_pragma_list
+		*curr_token_pragmas;
 			/* A list of pending pragma entries for any
 			   pragmas the immediately preceded the current
 			   token. */
@@ -349,14 +350,6 @@ EXTERN_THREAD a_pragma_kind_description_ptr
 			   if the pragma has been added to the list of
 			   active pragma descriptions through an
 			   add_pragma_description call. */
-
-
-EXTERN_THREAD a_pending_pragma_ptr
-		avail_pending_pragmas;
-			/* Information about data structures used for
-                           managing pending pragma information.  This is
-			   initialized in lexical.c. */
-
 
 #if DEBUG
 
@@ -384,23 +377,17 @@ extern void test_next_construct_pragma(a_pending_pragma_ptr  ppp,
 				       a_statement_ptr	     stmt_ptr);
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
 
-extern a_pending_pragma_ptr alloc_pending_pragma
-					(a_pragma_kind_description_ptr pkdp);
+extern a_pending_pragma_list make_copy_of_pragma_list(
+                                        const a_pending_pragma_list &old_list);
 
-extern a_pending_pragma_ptr make_copy_of_pragma_list(
-                                       a_pending_pragma const* const old_list);
+extern a_pending_pragma_list make_fresh_copy_of_pragmas_on_list(
+                                        const a_pending_pragma_list &old_list);
 
-extern a_pending_pragma_ptr make_fresh_copy_of_pragmas_on_list(
-                                       a_pending_pragma const* const old_list);
+extern void free_pending_pragma_list(a_pending_pragma_list *pplp);
 
-extern a_pending_pragma_ptr make_copy_of_pending_pragmas_on_list(
-                                       a_pending_pragma const* const old_list);
+extern void add_to_curr_token_pragma_list(const a_shared_pending_pragma &spp);
 
-extern void free_pending_pragma(a_pending_pragma_ptr ppp);
-
-extern void free_pending_pragma_list(a_pending_pragma_ptr ppp);
-
-extern void add_to_curr_token_pragma_list(a_pending_pragma_ptr ppp);
+extern void add_to_curr_token_pragma_list(const a_pending_pragma_list &list);
 
 extern a_boolean select_curr_construct_pragmas(a_boolean  add_to_list);
 
@@ -410,8 +397,8 @@ extern void add_pragma_to_il(a_pending_pragma_ptr  ppp,
                              a_boolean             is_global);
 
 extern
-a_pending_pragma_ptr add_curr_token_pseudo_pragma(a_pragma_kind      kind,
-						  a_source_position *pos);
+a_shared_pending_pragma add_curr_token_pseudo_pragma(a_pragma_kind      kind,
+                                                     a_source_position *pos);
 
 extern void create_il_entry_for_pragma(a_pending_pragma_ptr ppp,
                                        a_symbol_ptr         sym,
@@ -421,22 +408,22 @@ extern void process_immediate_pragmas(void);
 
 extern void process_curr_token_pragmas(void);
 
-extern void end_of_scope_pragma_processing(a_pending_pragma_ptr ppp);
+extern void end_of_scope_pragma_processing(const a_pending_pragma_list &ppl);
 
 extern void cannot_bind_to_curr_construct(void);
 
 extern void discard_curr_construct_pragmas(void);
 
-extern a_pending_pragma_ptr extract_curr_construct_pragmas();
+extern a_pending_pragma_list* extract_curr_construct_pragmas();
 
 extern
-void reactivate_curr_construct_pragmas(a_pending_pragma_ptr pragma_list);
+void reactivate_curr_construct_pragmas(a_pending_pragma_list *pplp);
 
-extern
-a_pending_pragma_ptr extract_specific_pragmas(a_pragma_kind   kind,
+extern a_pending_pragma_list extract_specific_pragmas(
+                                              a_pragma_kind   kind,
                                               a_symbol_ptr    sym,
                                               a_statement_ptr sp,
-					      a_boolean	      curr_scope_only);
+                                              a_boolean       curr_scope_only);
 
 extern void process_curr_construct_pragmas(a_symbol_ptr     sym,
                                            a_statement_ptr  sp);

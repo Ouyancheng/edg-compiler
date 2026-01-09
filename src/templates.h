@@ -262,8 +262,8 @@ typedef struct a_tmpl_decl_state {
   a_boolean	decl_token_cache_used;
 			/* TRUE if the declaration token cache was saved as
 			   part of the template that was declared. */
-  a_pending_pragma_ptr
-		pragmas_bound_to_template;
+  a_pending_pragma_list
+		*pragmas_bound_to_template;
 			/* A list of next-construct pragmas that appeared
 			   before this template declaration. */
   a_template_ptr

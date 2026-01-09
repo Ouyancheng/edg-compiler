@@ -3923,8 +3923,8 @@ module (via reenter_scope_for_module) that should be restored when done reusing
 the scope (via exit_scope_for_module).
 */
 struct a_module_scope_reuse_state {
-  a_pending_pragma_ptr
-                curr_construct_pragmas;
+  a_pending_pragma_list
+                *curr_construct_pragmas;
                         /* This is what was originally in
                            curr_construct_pragmas before the module load
                            occurred. */
@@ -3989,6 +3989,8 @@ modules.
 {
   /* Restore the saved state from the state stack. */
   a_module_scope_reuse_state &state = module_reuse_state_stack->back_elem();
+
+  delete_fe(&ssep->curr_construct_pragmas);
   ssep->curr_construct_pragmas = state.curr_construct_pragmas;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   ssep->source_sequence_entries_disallowed =
@@ -4105,7 +4107,9 @@ called if scope_push_status is mspk_unattempted.
   } else {
     a_scope_stack_entry_ptr ssep = &scope_stack_top();
     check_assertion(ssep->module_load_context_count > 0 &&
-                    ssep->curr_construct_pragmas == NULL);
+                    (ssep->curr_construct_pragmas == NULL ||
+                     ssep->curr_construct_pragmas->is_empty()));
+    delete_fe(&ssep->curr_construct_pragmas);
     exit_scope_for_module(ssep);
     ssep->module_load_context_count--;
   }  /* if */
@@ -9695,21 +9699,17 @@ being popped.
     check_for_unclosed_if_exists_blocks();
   }  /* if */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-  if (ssep->curr_construct_pragmas != NULL && is_at_least_one_error()) {
-    /* There should be no items remaining on the list.  If any errors
-       occurred, the list items may be a result of the errors.  Discard
-       the items on the list.  If no errors have been issued, an internal
-       error will be issued below. */
-    free_pending_pragma_list(ssep->curr_construct_pragmas);
-    ssep->curr_construct_pragmas = NULL;
-  }  /* if */
   /* There should be no entries left on the curr_construct_pragmas list when
      the scope stack is popped. */
-  check_assertion_str2(ssep->curr_construct_pragmas == NULL,
-		       "pop_scope:", "curr_construct_pragmas != NULL");
+  check_assertion_or_expect_error_str2(
+                               (ssep->curr_construct_pragmas == NULL ||
+                                ssep->curr_construct_pragmas->is_empty()),
+                               "pop_scope:", "curr_construct_pragmas != NULL");
+  delete_fe(&ssep->curr_construct_pragmas);
   if (ssep->pending_pragmas != NULL) {
     /* Issue diagnostics on any pragmas that are still on the pending list. */
-    end_of_scope_pragma_processing(ssep->pending_pragmas);
+    end_of_scope_pragma_processing(*ssep->pending_pragmas);
+    delete_fe(&ssep->pending_pragmas);
   }  /* if */
   if (!C_mode()) {
     /* If the scope specified additional using directives, clear all of the

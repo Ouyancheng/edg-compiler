@@ -218,7 +218,7 @@ at the beginning of get_token need to be done.
 */
 #define recalc_any_initial_get_token_tests_needed()                           \
                                 (any_initial_get_token_tests_needed =         \
-                                   (curr_token_pragmas != NULL ||             \
+                                   (!curr_token_pragmas->is_empty() ||        \
                                     !cached_token_rescan_stack->is_empty() || \
                                     reusable_cache_stack != NULL) ||          \
                                     embed_control.in_process)
@@ -3178,8 +3178,7 @@ significantly reduce the instruction count.
 */
 struct a_token_factory {
   static INLINE a_shared_token copy_curr_token();
-  static INLINE a_shared_token copy_curr_pragma_as_token(
-                                                       a_boolean for_reusable);
+  static INLINE a_shared_token copy_curr_pragma_as_token();
   static INLINE a_shared_token build_constant(a_constant_ptr          cp,
                                               const a_source_position *pos,
                                               a_token_kind            kind);
@@ -3301,40 +3300,23 @@ Construct and return a shared token representing the current token.
 }  /* a_token_factory::copy_curr_token */
 
 
-a_shared_token a_token_factory::copy_curr_pragma_as_token(
-                                                        a_boolean for_reusable)
+a_shared_token a_token_factory::copy_curr_pragma_as_token()
 /*
 Construct and return a shared token representing the current token's pragmas.
-
-If this token is being constructed for a reusable cache, for_reusable should be
-TRUE; otherwise, it should be FALSE.
 */
 {
   /* Use the token sequence number information for the current token to
      maintain ordering of the token sequence. */
   a_shared_token result = shared_obj<an_immutable_cached_token>(
-                                          tok_error,
-                                          curr_token_pragmas->pragma_position,
-                                          curr_token_pragmas->pragma_position,
-                                          curr_token_sequence_number,
-                                          last_token_sequence_number_of_token);
-  auto           &extra_info = result->extra_info;
+                                     tok_error,
+                                     (*curr_token_pragmas)[0]->pragma_position,
+                                     (*curr_token_pragmas)[0]->pragma_position,
+                                     curr_token_sequence_number,
+                                     last_token_sequence_number_of_token);
 
   check_assertion(curr_token_pragmas != NULL);
   result->extra_info_kind = teik_pragma;
-  extra_info.pragmas = curr_token_pragmas;
-  if (for_reusable) {
-    /* If the cache is reusable, clear the has_been_processed flag so that
-       any immediate pragmas will be processed again when the cache is
-       rescanned (the flag is not used for other kinds of pragmas). */
-    a_pending_pragma_ptr ppp;
-    for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
-      ppp->has_been_processed = FALSE;
-    }  /* for */
-  }  /* if */
-
-  /* Clear the current token pragmas. */
-  curr_token_pragmas = NULL;
+  new (&result->extra_info.pragmas) a_pending_pragma_list(*curr_token_pragmas);
   return result;
 }  /* a_token_factory::copy_curr_pragma_as_token */
 
@@ -3421,6 +3403,7 @@ function for most use cases and see it for a description of the arguments.
   a_shared_token result = build_cached_token(tok_error, seq, pos);
 
   result->extra_info_kind = teik_pragma;
+  new (&result->extra_info.pragmas) a_pending_pragma_list();
   return result;
 }  /* a_token_factory::build_tok_pragma */
 
@@ -3776,9 +3759,8 @@ This is used to save tokens for later rescanning.
   /* If there are any pragmas associated with the current token, create
      a token cache entry to preserve the pragma information before adding
      the token cache entry for the current token. */
-  if (curr_token_pragmas != NULL && !suppress_pragma_processing) {
-    cache->append_token(detail::a_token_factory::copy_curr_pragma_as_token(
-                                                          cache->is_reusable));
+  if (!curr_token_pragmas->is_empty() && !suppress_pragma_processing) {
+    cache->append_token(detail::a_token_factory::copy_curr_pragma_as_token());
   }  /* if */
   cache->append_token(detail::a_token_factory::copy_curr_token());
 }  /* cache_curr_token */
@@ -4438,16 +4420,12 @@ cache rescan strategies.
   a_shared_token pragma_tok;
 
   /* Create a copy of the current token state so that it is not lost.  The
-     copied token(s) will be pushed onto the current token rescan stack.
-
-     Note that the token rescan stack is -- conceptually -- a non-reusable
-     token cache; thus these copies are not "for_reusable". */
-  if (curr_token_pragmas != NULL && !suppress_pragma_processing) {
+     copied token(s) will be pushed onto the current token rescan stack. */
+  if (!curr_token_pragmas->is_empty() && !suppress_pragma_processing) {
     /* If there are any pragmas associated with the current token, create a
        token cache entry to preserve the pragma information before adding the
        token cache entry for the current token. */
-    pragma_tok = detail::a_token_factory::copy_curr_pragma_as_token(
-                                                     /*for_reusable=*/FALSE);
+    pragma_tok = detail::a_token_factory::copy_curr_pragma_as_token();
   }  /* if */
   cached_token_rescan_stack->emplace_back(
                                detail::a_token_factory::copy_curr_token());
@@ -4469,7 +4447,7 @@ placed at the end of the rescan list so that it will be fetched again
 after the rescanned tokens have been gotten.  discard_curr_token is TRUE
 if the current token should be discarded, FALSE if the token should be
 retained.  If there are no tokens in the cache, nothing is done (except
-that the current token may be discarded).  
+that the current token may be discarded).
 */
 {
   db_enter(4, "rescan_cached_tokens");
@@ -4683,13 +4661,16 @@ pragma entries, it is possible for there to be no actual token.
     if (!token->is_pragma()) {
       break;
     }  /* if */
-
     /* Set the current token pragma list to point to the pragmas associated
        with the cached token. */
     check_assertion_str(!suppress_pragma_processing,
                     "get_token_from...: pragma found in suppress_pragma mode");
-    curr_token_pragmas = make_copy_of_pending_pragmas_on_list(
-                                                    *token->get_pragma_list());
+
+    a_pending_pragma_list pragma_list =
+                           make_copy_of_pragma_list(*token->get_pragma_list());
+    for (a_shared_pending_pragma &spp : pragma_list) {
+      curr_token_pragmas->push_back(spp);
+    }  /* for */
     if (cached_token_rescan_stack->is_empty()) {
       *no_tokens_on_stack = TRUE;
       curr_token = tok_error;
@@ -4875,8 +4856,12 @@ equivalent change.
          with the cached token. */
       check_assertion_str(!suppress_pragma_processing,
                     "get_token_from...: pragma found in suppress_pragma mode");
-      curr_token_pragmas =
+
+      a_pending_pragma_list pragma_list = 
                  make_fresh_copy_of_pragmas_on_list(*token->get_pragma_list());
+      for (a_shared_pending_pragma &spp : pragma_list) {
+        curr_token_pragmas->push_back(spp);
+      }  /* for */
     }  /* if */
   }  /* for */
   /* When fetch_pp_tokens is FALSE, make sure that the token being retrieved
@@ -11654,7 +11639,6 @@ normal_comment:
                that are fixed and should always be present and checked; 0 is
                assumed if the number is omitted. */
             a_lint_varargs_count varargs_count = 0;
-            a_pending_pragma_ptr ppp;
 
             curr_char_loc += 7;
             varargs_count = 0;
@@ -11681,9 +11665,11 @@ normal_comment:
             }  /* if */
 #endif /* DEBUG */
             determine_comment_pos_if_not_yet_done();
-            ppp = add_curr_token_pseudo_pragma(pk_lint_varargs_count,
-                                               &comment_start_pos);
-            ppp->variant.lint_varargs_count = varargs_count;
+
+            a_shared_pending_pragma spp = add_curr_token_pseudo_pragma(
+                                                         pk_lint_varargs_count,
+                                                         &comment_start_pos);
+            spp->variant.lint_varargs_count = varargs_count;
           }  /* if */
         }  /* if */
         /* Scan to the * / marking the end.  This may involve reading extra
@@ -15400,12 +15386,12 @@ the cache.
   a_boolean		keep_tokens;
   a_boolean		is_dependent;
   a_source_position	start_pos;
-  a_pending_pragma_ptr	saved_curr_token_pragmas;
+  a_pending_pragma_list	saved_curr_token_pragmas;
 
   /* Clear the curr_token_pragmas list so that it can be restored after the
      tokens of the __if_exists directive have been scanned. */
-  saved_curr_token_pragmas = curr_token_pragmas;
-  curr_token_pragmas = NULL;
+  saved_curr_token_pragmas = *curr_token_pragmas;
+  curr_token_pragmas = new_fe<a_pending_pragma_list>();
   start_pos = pos_curr_token;
   /* Bypass the directive token. */
   (void)get_token();
@@ -15476,24 +15462,12 @@ called.  If a pragma appears in an invalid location, if_exists_pragma
 is called, resulting in a diagnostic.
 */
 {
-  a_pending_pragma_ptr	ppp;
-  a_pending_pragma_ptr	prev_ppp = NULL;
-  a_pending_pragma_ptr	next_ppp;
+  auto is_if_exists_pragma =
+                          [](const a_shared_pending_pragma &spp) -> a_boolean {
+    return spp->descr_ptr->kind == pk_if_exists;
+  };
 
-  for (ppp = curr_token_pragmas; ppp != NULL; ppp = next_ppp) {
-    next_ppp = ppp->next;
-    if (ppp->descr_ptr->kind == (a_pragma_kind)pk_if_exists) {
-      /* Unlink this entry from the list of current token pragmas. */
-      if (prev_ppp == NULL) {
-        curr_token_pragmas = ppp->next;
-      } else {
-        prev_ppp->next = ppp->next;
-      }  /* if */
-      free_pending_pragma(ppp);
-    } else {
-      prev_ppp = ppp;
-    }  /* if */
-  }  /* for */
+  curr_token_pragmas.remove_if(is_if_exists_pragma);
 }  /* f_check_for_if_exists_pragmas */
 
 
@@ -15997,6 +15971,9 @@ tok_ud_literal; otherwise, return tok_string_literal.
        cache. */
     const_for_curr_token.variant.string.literal_kind = lit_kind;
     cache_curr_token(cache.ptr());
+    /* Clear the current token's pragmas so that they don't get processed by
+       the get_token call below. */
+    curr_token_pragmas->clear();
     /* Scan the next token.  Suppress string literal concatenation so that
        when scanning something like
          "aaa" "bbb" "ccc"
@@ -17379,16 +17356,22 @@ to speed in some cases.
 
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
-    /* Before fetching a new token, do any processing required for pragmas
-       that preceded the current token.  Don't do this when fetching
-       preprocessing tokens -- pragmas should only be processed when
-       a "real" token of the source program is fetched. */
-    if (curr_token_pragmas != NULL &&
-        !suppress_pragma_processing) {
+    /* Before fetching a new token, do any processing required for pragmas that
+       preceded the current token.  Don't do this when fetching preprocessing
+       tokens -- pragmas should only be processed when a "real" token of the
+       source program is fetched.  Additionally, when tokens are being recorded
+       for a cache, do not perform any pragma processing. */
+    if (!curr_token_pragmas->is_empty() && !suppress_pragma_processing &&
+        !caching_tokens) {
       process_curr_token_pragmas();
       recalc_any_initial_get_token_tests_needed();
     }  /* if */
 restart:
+    /* Clear any pragmas from the prior token before (potentially) loading a
+       previously cached token. */
+    if (!suppress_pragma_processing) {
+      curr_token_pragmas->clear();
+    }  /* if */
     /* If there are cached tokens to be rescanned, first check the
        cached_token_rescan_stack and take the first token from the top of the
        stack (if any); otherwise check the reusable cache stack. */
@@ -17465,6 +17448,10 @@ restart:
         goto return_curr_token;
       }  /* if */
     }  /* if */
+  }  /* if */
+  /* Clear any pragmas from the prior token before starting a new token. */
+  if (!suppress_pragma_processing) {
+    curr_token_pragmas->clear();
   }  /* if */
   assign_curr_token_sequence_number();
 rescan_token:
@@ -19164,6 +19151,12 @@ to alter the consistency check at the end of the routine.
 {
   a_lexical_state_stack_entry_ptr lssep = curr_lexical_state_stack_entry;
 
+  /* Ensure that when finishing caching tokens, the current token's pragmas are
+     cleared.  This in turn ensure that the next call to get_token does not
+     process the pragmas left over from building the token cache. */
+  if (caching_tokens && !suppress_pragma_processing) {
+    curr_token_pragmas->clear();
+  }  /* if */
   /* Unlink this entry from the stack. */
   curr_lexical_state_stack_entry = lssep->next;
   /* Either this is the final pop, and the lexical state stack entry should be
@@ -28189,20 +28182,19 @@ pos_in_temp_text_buffer by the number of characters added.
 }  /* add_token_to_string */
 
 
-static void add_pragmas_to_string(a_const_pending_pragma_list pragmas)
+static void add_pragmas_to_string(const a_pending_pragma_list &pragmas)
 /*
 If the current token has any pragmas associated with it, add strings to
 represent them to temp_text_buffer.  Note that all pragmas that are
 encountered, whatever their other characteristics, are included.
 */
 {
-  const a_pending_pragma *ppp;
-  a_boolean              is_pseudo_pragma;
-  a_seq_number           seq_incr = 0;
-  a_column_number        column_incr = 0;
+  a_boolean       is_pseudo_pragma;
+  a_seq_number    seq_incr = 0;
+  a_column_number column_incr = 0;
 
   db_enter(5, "add_pragmas_to_string");
-  for (ppp = pragmas; ppp != NULL; ppp = ppp->next) {
+  for (const a_shared_pending_pragma &ppp : pragmas) {
     a_boolean	is_pragma_directive;
     a_boolean	new_seq = ppp->pragma_position.seq >= curr_seq;
     is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
@@ -28998,9 +28990,7 @@ Display a single cached token.
     fprintf(f_debug, "  special kind: %s\n", s);
   }  /* if */
   if (tok.is_pragma()) {
-    const a_pending_pragma *ppp;
-
-    for (ppp = *tok.get_pragma_list(); ppp != NULL; ppp = ppp->next) {
+    for (const a_shared_pending_pragma &ppp : *tok.get_pragma_list()) {
       fprintf(f_debug, "  Pragma: %s\n",
               pragma_ids[(int)ppp->descr_ptr->kind]);
     }  /* for */
@@ -29711,8 +29701,6 @@ Display and return the amount of space used for various lexical tables.
   db_space_used_lost("cache stack entry", avail_reusable_cache_entries,
                      num_reusable_cache_entries_allocated,
                      a_reusable_cache_entry);
-  db_space_used_lost("pragma entries", avail_pending_pragmas,
-                     num_pragmas_allocated, a_pending_pragma);
   db_space_used_lost("stop token stack entry", avail_stop_token_stack_entries,
                      num_stop_token_stack_entries_allocated,
                      a_stop_token_stack_entry);
@@ -30165,7 +30153,6 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(last_token_sequence_number_used),
       pch_saved_var_array_elem(avail_cached_constants),
       pch_saved_var_array_elem(avail_reusable_cache_entries),
-      pch_saved_var_array_elem(avail_pending_pragmas),
       pch_saved_var_array_elem(avail_stop_token_stack_entries),
       pch_saved_var_array_elem(avail_lexical_state_stack_entries),
       pch_saved_var_array_elem(avail_token_ctrl_blocks),
@@ -30275,7 +30262,7 @@ done to determine whether a precompiled header may be used.
   last_source_line_modif_exited_while_skipping_white_space = NULL;
   preserve_white_space_kind = FALSE;
   delete_source_from_loc = NULL;
-  curr_token_pragmas = NULL;
+  curr_token_pragmas = new_fe<a_pending_pragma_list>();
   at_end_of_source_file = FALSE;
   /* Static variables in lexical.c: */
   curr_input_stream = NULL;
@@ -30383,7 +30370,6 @@ of the front end.
   avail_reusable_cache_entries = NULL;
   avail_stop_token_stack_entries = NULL;
   avail_lexical_state_stack_entries = NULL;
-  avail_pending_pragmas = NULL;
 #if GET_DEFINITION_OF_CLASS_NEEDED
   class_def_buffer = NULL;
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */

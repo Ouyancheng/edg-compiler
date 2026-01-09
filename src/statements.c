@@ -158,22 +158,19 @@ statement, and if one is found update the curr_reachability state so as to
 suppress warnings that might otherwise be issued later.
 */
 {
-  a_pending_pragma_ptr  ppp;
-
   /* Determine whether a lint notreached comment immediately preceded this
      statement.  (Note that we don't need to pass a statement pointer to
      extract_specific_pragmas since no IL entry is generated for lint
      notreached comments.) */
-  ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_notreached,
-                                 (a_symbol_ptr)NULL, (a_statement_ptr)NULL,
-                                 /*curr_scope_only=*/FALSE);
-  if (ppp != NULL) {
+  a_pending_pragma_list ppl = extract_specific_pragmas(
+                                        pk_lint_notreached, (a_symbol_ptr)NULL,
+                                        (a_statement_ptr)NULL,
+                                        /*curr_scope_only=*/FALSE);
+
+  if (!ppl.is_empty()) {
     /* There is a currently active notreached comment. */
     curr_reachability.reachable_considering_hints = FALSE;
     curr_reachability.suppress_unreachable_warning = TRUE;
-    /* The pending-pragma entry has been unlinked from the scope stack entry
-       list, but it still must be returned to the available list. */
-    free_pending_pragma_list(ppp);
   }  /* if */
 }  /* check_lint_notreached_state */
 

@@ -5740,11 +5740,6 @@ repl_token_kind is updated.
   a_token_cache_iterator first_token_it = before_first_token_it + 1;
   a_boolean              semicolon_inserted = repl_token_kind == tok_semicolon;
 
-  /* Skip over any pragmas that precede the first token of the body. */
-  while ((*first_token_it)->is_pragma()) {
-    ++first_token_it;
-  }  /* while */
-
   /* See if the last token in the cache is followed by an optional
      repl_token_kind token.  Only insert one if there is not already one
      there. */
@@ -7908,10 +7903,11 @@ expression context) rather than a declaration.
          template parameters are visible.  Pop the old instantiation scope
          and push a new one.  Transfer any pragmas from the previous
          context. */
-      a_scope_stack_entry_ptr	ssep = &scope_stack_top();
-      a_pending_pragma_ptr	saved_curr_construct_pragmas =
+      a_scope_stack_entry_ptr ssep = &scope_stack_top();
+      a_pending_pragma_list   *saved_curr_construct_pragmas =
                                                   ssep->curr_construct_pragmas;
-      a_pending_pragma_ptr	saved_pending_pragmas = ssep->pending_pragmas;
+      a_pending_pragma_list   *saved_pending_pragmas = ssep->pending_pragmas;
+
       ssep->curr_construct_pragmas = NULL;
       ssep->pending_pragmas = NULL;
       pop_template_instantiation_scope();
@@ -25955,7 +25951,7 @@ body.  The last token sequence number of the definition is returned in
       /* Save the token number of the last token of the definition. */
       *last_token_number = curr_token_sequence_number;
       /* Advance past the '}'. */
-      (void)get_token();
+      (void)get_token_to_be_cached();
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_attributes_enabled && curr_token == tok_attribute) {
@@ -33019,20 +33015,18 @@ parameter lists that were scanned.
     a_boolean	saved_pragmas = FALSE;
     if (sym != NULL) {
       if (tssp != NULL) {
-        /* A null pointer could be returned if the symbol has an invalid
-           kind because of an earlier error. */
-        a_pending_pragma_ptr	last_ppp;
-        /* Find the end of the current list of pragmas and append any new
-           pragmas from this declaration to the list. */
-        for (last_ppp = tssp->pragmas_bound_to_template; last_ppp != NULL;
-             last_ppp = last_ppp->next) {
-          if (last_ppp->next == NULL) break;
-        }  /* if */
-        if (last_ppp == NULL) {
-          tssp->pragmas_bound_to_template =
-                                        decl_state->pragmas_bound_to_template;
+        if (tssp->pragmas_bound_to_template != NULL) {
+          if (decl_state->pragmas_bound_to_template != NULL) {
+            tssp->pragmas_bound_to_template->insert(
+                              tssp->pragmas_bound_to_template->length(),
+                              decl_state->pragmas_bound_to_template->begin(),
+                              decl_state->pragmas_bound_to_template->length());
+            delete_fe(&decl_state->pragmas_bound_to_template);
+          }  /* if */
         } else {
-          last_ppp->next = decl_state->pragmas_bound_to_template;
+          tssp->pragmas_bound_to_template =
+                                         decl_state->pragmas_bound_to_template;
+          decl_state->pragmas_bound_to_template = NULL;
         }  /* if */
         saved_pragmas = TRUE;
       }  /* if */
@@ -33040,7 +33034,7 @@ parameter lists that were scanned.
     if (!saved_pragmas) {
       /* An error occurred earlier so we can't attach the pragmas to the
          template, so they need to be discarded. */
-      free_pending_pragma_list(decl_state->pragmas_bound_to_template);
+      delete_fe(&decl_state->pragmas_bound_to_template);
     }  /* if */
   }
   check_assertion_str2(tssp == NULL || tssp->il_template_entry != NULL,

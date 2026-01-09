@@ -1427,23 +1427,22 @@ caution when modifying this routine.
          namespace.  This depends on whether the implicitly declared type_info
          is expected to be in namespace "std" or in the global namespace. */
       if (i != (int)tik_last) {
-        a_pending_pragma_ptr  ppp;
         if (is_namespace_for_type_info_definition((a_type_info_kind)i)) {
           /* The identifier does indeed  name a type info type.  Check
              for  the pragma  that specifically  identifies it  as the
              type_info  that  is returned  by  typeid (typically,  the
              type_info defined in <typeinfo>). */
-          ppp = extract_specific_pragmas((a_pragma_kind)pk_define_type_info,
-                                         type_info_sym, (a_statement_ptr)NULL,
-                                         /*curr_scope_only=*/TRUE);
-          if (ppp != NULL) {
+          a_pending_pragma_list ppl = extract_specific_pragmas(
+                                          pk_define_type_info,
+                                          type_info_sym, (a_statement_ptr)NULL,
+                                          /*curr_scope_only=*/TRUE);
+          if (!ppl.is_empty()) {
             /* This is the one. */
             tag_sym = type_info_sym;
             /* RTTI is outside the "Embedded C++" subset. */
             feature_is_not_part_of_embedded_cplusplus_subset(
                                                 &pos_curr_token,
                                                 ec_rtti_in_embedded_cplusplus);
-            free_pending_pragma_list(ppp);
           } else {
             if (!pragma_define_type_info_is_required) {
               /* The pragma is not required (e.g., when the C++ generating

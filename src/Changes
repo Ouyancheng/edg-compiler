@@ -1,5 +1,15 @@
 Version 6.9
 
+2/17/26  [EDGcpfe/28636,EDGcpfe/23609,EDGcpfe/23845,EDGcpfe/23927,
+          EDGcpfe/24247,EDGcpfe/27220]
+Pragma processing corrections
+
+Pragma processing has been significantly simplified.  In configurations that
+generate template strings (RECORD_TEMPLATE_STRINGS=1) multiple bugs where the
+pragma was preserved in the wrong token cache or in the wrong position have
+been fixed.
+
+
 2/17/26  [EDGcpfe/28696]
 Constexpr array variable templates
 
