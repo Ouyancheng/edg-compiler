@@ -3231,6 +3231,10 @@ option values if they were not already set by a command line option.
       if (microsoft_version >= 1940 && ms_cpp23_mode) {
         elifdef_enabled = TRUE;
       }  /* if */
+      if (microsoft_version >= 1942 && ms_cpp23_mode) {
+          multi_subscript_enabled = TRUE;
+        }  /* if */
+      }  /* if */
       if (microsoft_version >= 1943) {
         if (ms_cpp23_mode) {
           /* These C++23 features are enabled in this mode. */
