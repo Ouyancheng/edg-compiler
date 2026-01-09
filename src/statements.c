@@ -2626,9 +2626,14 @@ Allocate and return a pointer to a temporary label entry.
 }  /* alloc_temp_label */
 
 
-static void define_label(a_label_ptr label)
+static void define_label(a_label_ptr  label,
+                         a_boolean    add_to_stmt_list = TRUE)
 /*
 Put out the definition for the indicated label.  If label == NULL, do nothing.
+By default, the associated statement is appended to the statement list
+currently active on the statement stack, but if add_to_stmt_list is FALSE,
+that is not done and the caller is responsible to place the resulting
+statement (which can be retrieved via label->exec_stmt).
 */
 {
   a_statement_ptr sp;
@@ -2640,9 +2645,13 @@ Put out the definition for the indicated label.  If label == NULL, do nothing.
     label->num_microsoft_trys_inside_of =
               struct_stmt_stack[depth_stmt_stack].num_microsoft_trys_inside_of;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    sp = add_statement_at_stmt_pos(stmk_label,
-                                   &label->source_corresp.decl_position,
-                                   /*compiler_generated=*/FALSE);
+    set_reachable(curr_reachability);
+    sp = alloc_statement(stmk_label, /*compiler_generated=*/FALSE);
+    sp->position = label->source_corresp.decl_position;
+    if (add_to_stmt_list) {
+      add_statement_list(sp, curr_reachability.reachable);
+    }  /* if */
+    struct_stmt_stack_top().p_start_pos = NULL;
     label->exec_stmt = sp;
     sp->variant.label.ptr = label;
   }  /* if */
@@ -2701,18 +2710,23 @@ done:
 }  /* common_object_lifetime */
 
 
-static void define_implicit_label(a_label_ptr               label,
-                                  a_control_flow_descr_ptr  goto_cfdp)
+static void define_implicit_label(
+                            a_label_ptr               label,
+                            a_control_flow_descr_ptr  goto_cfdp,
+                            a_boolean                 add_to_stmt_list = TRUE)
 /*
 Define the specified label, which will have been referenced by one or more
-goto statements represented by the linked list of control flow entries
-headed by goto_cfdp.
+goto statements represented by the linked list of control flow entries headed
+by goto_cfdp.  By default, the associated statement is appended to the
+statement list currently active on the statement stack, but if add_to_stmt_list
+is FALSE, that is not done and the caller is responsible to place the resulting
+statement (which can be retrieved via label->exec_stmt).
 */
 {
   an_object_lifetime_ptr    label_olp, *goto_olp_addr;
   a_control_flow_descr_ptr  cfdp = NULL;
 
-  define_label(label);
+  define_label(label, add_to_stmt_list);
   if (!C_mode() || vla_enabled) {
     /* Do special C++ processing -- it's not needed in C mode because it is
        only used to support object lifetimes.  It is needed in C for
@@ -5500,6 +5514,7 @@ The affinity can be an expression or the keyword "continue".
   a_range_based_for_loop_ptr rbflp = NULL;
   a_scope_pointers_block     iterator_pointers_block, rbf_pointers_block;
   a_boolean                  use_await = FALSE;
+  a_label_ptr                break_label = NULL;
 
   db_enter(3, "for_statement");
 
@@ -5745,6 +5760,36 @@ The affinity can be an expression or the keyword "continue".
   define_continue_label();
   /* End the condition block, if necessary. */
   if (is_condition_decl) finish_condition_block();
+  /* If there is a break label, create its associated "definition" (statement)
+     at this point, to ensure that the object lifetime associated with the
+     label is the "for" loop scope and not the init-statement scope (which
+     will be cleaned up after the "break" is executed).  Something like this:
+       struct D { D(); ~D(); operator bool(); };
+       void g() {
+         for (D d0; D d1;) {
+           D d2;
+           break;
+         }
+       }
+     is essentially equivalent to:
+       { D d0;
+         for (; D d1;) {
+           D d2;
+           goto break_label;  // Destroys d2 and d1, but not d0.
+         }
+         break_label:;
+         // Cleanup of d0 happens here.
+       }
+  */
+  { a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
+    break_label = sssep->break_label;
+    if (break_label != NULL) {
+      a_control_flow_descr_ptr  break_statements = sssep->break_statements;
+      define_implicit_label(break_label, break_statements,
+                            /*add_to_stmt_list=*/FALSE);
+      sssep->break_label = NULL;
+    }  /* if */
+  }
   if (is_range_based_for) {
     /* End the control flow block. */
     add_to_control_flow_descr_list(
@@ -5762,6 +5807,10 @@ The affinity can be an expression or the keyword "continue".
   }  /* if */
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  if (break_label != NULL) {
+    set_reachable(curr_reachability);
+    add_statement_list(break_label->exec_stmt, /*reachable=*/TRUE);
+  }  /* if */
   /* If a label appeared in the context of the statement that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */

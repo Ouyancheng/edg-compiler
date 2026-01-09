@@ -3017,7 +3017,8 @@ Dump a statement, for debug purposes.
         break;
       case stmk_label:
       case stmk_goto:
-        if (sp->variant.label.ptr->source_corresp.name != NULL) {
+        if (sp->variant.label.ptr != NULL &&
+            sp->variant.label.ptr->source_corresp.name != NULL) {
           fputs(" \"", f_debug);
           db_name(&sp->variant.label.ptr->source_corresp);
           fputc('"', f_debug);

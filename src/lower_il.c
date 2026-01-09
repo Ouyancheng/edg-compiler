@@ -18022,6 +18022,14 @@ and it was replaced by something else; see turn_statement_into_noop).
    (statement)->variant.block.extra_info->final_position.seq == 0)
 
 
+/*
+Return TRUE if the indicated statement is a break label.
+*/
+#define is_break_label_stmt(statement)                                \
+  ((statement)->kind == stmk_label &&                                 \
+   (statement)->variant.label.ptr->break_label)
+
+
 void lower_statement_list(a_statement_ptr statement_list,
                           a_statement_ptr *p_last_statement)
 /*
@@ -18044,6 +18052,11 @@ there are no statements on the list.
        again; when not lowering VLAs, new statements are also inserted before
        stmk_vla_decl statements). */
     statement_next = statement->next;
+    if (statement->kind == stmk_for &&
+        statement_next != NULL && is_break_label_stmt(statement_next)) {
+      /* A break label is really part of the preceding statement. */
+      statement_next = statement_next->next;
+    }  /* if */
     eff_statement = statement;
     code_pos_for_lowering = statement->position;
     error_position = code_pos_for_lowering;
@@ -19605,24 +19618,41 @@ sequence of statements starting with init_stmt.  Used in both C++ and C.
 static void lower_for_statement(a_statement_ptr statement)
 /*
 Do IL lowering of the indicated "for" statement and everything under it.
+If the "for" statement has an associated "break" label, lower it also.
 */
 {
   a_for_loop_ptr     flp = statement->variant.for_loop.extra_info;
   a_statement_ptr    for_stmt = statement;
-  a_statement_ptr    init_stmt = flp->initialization;
+  a_statement_ptr    init_stmt = flp->initialization, break_label_stmt = NULL;
   a_statement_ptr    block_stmt = NULL;
   a_scope_ptr        for_init_scope = flp->for_init_scope;
   a_context          context;
   an_insert_location insert_location;
 
+  if (for_stmt->next != NULL && is_break_label_stmt(for_stmt->next)) {
+    /* Note the presence of a break label. */
+    break_label_stmt = for_stmt->next;
+  }  /* if */
   if (for_init_scope != NULL) {
     /* With the "new" version of the for-loop, the scope of the for-init
        variable is its own block scope. */
     push_context(&context, for_init_scope, (an_object_lifetime_ptr)NULL);
+    if (break_label_stmt != NULL) {
+      /* Disconnect the break label so we can reconnect it after moving the
+         associated for-statement below. */
+      for_stmt->next = break_label_stmt->next;
+      break_label_stmt->next = NULL;
+    }  /* if */
     /* Put a block statement around the for-loop and attach the scope
        to that block. */
     block_stmt = for_stmt;
     turn_statement_into_block(for_stmt, &insert_location, &for_stmt);
+    if (break_label_stmt != NULL) {
+      /* Re-attach the break label after the "for" statement entry. */
+      check_assertion(for_stmt->next == NULL);
+      break_label_stmt->next = for_stmt->next;
+      for_stmt->next = break_label_stmt;
+    }  /* if */
     block_stmt->variant.block.extra_info->assoc_scope = for_init_scope;
     flp->for_init_scope = NULL;
     for_init_scope->assoc_block = block_stmt;
@@ -19654,12 +19684,19 @@ Do IL lowering of the indicated "for" statement and everything under it.
   lower_condition(for_stmt);
   if (for_init_scope != NULL) {
     if (for_init_scope->lifetime != NULL) {
-      /* Insert any destructions needed after the loop. */
-      set_insert_location(for_stmt, &insert_location);
+      /* Insert any destructions needed for for-init objects after the loop
+         (and after the "break" statement, if any, since breaking out of the
+         loop still requires cleaning up those objects). */
+      set_insert_location(break_label_stmt != NULL ? break_label_stmt
+                                                   : for_stmt,
+                          &insert_location);
       gen_cleanup_actions(for_init_scope->lifetime, &insert_location);
     }  /* if */
     /* Pop the context pushed for the for-init variable scope. */
     pop_context();
+  }  /* if */
+  if (break_label_stmt != NULL) {
+    lower_statement(break_label_stmt);
   }  /* if */
 }  /* lower_for_statement */
 

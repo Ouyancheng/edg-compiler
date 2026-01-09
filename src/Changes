@@ -1,5 +1,51 @@
 Version 6.9
 
+1/9/25   [EDGcpfe/28634]
+for-loop initialization and break statements
+
+Consider:
+
+  struct D { D(); ~D(); operator bool(); };
+  void g() {
+    for (D d0; D d1;) {
+      D d2;
+      break;
+    }
+  }
+
+The break statement is expressed in the IL as a special goto-label statement
+pair.  Previously, this transformation produced code more or less as follows:
+
+    { D d0;
+      for (; D d1;) {
+        D d2;
+        /* Clean up d2, d1, and d0. */
+        goto break_label;
+      }
+      /* Clean up d0 here. */
+      break_label:;
+    }
+
+I.e., the destruction of any variable declared in the for-loop initialization
+was done prior to "executing" the break label.  Now, instead, it is done
+after that "execution", resulting in transformed code more or less as follows:
+
+    { D d0;
+      for (; D d1;) {
+        D d2;
+        /* Clean up d2 and d1, but not d0. */
+        goto break_label;
+      }
+      break_label:;
+      /* Clean up d0 here. */
+    }
+
+The two representations are semantically equivalent, but the latter is a little
+more representationally efficient and it has the property that the break label
+statement remains immediately-following the associated for-loop statement in
+the IL.
+
+
 1/8/25   [EDGcpfe/28604]
 Regression causing assertion failure when using implicit includes
 
