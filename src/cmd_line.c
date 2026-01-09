@@ -3232,8 +3232,7 @@ option values if they were not already set by a command line option.
         elifdef_enabled = TRUE;
       }  /* if */
       if (microsoft_version >= 1942 && ms_cpp23_mode) {
-          multi_subscript_enabled = TRUE;
-        }  /* if */
+        multi_subscript_enabled = TRUE;
       }  /* if */
       if (microsoft_version >= 1943) {
         if (ms_cpp23_mode) {
