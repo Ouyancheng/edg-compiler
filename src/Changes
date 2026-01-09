@@ -4,7 +4,7 @@ Version 6.9
 Microsoft C++ compatibility: operator[]
 
 In Microsoft C++ modes with either microsoft_version >= 1942 and the option
---ms_c++latest or microsoft_version >= 1932 and the operation --ms_c++23, a
+--ms_c++latest or microsoft_version >= 1943 and the operation --ms_c++23, a
 user-declared operator[] can have zero or more parameters and those parameters
 can have default arguments (see also the changes for EDGcpfe/24785,... in
 version 6.8).
