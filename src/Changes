@@ -7,7 +7,7 @@ The front end can now evaluate __builtin_complex invocations in its
 constant-evaluation interpreter.
 
 
-1/8/25   [EDGcpfe/28620]
+1/8/26   [EDGcpfe/28620]
 Microsoft C++ compatibility: operator[]
 
 In Microsoft C++ modes with either microsoft_version >= 1942 and the option
