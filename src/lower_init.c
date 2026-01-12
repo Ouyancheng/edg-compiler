@@ -6765,80 +6765,84 @@ dealt with).
         /* Repeated ck_dynamic_init constant (or aggregate that contains a
            ck_dynamic_init). */
         check_assertion(!C_mode());
-        ipd.array_element_sequence = TRUE;
-        ipd.array_element_type = repeated_con->type;
-        if (con_ptr->variant.init_repeat.count == 0) {
-          /* If the repeat count is zero, this initialization is being used
-             to complete a partial-initialization of a variably-sized array.
-             Make a note of the starting element that needs initialization
-             (which could be zero, in cases like "new A[n] {}"). */
-          if (is_vla_type(aggr_type)) {
-            /* For VLA types (e.g., "A a[n] = {A()};"), determine the number
-               of elements in the array from the VLA type (which is assumed
-               to have been lowered already, if needed). */
-            ipd.num_elem_node = vla_dimension_expr_for_type(aggr_type);
-          }  /* if */
-          check_assertion(ipd.num_elem_node != NULL);
-          ipd.partial_initialization_starting_element =
+        if (con_ptr->variant.init_repeat.count == 0 &&
+            aggr_type->variant.array.bound_is_zero) {
+          /* Nothing to initialize here. */
+        } else {
+          ipd.array_element_sequence = TRUE;
+          ipd.array_element_type = repeated_con->type;
+          if (con_ptr->variant.init_repeat.count == 0) {
+            /* If the repeat count is zero, this initialization is being used
+               to complete a partial-initialization of a variably-sized array.
+               Make a note of the starting element that needs initialization
+               (which could be zero, in cases like "new A[n] {}"). */
+            if (is_vla_type(aggr_type)) {
+              /* For VLA types (e.g., "A a[n] = {A()};"), determine the number
+                 of elements in the array from the VLA type (which is assumed
+                 to have been lowered already, if needed). */
+              ipd.num_elem_node = vla_dimension_expr_for_type(aggr_type);
+            }  /* if */
+            check_assertion(ipd.num_elem_node != NULL);
+            ipd.partial_initialization_starting_element =
                                          (a_host_large_integer)ipmp->curr_elem;
-          if (!is_variably_modified_type(aggr_type) &&
-              is_array_type(array_element_type(aggr_type))) {
-            /* For the multi-dimensional array case, ensure that the
-               starting element takes into account all of the elements
-               that have already been initialized. */
-            a_host_large_integer num_elems =
-                        (a_host_large_integer)num_array_elements(
+            if (!is_variably_modified_type(aggr_type) &&
+                is_array_type(array_element_type(aggr_type))) {
+              /* For the multi-dimensional array case, ensure that the
+                 starting element takes into account all of the elements
+                 that have already been initialized. */
+              a_host_large_integer num_elems =
+                          (a_host_large_integer)num_array_elements(
                                                 array_element_type(aggr_type));
 
-            ipd.partial_initialization_starting_element *= num_elems;
-          }  /* if */
-        } else {
-          if (ipdp->array_element_sequence) {
-            /* Flatten multi-dimensional arrays. */
-            ipd.array_element_count = ipdp->array_element_count *
-                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+              ipd.partial_initialization_starting_element *= num_elems;
+            }  /* if */
           } else {
-            ipd.array_element_count =
+            if (ipdp->array_element_sequence) {
+              /* Flatten multi-dimensional arrays. */
+              ipd.array_element_count = ipdp->array_element_count *
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+            } else {
+              ipd.array_element_count =
+                          (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
+            }  /* if */
           }  /* if */
-        }  /* if */
-        if (repeated_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
-            repeated_con->variant.dynamic_init.ptr->kind !=
-                             (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-          /* Most repeated dynamic initialization can be handled without
-             invoking a generic "helper" routine (e.g., a dik_constructor will
-             invoke library routines that are effectively "helper" routines
-             and they take a repeated count). */
-          lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
-                                others_follow, insert_location, keep_constant,
-                                options);
-        } else {
-          /* The repeated constant is an aggregate that contains dynamic
-             initialization.  Such initialization requires a looping construct
-             but it's likely that this initialization occurs in an expression
-             context where looping statements cannot be used.  Create a
-             "helper" routine that invokes the lowered code for repeated_con
-             in a loop and invoke that routine here.  This is a recursion of
-             sorts (as lower_dynamic_init_aggregate_constant will be re-invoked
-             to lower repeated_con, but in the context of a different
-             function). */
-          an_expr_node_ptr  args;
-          /* Call the routine: helper(ptr, count); */
-          check_assertion(con_ptr->variant.init_repeat.constant != NULL);
-          args = make_address_of_init_entity_node(&ipd,
-                                                  /*using_as_dest=*/FALSE);
-          if (con_ptr->variant.init_repeat.count == 0) {
-            /* The repeat count isn't known at compilation time; use
-               ipd.num_elem_node for the count. */
-            check_assertion(ipd.num_elem_node != NULL);
-            args->next = make_reusable_copy(ipd.num_elem_node,
-                                            /*vars_can_change=*/TRUE);
+          if (repeated_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
+              repeated_con->variant.dynamic_init.ptr->kind !=
+                              (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+            /* Most repeated dynamic initialization can be handled without
+               invoking a generic "helper" routine (e.g., a dik_constructor
+               will invoke library routines that are effectively "helper"
+               routines and they take a repeated count). */
+            lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
+                                  others_follow, insert_location,
+                                  keep_constant, options);
           } else {
-            args->next = node_for_host_large_integer(
+            /* The repeated constant is an aggregate that contains dynamic
+               initialization.  Such initialization requires a looping
+               construct but it's likely that this initialization occurs in an
+               expression context where looping statements cannot be used.
+               Create a "helper" routine that invokes the lowered code for
+               repeated_con in a loop and invoke that routine here.  This is a
+               recursion of sorts (as lower_dynamic_init_aggregate_constant
+               will be re-invoked to lower repeated_con, but in the context of
+               a different function). */
+            an_expr_node_ptr  args;
+            /* Call the routine: helper(ptr, count); */
+            check_assertion(con_ptr->variant.init_repeat.constant != NULL);
+            args = make_address_of_init_entity_node(&ipd,
+                                                    /*using_as_dest=*/FALSE);
+            if (con_ptr->variant.init_repeat.count == 0) {
+              /* The repeat count isn't known at compilation time; use
+                 ipd.num_elem_node for the count. */
+              check_assertion(ipd.num_elem_node != NULL);
+              args->next = make_reusable_copy(ipd.num_elem_node,
+                                              /*vars_can_change=*/TRUE);
+            } else {
+              args->next = node_for_host_large_integer(
                       (a_host_large_integer)con_ptr->variant.init_repeat.count,
                       targ_size_t_int_kind);
-          }  /* if */
-          make_call_statement(helper_routine_to_initialize_repeated_constant(
+            }  /* if */
+            make_call_statement(helper_routine_to_initialize_repeated_constant(
                                                                  repeated_con,
                                                                  args->type,
                                                                  dtor_case,
@@ -6846,10 +6850,11 @@ dealt with).
                                                                  others_follow,
                                                                  keep_constant,
                                                                  options),
-                              args, (an_expr_node_ptr)NULL, insert_location);
-          /* Remove the ck_init_repeat constant, in case the overall aggregate
-             is kept for the constant parts. */
-          remove_constant = TRUE;
+                                args, (an_expr_node_ptr)NULL, insert_location);
+            /* Remove the ck_init_repeat constant, in case the overall
+               aggregate is kept for the constant parts. */
+            remove_constant = TRUE;
+          }  /* if */
         }  /* if */
       } else {
         /* Some constant that doesn't contain a ck_dynamic_init; lower it
