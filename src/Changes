@@ -74,7 +74,7 @@ Assertion failure on zero-length array initialization
 In configurations that use lowering, the lowering of an array with zero
 elements had, in some cases, caused an assertion failure in
 lower_dynamic_init_aggregate_constant.  This regression was introduced in
-version 6.8 (by the Changes for EDGcpfe/28106) and is now fixed.  For example,
+version 6.8 (by the changes for EDGcpfe/28106) and is now fixed.  For example,
 with --g++:
 
   struct A {

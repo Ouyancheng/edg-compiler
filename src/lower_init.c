@@ -6812,7 +6812,7 @@ dealt with).
             /* Most repeated dynamic initialization can be handled without
                invoking a generic "helper" routine (e.g., a dik_constructor
                will invoke library routines that are effectively "helper"
-               routines and they take a repeated count). */
+               routines and they take a repeat count). */
             lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
                                   others_follow, insert_location,
                                   keep_constant, options);
