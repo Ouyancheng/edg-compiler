@@ -18536,6 +18536,30 @@ done:
 }  /* do_constexpr_intaddr */
 
 
+static a_boolean do_constexpr_builtin_complex(
+                                       an_interpreter_state  *ips,
+                                       an_expr_node_ptr      expr,
+                                       a_byte                *result_storage,
+                                       ARG_UNUSED a_byte     *complete_object)
+/*
+Evaluate, if possible, the given __builtin_complex expression.  If successful,
+return TRUE and store the result in *result_storage.  Otherwise, return FALSE
+and record a diagnostic in *ips.
+*/
+{
+  a_boolean         result = TRUE;
+  an_expr_node_ptr  args = expr->variant.builtin_operation.operands;
+
+  result = do_constexpr_expression(ips, args, 
+                                   (a_byte*)&cx_value(result_storage)->real,
+                                   complete_object) &&
+           do_constexpr_expression(ips, args->next, 
+                                   (a_byte*)&cx_value(result_storage)->imag,
+                                   complete_object);
+  return result;
+}  /* do_constexpr_builtin_complex */
+
+
 static a_boolean translate_target_bytes_to_interpreter_object(
                                    an_interpreter_state  *ips,
                                    a_type_ptr            type,
@@ -19039,47 +19063,40 @@ storage within the given complete object).  Otherwise, return FALSE and update
 
   switch (expr->variant.builtin_operation.kind) {
     case bok_offsetof:
-      if (!do_constexpr_offsetof(ips, expr,
-                                 result_storage, complete_object)) {
-        do_constexpr_fail(result);
-      }  /* if */
+      result = do_constexpr_offsetof(ips, expr, result_storage,
+                                     complete_object);
       break;
     case bok_intaddr:
-      if (!do_constexpr_intaddr(ips, expr, result_storage, complete_object)) {
-        do_constexpr_fail(result);
-      }  /* if */
+      result = do_constexpr_intaddr(ips, expr, result_storage,
+                                    complete_object);
+      break;
+    case bok_builtin_complex:
+      result = do_constexpr_builtin_complex(ips, expr, result_storage,
+                                            complete_object);
       break;
     case bok_builtin_addressof:
       { an_expr_node_ptr  opnd1 = expr->variant.builtin_operation.operands;
         if (opnd1->is_lvalue || opnd1->is_xvalue) {
-          if (!do_constexpr_expression(ips, opnd1, result_storage,
-                                       complete_object)) {
-            do_constexpr_fail(result);
-          }  /* if */
+          result = do_constexpr_expression(ips, opnd1, result_storage,
+                                           complete_object);
         } else {
           unexpected_condition();
         }  /* if */
       }
       break;
     case bok_builtin_bit_cast:
-      if (!do_constexpr_builtin_bit_cast(ips, expr, result_storage,
-                                         complete_object)) {
-        do_constexpr_fail(result);
-      }  /* if */
+      result = do_constexpr_builtin_bit_cast(ips, expr, result_storage,
+                                             complete_object);
       break;
     case bok_is_pointer_interconvertible_with_class:
     case bok_builtin_is_pointer_interconvertible_with_class:
-      if (!do_constexpr_is_pointer_interconvertible_with_class(ips, expr,
-                                            result_storage, complete_object)) {
-        do_constexpr_fail(result);
-      }  /* if */
+      result = do_constexpr_is_pointer_interconvertible_with_class(
+                                  ips, expr, result_storage, complete_object);
       break;
     case bok_is_corresponding_member:
     case bok_builtin_is_corresponding_member:
-      if (!do_constexpr_is_corresponding_member(ips, expr, result_storage,
-                                                complete_object)) {
-        do_constexpr_fail(result);
-      }  /* if */
+      result = do_constexpr_is_corresponding_member(ips, expr, result_storage,
+                                                    complete_object);
       break;
     default:
       do_constexpr_fail(result);

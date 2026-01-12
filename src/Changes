@@ -1,5 +1,12 @@
 Version 6.9
 
+1/12/25  [EDGcpfe/28638]
+Constant evaluation of __builtin_complex
+
+The front end can now evaluate __builtin_complex invocations in its
+constant-evaluation interpreter.
+
+
 1/8/25   [EDGcpfe/28620]
 Microsoft C++ compatibility: operator[]
 
