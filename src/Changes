@@ -37,8 +37,9 @@ pair.  Previously, this transformation produced code more or less as follows:
     }
 
 I.e., the destruction of any variable declared in the for-loop initialization
-was done prior to "executing" the break label.  Now, instead, it is done
-after that "execution", resulting in transformed code more or less as follows:
+was done in two places, before the "goto" and also before the break label.
+Now, instead, it is done only following the break label, resulting in
+transformed code more or less as follows:
 
     { D d0;
       for (; D d1;) {

@@ -19685,8 +19685,8 @@ If the "for" statement has an associated "break" label, lower it also.
   if (for_init_scope != NULL) {
     if (for_init_scope->lifetime != NULL) {
       /* Insert any destructions needed for for-init objects after the loop
-         (and after the "break" statement, if any, since breaking out of the
-         loop still requires cleaning up those objects). */
+         (and after the "break" label statement, if any, since breaking out of
+         the loop still requires cleaning up those objects). */
       set_insert_location(break_label_stmt != NULL ? break_label_stmt
                                                    : for_stmt,
                           &insert_location);
