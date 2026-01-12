@@ -1,7 +1,11 @@
 Version 6.9
 
-1/12/26  [EDGcpfe/28634]
-for-loop initialization and break statements
+1/12/26  [EDGcpfe/28639]
+Inconsistent initialization of local_static_constexpr_enabled
+
+The thread-local variable local_static_constexpr_enabled was not consistently
+initialized when MULTIPLE_THREAD_COMPILATION is TRUE.  This is now fixed.
+
 
 Consider:
 

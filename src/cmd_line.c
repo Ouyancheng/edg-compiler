@@ -13005,9 +13005,11 @@ variables declared in cmd_line.h.
   consteval_enabled = FALSE;
   constinit_enabled = FALSE;
   relaxed_constexpr_enabled = FALSE;
+  local_static_constexpr_enabled = FALSE;
   constexpr_virtual_enabled = FALSE;
   constexpr_try_enabled = FALSE;
   constexpr_dynamic_alloc_enabled = FALSE;
+  constexpr_implies_const = TRUE;
   adl_for_non_visible_templates = FALSE;
   relaxed_typename_enabled = FALSE;
   relaxed_specialization_access_checking = FALSE;
@@ -13510,7 +13512,6 @@ variables declared in cmd_line.h.
   std_override_modifiers_enabled = FALSE;
   define_portable_feature_test_macros = TRUE;
   sized_deallocation_enabled = FALSE;
-  constexpr_implies_const = TRUE;
   struct_bindings_enabled = FALSE;
   selection_initializers_enabled = FALSE;
   mangle_had_been_implicitly_const = FALSE;
