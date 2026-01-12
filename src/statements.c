@@ -2650,8 +2650,9 @@ statement (which can be retrieved via label->exec_stmt).
     sp->position = label->source_corresp.decl_position;
     if (add_to_stmt_list) {
       add_statement_list(sp, curr_reachability.reachable);
+      struct_stmt_stack_top().any_exec_statement_seen = TRUE;
+      struct_stmt_stack_top().p_start_pos = NULL;
     }  /* if */
-    struct_stmt_stack_top().p_start_pos = NULL;
     label->exec_stmt = sp;
     sp->variant.label.ptr = label;
   }  /* if */
