@@ -10425,11 +10425,11 @@ to FALSE and the reason for the failure is recorded in *ips.
           a_type_ptr    tp = skip_typerefs(args->type);
           a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
           if (!*p_result) break;
-          check_assertion(is_real_floating_type(tp));
           if (alloc_complete_object(ips, n_bytes, tp, arg1_bytes) &&
               do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
-            a_float_kind  fk = tp->variant.float_kind;
-            if (!do_constexpr_builtin_fptest(callee, fk, fp_value(arg1_bytes),
+            if (!is_real_floating_type(tp) ||
+                !do_constexpr_builtin_fptest(callee, tp->variant.float_kind,
+                                             fp_value(arg1_bytes),
                                              result_storage)) {
               info_with_pos(ec_constexpr_fp_error, &call_node->position, ips);
               do_constexpr_fail(*p_result);

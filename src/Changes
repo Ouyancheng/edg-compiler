@@ -1,5 +1,18 @@
 Version 6.9
 
+1/13/26  [EDGcpfe/28641]
+GCC and Clang C compatibility: Constant-evaluation of some built-ins
+
+Consider, in GCC or Clang C mode:
+
+  int arr[__builtin_strlen("abc")];
+
+Previously, this resulted in errors because traditional C and C++03 constant
+expressions can only involve integral constant operands.  Now, that constraint
+is lifted for certain built-in functions (like __builtin_strlen) and the
+example above is accepted.
+
+
 1/12/26  [EDGcpfe/28639]
 Inconsistent initialization of local_static_constexpr_enabled
 

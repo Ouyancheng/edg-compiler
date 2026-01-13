@@ -7318,6 +7318,8 @@ and bound_function_selector are expected to be NULL in that case.
   a_boolean         has_overloaded_call_operator = FALSE;
   a_boolean         member_of_proto_inst = FALSE;
   a_boolean         saved_uses_this_operand = expr_stack->uses_this_operand;
+  an_expression_kind
+                    saved_expr_kind = expr_stack->expression_kind;
 
   db_enter(4, "scan_function_call");
   /* While processing this call, ensure that the "uses_this_operand" only
@@ -7422,6 +7424,18 @@ and bound_function_selector are expected to be NULL in that case.
       check_assertion(call_may_be_folded);
       scan_builtin_pseudo_call(operand, rcblock, result);
       goto done;
+    }  /* if */
+    if (call_may_be_folded && !constexpr_enabled &&
+        (int)expr_stack->expression_kind < (int)ek_normal) {
+      /* Function calls are normally not permitted in "traditional" (i.e.,
+         pre-constexpr) constant expression contexts.  However, some calls to
+         built-in functions are permitted and if they are, other constraints
+         on traditional constant expressions -- such as requiring integral
+         types -- are temporarily suspended.  That allows cases such as:
+           int xxx[__builtin_strlen("xxx")];
+         where the operand to the call is not of integral type. */
+      expr_stack->expression_kind = ek_normal;
+      expr_stack->favor_constant_result = TRUE;
     }  /* if */
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
@@ -8382,6 +8396,7 @@ and bound_function_selector are expected to be NULL in that case.
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 done:
   free_arg_list(arg_list);
+  expr_stack->expression_kind = saved_expr_kind;
   db_exit();
 }  /* scan_function_call */
 

@@ -11598,7 +11598,14 @@ the folding mechanism is used as a way to validate argument values.
     make_template_param_expr_constant(call_expr, result);
     folded = TRUE;
   }  /* if */
-  if (folded) copy_constant(result, result_con);
+  /* If folding was successful, store the result in *result_con.  If it wasn't
+     successful, but the call does not seem malformed, try evaluating it with
+     the interpreter (which can handle additional cases). */
+  if (folded) {
+    copy_constant(result, result_con);
+  } else if (*err_code == ec_no_error && fold_expr(call_expr, result_con)) {
+    folded = TRUE;
+  }  /* if */
   release_local_constant(&result);
 #if DEBUG
   if (folded && db_flag_is_set("folded_builtin")) {
