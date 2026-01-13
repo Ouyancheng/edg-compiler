@@ -18535,6 +18535,7 @@ done:
   return result;
 }  /* do_constexpr_intaddr */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static a_boolean do_constexpr_builtin_complex(
                                        an_interpreter_state  *ips,
@@ -18559,6 +18560,7 @@ and record a diagnostic in *ips.
   return result;
 }  /* do_constexpr_builtin_complex */
 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static a_boolean translate_target_bytes_to_interpreter_object(
                                    an_interpreter_state  *ips,
@@ -19070,10 +19072,12 @@ storage within the given complete object).  Otherwise, return FALSE and update
       result = do_constexpr_intaddr(ips, expr, result_storage,
                                     complete_object);
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
     case bok_builtin_complex:
       result = do_constexpr_builtin_complex(ips, expr, result_storage,
                                             complete_object);
       break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case bok_builtin_addressof:
       { an_expr_node_ptr  opnd1 = expr->variant.builtin_operation.operands;
         if (opnd1->is_lvalue || opnd1->is_xvalue) {
