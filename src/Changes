@@ -7,6 +7,9 @@ The thread-local variable local_static_constexpr_enabled was not consistently
 initialized when MULTIPLE_THREAD_COMPILATION is TRUE.  This is now fixed.
 
 
+1/12/26  [EDGcpfe/28634]
+for-loop initialization and break statements
+
 Consider:
 
   struct D { D(); ~D(); operator bool(); };
