@@ -1,5 +1,12 @@
 Version 6.9
 
+1/14/26  [EDGcpfe/28642]
+GNU compatibility: GCC 16 builtins
+
+The front end has been updated with the latest builtin signatures from
+GCC version 16 (based on the 20260111 pre-release snapshot).
+
+
 1/13/26  [EDGcpfe/28641]
 GCC and Clang C compatibility: Constant-evaluation of some built-ins
 
