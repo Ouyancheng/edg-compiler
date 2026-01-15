@@ -1,5 +1,24 @@
 Version 6.9
 
+1/15/26  [EDGcpfe/28635]
+C++-generating back end, Microsoft compatibility: dependent operator template
+calls
+
+As a workaround for a bug in early versions of MSVC, the C++-generating
+back end previously omitted the "template" keyword in a dependent call to
+an operator template with an explicit template argument list when MSVC is
+the generated code target (see EDGcpfe/16078).  The most recent versions of
+MSVC now require the keyword to be present, however, and the previous bug
+has long been fixed, so the C++-generating back end will now suppress the
+keyword only when msvc_target_version_number is less than 1910.  For
+example, with --microsoft --msvc_target_version=1950 --parse_templates:
+
+  template<typename T> void t() {
+    T a;
+    a.template operator()<int>();   // Previously omitted "template"
+  }
+
+
 1/14/26  [EDGcpfe/28642]
 GNU compatibility: GCC 16 builtins
 
@@ -67117,7 +67136,7 @@ operator name followed by a "<" token but not prefixed with "template" in a
 template-dependent context is treated as if the "template" prefix were present.
 
 Furthermore, when MSVC_IS_GENERATED_CODE_TARGET is TRUE, the C++-generating
-back end not omits the "template" prefix in such cases.
+back end now omits the "template" prefix in such cases.
 
 
 5/19/16  [EDGcpfe/16807]

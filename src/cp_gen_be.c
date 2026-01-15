@@ -6237,10 +6237,10 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           con->variant.template_param.variant.unknown_function.opname_kind !=
                                                     (an_opname_kind)onk_none) {
         /* If this constant is for a dependent invocation of an overloaded
-           operator, make note of the fact; the Microsoft compiler has a
-           bug that causes it to issue spurious errors if an operator name
-           is qualified with the "template" keyword, so we must suppress it
-           for this case. */
+           operator, make note of the fact; early versions of the Microsoft
+           compiler had a bug that caused it to issue spurious errors if an
+           operator name is qualified with the "template" keyword, so we
+           must suppress it for this case. */
         is_unknown_function_operator = TRUE;
       }  /* if */
     } else if (is_enum_constant(con) && !con->is_named_constant_definition &&
@@ -6661,6 +6661,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                            /*insert_space=*/NULL)) ||
              (options & GN_TEMPLATE)) &&
             !(msvc_is_generated_code_target &&
+              msvc_target_version_number < 1910 &&
               is_unknown_function_operator))) {
           /* Issue the "template" keyword in a "X<T>::template Y<int>" name
              or in a "X<T>::template Y" default template argument for a
