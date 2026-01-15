@@ -20541,8 +20541,10 @@ Generate code for a class member or nonmember using-declaration.
         write_tok_str(":: ");
         qualifier = skip_lexical_typerefs(class_type);
       } else {
-        if (skip_typerefs(class_type)->
-                                 variant.class_struct_union.is_nonreal_class &&
+        a_type_ptr qual_type = skip_typerefs(class_type);
+        if ((type_is(qual_type, tk_template_param) ||
+             (is_immediate_class_type(qual_type) &&
+              qual_type->variant.class_struct_union.is_nonreal_class)) &&
             entry_kind == iek_type && !udp->is_inheriting_ctor) {
           /* This is a dependent member type, so the "typename" keyword is
              required. */

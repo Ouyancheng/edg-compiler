@@ -1,5 +1,21 @@
 Version 6.9
 
+1/15/26  [EDGcpfe/28644]
+C++-generating back end: dependent using declarations
+
+As a result of the changes for EDGcpfe/26294 in version 6.8, the
+C++-generating back end incorrectly dropped the "typename" keyword in a
+dependent using declaration naming a type.  This is now fixed.  For example,
+with --c++15:
+
+  template <typename> struct a;
+  template <typename b> using c = typename a<b>::d;
+  template <typename e> using h = c<e>;
+  template <typename e> class j {
+    using typename h<e>::l;   // Previously omitted "typename"
+  };
+
+
 1/15/26  [EDGcpfe/28635]
 C++-generating back end, Microsoft compatibility: dependent operator template
 calls
