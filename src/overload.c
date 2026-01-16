@@ -7961,9 +7961,10 @@ apply that would make one better than the other, and return
                  is_floating_type(param_type2)) {
         /* Prefer promotion to float (which is currently only possible from
            type __fp16) over promotion to double. */
-        if (param_type1->variant.float_kind == fk_float) {
+        if (skip_typerefs(param_type1)->variant.float_kind == fk_float) {
           cmp = 1;
-        } else if (param_type2->variant.float_kind == fk_float) {
+        } else if (skip_typerefs(param_type2)->variant.float_kind ==
+                                                                   fk_float) {
           cmp = -1;
         }  /* if */
       } else if (any_cfront_mode()) {

@@ -1,5 +1,15 @@
 Version 6.9
 
+1/16/26  [EDGcpfe/28647]
+Overload resolution with __fp16 argument
+
+The changes for EDGcpfe/28034 in version 6.8 of the front end introduced
+special handling for __fp16 types during overload resolution.  However, the
+change did not correctly account for uses of __fp16 through type aliases and
+such situations could lead to the new tie-breaker rule randomly being ignored.
+That is now fixed.
+
+
 1/15/26  [EDGcpfe/28644]
 C++-generating back end: dependent using declarations
 
