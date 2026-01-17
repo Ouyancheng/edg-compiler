@@ -9425,10 +9425,10 @@ elaborated-type-specifier, even if it would be required in some contexts.
   }  /* if */
   orig_type = type;
   if (is_template_param_or_nonreal_class_type(type)) {
-    poss_dep_type = type;
+    poss_dep_type = skip_typerefs(type);
   } else if (type->source_corresp.is_class_member &&
              is_template_param_or_nonreal_class_type(parent_class_of(type))) {
-    poss_dep_type = parent_class_of(type);
+    poss_dep_type = skip_typerefs(parent_class_of(type));
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   } else if (type_is(type, tk_typeref) &&
              is_typeref_kind(type, trk_name_qualifier)) {
@@ -9436,7 +9436,7 @@ elaborated-type-specifier, even if it would be required in some contexts.
     if (nqp != NULL && nqp->is_class &&
         is_template_param_or_nonreal_class_type(skip_lexical_typerefs(
                                                  nqp->qualifier.class_type))) {
-      poss_dep_type = nqp->qualifier.class_type;
+      poss_dep_type = skip_typerefs(nqp->qualifier.class_type);
     }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   }  /* if */
@@ -9598,6 +9598,10 @@ elaborated-type-specifier, even if it would be required in some contexts.
                elab_type_spec_needed_in_scope(refp, qual_scope))) {
             write_tok_str(tag_keyword(refp));
             write_space();
+          } else if (!suppress_typename_kwd && !is_declaration &&
+                     options == GN_DEPENDENT) {
+            write_tok_str("typename ");
+            typename_kwd_emitted = TRUE;
           }  /* if */
           if (trp->variant.typeref.is_global_qualified_name) {
             /* A name reference pointer can be NULL if only the global
@@ -20542,9 +20546,7 @@ Generate code for a class member or nonmember using-declaration.
         qualifier = skip_lexical_typerefs(class_type);
       } else {
         a_type_ptr qual_type = skip_typerefs(class_type);
-        if ((type_is(qual_type, tk_template_param) ||
-             (is_immediate_class_type(qual_type) &&
-              qual_type->variant.class_struct_union.is_nonreal_class)) &&
+        if (type_is(qual_type, tk_template_param) &&
             entry_kind == iek_type && !udp->is_inheriting_ctor) {
           /* This is a dependent member type, so the "typename" keyword is
              required. */
