@@ -20546,7 +20546,7 @@ Generate code for a class member or nonmember using-declaration.
         qualifier = skip_lexical_typerefs(class_type);
       } else {
         a_type_ptr qual_type = skip_typerefs(class_type);
-        if (type_is(qual_type, tk_template_param) &&
+        if (is_template_param_or_nonreal_class_type(qual_type) &&
             entry_kind == iek_type && !udp->is_inheriting_ctor) {
           /* This is a dependent member type, so the "typename" keyword is
              required. */
