@@ -4890,6 +4890,9 @@ a pointer to it.
   clear_tagged_ptr(idp->entity);
   idp->do_not_instantiate = FALSE;
   idp->attributes = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  idp->declared_type = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   idp->decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

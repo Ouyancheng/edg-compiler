@@ -1,5 +1,13 @@
 Version 6.9
 
+1/20/26  [EDGcpfe/28650]
+Missing field initialization in alloc_instantiation_directive
+
+In configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE, the code in
+alloc_instantiation_directive failed to initialize the declared_type field
+(that was added with the changes for EDGcpfe/26294 in version 6.8).
+
+
 1/19/26  [EDGcpfe/28648]
 Clang compatibility: Clang 22 builtins
 
