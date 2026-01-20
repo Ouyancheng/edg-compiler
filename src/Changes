@@ -29,9 +29,9 @@ That is now fixed.
 C++-generating back end: dependent using declarations
 
 As a result of the changes for EDGcpfe/26294 in version 6.8, the
-C++-generating back end incorrectly dropped the "typename" keyword in a
-dependent using declaration naming a type.  This is now fixed.  For example,
-with --c++15:
+C++-generating back end sometimes incorrectly dropped the "typename"
+keyword in a dependent using declaration naming a type.  This is now fixed.
+For example, with --c++14:
 
   template <typename> struct a;
   template <typename b> using c = typename a<b>::d;
