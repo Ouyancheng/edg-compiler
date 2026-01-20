@@ -1928,7 +1928,7 @@ multiple tuple elements.
               vector_type);
       }  /* if */
       if (multiplier > 1 && ((uint8_t)multiplier*element_type->size <= 8)) {
-        vector_type = make_riscv_vector_type(element_type, -multiplier,
+        vector_type = make_riscv_vector_type(element_type, (int8_t)-multiplier,
                                              tuple_elements);
         (void)enter_predefined_typedef(
               get_name_for_riscv_vector_type(name_prefix,
