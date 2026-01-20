@@ -608,6 +608,11 @@ extern a_boolean form_alignas_attributes(
                       an_il_to_str_output_control_block_ptr octl);
 
 #if GNU_EXTENSIONS_ALLOWED
+#if GNU_VECTOR_TYPES_ALLOWED
+extern Small_string<16> get_name_for_riscv_vector_type(
+                                                    a_const_char  *name_prefix,
+                                                    a_type_ptr    vector_type);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 #if BACK_END_IS_C_GEN_BE
 extern a_boolean form_type_attributes(

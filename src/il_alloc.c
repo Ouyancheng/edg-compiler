@@ -4456,6 +4456,10 @@ pointer to it.
     case pk_gcc_next_token:
       clear_gcc_pragma_descr(&pp->variant.gcc);
       break;
+#if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
+    case pk_gnu_riscv:
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("alloc_pragma: bad pragma kind");

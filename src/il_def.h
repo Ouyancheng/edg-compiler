@@ -6635,6 +6635,9 @@ enum a_pragma_kind : a_byte {
 #if GNU_EXTENSIONS_ALLOWED
   pk_gcc_immediate,     /* GCC pragmas (handled immediately). */
   pk_gcc_next_token,    /* GCC pragmas (handled as next token). */
+#if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
+  pk_gnu_riscv,         /* GCC RISC-V intrinsics. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   pk_diag_suppress,
   pk_diag_remark,
@@ -6742,6 +6745,9 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, pragma_ids, pk_last + 1)
 #if GNU_EXTENSIONS_ALLOWED
 /* pk_gcc_immediate */		"GCC",
 /* pk_gcc_next_token */		"GCC",
+#if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
+/* pk_gnu_riscv */		"riscv",
+#endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 /* pk_diag_suppress */		"diag_suppress",
 /* pk_diag_remark */		"diag_remark",
@@ -11958,8 +11964,14 @@ enum a_builtin_function_category : a_byte {
   bfc_arm_64_sme,	/* 64-bit ARM specific builtin function (arm_sme.h). */
   bfc_arm_64_sve,	/* 64-bit ARM specific builtin function (arm_sve.h). */
   bfc_riscv,		/* RISC-V specific builtin function. */
+  bfc_riscv_vector,	/* RISC-V specific builtin function
+			   (riscv_vector.h). */
   bfc_riscv_32,		/* 32-bit RISC-V specific builtin function. */
+  bfc_riscv_32_vector,	/* 32-bit RISC-V specific builtin function
+			   (riscv_vector.h). */
   bfc_riscv_64,		/* 64-bit RISC-V specific builtin function. */
+  bfc_riscv_64_vector,	/* 64-bit RISC-V specific builtin function
+			   (riscv_vector.h). */
   bfc_x86,		/* x86 specific builtin function. */
   bfc_x86_32,		/* 32-bit x86 specific builtin function. */
   bfc_x86_64,		/* 64-bit x86 specific builtin function. */

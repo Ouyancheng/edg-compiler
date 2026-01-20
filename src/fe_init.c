@@ -261,6 +261,9 @@ CONSTINIT_ARRAY(/* none */, a_function_pointer, function_pointers, fn_last + 1)
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   (a_function_pointer)gcc_pragma,
+#if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
+  (a_function_pointer)gnu_riscv_pragma,
+#endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   (a_function_pointer)diag_pragma,
   (a_function_pointer)diagnostic_pragma,

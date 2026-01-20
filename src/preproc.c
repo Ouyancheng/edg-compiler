@@ -3890,6 +3890,43 @@ Handle
   }  /* if */
 }  /* process_gnu_arm_pragma */
 
+
+void gnu_riscv_pragma(a_pending_pragma_ptr  ppp)
+/*
+Handle
+   #pragma riscv intrinsic "hdr"
+*/
+{
+  begin_rescan_of_pragma_tokens(ppp);
+  if (strcmp(locator_for_curr_id.symbol_header->identifier, "intrinsic")) {
+    pos_warning(ec_unrecognized_pragma, &error_position);
+  } else {
+    (void)get_token();
+    if (curr_token == tok_string_literal &&
+        is_normal_character_kind(const_for_curr_token.character_kind)) {
+      a_const_char  *header_name = const_for_curr_token.variant.string.value;
+      if (strcmp(header_name, "vector") == 0) {
+        enter_riscv_vector_predeclared_types(&ppp->pragma_position);
+        load_overloadable_builtin_symbols(bfc_riscv_vector);
+        if (target_is_64_bits()) {
+          load_overloadable_builtin_symbols(bfc_riscv_64_vector);
+        } else {
+          load_overloadable_builtin_symbols(bfc_riscv_32_vector);
+        }  /* if */
+      } else {
+        pos_warning(ec_unrecognized_pragma, &error_position);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  (void)get_token();
+  if (curr_token != tok_end_of_source) {
+    pos_warning(ec_extra_text_in_pp_directive, &error_position);
+  }  /* if */
+  /* Pass error_in_pragma as TRUE to avoid diagnostics; any needed diagnostic
+     will already have been issued. */
+  wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
+}  /* gnu_riscv_pragma */
+
 #endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 
 /* An entry on the GCC pragma options stack. */

@@ -2249,6 +2249,52 @@ to TRUE to indicate that a space will be needed after the attribute.
   *need_leading_space = TRUE;
 }  /* form_vector_type_attribute */
 
+
+Small_string<16> get_name_for_riscv_vector_type(a_const_char  *name_prefix,
+                                                a_type_ptr    vector_type)
+/*
+Returns the name of the given RISC-V vector type with the specified name
+prefix.
+*/
+{
+  Small_string<16>  name(name_prefix);
+  a_type_ptr        element_type;
+  int               length_multiplier;
+
+  check_assertion(vector_type->kind == tk_riscv_vector);
+  element_type = vector_type->variant.riscv_vector.element_type;
+  length_multiplier = vector_type->variant.riscv_vector.length_multiplier;
+  if (is_bool_type(element_type)) {
+    name.append("bool", length_multiplier, "_t");
+  } else {
+    unsigned tuple_elements = vector_type->variant.riscv_vector.tuple_elements;
+    if (element_type->kind == tk_integer) {
+      if (!is_signed_integral_type(element_type)) {
+        name.append("u");
+      }  /* if */
+      name.append("int", 8*element_type->size);
+    } else if (element_type->kind == tk_float) {
+      if (element_type->variant.float_kind == fk_std_bfloat16) {
+        name.append("bfloat16");
+      } else {
+        name.append("float", 8*element_type->size);
+      }  /* if */
+    } else {
+      unexpected_condition_str("unexpected element type kind");
+    }  /* if */
+    if (length_multiplier > 0) {
+      name.append("m", length_multiplier);
+    } else {
+      name.append("mf", -length_multiplier);
+    }  /* if */
+    if (tuple_elements != 1) {
+      name.append("x", tuple_elements);
+    }  /* if */
+    name.append("_t");
+  }  /* if */
+  return name;
+}  /* get_name_for_riscv_vector_type */
+
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
 
 static void form_type_specifier(a_type_ptr                            type,
@@ -2660,6 +2706,11 @@ by octl.
       break;
     case tk_scalable_vector_count:
       octl->output_str("__SVCount_t", octl);
+      break;
+    case tk_riscv_vector:
+      octl->output_str(get_name_for_riscv_vector_type(
+                                          "__rvv_", type).as_temp_characters(),
+                       octl);
       break;
     case tk_mfp8:
       octl->output_str("__mfp8", octl);

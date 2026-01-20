@@ -730,6 +730,7 @@ extern void enter_arm_32_mve_predeclared_types(a_source_position *decl_pos);
 extern void enter_arm_64_acle_predeclared_types(a_source_position *decl_pos);
 extern void enter_arm_64_neon_predeclared_types(a_source_position *decl_pos);
 extern void enter_arm_64_sve_predeclared_types(a_source_position *decl_pos);
+extern void enter_riscv_vector_predeclared_types(a_source_position *decl_pos);
 
 extern a_const_char *get_predefined_name_for_neon_vector_type(
                                                 a_type_ptr     element_type,
@@ -738,9 +739,6 @@ extern a_const_char *get_predefined_name_for_neon_vector_type(
 extern a_const_char *get_predefined_name_for_builtin_neon_vector_type(
                                                a_type_ptr     element_type,
                                                a_targ_size_t  vector_elements);
-
-Small_string<16> get_name_for_riscv_vector_type(a_const_char  *name_prefix,
-                                                a_type_ptr    vector_type);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */

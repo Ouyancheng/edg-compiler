@@ -1127,23 +1127,104 @@ void load_overloadable_builtin_symbols(a_builtin_function_category  bfc)
 Loop through each builtin declaration for the specified function category and
 declare each function that is enabled in the current emulation mode as an
 overloadable builtin function.
+
+Names starting with a '#' character, followed by a digit, indicate that the new
+name is formed from the previous name by stripping off the specified number of
+'_'-separated components and then appending the new suffix.
+
+A '@' character indicates that, in addition to the name specified, another
+overload is declared with a number of '_'-separated components removed from the
+name as follows: for the form "@n", the trailing n components are removed, and
+for the form "@nm", only the m components starting from the nth component from
+the end are removed.
 */
 {
   const a_builtin_descr *bdp;
+  Small_string<64>      name;
 
   for (bdp = builtin_tables[bfc]; bdp->name != NULL; bdp++) {
+    a_const_char  *p, *ovl_info = NULL;
+    p = bdp->name;
+    if (*p != '#') {
+      name = bdp->name;
+      while (*p != '\0' && *p != '@') {
+        ++p;
+      }  /* while */
+      name = a_string_view(bdp->name, (size_t)(p - bdp->name));
+    } else {
+      /* The new name shares a common prefix with the previous one. */
+      unsigned  nr_to_remove;
+      size_t    len = name.length();
+      ++p;
+      check_assertion(*p >= '0' && *p <= '9');
+      nr_to_remove = (unsigned)((*p) - '0');
+      ++p;
+      /* Skip over the specified number of '_'-separated components from the
+         end. */
+      while (nr_to_remove != 0) {
+        while (name[len - 1] != '_') --len;
+        --len;
+        --nr_to_remove;
+      }  /* while */
+      name.truncate_to(len);
+      /* Append the new suffix. */
+      for (len = 0; *p && *p != '@'; ++p) ++len;
+      name.append(a_string_view(bdp->name + 2, len));
+    }  /* if */
+    if (*p == '@') ovl_info = p + 1;
     if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
       a_symbol_locator  loc;
       a_const_char      *restrictions;
       clear_locator(&loc, &null_source_position);
-      (void)find_symbol(bdp->name, (sizeof_t)strlen(bdp->name), &loc);
+      (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
       loc.symbol_header->is_builtin_function = TRUE;
       loc.symbol_header->is_builtin_overloadable = TRUE;
       restrictions = builtin_condition_table[bdp->cond_index].restrictions;
       if (check_restrictions_met(restrictions, /*issue_error=*/FALSE)) {
         a_type_ptr  builtin_type =
                               builtin_function_type_for_index(bdp->type_index);
-        (void)enter_builtin_function(bdp->name, builtin_type, bdp->kind, &loc);
+        (void)enter_builtin_function(name.as_temp_characters(), builtin_type,
+                                     bdp->kind, &loc);
+        if (ovl_info != NULL) {
+          /* This builtin should also be added as an overload. */
+          Small_string<64>  ovl_name;
+          size_t            beg = 0, pos = name.length();
+          unsigned          nr_to_skip;
+          p = ovl_info;
+          check_assertion(*p >= '0' && *p <= '9');
+          nr_to_skip = (unsigned)(*p - '0');
+          ++p;
+          /* Skip over the specified number of '_'-separated components from
+             the end. */
+          while (nr_to_skip != 0) {
+            --pos;
+            while (name[pos - 1] != '_') --pos;
+            --nr_to_skip;
+          }  /* while */
+          ovl_name = a_string_view(name.as_temp_characters() + beg, pos - 1);
+          if (*p != '\0') {
+            check_assertion(*p >= '0' && *p <= '9');
+            /* Skip over the specified number of '_'-separated components
+               towards the end. */
+            nr_to_skip = (unsigned)(*p - '0');
+            while (nr_to_skip != 0) {
+              while (name[pos] != '_') ++pos;
+              ++pos;
+              --nr_to_skip;
+            }  /* while */
+            --pos;
+            /* Append the suffix to the overload name. */
+            ovl_name.append(a_string_view(name.as_temp_characters() + pos,
+                                          name.length() - pos));
+          }  /* if */
+          clear_locator(&loc, &null_source_position);
+          (void)find_symbol(ovl_name.as_temp_characters(), ovl_name.length(),
+                            &loc);
+          loc.symbol_header->is_builtin_function = TRUE;
+          loc.symbol_header->is_builtin_overloadable = TRUE;
+          (void)enter_builtin_function(ovl_name.as_temp_characters(),
+                                       builtin_type, bdp->kind, &loc);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -1820,52 +1901,6 @@ enter_scalable_vector_types for a description of the flags.
 }  /* enter_scalable_vector_types */
 
 
-Small_string<16> get_name_for_riscv_vector_type(a_const_char  *name_prefix,
-                                                a_type_ptr    vector_type)
-/*
-Returns the name of the given RISC-V vector type with the specified name
-prefix.
-*/
-{
-  Small_string<16>  name(name_prefix);
-  a_type_ptr        element_type;
-  int               length_multiplier;
-
-  check_assertion(vector_type->kind == tk_riscv_vector);
-  element_type = vector_type->variant.riscv_vector.element_type;
-  length_multiplier = vector_type->variant.riscv_vector.length_multiplier;
-  if (is_bool_type(element_type)) {
-    name.append("bool", length_multiplier, "_t");
-  } else {
-    unsigned tuple_elements = vector_type->variant.riscv_vector.tuple_elements;
-    if (element_type->kind == tk_integer) {
-      if (!is_signed_integral_type(element_type)) {
-        name.append("u");
-      }  /* if */
-      name.append("int", 8*element_type->size);
-    } else if (element_type->kind == tk_float) {
-      if (element_type->variant.float_kind == fk_std_bfloat16) {
-        name.append("bfloat16");
-      } else {
-        name.append("float", 8*element_type->size);
-      }  /* if */
-    } else {
-      unexpected_condition_str("unexpected element type kind");
-    }  /* if */
-    if (length_multiplier > 0) {
-      name.append("m", length_multiplier);
-    } else {
-      name.append("mf", -length_multiplier);
-    }  /* if */
-    if (tuple_elements != 1) {
-      name.append("x", tuple_elements);
-    }  /* if */
-    name.append("_t");
-  }  /* if */
-  return name;
-}  /* get_name_for_riscv_vector_type */
-
-
 static void enter_riscv_vector_types_for_element_type(
                                                a_const_char  *name_prefix,
                                                a_type_ptr    element_type,
@@ -1893,7 +1928,7 @@ multiple tuple elements.
               vector_type);
       }  /* if */
       if (multiplier > 1 && ((uint8_t)multiplier*element_type->size <= 8)) {
-        vector_type = make_riscv_vector_type(element_type, (int8_t)-multiplier,
+        vector_type = make_riscv_vector_type(element_type, -(int8_t)multiplier,
                                              (uint8_t)tuple_elements);
         (void)enter_predefined_typedef(
               get_name_for_riscv_vector_type(name_prefix,
@@ -1929,18 +1964,21 @@ types for multiple tuple elements.
               vector_type);
   }  /* for */
   for (unsigned bits = 8; bits <= 64; bits *= 2) {
-    unsigned    size_in_bytes = bits / 8;
+    unsigned         size_in_bytes = bits / 8;
+    an_integer_kind  int_kind;
 
-    element_type = integer_type(int_kind_for_size_and_alignment(
-                                               size_in_bytes,
+    int_kind = int_kind_for_size_and_alignment(size_in_bytes,
                                                (a_targ_alignment)size_in_bytes,
-                                               /*is_signed=*/TRUE));
+                                               /*is_signed=*/TRUE);
+    check_assertion(int_kind < ik_last);
+    element_type = integer_type(int_kind);
     enter_riscv_vector_types_for_element_type(name_prefix, element_type,
                                               enter_tuple_types);
-    element_type = integer_type(int_kind_for_size_and_alignment(
-                                               size_in_bytes,
+    int_kind = int_kind_for_size_and_alignment(size_in_bytes,
                                                (a_targ_alignment)size_in_bytes,
-                                               /*is_signed=*/FALSE));
+                                               /*is_signed=*/FALSE);
+    check_assertion(int_kind < ik_last);
+    element_type = integer_type(int_kind);
     enter_riscv_vector_types_for_element_type(name_prefix, element_type,
                                               enter_tuple_types);
   }  /* for */
@@ -2370,6 +2408,43 @@ is the declaration position to be used for the declarations.
                                   /*enter_multiple_tuple_elements=*/TRUE,
                                   /*strip_name_prefix=*/TRUE);
 }  /* enter_arm_64_sve_predeclared_types */
+
+
+void enter_riscv_vector_predeclared_types(a_source_position *decl_pos)
+/*
+Enter predeclared types for the RISC-V "riscv_vector.h" header file.  decl_pos
+is the declaration position to be used for the declarations.
+*/
+{
+  a_boolean   tuple_types_supported = gnu_version_is(>=140000);
+  a_boolean   bfloat16_supported = gnu_version_is(>=150000);
+  a_type_ptr  riscv_frm_type;
+  static constexpr an_enumerator_descr
+              riscv_frm_enumerators[] = {
+                {"__RISCV_FRM_RNE",  0},
+                {"__RISCV_FRM_RTZ",  1},
+                {"__RISCV_FRM_RDN",  2},
+                {"__RISCV_FRM_RUP",  3},
+                {"__RISCV_FRM_RMM",  4},
+                {NULL,              -1}
+  };
+  a_type_ptr  riscv_vxrm_type;
+  static constexpr an_enumerator_descr
+              riscv_vxrm_enumerators[] = {
+                {"__RISCV_VXRM_RNU",  0},
+                {"__RISCV_VXRM_RNE",  1},
+                {"__RISCV_VXRM_RDN",  2},
+                {"__RISCV_VXRM_ROD",  3},
+                {NULL,               -1}
+  };
+  riscv_frm_type = enter_unscoped_enum("__RISCV_FRM", decl_pos);
+  enter_unscoped_enumerators(riscv_frm_type, riscv_frm_enumerators, decl_pos);
+  riscv_vxrm_type = enter_unscoped_enum("__RISCV_VXRM", decl_pos);
+  enter_unscoped_enumerators(riscv_vxrm_type, riscv_vxrm_enumerators,
+                             decl_pos);
+  enter_all_riscv_vector_types("v", bfloat16_supported,
+                               tuple_types_supported);
+}  /* enter_riscv_vector_predeclared_types */
 
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
 

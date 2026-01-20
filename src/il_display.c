@@ -2139,6 +2139,9 @@ Return a string corresponding to the indicated type kind.
     case tk_scalable_vector_count:
       str = "tk_scalable_vector_count";
       break;
+    case tk_riscv_vector:
+      str = "tk_riscv_vector";
+      break;
     case tk_mfp8:
       str = "tk_mfp8";
       break;
@@ -2784,8 +2787,15 @@ Display the indicated type entry.
       disp_ptr("element_type",
                (char *)ptr->variant.scalable_vector.element_type,
                iek_type);
-      disp_unsigned_long("tuple_elements",
-                         ptr->variant.scalable_vector.tuple_elements);
+      disp_uint32("tuple_elements",
+                  ptr->variant.scalable_vector.tuple_elements);
+      break;
+    case tk_riscv_vector:
+      disp_ptr("element_type", (char *)ptr->variant.riscv_vector.element_type,
+               iek_type);
+      disp_int32("length_multiplier",
+                 ptr->variant.riscv_vector.length_multiplier);
+      disp_uint32("tuple_elements", ptr->variant.riscv_vector.tuple_elements);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:

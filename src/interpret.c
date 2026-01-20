@@ -3224,6 +3224,7 @@ redo:
       break;
     case tk_scalable_vector:
     case tk_scalable_vector_count:
+    case tk_riscv_vector:
     case tk_mfp8:
       { a_source_position  *pos = &tp->source_corresp.decl_position;
 #if DEBUG

@@ -378,6 +378,10 @@ possible.
     case pk_gcc_next_token:
       clear_gcc_pragma_descr(&ppp->variant.gcc);
       break;
+#if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
+    case pk_gnu_riscv:
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_PRAGMAS
     case pk_test_next_statement:
@@ -2063,6 +2067,23 @@ Initialize the pragma description table.
                  /*read_string_as_header_name=*/FALSE,
                  es_error);
   }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
+  if (gnu_version_is(any_version)) {
+    (void)add_immediate_pragma_kind_description
+                 (pk_gnu_riscv,
+                 fn_for_function(gnu_riscv_pragma),
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/TRUE,
+                 /*record_pragma_text=*/TRUE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/TRUE,
+                 /*fetch_pp_tokens=*/FALSE,
+                 /*ignore_in_back_end=*/FALSE,
+                 /*il_info_is_complete=*/TRUE,
+                 /*read_string_as_header_name=*/FALSE,
+                 es_error);
+  }
+#endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   (void)add_immediate_pragma_kind_description
                 ((a_pragma_kind)pk_diag_suppress,

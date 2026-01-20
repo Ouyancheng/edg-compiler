@@ -1,5 +1,12 @@
 Version 6.9
 
+1/20/26  [EDGcpfe/28572]
+GNU compatibility: "#pragma riscv intrinsic"
+
+The front end now supports the "#pragma riscv intrinsic" construct to support
+the GCC header file "riscv_vector.h" on RISC-V platforms.
+
+
 1/20/26  [EDGcpfe/28650]
 Missing field initialization in alloc_instantiation_directive
 
