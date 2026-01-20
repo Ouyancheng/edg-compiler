@@ -1911,25 +1911,25 @@ type.  If enter_tuple_types is TRUE, additionally create vector types for
 multiple tuple elements.
 */
 {
-  unsigned  max_tuple_elements = enter_tuple_types ? 8 : 1;
+  uint8_t  max_tuple_elements = enter_tuple_types ? 8 : 1;
 
-  for (unsigned multiplier = 1; multiplier <= 8; ++multiplier) {
-    for (unsigned tuple_elements = 1;
+  for (int8_t multiplier = 1; multiplier <= 8; ++multiplier) {
+    for (uint8_t tuple_elements = 1;
          tuple_elements <= max_tuple_elements;
          ++tuple_elements) {
       a_type_ptr  vector_type;
 
       if (multiplier*tuple_elements <= 8) {
-        vector_type = make_riscv_vector_type(element_type, (int8_t)multiplier,
-                                             (uint8_t)tuple_elements);
+        vector_type = make_riscv_vector_type(element_type, multiplier,
+                                             tuple_elements);
         (void)enter_predefined_typedef(
               get_name_for_riscv_vector_type(name_prefix,
                                              vector_type).as_temp_characters(),
               vector_type);
       }  /* if */
       if (multiplier > 1 && ((uint8_t)multiplier*element_type->size <= 8)) {
-        vector_type = make_riscv_vector_type(element_type, -(int8_t)multiplier,
-                                             (uint8_t)tuple_elements);
+        vector_type = make_riscv_vector_type(element_type, -multiplier,
+                                             tuple_elements);
         (void)enter_predefined_typedef(
               get_name_for_riscv_vector_type(name_prefix,
                                              vector_type).as_temp_characters(),
