@@ -4994,7 +4994,9 @@ created; the caller must set it.
                                      (a_name_linkage_kind)nlk_external &&
               !routine_types_are_redecl_compatible(
                                           type_ptr, rp->type, TCF_NO_FLAGS) &&
+#if BUILTIN_FUNCTIONS_ENABLED
               !sym->header->is_builtin_overloadable &&
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
               !(clang_mode && is_overloadable_c_sym(sym, idlbp))) {
             /* Illegal overloading involving two extern "C" functions with
                the same name.  Microsoft and GNU C++ compilers let this
