@@ -15745,6 +15745,9 @@ previously-scanned construct of this kind.  Either way, return the result in
       case tok_is_pointer_interconvertible_with_class:
         bok = bok_is_pointer_interconvertible_with_class;
         break;
+      case tok_builtin_is_virtual_base_of:
+        bok = bok_builtin_is_virtual_base_of;
+        break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -33997,6 +34000,7 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_is_trivially_equality_comparable:
     case tok_is_trivially_relocatable:
     case tok_is_bitwise_cloneable:
+    case tok_builtin_is_virtual_base_of:
       result = TRUE;
       break;
     default:
@@ -37019,6 +37023,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_trivially_equality_comparable:
     case tok_is_trivially_relocatable:
     case tok_is_bitwise_cloneable:
+    case tok_builtin_is_virtual_base_of:
     case tok_coroutine_yield:
     case tok_coroutine_await:
     case tok_lsplice:
@@ -43668,6 +43673,7 @@ handle_nullptr:
     case tok_reference_converts_from_temporary:
     case tok_is_layout_compatible:
     case tok_is_pointer_interconvertible_base_of:
+    case tok_builtin_is_virtual_base_of:
       /* Various binary type traits helper constructs: */
       scan_binary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);

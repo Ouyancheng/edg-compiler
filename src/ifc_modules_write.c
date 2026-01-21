@@ -4411,6 +4411,7 @@ a_token_kind for more information about IFC token serialization.
     case tok_builtin_has_attribute:
     case tok_builtin_is_corresponding_member:
     case tok_builtin_is_pointer_interconvertible_with_class:
+    case tok_builtin_is_virtual_base_of:
     case tok_builtin_offsetof:
 #if GNU_VECTOR_TYPES_ALLOWED
     case tok_builtin_shuffle:

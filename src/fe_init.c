@@ -862,6 +862,10 @@ modes.
   if (gnu_version_is(>=140000) || clang_version_is(>=160000)) {
     enter_keyword(tok_is_scoped_enum, "__is_scoped_enum");
   }  /* if */
+  if (gnu_version_is(>=150000) || clang_version_is(>=200000)) {
+    enter_keyword(tok_builtin_is_virtual_base_of,
+                  "__builtin_is_virtual_base_of");
+  }  /* if */
   enter_keyword(tok_has_trivial_move_constructor,
                 "__has_trivial_move_constructor");
   enter_keyword(tok_has_trivial_move_assign, "__has_trivial_move_assign");

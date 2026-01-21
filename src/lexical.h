@@ -1858,6 +1858,7 @@ EXTERN_CONSTINIT_ARRAY(an_opname_kind, opname_kind_for_token, tok_last + 1)
    onk_none,           /* tok_nullptr_t */
    onk_none,           /* tok_is_trivially_relocatable */
    onk_none,           /* tok_is_bitwise_cloneable */
+   onk_none,           /* tok_builtin_is_virtual_base_of */
    onk_last            /* tok_last */
 }
 #endif /* VAR_INITIALIZERS */

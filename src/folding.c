@@ -7848,17 +7848,19 @@ are issued at the position it indicates.
 
 static void fold_is_base_of(an_expr_node_ptr   expr,
                             a_constant_ptr     constant,
-                            a_boolean          maintain_expression)
+                            a_boolean          maintain_expression,
+                            a_boolean          is_virtual_base_of)
 /*
 expr is an enk_builtin_operation node for an __is_base_of operation.  If the
 operand types are nondependent, store a boolean constant in *constant.  The
 boolean constant will have value "true" if the operand types are (possibly
-qualified) class types the first of which is a base class of the second one;
-otherwise, the constant will have value "false".  If either of the operand
-types is dependent, store a ck_template_param constant in *constant.  The
-constant will be of the tpck_expression variant and will point to the given
-expression.  If maintain_expression is TRUE, the backing expression for
-the returned constant will be set as well.
+qualified) class types the first of which is a base class (or a virtual base
+class if is_virtual_base_of is TRUE) of the second one; otherwise, the constant
+will have value "false".  If either of the operand types is dependent, store a
+ck_template_param constant in *constant.  The constant will be of the
+tpck_expression variant and will point to the given expression.  If
+maintain_expression is TRUE, the backing expression for the returned constant
+will be set as well.
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
@@ -7880,8 +7882,35 @@ the returned constant will be set as well.
     type2 = skip_typerefs(type2);
     if (type1->kind != (a_type_kind)tk_union &&
         is_immediate_class_type(type1) && is_immediate_class_type(type2)) {
-      result = (same_entities(type2, type1) ||
-                find_base_class_of(type2, type1) != NULL);
+      if (is_virtual_base_of) {
+        complete_class_type_is_needed(type2);
+        if (!is_incomplete_type(type1) && !is_incomplete_type(type2)) {
+          /* See if the base class appears on the base class list for the
+             derived type. */
+          for (a_base_class_ptr bcp = base_classes_of(type2);
+               !result && bcp != NULL;
+               bcp = bcp->next) {
+            if (same_entities(bcp->type, type1)) {
+              if (bcp->is_virtual) {
+                result = TRUE;
+              } else if (gnu_version_is(any_version)) {
+                /* GCC also considers non-virtual base classes of virtual base
+                   classes to be virtual base classes. */
+                a_base_class_derivation_ptr  bcdp = bcp->derivation;
+                a_derivation_step_ptr        tail = bcdp->path_tail;
+                for (a_derivation_step_ptr  dsp = bcdp->path;
+                     !result && dsp != tail->next;
+                     dsp = dsp->next) {
+                  if (dsp->base_class->is_virtual) result = TRUE;
+                }  /* for */
+              }  /* if */
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      } else {
+        result = (same_entities(type2, type1) ||
+                  find_base_class_of(type2, type1) != NULL);
+      }  /* if */
     }  /* if */
     arg1->type_definition_needed = TRUE;
     arg2->type_definition_needed = TRUE;
@@ -10551,7 +10580,12 @@ constant is set as well.
                                      /*complete_class_property=*/FALSE);
         break;
       case bok_is_base_of:
-        fold_is_base_of(expr, constant, maintain_expression);
+        fold_is_base_of(expr, constant, maintain_expression,
+                        /*is_virtual_base_of=*/FALSE);
+        break;
+      case bok_builtin_is_virtual_base_of:
+        fold_is_base_of(expr, constant, maintain_expression,
+                        /*is_virtual_base_of=*/TRUE);
         break;
       case bok_is_convertible_to:
       case bok_is_convertible:
