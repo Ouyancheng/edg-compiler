@@ -6086,11 +6086,15 @@ be called to check and adjust the argument and routine types as needed.
     case bfk_elementwise_add_sat:
     case bfk_elementwise_sub_sat:
     case bfk_elementwise_pow:
+    case bfk_elementwise_clzg:
+    case bfk_elementwise_ctzg:
       bcap->n_args = 2;
       bcap->is_elementwise = TRUE;
       bcap->callback = adjust_elementwise_or_reduce_builtin;
       break;
     case bfk_elementwise_fma:
+    case bfk_elementwise_fshl:
+    case bfk_elementwise_fshr:
       bcap->n_args = 3;
       bcap->is_elementwise = TRUE;
       bcap->callback = adjust_elementwise_or_reduce_builtin;
@@ -6750,35 +6754,44 @@ resulting return type is determined for the routine.
   a_type_ptr    arg_type = NULL;
   a_routine_ptr rout = routine_from_function_operand(target);
   an_operand    *op1 = NULL;
+  int           n_args = bcap->n_args;
 
   *arg_list = NULL;
-  check_assertion(rout != NULL && bcap->n_args >= 1 && bcap->n_args <= 3);
+  check_assertion(rout != NULL && n_args >= 1 && n_args <= 3);
   if (args == NULL) {
     /* Must have at least one argument. */
     expr_pos_error(ec_too_few_arguments, closing_paren_position);
     err = TRUE;
-  } else if (bcap->n_args == 1 && args->next != NULL) {
+  } else if (n_args == 1 && args->next != NULL) {
     /* Must have exactly one argument. */
     expr_pos_error(ec_too_many_arguments, init_component_pos(args->next));
     err = TRUE;
-  } else if (bcap->n_args > 1 && args->next == NULL) {
-    /* Must have more than one argument. */
-    expr_pos_error(ec_too_few_arguments, closing_paren_position);
-    err = TRUE;
-  } else if (bcap->n_args == 2 && args->next->next != NULL) {
+  } else if (n_args > 1 && args->next == NULL) {
+    if (rout->variant.builtin_function_kind == bfk_elementwise_clzg ||
+        rout->variant.builtin_function_kind == bfk_elementwise_ctzg) {
+      /* The second argument for __builtin_elementwise_clzg and
+         __builtin_elementwise_ctzg is optional. */
+      n_args = 1;
+    } else {
+      /* Must have more than one argument. */
+      expr_pos_error(ec_too_few_arguments, closing_paren_position);
+      err = TRUE;
+    }  /* if */
+  } else if (n_args == 2 && args->next->next != NULL) {
     /* Must have exactly two arguments. */
     expr_pos_error(ec_too_many_arguments,init_component_pos(args->next->next));
     err = TRUE;
-  } else if (bcap->n_args > 2 && args->next->next == NULL) {
+  } else if (n_args > 2 && args->next->next == NULL) {
     /* Must have more than two arguments. */
     expr_pos_error(ec_too_few_arguments, closing_paren_position);
     err = TRUE;
-  } else if (bcap->n_args == 3 && args->next->next->next != NULL) {
+  } else if (n_args == 3 && args->next->next->next != NULL) {
     /* Must have exactly three arguments. */
     expr_pos_error(ec_too_many_arguments,
                    init_component_pos(args->next->next->next));
     err = TRUE;
-  } else {
+  }  /* if */
+  if (!err) {
     check_arg_list_elem_is_expression(args);
     op1 = operand_of_arg_list_elem(args);
     if (is_a_glvalue(op1)) {
@@ -6790,10 +6803,10 @@ resulting return type is determined for the routine.
       /* __builtin_elementwise_* case (with between one and three arguments).
          The return type is the same as the types of the argument(s). */
       return_type = arg_type;
-      if (bcap->n_args >= 2) {
+      if (n_args >= 2) {
         an_arg_list_elem_ptr  arg = args->next;
         if (!convert_to_prvalue_and_check_for_identical_types(arg_type, arg)) {
-          if (bcap->n_args == 2) {
+          if (n_args == 2) {
             expr_pos_error(ec_both_arguments_must_have_same_type,
                            init_component_pos(args));
           } else {
@@ -6803,7 +6816,7 @@ resulting return type is determined for the routine.
           err = TRUE;
         }  /* if */
       }  /* if */
-      if (!err && bcap->n_args >= 3) {
+      if (!err && n_args >= 3) {
         an_arg_list_elem_ptr  arg = args->next->next;
         if (!convert_to_prvalue_and_check_for_identical_types(arg_type, arg)) {
           expr_pos_error(ec_all_arguments_must_have_same_type,
@@ -6897,6 +6910,10 @@ resulting return type is determined for the routine.
           case bfk_elementwise_popcount:
           case bfk_elementwise_add_sat:
           case bfk_elementwise_sub_sat:
+          case bfk_elementwise_fshl:
+          case bfk_elementwise_fshr:
+          case bfk_elementwise_clzg:
+          case bfk_elementwise_ctzg:
             err = !is_integral_type(type);
             break;
           default:
@@ -6911,10 +6928,9 @@ resulting return type is determined for the routine.
     }  /* if */
   }  /* if */
   if (!err) {
-    a_type_ptr rout_type = make_routine_type(
-                                        return_type, arg_type,
-                                        (bcap->n_args >= 2) ? arg_type : NULL,
-                                        (bcap->n_args >= 3) ? arg_type : NULL);
+    a_type_ptr rout_type = make_routine_type(return_type, arg_type,
+                                             (n_args >= 2) ? arg_type : NULL,
+                                             (n_args >= 3) ? arg_type : NULL);
     /* Create a routine with the desired type. */
     a_symbol_ptr sym = builtin_with_particular_type(rout, rout_type);
     rout = sym->variant.routine.ptr;

@@ -1,5 +1,13 @@
 Version 6.9
 
+1/21/26  [EDGcpfe/28649]
+Clang compatibility: Special handling for new __builtin_elementwise_* builtins
+
+Clang 22 added new __builtin_elementwise_fshl, __builtin_elementwise_fshr,
+__builtin_elementwise_clzg, and __builtin_elementwise_ctzg builtins for which
+special handling is required.
+
+
 1/20/26  [EDGcpfe/28572]
 GNU compatibility: "#pragma riscv intrinsic"
 
