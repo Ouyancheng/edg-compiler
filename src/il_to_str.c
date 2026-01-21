@@ -2253,8 +2253,7 @@ to TRUE to indicate that a space will be needed after the attribute.
 Small_string<16> get_name_for_riscv_vector_type(a_const_char  *name_prefix,
                                                 a_type_ptr    vector_type)
 /*
-Returns the name of the given RISC-V vector type with the specified name
-prefix.
+Return the name of the given RISC-V vector type with the specified name prefix.
 */
 {
   Small_string<16>  name(name_prefix);

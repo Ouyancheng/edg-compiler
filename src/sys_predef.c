@@ -1132,7 +1132,7 @@ Names starting with a '#' character, followed by a digit, indicate that the new
 name is formed from the previous name by stripping off the specified number of
 '_'-separated components and then appending the new suffix.
 
-A '@' character indicates that, in addition to the name specified, another
+An '@' character indicates that, in addition to the name specified, another
 overload is declared with a number of '_'-separated components removed from the
 name as follows: for the form "@n", the trailing n components are removed, and
 for the form "@nm", only the m components starting from the nth component from
