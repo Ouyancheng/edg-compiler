@@ -5850,7 +5850,7 @@ in a new-expression).
   a_boolean                rescan_pushed = FALSE, nonfinal_pack_seen = FALSE;
   a_boolean                allocated_this_param = FALSE;
   a_boolean                gpp_init_list_ctor_param_case = FALSE;
-  an_operand               dummy_operand;
+  an_operand               this_operand;
   an_ovl_res_stack         *ovl_stack = ovl_res_stack();
   a_diag_list_ptr          notes = NULL;
 
@@ -5890,8 +5890,17 @@ in a new-expression).
       if (bound_function_selector == NULL) {
         /* Temporarily create a dummy argument. */
         make_dummy_lvalue_operand(type_pointed_to(implicit_selector_type),
-                                  &dummy_operand);
-        bound_function_selector = &dummy_operand;
+                                  &this_operand);
+        bound_function_selector = &this_operand;
+      } else if (is_a_prvalue(bound_function_selector) &&
+                 is_pointer_type(bound_function_selector->type)) {
+        /* The selector is a pointer in a call like p->f().  Make an lvalue
+           operand equivalent to *p. */
+        an_expr_node  *new_this_expr =
+                              make_node_from_operand(bound_function_selector);
+        new_this_expr = add_indirection_to_node(new_this_expr);
+        make_lvalue_or_rvalue_expression_operand(new_this_expr, &this_operand);
+        bound_function_selector = &this_operand;
       }  /* if */
       an_arg_list_elem_ptr this_object = alloc_arg_list_elem_for_operand(
                                                      bound_function_selector);
@@ -5900,11 +5909,6 @@ in a new-expression).
       allocated_this_param = TRUE;
       /* We've consumed the selector at this point. */
       have_selector = FALSE;
-      if (is_pointer_type(this_object->variant.expr.arg_op->operand.type)) {
-        this_object->variant.expr.arg_op->operand.type =
-          type_pointed_to(this_object->variant.expr.arg_op->operand.type);
-        this_object->variant.expr.arg_op->operand.state = os_glvalue;
-      }  /* if */
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_display_overload_level();

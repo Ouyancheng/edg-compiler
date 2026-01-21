@@ -1,5 +1,13 @@
 Version 6.9
 
+1/21/26  [EDGcpfe/28652]
+GNU C++ compatibility: Explicit "this" in pre-C++23 modes
+
+In GNU C++ modes with gnu_version >= 140000 the front end now accepts the C++23
+explicit "this" feature (see the entry for EDGcpfe/24781) with a warning in
+pre-C++23 modes.
+
+
 1/21/26  [EDGcpfe/28653]
 GNU/Clang compatibility: __builtin_is_virtual_base_of
 

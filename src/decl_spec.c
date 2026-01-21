@@ -11349,9 +11349,10 @@ storage_class_specifier:
         }  /* if */
         break;
       case tok_this:
-        if (!explicit_this_param_enabled) {
+        if (!explicit_this_param_enabled && !gpp_version_is(>= 140000)) {
           /* If explicit "this" parameters are not enabled, this is not a
-             decl-specifier. */
+             decl-specifier.  GCC 14 (and later) accepts "this" parameters
+             (with a warning) in all C++ modes. */
           goto something_unexpected;
         } else if (!is_parameter) {
           /* The decl-specifier "this" may only appear in a function parameter
@@ -11368,6 +11369,9 @@ storage_class_specifier:
             pos_error(ec_explicit_this_param_must_be_first, &error_position);
             err = TRUE;
           } else {
+            if (!explicit_this_param_enabled) {
+              pos_warning(ec_explicit_this_is_cpp23, &error_position);
+            }  /* if */
             decl_specifiers_seen |= DS_THIS;
             state->is_explicit_this = TRUE;
           }  /* if */

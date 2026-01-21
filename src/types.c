@@ -15081,6 +15081,13 @@ C++ mode.
            one function is const or volatile and the other isn't. */
         distinguishable = TRUE;
         goto distinguishable_determined;
+      } else if (old_this_class == NULL && new_this_class == NULL &&
+                 has_explicit_this_parameter(old_type) !=
+                                      has_explicit_this_parameter(new_type)) {
+        /* One is a regular static member and the other is a member with a
+           C++23 "explicit this" parameter. */
+        distinguishable = TRUE;
+        goto distinguishable_determined;
       }  /* if */
     }  /* if */
     /* If one type has an ellipsis and the other does not, the types are
