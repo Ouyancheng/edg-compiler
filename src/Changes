@@ -1,5 +1,14 @@
 Version 6.9
 
+1/21/26  [EDGcpfe/28656]
+Microsoft compatibility: Extended range-based-for now available with --ms_c++17
+
+The changes to extend the lifetime of temporaries in a range-based-for
+(see the Changes entry for EDGcpfe/25861,EDGcpfe/26070,EDGcpfe/27957) have
+now been enabled with --ms_c++17 (previously they were only available when
+--ms_c++23 had been specified).
+
+
 1/21/26  [EDGcpfe/28649]
 Clang compatibility: Special handling for new __builtin_elementwise_* builtins
 

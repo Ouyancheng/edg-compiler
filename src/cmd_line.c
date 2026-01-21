@@ -3248,12 +3248,15 @@ option values if they were not already set by a command line option.
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1944) {
-        if (ms_cpp23_mode) {
-          /* These C++23 features are enabled in this mode. */
-          lambda_attributes_allowed = TRUE;
+        if (ms_cpp17_mode) {
+          /* This C++23 feature is enabled in C++17 modes. */
           if (relaxed_range_based_for_enabled) {
             extended_range_based_for_lifetime = TRUE;
           }  /* if */
+        }  /* if */
+        if (ms_cpp23_mode) {
+          /* These C++23 features are enabled in this mode. */
+          lambda_attributes_allowed = TRUE;
           static_call_operator_enabled = TRUE;
           if (relaxed_constexpr_enabled) {
             local_static_constexpr_enabled = TRUE;
