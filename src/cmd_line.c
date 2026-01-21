@@ -3249,7 +3249,7 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 1944) {
         if (ms_cpp17_mode) {
-          /* This C++23 feature is enabled in C++17 modes. */
+          /* This C++23 feature is enabled in C++17 mode. */
           if (relaxed_range_based_for_enabled) {
             extended_range_based_for_lifetime = TRUE;
           }  /* if */
