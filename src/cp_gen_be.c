@@ -21522,15 +21522,18 @@ Generate the declaration associated with the given stmk_decl statement.
     a_src_seq_secondary_decl_ptr  sec_decl;
     char                          *entry_ptr;
     an_il_entry_kind              entry_kind;
+    a_boolean                     friend_decl;
     advance_past_preprocessing_directives();
     check_assertion (curr_source_sequence_entry != NULL);
     /* Extract the entity/kind from the current source sequence entry. */
     if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
       entry_ptr = sec_decl->entity.ptr;
       entry_kind = (an_il_entry_kind)sec_decl->entity.kind;
+      friend_decl = sec_decl->friend_decl;
     } else {
       entry_ptr = curr_source_sequence_entry->entity.ptr;
       entry_kind = (an_il_entry_kind)curr_source_sequence_entry->entity.kind;
+      friend_decl = FALSE;
     }  /* if */
     switch (entry_kind) {
       case iek_type:
@@ -21550,13 +21553,14 @@ Generate the declaration associated with the given stmk_decl statement.
                statement expression).  This won't make this checking code fail,
                but it could mean that some invalid IL doesn't get caught. */
             ep = ep->next;
-          } else if (scp->decl_position.seq != 0 &&
+          } else if (!friend_decl && scp->decl_position.seq != 0 &&
                      !(entry_kind == (an_il_entry_kind)iek_variable &&
                        ((a_variable*)entry_ptr)->is_anonymous_parent_object)) {
             /* This is a user-declared type, routine, or variable (and not,
                e.g., a typeof/decltype type or an anonymous union parent
-               object).  For it not to appear on the stmk_decl list it must
-               have been declared in another scope. */
+               object).  Except for friend declarations, for it not to
+               appear on the stmk_decl list it must have been declared in
+               another scope. */
             check_assertion(f_get_parent_scope_of(scp) != scope);
           }  /* if */
         }
