@@ -1,5 +1,21 @@
 Version 6.9
 
+1/22/26  [EDGcpfe/28048,EDGcpfe/28655]
+Explicit-this conversion templates
+
+Consider:
+
+  struct S {
+    operator int(this auto &&self);  // (1)
+  };
+  int r = S{};  // (2)
+
+Previously, the front end failed to parse line (1) because of a bug interacting
+with abbreviated template syntax.  That is now fixed.  Furthermore, the front
+end did not correctly deduce templated explicit-this parameters for conversion
+templates, resulting in a spurious error on line (2).  That is now also fixed.
+
+
 1/22/26  [EDGcpfe/25649,EDGcpfe/28610]
 Spurious error during disambiguation of for statement
 

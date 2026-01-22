@@ -20022,7 +20022,9 @@ void unget_token(void)
 "Unget" the current token, i.e., put it back on the input list so that
 it will be fetched again on the next get_token.  On return, the current
 token is still the same.  This is intended for use with unusual errors,
-so efficiency is not a prime concern.
+so efficiency is not a prime concern.  Note that this leaves
+last_token_sequence_number_of_token unchanged: The call likely must
+restore it.
 */
 {
   a_tiny_scanning_token_cache cache;

@@ -16859,6 +16859,7 @@ parameters.
       copy_qualifiers(param_qualifiers, new_ptp->qualifiers);
       new_ptp->name = ptp->name;
       new_ptp->param_num = ptp->param_num;
+      new_ptp->is_explicit_this = ptp->is_explicit_this;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* Copy the C++/CLI param array state to the deduced parameter. */
       new_ptp->is_cli_param_array = ptp->is_cli_param_array;

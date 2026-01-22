@@ -16204,6 +16204,17 @@ not_direct_binding_case:
         /* Type deduction failed, so the conversion function is not viable. */
         goto reject_function;
       }  /* if */
+      if (has_explicit_this_parameter(conv_routine_type)) {
+        /* Type deduction may be needed for the "this" parameter. */
+        if (!deduce_one_parameter(
+                           rout_type_supp(conv_routine_type)->param_type_list,
+                           (a_type*)NULL, (an_arg_list_elem**)NULL,
+                           source_operand->type, base_conversion_symbol,
+                           &template_arg_list)) {
+          /* Deduction failed. */
+          goto reject_function;
+        }  /* if */
+      }  /* if */
       /* Make a version of the routine type with the proper types/values
          substituted for the template parameters. */
       conv_routine_type = wrapup_function_template_argument_deduction(

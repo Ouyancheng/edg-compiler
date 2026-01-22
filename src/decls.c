@@ -13914,7 +13914,9 @@ selection operation associated with this operator function reference.
          modified type, which is an error. */
       complete_type = error_type();
     }  /* if */
+    /* We consumed one too many tokens.  Restore the previous token. */
     unget_token();
+    last_token_sequence_number_of_token -= 1;
     curr_token = tok_identifier;
     pos_curr_token = error_position = start_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
