@@ -1,5 +1,13 @@
 Version 6.9
 
+1/22/26  [EDGcpfe/27976,EDGcpfe/28658]
+Abort with __is_trivially_equality_comparable applied to incomplete class
+
+The front end previously aborted (null pointer indirection) when the type trait
+helper __is_trivially_equality_comparable is applied to an incomplete class
+type.  That is now fixed.
+
+
 1/22/26  [EDGcpfe/28048,EDGcpfe/28655]
 Explicit-this conversion templates
 

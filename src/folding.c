@@ -9159,6 +9159,7 @@ and, if pos is not NULL, an error will be reported.
         kind == bok_is_trivially_copyable ||
         kind == bok_has_user_destructor ||
         kind == bok_is_trivially_relocatable ||
+        kind == bok_is_trivially_equality_comparable ||
         kind == bok_is_bitwise_cloneable) {
       if (is_array_type(type)) {
         type = skip_array_types(type);
@@ -10530,6 +10531,7 @@ constant is set as well.
       case bok_is_aggregate:
       case bok_is_trivially_relocatable:
       case bok_is_bitwise_cloneable:
+      case bok_is_trivially_equality_comparable:
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
@@ -10574,7 +10576,6 @@ constant is set as well.
       case bok_is_bounded_array:
       case bok_is_unbounded_array:
       case bok_is_referenceable:
-      case bok_is_trivially_equality_comparable:
         /* Various type trait helpers that take a single argument. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
                                      /*complete_class_property=*/FALSE);
