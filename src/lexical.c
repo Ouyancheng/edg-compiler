@@ -20023,7 +20023,7 @@ void unget_token(void)
 it will be fetched again on the next get_token.  On return, the current
 token is still the same.  This is intended for use with unusual errors,
 so efficiency is not a prime concern.  Note that this leaves
-last_token_sequence_number_of_token unchanged: The call likely must
+last_token_sequence_number_of_token unchanged: The caller likely must
 restore it.
 */
 {
