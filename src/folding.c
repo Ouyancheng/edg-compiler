@@ -7851,16 +7851,16 @@ static void fold_is_base_of(an_expr_node_ptr   expr,
                             a_boolean          maintain_expression,
                             a_boolean          is_virtual_base_of)
 /*
-expr is an enk_builtin_operation node for an __is_base_of operation.  If the
-operand types are nondependent, store a boolean constant in *constant.  The
-boolean constant will have value "true" if the operand types are (possibly
-qualified) class types the first of which is a base class (or a virtual base
-class if is_virtual_base_of is TRUE) of the second one; otherwise, the constant
-will have value "false".  If either of the operand types is dependent, store a
-ck_template_param constant in *constant.  The constant will be of the
-tpck_expression variant and will point to the given expression.  If
-maintain_expression is TRUE, the backing expression for the returned constant
-will be set as well.
+expr is an enk_builtin_operation node for an __is_base_of or
+__builtin_is_virtual_base_of operation.  If the operand types are nondependent,
+store a boolean constant in *constant.  The boolean constant will have value
+"true" if the operand types are (possibly qualified) class types the first of
+which is a base class (or a virtual base class if is_virtual_base_of is TRUE)
+of the second one; otherwise, the constant will have value "false".  If either
+of the operand types is dependent, store a ck_template_param constant in
+*constant.  The constant will be of the tpck_expression variant and will point
+to the given expression.  If maintain_expression is TRUE, the backing
+expression for the returned constant will be set as well.
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
