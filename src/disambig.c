@@ -1971,8 +1971,8 @@ over any tok_colon tokens that are paired with tok_quest_mark).
   incr_token_set_array_element(stop_token_array, tok_colon);
   incr_token_set_array_element(stop_token_array, tok_semicolon);
   for (;;) {
-    cache_token_stream_coalesce_identifiers((a_token_cache_ptr)NULL,
-                                            stop_token_array);
+    cache_token_stream_full((a_token_cache_ptr)NULL, stop_token_array,
+                            CTS_NO_OPTIONS);
     if (curr_token == tok_quest_mark) {
       question_count++;
     } else if (curr_token == tok_colon) {
