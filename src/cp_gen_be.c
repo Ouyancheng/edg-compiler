@@ -9574,9 +9574,11 @@ elaborated-type-specifier, even if it would be required in some contexts.
             write_space();
           }  /* if */
           if (gen_qualifier_from_typeref(trp)) {
+            a_name_qualifier_ptr nqp =
+                               trp->variant.typeref.extra_info->name_qualifier;
             name_qual_emitted = TRUE;
             global_qual_emitted = FALSE;
-            if (options == GN_DEPENDENT &&
+            if (options == GN_DEPENDENT && nqp != NULL && nqp->is_class &&
                 name_has_template_arguments(
                                           &refp->source_corresp, iek_type,
                                           /*arg_pgt=*/NULL, /*param_ptr=*/NULL,
