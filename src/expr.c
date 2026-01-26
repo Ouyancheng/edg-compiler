@@ -15748,6 +15748,9 @@ previously-scanned construct of this kind.  Either way, return the result in
       case tok_builtin_is_virtual_base_of:
         bok = bok_builtin_is_virtual_base_of;
         break;
+      case tok_builtin_is_implicit_lifetime:
+        bok = bok_builtin_is_implicit_lifetime;
+        break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -16070,6 +16073,9 @@ indication in *rcblock).
       case tok_is_trivially_relocatable:bok = bok_is_trivially_relocatable;
                                         break;
       case tok_is_bitwise_cloneable:    bok = bok_is_bitwise_cloneable; break;
+      case tok_builtin_is_implicit_lifetime:
+                                        bok = bok_builtin_is_implicit_lifetime;
+                                        break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -34001,6 +34007,7 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_is_trivially_relocatable:
     case tok_is_bitwise_cloneable:
     case tok_builtin_is_virtual_base_of:
+    case tok_builtin_is_implicit_lifetime:
       result = TRUE;
       break;
     default:
@@ -37024,6 +37031,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_trivially_relocatable:
     case tok_is_bitwise_cloneable:
     case tok_builtin_is_virtual_base_of:
+    case tok_builtin_is_implicit_lifetime:
     case tok_coroutine_yield:
     case tok_coroutine_await:
     case tok_lsplice:
@@ -43589,6 +43597,7 @@ handle_nullptr:
     case tok_is_trivially_equality_comparable:
     case tok_is_trivially_relocatable:
     case tok_is_bitwise_cloneable:
+    case tok_builtin_is_implicit_lifetime:
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);

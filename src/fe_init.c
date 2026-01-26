@@ -866,6 +866,10 @@ modes.
     enter_keyword(tok_builtin_is_virtual_base_of,
                   "__builtin_is_virtual_base_of");
   }  /* if */
+  if (gnu_version_is(>=160000) || clang_version_is(>=200000)) {
+    enter_keyword(tok_builtin_is_implicit_lifetime,
+                  "__builtin_is_implicit_lifetime");
+  }  /* if */
   enter_keyword(tok_has_trivial_move_constructor,
                 "__has_trivial_move_constructor");
   enter_keyword(tok_has_trivial_move_assign, "__has_trivial_move_assign");

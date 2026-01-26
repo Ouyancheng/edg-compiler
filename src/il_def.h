@@ -1574,6 +1574,7 @@ enum a_token_kind : unsigned short {
   tok_is_trivially_relocatable,
   tok_is_bitwise_cloneable,
   tok_builtin_is_virtual_base_of,
+  tok_builtin_is_implicit_lifetime,
   /* Placeholder for last position in enumeration. */
   tok_last
 };
@@ -1838,6 +1839,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, token_names, tok_last + 1)
    "__is_trivially_relocatable",
    "__is_bitwise_cloneable",
    "__builtin_is_virtual_base_of",
+   "__builtin_is_implicit_lifetime",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -14368,6 +14370,9 @@ enum a_builtin_operation_kind : a_byte {
   bok_builtin_is_virtual_base_of,
 			/* __builtin_is_virtual_base_of.  Two operands, both
 			   types. */
+  bok_builtin_is_implicit_lifetime,
+			/* __builtin_is_implicit_lifetime.  One type
+			   operand. */
   bok_last              /* Marks the end of the list. */
 };
 
@@ -19045,6 +19050,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, builtin_operation_names, bok_last + 1)
   "__is_nothrow_invocable",
   "__is_bitwise_cloneable",
   "__builtin_is_virtual_base_of",
+  "__builtin_is_implicit_lifetime",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

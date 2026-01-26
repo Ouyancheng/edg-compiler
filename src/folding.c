@@ -9484,6 +9484,13 @@ and, if pos is not NULL, an error will be reported.
           /* Non-class types are always bitwise cloneable. */
           result = TRUE;
           break;
+        case bok_builtin_is_implicit_lifetime:
+          result = is_scalar_type(type) || is_array_type(type)
+#if GNU_VECTOR_TYPES_ALLOWED
+                   || is_vector_type(type)
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+                                          ;
+          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -9778,6 +9785,9 @@ and, if pos is not NULL, an error will be reported.
                  cssp->construction_by_bitwise_copy_allowed ||
                  !cssp->makes_copy_construction_nontrivial ||
                  !cssp->makes_copy_assignment_nontrivial;
+        break;
+      case bok_builtin_is_implicit_lifetime:
+        result = is_implicit_lifetime_class(type);
         break;
       case bok_is_arithmetic:
       case bok_is_floating_point:
@@ -10532,6 +10542,7 @@ constant is set as well.
       case bok_is_trivially_relocatable:
       case bok_is_bitwise_cloneable:
       case bok_is_trivially_equality_comparable:
+      case bok_builtin_is_implicit_lifetime:
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,

@@ -341,6 +341,7 @@ extern a_boolean is_pod_class(a_type_ptr  tp);
 extern a_boolean is_literal_type(a_type_ptr tp);
 extern a_boolean is_structural_type(a_type_ptr tp);
 extern a_boolean could_be_literal_type(a_type_ptr tp);
+extern a_boolean is_implicit_lifetime_class(a_type_ptr tp);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern a_boolean is_array_type(a_type_ptr tp);
 extern a_boolean is_vla_type(a_type_ptr tp);

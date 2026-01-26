@@ -2778,6 +2778,61 @@ is a structural type if it is (N4861 [temp.param]/7):
   return result;
 }  /* is_structural_type */
 
+
+a_boolean is_implicit_lifetime_class(a_type_ptr  tp)
+/*
+Return TRUE if the given class type is an "implicit-lifetime class".  A class
+is an implicit-lifetime class if
+  - it is an aggregate whose destructor is not user-provided or
+  - it has at least one trivial eligible constructor and a trivial, non-deleted
+    destructor.
+*/
+{
+  a_boolean  result = FALSE;
+  a_class_symbol_supplement_ptr
+             cssp;
+
+  check_assertion(is_immediate_class_type(tp));
+  cssp = class_symbol_supp(symbol_for(tp));
+  if (cssp->is_class_aggregate) {
+    /* An aggregate is an implicit-lifetime class if its destructor is not
+       user-provided. */
+    if (cssp->destructor == NULL) {
+      result = TRUE;
+    } else {
+      a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
+      result = rp->compiler_generated ||
+               rp->is_deleted ||
+               (rp->is_defaulted && rp->inline_in_class_definition);
+    }  /* if */
+  } else if (cssp->has_trivial_destructor &&
+             (cssp->destructor == NULL ||
+              !cssp->destructor->variant.routine.ptr->is_deleted)) {
+    /* The destructor is trivial and not deleted. */
+    a_boolean     is_list;
+    a_symbol_ptr  sym = cssp->constructor;
+
+    /* Check for at least one eligible trivial constructor. */
+    if (sym != NULL && symbol_is(sym, sk_overloaded_function)) {
+      is_list = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_list = FALSE;
+    }  /* if */
+    for (; !result && sym != NULL; sym = is_list ? sym->next : NULL) {
+      a_routine_ptr  rp;
+      if (symbol_is(sym, sk_function_template)) continue;
+      check_assertion(symbol_is(sym, sk_member_function));
+      if (in_front_end && is_ineligible(sym)) continue;
+      rp = sym->variant.routine.ptr;
+      if (rp->is_trivial_default_constructor || rp->is_trivial_copy_function) {
+        result = TRUE;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_implicit_lifetime_class */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_array_type(a_type_ptr tp)
