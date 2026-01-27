@@ -2803,7 +2803,7 @@ is an implicit-lifetime class if
       a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
       result = rp->compiler_generated ||
                rp->is_deleted ||
-               (rp->is_defaulted && rp->inline_in_class_definition);
+               (rp->is_defaulted && !rp->defined_outside_of_parent);
     }  /* if */
   } else if (cssp->has_trivial_destructor &&
              (cssp->destructor == NULL ||
