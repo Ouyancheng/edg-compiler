@@ -1,5 +1,26 @@
 Version 6.9
 
+1/30/26  [EDGcpfe/28670]
+C++-generating back end: value-initialization in static initializer
+
+The changes for EDGcpfe/27137 in version 6.8 introduced a regression in the
+handling of a declaration of a variable that is direct-initialized with a
+value-initialized explicit temporary, e.g.,
+
+  struct T { int x; };
+  T s ( ( T() ) );
+  T *p = &s;
+
+In version 6.8 when compiled with --microsoft, the declaration of "s" was
+put out as
+
+  T s ( T() );
+
+which declares "s" as a function with a pointer-to-function parameter
+instead of as an initialized variable.  This is now fixed and the
+disambiguating parentheses are restored.
+
+
 1/26/26  [EDGcpfe/28068,EDGcpfe/28654]
 GNU/Clang compatibility: __builtin_is_implicit_lifetime
 

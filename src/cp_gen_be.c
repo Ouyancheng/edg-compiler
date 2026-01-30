@@ -23048,11 +23048,21 @@ Output the initializer, if any, for the indicated variable.
                expression (with parentheses if there is a risk of triggering
                "the most vexing parse"; i.e., something like "X x(Y());" is
                treated as a function declaration if X and Y are type names,
-               but "X x((Y()));" has the intended meaning). */
-            write_tok_ch(braced_init ? '{' : '(');
-            gen_expr(expr, /*need_parens=*/!braced_init,
-                     /*obj_expr_of_mfunc_operator=*/FALSE);
-            write_tok_ch(braced_init ? '}' : ')');
+               but "X x((Y()));" has the intended meaning).  Note that we
+               can't rely on the "parens_needed" argument to gen_expr, since
+               that is only a suggestion and not a guarantee, so we put out
+               the parentheses here. */
+            if (braced_init) {
+              write_tok_ch('{');
+            } else {
+              write_tok_str("((");
+            }  /* if */
+            gen_expression(expr);
+            if (braced_init) {
+              write_tok_ch('}');
+            } else {
+              write_tok_str("))");
+            }  /* if */
           } else {
             dip = expr->variant.init.dynamic_init;
             init_type = expr->type;
