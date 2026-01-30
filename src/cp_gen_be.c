@@ -9425,10 +9425,10 @@ elaborated-type-specifier, even if it would be required in some contexts.
   }  /* if */
   orig_type = type;
   if (is_template_param_or_nonreal_class_type(type)) {
-    poss_dep_type = skip_typerefs(type);
+    poss_dep_type = type;
   } else if (type->source_corresp.is_class_member &&
              is_template_param_or_nonreal_class_type(parent_class_of(type))) {
-    poss_dep_type = skip_typerefs(parent_class_of(type));
+    poss_dep_type = parent_class_of(type);
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   } else if (type_is(type, tk_typeref) &&
              is_typeref_kind(type, trk_name_qualifier)) {
@@ -9436,7 +9436,7 @@ elaborated-type-specifier, even if it would be required in some contexts.
     if (nqp != NULL && nqp->is_class &&
         is_template_param_or_nonreal_class_type(skip_lexical_typerefs(
                                                  nqp->qualifier.class_type))) {
-      poss_dep_type = skip_typerefs(nqp->qualifier.class_type);
+      poss_dep_type = nqp->qualifier.class_type;
     }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   }  /* if */
@@ -20541,10 +20541,20 @@ Generate code for a class member or nonmember using-declaration.
       if (is_lexical_typeref(class_type)) {
         /* Use the qualification and/or template arguments from the
            original source form. */
+        qualifier = skip_lexical_typerefs(class_type);
+        if ((type_is(qualifier, tk_template_param) ||
+             (type_is(qualifier, tk_typeref) &&
+              qualifier->variant.typeref.is_dependent) ||
+             (is_immediate_class_type(qualifier) &&
+              qualifier->variant.class_struct_union.is_nonreal_class)) &&
+            entry_kind == iek_type && !udp->is_inheriting_ctor) {
+            /* This is a dependent member type, so the "typename" keyword
+               is required. */
+            write_tok_str("typename ");
+        }  /* if */          
         gen_type_reference(class_type,
                            /*suppress_typename_kwd=*/(entry_kind != iek_type));
         write_tok_str(":: ");
-        qualifier = skip_lexical_typerefs(class_type);
       } else {
         a_type_ptr qual_type = skip_typerefs(class_type);
         if (is_template_param_or_nonreal_class_type(qual_type) &&
