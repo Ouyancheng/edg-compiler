@@ -20554,7 +20554,9 @@ Generate code for a class member or nonmember using-declaration.
             write_tok_str("typename ");
             typename_emitted = TRUE;
         }  /* if */          
-        gen_type_reference(class_type, /*suppress_typename=*/typename_emitted);
+        gen_type_reference(class_type,
+                           /*suppress_typename=*/(typename_emitted ||
+                                                  entry_kind != iek_type));
         write_tok_str(":: ");
       } else {
         a_type_ptr qual_type = skip_typerefs(class_type);
