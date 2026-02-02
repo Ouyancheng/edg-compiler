@@ -20541,6 +20541,7 @@ Generate code for a class member or nonmember using-declaration.
       if (is_lexical_typeref(class_type)) {
         /* Use the qualification and/or template arguments from the
            original source form. */
+        a_boolean typename_emitted = FALSE;
         qualifier = skip_lexical_typerefs(class_type);
         if ((type_is(qualifier, tk_template_param) ||
              (type_is(qualifier, tk_typeref) &&
@@ -20551,8 +20552,9 @@ Generate code for a class member or nonmember using-declaration.
             /* This is a dependent member type, so the "typename" keyword
                is required. */
             write_tok_str("typename ");
+            typename_emitted = TRUE;
         }  /* if */          
-        gen_type_reference(class_type, /*suppress_typename=*/TRUE);
+        gen_type_reference(class_type, /*suppress_typename=*/typename_emitted);
         write_tok_str(":: ");
       } else {
         a_type_ptr qual_type = skip_typerefs(class_type);
