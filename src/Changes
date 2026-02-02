@@ -1,5 +1,22 @@
 Version 6.9
 
+2/2/26   [EDGcpfe/17833,EDGcpfe/18654,EDGcpfe/28444,EDGcpfe/28522]
+GCC, Clang, and MSVC compatibility: Partial ordering of variadic templates
+
+Consider:
+
+  template<typename ... Ts> int f(Ts &...); // #1
+  template<typename T>      int f(T &&);    // #2
+  int i;
+  int j = f(i);
+
+Prior to the resolution of Core issue 1395, partial ordering would prefer the
+non-variadic function template #2.  With the resolution of Core issue 1395, the
+partial ordering rules changed to prefer #1 instead.  However, GCC, Clang, and
+MSVC do not yet implement this resolution, and the front end therefore now
+emulates their behavior in its corresponding emulation modes.
+
+
 1/30/26  [EDGcpfe/28670]
 C++-generating back end: value-initialization in static initializer
 

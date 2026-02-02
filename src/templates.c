@@ -3445,17 +3445,31 @@ entire_type is FALSE, and must be zero otherwise.
   /* For C++17-style template template argument matching, the comparison is
      only done in one direction. */
   if (!is_templ_templ_param_check) {
-    local_match1 = matches_template_type(param_type1, param_type2,
-                                         templ_arg_list1, templ_param_list1,
-                                         is_pack1 ? MTT_IS_PACK
-                                                  : MTT_NO_FLAGS);
+    if ((microsoft_mode || gnu_mode) && is_pack1 && !is_pack2) {
+      /* Prior to the resolution of Core issue 1395 (which GCC, Clang, and MSVC
+         don't implement yet), an argument that is a pack could only match if
+         the parameter was also a pack. */
+      local_match1 = FALSE;
+    } else {
+      local_match1 = matches_template_type(param_type1, param_type2,
+                                           templ_arg_list1, templ_param_list1,
+                                           is_pack1 ? MTT_IS_PACK
+                                                    : MTT_NO_FLAGS);
+    }  /* if */
   } else {
     mtt_flags = MTT_TEMPL_TEMPL_MATCH;
   }  /* if */
-  local_match2 = matches_template_type(param_type2, param_type1,
-                                       templ_arg_list2, templ_param_list2,
-                                       mtt_flags | (is_pack2 ? MTT_IS_PACK
-                                                             : MTT_NO_FLAGS));
+  if ((microsoft_mode || gnu_mode) && is_pack2 && !is_pack1) {
+    /* Prior to the resolution of Core issue 1395 (which GCC, Clang, and MSVC
+       don't implement yet), an argument that is a pack could only match if the
+       parameter was also a pack. */
+    local_match2 = FALSE;
+  } else {
+    local_match2 = matches_template_type(param_type2, param_type1,
+                                         templ_arg_list2, templ_param_list2,
+                                         mtt_flags |(is_pack2 ? MTT_IS_PACK
+                                                              : MTT_NO_FLAGS));
+  }  /* if */
   if (!local_match1 || !local_match2) {
     /* There was only a match in one direction.  Update the caller's flags
        with the status. */
