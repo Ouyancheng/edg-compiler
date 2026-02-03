@@ -25286,7 +25286,7 @@ if the selected delete routine is ambiguous.
     /* Use the global "operator delete" or "operator delete[]". */
     operator_delete_set = opname_function_symbol(opname_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
+    if (ms_extensions) {
       a_boolean ambiguous;
       if (operator_delete_set == NULL ||
           (microsoft_version >= 1300 &&

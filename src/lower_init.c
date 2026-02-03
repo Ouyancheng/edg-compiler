@@ -13011,7 +13011,7 @@ The subtree of the node has not yet been lowered.
        into a "delete" call. */
     dip = NULL;
     ndsp->dynamic_init = NULL;
-    if (delete_routine == NULL) {
+    if (delete_routine == NULL && is_class_struct_union_type(base_type)) {
       /* If not explicitly specified, use the delete operator for the class. */
       delete_routine = class_type_supp(skip_typerefs(base_type))->
                                                  assoc_operator_delete_routine;
@@ -13049,7 +13049,7 @@ The subtree of the node has not yet been lowered.
   } else {
     /* Non-array case, or array case that does not require special handling,
        and not a case that requires calling a destructor. */
-    if (delete_routine == NULL) {
+    if (delete_routine == NULL && is_class_struct_union_type(base_type)) {
       /* If not explicitly specified, use the delete operator for the class. */
       delete_routine = class_type_supp(skip_typerefs(base_type))->
                                                  assoc_operator_delete_routine;
