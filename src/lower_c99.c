@@ -2281,6 +2281,7 @@ Transform the given complex cast expression into a function call
 #endif /* FLOAT80_ENABLING_POSSIBLE */
 #if FLOAT128_ENABLING_POSSIBLE
         case fk_float128:
+        case fk_std_float128:
           library_routine_name = /*lint -e(545)*/&cast_float128_routine_name;
           routine_ptr = cast_float128_routine;
           break;

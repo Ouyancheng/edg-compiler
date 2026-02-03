@@ -1,5 +1,17 @@
 Version 6.9
 
+2/3/26   [EDGcpfe/28681]
+Assertion failure when casting 128-bit complex type
+
+An assertion failure (in lower_c99_complex_cast) could occur in certain
+configurations when casting from a 128-bit complex type.  For example,
+with --gnu_version=150200:
+
+  void f(__complex__ _Float128 v) {
+    __complex__ long double x = v;
+  }
+
+
 2/3/26   [EDGcpfe/27863,EDGcpfe/28427]
 Segfault in lower_delete with delete[] in lower_delete with --ms_extensions
 
