@@ -13,7 +13,7 @@ with --gnu_version=150200:
 
 
 2/3/26   [EDGcpfe/27863,EDGcpfe/28427]
-Segfault in lower_delete with delete[] in lower_delete with --ms_extensions
+Segfault in lower_delete with delete[] with --ms_extensions
 
 A segmentation fault could occur in lower_delete when --ms_extensions is used
 with certain delete[] operations.  For example (with --ms_extensions),  
