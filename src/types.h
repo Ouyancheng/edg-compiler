@@ -477,11 +477,16 @@ Return TRUE if a type is a direct non-union class type.
   (type_is((type), tk_class) || type_is((type), tk_struct))
 
 
+EXPAND a_class_type_supplement_ptr& class_type_supp(a_type_ptr tp)
 /*
 Return a pointer to the associated class type supplement.
 */
-#define class_type_supp(tp)                                           \
-  ((tp)->variant.class_struct_union.extra_info)
+{
+#if EXPENSIVE_CHECKING
+  check_assertion(is_immediate_class_type(tp));
+#endif /* EXPENSIVE_CHECKING */
+  return tp->variant.class_struct_union.extra_info;
+}  /* class_type_supp */
 
 
 inline a_type_ptr skip_proxy_class(a_type_ptr  type)

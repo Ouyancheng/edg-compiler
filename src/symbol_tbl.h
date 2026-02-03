@@ -7536,11 +7536,17 @@ is no such supplement yet, allocate one.
 extern a_static_data_member_supplement_ptr
                    alloc_static_data_member_supplement(a_symbol_ptr  sdm_sym);
 
+EXPAND a_class_symbol_supplement_ptr& class_symbol_supp(a_symbol_ptr sym)
 /*
 Extract a pointer to the class symbol supplement for a given class type_symbol.
 */
-#define class_symbol_supp(class_sym)                                  \
-  ((class_sym)->variant.class_struct_union.extra_info)
+{
+#if EXPENSIVE_CHECKING
+  check_assertion(sym->kind == sk_class_or_struct_tag ||
+                  sym->kind == sk_union_tag);
+#endif /* EXPENSIVE_CHECKING */
+  return sym->variant.class_struct_union.extra_info;
+}  /* class_symbol_supp */
 
 /*
 Extract a pointer to the class symbol supplement for a given type for

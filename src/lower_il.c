@@ -15965,12 +15965,13 @@ If we're in a non-constant aggregate initialization, search for that first.
        modifiers) and this case doesn't occur frequently. */
     an_expr_node_ptr      new_expr = NULL;
     an_init_pos_descr_ptr ipdp;
-    a_type_ptr            new_type, old_type = type_pointed_to(expr->type);
+    a_type_ptr            new_type,
+                          old_type= skip_typerefs(type_pointed_to(expr->type));
     for (ipdp = aggregate_this_stack; ipdp != NULL; ipdp = ipdp->next) {
       a_type_ptr subobj_type;
       new_expr = make_address_of_init_entity_node(ipdp,
                                                   /*using_as_dest=*/FALSE);
-      new_type = type_pointed_to(new_expr->type);
+      new_type = skip_typerefs(type_pointed_to(new_expr->type));
       if (identical_types_ignoring_qualifiers(new_type, old_type) ||
           (aggregate_classes_can_have_bases &&
            !class_type_supp(old_type)->is_lambda_closure_class &&

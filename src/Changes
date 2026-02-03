@@ -1,5 +1,14 @@
 Version 6.9
 
+2/3/26   [EDGcpfe/28679]
+Missing skip_typerefs could lead to undefined behavior in lowering
+
+The lowering of an enk_param_ref could result in undefined behavior due to
+missing skip_typeref calls and is now fixed.  Additionally, a couple of
+misuses of the class_type_supp macro have been changed to class_symbol_supp
+and some additional debug code has been added to help prevent future problems.
+
+
 2/2/26   [EDGcpfe/17833,EDGcpfe/18654,EDGcpfe/28444,EDGcpfe/28522]
 GCC, Clang, and MSVC compatibility: Partial ordering of variadic templates
 

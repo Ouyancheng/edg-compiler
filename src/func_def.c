@@ -3884,7 +3884,7 @@ given.
   /* For the data members, use the symbol list rather than the field list to
      be sure we adhere to declaration order and to be sure only user-defined
      members are compared. */
-  sym = class_type_supp(symbol_for(class_type))->symbols;
+  sym = class_symbol_supp(symbol_for(class_type))->symbols;
   for (; sym != NULL; sym = sym->next_in_scope) {
     a_field_ptr       fp;
     a_type_ptr        ftp, array_type;
@@ -4106,7 +4106,7 @@ its associated scope is also given.
   /* For the data members, use the symbol list rather than the field list to
      be sure we adhere to declaration order and to be sure only user-defined
      members are compared. */
-  sym = class_type_supp(symbol_for(class_type))->symbols;
+  sym = class_symbol_supp(symbol_for(class_type))->symbols;
   for (; sym != NULL; sym = sym->next_in_scope) {
     a_field_ptr       fp;
     a_type_ptr        ftp, array_type;
