@@ -2039,14 +2039,14 @@ struct a_constexpr_if_cache_info {
 			/* Pointer to the token cache containing the
 			   tokens of the function containing the
 			   constexpr if. */
-  a_token_cache_iterator
-		else_start_it;
-			/* The cached token handle of the first token of
-			   the "else" of the constexpr if. */
-  a_token_cache_iterator
-		end_start_it;
-			/* The cached token handle of the closing brace of
-			   constexpr if. */
+  a_token_sequence_number
+		else_start_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+			/* The starting token sequence number of the first
+			   token of the "else" of the constexpr if. */
+  a_token_sequence_number
+		end_start_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+			/* The starting token sequence number of the closing
+			   brace of constexpr if. */
 };  /* a_constexpr_if_cache_info */
 
 

@@ -11316,7 +11316,8 @@ to it.
   pesep->next = NULL;
   pesep->expansion_descr = NULL;
   pesep->instantiation_descr = NULL;
-  pesep->first_token_it = a_token_cache_iterator();
+  new (&pesep->first_token_cache) a_reusable_token_cache();
+  pesep->first_token_tsn = NO_TOKEN_SEQUENCE_NUMBER;
   pesep->template_arg_list = NULL;
   pesep->is_rescan = FALSE;
   pesep->is_deduction = FALSE;
@@ -11355,6 +11356,8 @@ Pop the current entry off of the pack expansion stack.
   pesep = pack_expansion_stack;
   /* Unlink this entry from the stack. */
   pack_expansion_stack = pesep->next;
+  /* Destroy the first_token_cache object. */
+  pesep->first_token_cache.~a_reusable_token_cache();
   /* If there is an instantiation entry, free it now. */
   if (pesep->instantiation_descr != NULL) {
     free_pack_instantiation_descr(pesep->instantiation_descr);
@@ -13014,7 +13017,8 @@ suppression is on the stack.
     if (pesep != NULL && pesep->instantiation_descr != NULL &&
         !pesep->instantiation_descr->is_empty) {
       check_assertion(curr_token_sequence_number == pedp->first_token);
-      pesep->first_token_it = find_iter_for_curr_rescan_token();
+      pesep->first_token_cache = get_token_cache_being_scanned();
+      pesep->first_token_tsn = curr_token_sequence_number;
       /* Mark that the current reusable cache is being used for rescan
          purposes. */
       if (is_lookahead) pesep->is_lookahead = TRUE;
@@ -13674,7 +13678,13 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
   if (!done) {
     if (!pesep->is_rescan) {
       /* Reset the token position to the start of the pack expansion. */
-      update_reusable_cache_rescan_location(pesep->first_token_it);
+      if (get_token_cache_being_scanned().ptr() ==
+                                              pesep->first_token_cache.ptr()) {
+        update_reusable_cache_rescan_location(pesep->first_token_cache.ptr(),
+                                              pesep->first_token_tsn);
+      } else {
+        expect_error_str("active reusable cache changed unexpectedly");
+      }  /* if */
     }  /* if */
     pesep->instantiation_descr->after_first_element = TRUE;
   } else if (pesep != NULL) {

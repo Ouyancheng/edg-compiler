@@ -4237,8 +4237,8 @@ void copy_tokens_from_cache(const a_token_cache     *src_cache,
                             a_token_cache_ptr       dest_cache);
 
 extern
-a_boolean skip_to_token_handle_location(a_token_cache_ptr      cache,
-                                        a_token_cache_iterator it);
+a_boolean skip_to_token_sequence_number(a_token_cache_ptr       cache,
+                                        a_token_sequence_number tsn);
 
 extern a_boolean scanning_from_token_cache(void);
 
@@ -4251,10 +4251,9 @@ void split_token_cache(a_token_cache	       *cache1,
                        a_boolean	       include_prev_token,
                        a_boolean	       okay_if_not_found);
 
-extern a_token_cache_iterator find_iter_for_curr_rescan_token();
-
 extern
-void update_reusable_cache_rescan_location(a_token_cache_iterator it);
+void update_reusable_cache_rescan_location(a_token_cache_ptr       cache,
+                                           a_token_sequence_number tsn);
 
 extern void increment_dependent_scans_for_reusable_cache(void);
 

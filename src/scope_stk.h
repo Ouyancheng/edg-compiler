@@ -579,14 +579,22 @@ typedef struct a_pack_expansion_stack_entry {
 			   information about the actual parameter packs being
 			   used for the instantiation.  NULL during prototype
 			   instantiations. */
-  a_token_cache_iterator
-		first_token_it;
-			/* During a real instantiation, this is an iterator
-			   that points to the token at the start of the pack
-			   expansion.  This is used to reset the token position
-			   to scan the non-initial pack elements.  This is not
-			   used (is a default-constructed token cache iterator)
-			   when is_rescan is TRUE.  */
+  a_reusable_token_cache
+		first_token_cache;
+			/* During a real instantiation, this is the token cache
+			   for the token that starts pack expansion.  This is
+			   used to reset the token position to scan the
+			   non-initial pack elements.  This is not used (is a
+			   default-constructed token cache iterator) when
+			   is_rescan is TRUE. */
+  a_token_sequence_number
+		first_token_tsn;
+			/* During a real instantiation, this is the starting
+			   token sequence number for the token at the start of
+			   the pack expansion.  This is used to reset the token
+			   position to scan the non-initial pack elements.
+			   This is not used (is a default-constructed token
+			   cache iterator) when is_rescan is TRUE. */
   a_template_arg_ptr
 		template_arg_list;
 			/* In rescan contexts, a copy of the supplied

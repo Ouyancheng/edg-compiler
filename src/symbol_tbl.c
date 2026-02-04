@@ -5931,10 +5931,10 @@ found, or NULL if no entry is found.
 #if DEBUG
       if (db_flag_is_set("ccicht")) {
         fprintf(f_debug,
-                "Found constexpr_if cache tsn=%lu, else=%d, ending=%d\n",
+                "Found constexpr_if cache tsn=%lu, else=%lu, ending=%lu\n",
                 (unsigned long)start_tsn,
-                result->else_start_it != a_token_cache_iterator(),
-                result->end_start_it != a_token_cache_iterator());
+                (unsigned long)result->else_start_tsn,
+                (unsigned long)result->end_start_tsn);
       }  /* if */
 #endif /* DEBUG */
     }  /* if */

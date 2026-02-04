@@ -4789,66 +4789,54 @@ done:
 }  /* get_token_from_cached_token_rescan_stack */
 
 
-a_token_cache_iterator find_iter_for_curr_rescan_token()
+void update_reusable_cache_rescan_location(a_token_cache_ptr       cache,
+                                           a_token_sequence_number tsn)
 /*
-Search the reusable_cache_stack's associated token cache for the first token
-with the lexer's current value of curr_token_sequence_number.  Return an
-iterator to that token if found; otherwise, return a default-constructed
-iterator.
+Update the current reusable token cache information to begin rescanning tokens
+from the token in the given cache starting with the given token sequence
+number.
 */
 {
-  a_token_cache_iterator
-                result;
-  a_reusable_token_cache
-                &cache = reusable_cache_stack->token_cache;
-  auto          get_tsn = [&cache](size_t idx) -> a_token_sequence_number {
+  auto      get_tsn = [cache](size_t idx) -> a_token_sequence_number {
     return (*cache)[idx]->get_starting_seq_number();
   };
-  ptrdiff_t     token_idx = bin_search(cache->length(),
-                                       curr_token_sequence_number,
-                                       get_tsn);
+  ptrdiff_t first_idx = low_bound(cache->length(), tsn, get_tsn);
 
-  if (token_idx != -1) {
-    result = a_token_cache_iterator(cache.ptr(), (int)token_idx);
+  if (first_idx != -1 &&
+      (*cache)[(size_t)first_idx]->get_starting_seq_number() == tsn) {
+    a_token_cache_iterator it(cache, (int)first_idx);
+
+    /* Discard any tokens on the non-reusable rescan list. */
+    cached_token_rescan_stack->clear();
+    reusable_cache_stack->next_token = it;
+    (void)get_token();
+  } else {
+    expect_error_str("missing token when attempting to update scan position");
   }  /* if */
-  return result;
-}  /* find_iter_for_curr_rescan_token */
-
-
-void update_reusable_cache_rescan_location(a_token_cache_iterator it)
-/*
-Update the current reusable token cache information to begin rescanning
-tokens from the token specified by given iterator;
-*/
-{
-  /* Discard any tokens on the non-reusable rescan list. */
-  cached_token_rescan_stack->clear();
-  reusable_cache_stack->next_token = it;
-  (void)get_token();
 }  /* update_reusable_cache_rescan_location */
 
 
-a_boolean skip_to_token_handle_location(a_token_cache_ptr      cache,
-                                        a_token_cache_iterator it)
+a_boolean skip_to_token_sequence_number(a_token_cache_ptr       cache,
+                                        a_token_sequence_number tsn)
 /*
-This is an interface to update_reusable_cache_rescan_location that
-verifies that the current reusable cache is the same as "cache", and if
-so, then calls update_reusable_cache_rescan_location to continue scanning
-at that location.  The cache can be different in some cases, such as member
-functions of local classes of function templates.  This is also to prevent
-the token_handle from being used if some error caused the current token
-cache to have an unexpected value.  Return TRUE if the skip was performed.
+This is an interface to update_reusable_cache_rescan_location that verifies
+that the current reusable cache is the same as "cache", and if so, then calls
+update_reusable_cache_rescan_location to continue scanning at that location.
+The cache can be different in some cases, such as member functions of local
+classes of function templates.  This is also to prevent issues when an error
+causes the current reusable cache to differ from the typically-expected cache.
+Return TRUE if the skip was performed.
 */
 {
   a_boolean              result = FALSE;
   a_reusable_token_cache cache_being_scanned = get_token_cache_being_scanned();
 
   if (cache_being_scanned.ptr() == cache) {
-    update_reusable_cache_rescan_location(it);
+    update_reusable_cache_rescan_location(cache, tsn);
     result = TRUE;
   }  /* if */
   return result;
-}  /* skip_to_token_handle_location */
+}  /* skip_to_token_sequence_number */
 
 
 static INLINE void get_token_from_reusable_cache_stack(void)

@@ -1,5 +1,14 @@
 Version 6.9
 
+2/4/26   [EDGcpfe/28680]
+Regression causing assertion failure in if_statement
+
+With the changes for EDGcpfe/27955 (in version 6.8), an assertion failure could
+occur as a result of using invalidated iterators stored by an
+a_constexpr_if_cache_info object that has had its underlying token cache
+operated on by template member body extraction.  This is now fixed.
+
+
 2/3/26   [EDGcpfe/28681]
 Assertion failure when casting 128-bit complex type
 
