@@ -16206,6 +16206,7 @@ not_direct_binding_case:
       }  /* if */
       if (has_explicit_this_parameter(conv_routine_type)) {
         /* Type deduction may be needed for the "this" parameter. */
+        check_assertion(source_operand->type != NULL);
         if (!deduce_one_parameter(
                            rout_type_supp(conv_routine_type)->param_type_list,
                            (a_type*)NULL, (an_arg_list_elem**)NULL,
