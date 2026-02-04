@@ -7704,10 +7704,12 @@ insert_after is NULL.
     if (insert_after == dst->tail) {
       dst->tail = src->tail;
     } else {
+      check_assertion(src->tail != NULL);
       src->tail->next = insert_after->next;
     }  /* if */
     insert_after->next = src->head;
   } else {
+    check_assertion(src->tail != NULL);
     src->tail->next = dst->head;
     dst->head = src->head;
   }  /* if */

@@ -132,7 +132,8 @@ make the overall result dependent in the other senses.
   } else if (is_constant_operand(operand) &&
              constant_is_instantiation_dependent(&operand->variant.constant)) {
     contains_template_param = TRUE;
-  } else if (is_template_dependent_indefinite_function(operand)) {
+  } else if (operand->symbol != NULL &&
+             is_template_dependent_indefinite_function(operand)) {
     contains_template_param = TRUE;
   } else if (is_an_lvalue(operand) &&
              (con = value_of_constant_var_lvalue_operand(operand)) != NULL) {
@@ -737,6 +738,7 @@ TRUE and FALSE is returned.
       p_operand = operand_of_arg_list_elem(initializer_alep);
     } else {
       p_operand = initializer_operand;
+      check_assertion(p_operand != NULL);
     }  /* if */
     node = make_node_from_operand(p_operand);
     diag_invalid_consteval_func_in_expr(node);

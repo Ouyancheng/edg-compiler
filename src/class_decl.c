@@ -35381,7 +35381,7 @@ there are at least two captures.
   }  /* for */
   *p_fp = NULL;
   /* Update the corresponding symbols.  First remove them from the list,
-     collecting their decl_sequence_number values.  The re-add them in the
+     collecting their decl_sequence_number values.  Then re-add them in the
      order they appear on the capture list and assign the decl_sequence_number
      values in order. */
   sym = cssp->symbols;
