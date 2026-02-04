@@ -9591,6 +9591,7 @@ new_substitution:
   } else if (scp_is_enum_member(scp)) {
     /* Scoped enumerator. */
 #if IA64_ABI
+    check_assertion(type != NULL);
     if (add_substitution_if_available((char *)type, iek_type,
                                       /*is_pack_expansion=*/FALSE, mctl)) {
       goto done;
