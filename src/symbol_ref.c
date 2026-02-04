@@ -2183,7 +2183,7 @@ created for this entity; otherwise, it is NULL.
           scptr->source_sequence_entry = NULL;
         }  /* if */
         if (set_first_decl_flag) {
-          class_type_supp(sym_ptr)->definition_is_first_decl = TRUE;
+          class_symbol_supp(sym_ptr)->definition_is_first_decl = TRUE;
         }  /* if */
       }  /* if */
       sym_update_source_sequence_list(sym_ptr, source_position,
