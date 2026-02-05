@@ -2046,7 +2046,7 @@ struct a_constexpr_if_cache_info {
   a_token_sequence_number
 		end_start_tsn = NO_TOKEN_SEQUENCE_NUMBER;
 			/* The starting token sequence number of the closing
-			   brace of constexpr if. */
+			   brace of the constexpr if. */
 };  /* a_constexpr_if_cache_info */
 
 
