@@ -1,5 +1,14 @@
 Version 6.9
 
+2/4/26   [EDGcpfe/28686]
+C++-generating back end: assertion failure with use of scoped enumerator
+
+As a result the changes for EDGcpfe/26294 in version 6.8, some very complex
+code in which a scoped enumerator appears as a non-type template argument
+could result in an assertion failure in either gen_name or
+gen_enum_qualifier.  This is now fixed.
+
+
 2/4/26   [EDGcpfe/28680]
 Regression causing assertion failure in if_statement
 
