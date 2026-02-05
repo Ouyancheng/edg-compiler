@@ -6814,7 +6814,7 @@ precedence confusion.  Do the output in the way described by octl.
         a_scope_ptr orig_parent_scope = constant->source_corresp.parent_scope;
         a_boolean   orig_class_member =
                                       constant->source_corresp.is_class_member;
-        a_type_ptr  orig_type = constant->type;
+        a_type_ptr  saved_type = constant->type;
 
         if (orig_parent_scope == NULL) {
           /* The parent scope can be lost when copying an enumerator
@@ -6845,7 +6845,7 @@ precedence confusion.  Do the output in the way described by octl.
            overwritten above. */
         constant->source_corresp.parent_scope = orig_parent_scope;
         constant->source_corresp.is_class_member = orig_class_member;
-        constant->type = orig_type;
+        constant->type = saved_type;
       } else if (is_enum && il_header.source_language == sl_Cplusplus &&
 #if DEBUG
                  !octl->debug_output &&
