@@ -16089,7 +16089,9 @@ tok_ud_literal; otherwise, return tok_string_literal.
   }  /* for */
   /* Here, all the adjacent string literals have been captured in a token
      cache.  Concatenate them into a single string literal. */
-  concat_string_literals(cache.ptr(), character_kind);
+  if (cache->length() > 1) {
+    concat_string_literals(cache.ptr(), character_kind);
+  }  /* if */
   /* Stick the remaining single string literal back onto the input token
      stream (ahead of the non-string-literal token that stopped the loop). */
   rescan_cached_tokens(cache.ptr());

@@ -1,5 +1,14 @@
 Version 6.9
 
+2/5/26   [EDGcpfe/28672]
+Regression causing incorrect rendering of function name predefined macros
+
+With the changes for EDGcpfe/27955 (in version 6.8), macros like __FUNCTION__
+and __FUNCSIG__ were incorrectly rendered as "__FUNCTION__" and "__FUNCSIG__"
+(this is observable primarily in configurations that make use of
+RECORD_TEMPLATE_STRINGS=1 or BACK_END_IS_CP_GEN_BE=1).  This is now fixed.
+
+
 2/5/26   [EDGcpfe/25818,EDGcpfe/28688]
 Attributes on concepts and [[deprecated]]
 
