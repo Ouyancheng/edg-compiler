@@ -2208,27 +2208,32 @@ the "deprecated" attribute and an error if it was declared with the
       !in_deprecated_or_unavailable_definition()) {
     a_symbol_ptr      sym = (a_symbol_ptr)scp->assoc_info;
     an_error_severity sev;
-    an_attribute_kind kind;
-    an_attribute_ptr  ap;
+    an_attribute_ptr  ap, dap = NULL;
     an_error_code     diag_str, diag_no_str, diag_more;
     check_assertion(sym != NULL);
-    ap = find_attribute(ak_unavailable, scp->attributes);
-    if (ap != NULL) {
-      kind = ak_unavailable;
+    for (ap = scp->attributes; ap != NULL; ap = ap->next) {
+      if (ap->kind == ak_unavailable) {
+        dap = ap;
+        break;
+      } else if (ap->kind == ak_deprecated && dap == NULL) {
+        dap = ap;
+        /* Continue searching in case we find an ak_unavailable attribute
+           (which triggers an error instead of a warning). */
+      }  /* if */
+    }  /* for */
+    check_assertion(dap != NULL);
+    if (dap->kind == ak_unavailable) {
       sev = es_error;
       diag_str = ec_unavailable_entity_with_custom_message;
       diag_no_str = ec_unavailable_entity;
       diag_more = ec_unavailable_attr;
     } else {
-      ap = find_attribute(ak_deprecated, scp->attributes);
-      check_assertion(ap != NULL);
-      kind = ak_deprecated;
       sev = es_warning;
       diag_str = ec_deprecated_entity_with_custom_message;
       diag_no_str = ec_deprecated_entity;
       diag_more = ec_deprecated_attr;
     }  /* if */
-    a_const_char      *str = attribute_string_for_kind(kind, scp);
+    a_const_char      *str = attribute_string_for_kind(dap->kind, scp);
     a_diagnostic_ptr  dp;
     a_diag_list       diag_list;
     if (str != NULL) {
@@ -2236,9 +2241,9 @@ the "deprecated" attribute and an error if it was declared with the
     } else {
       dp = pos_sy_start_diagnostic(sev, diag_no_str, pos, sym);
     }  /* if */
-    if (cmp_source_positions(ap->position, null_source_position) != 0) {
+    if (cmp_source_positions(dap->position, null_source_position) != 0) {
       clear_diag_list(&diag_list);
-      more_info_diagnostic(diag_more, &ap->position, &diag_list);
+      more_info_diagnostic(diag_more, &dap->position, &diag_list);
       add_more_info_list(dp, &diag_list);
     }  /* if */
     end_diagnostic(dp);

@@ -521,6 +521,8 @@ typedef struct an_attr_appl_descr {
 			       (no property switches)
 			     "a"  : asm declarations/statements
 			       (no property switches)
+			     "C"  : concepts
+			       (no property switches)
 			     "0"  : stand-alone attribute (no target entity)
 			       (no property switches)
 			   A switch is optionally followed by a "!" to indicate
@@ -698,7 +700,8 @@ STATIC_THREAD an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_assume, "s", apply_assume_attr },
   { ak_base_check, "c:+d", apply_base_check_attr },
   { ak_carries_dependency, "r|p", apply_carries_dependency_attr },
-  { ak_deprecated, "t|p|c|e|r|v|d|n|E", apply_deprecated_or_unavailable_attr },
+  { ak_deprecated, "t|p|c|e|r|v|d|n|E|C",
+    apply_deprecated_or_unavailable_attr },
   { ak_final, "r:+v!|c:+d!", apply_final_attr },
   { ak_hiding, "t|c|e|r:+m!|v|d", apply_hiding_attr },
   { ak_known_semantics, "", NO_APPL_FN },
@@ -3445,6 +3448,19 @@ so is_enum_constant fails).
 }  /* check_simple_constant_constraints */
 
 
+static void check_simple_concept_constraints(
+                                           a_const_char                *constr,
+                                           ARG_UNUSED an_attribute_ptr ap,
+                                           ARG_UNUSED a_template_ptr   tmpl)
+/*
+constr encodes a simple target constraint for a concept.  Check that the
+attribute ap applied to the given template entry matches those constraints.
+*/
+{
+  check_assertion(constr[0] == 'C');
+}  /* check_simple_concept_constraints */
+
+
 static a_boolean check_target_entity_match(a_const_char      *constr,
                                            an_attribute_ptr  ap,
                                            a_const_char      *entity,
@@ -3513,6 +3529,17 @@ appropriate and set ap->kind to ak_unrecognized).
             check_simple_asm_constraints(constr, ap, (an_asm_entry_ptr)entity);
           }  /* if */
           match_found = TRUE;
+        }  /* if */
+        break;
+      case 'C':
+        if (entity_kind == iek_template) {
+          a_template  *tmpl = (a_template*)entity;
+          if (tmpl->kind == templk_concept) {
+            if (!weak_mismatch) {
+              check_simple_concept_constraints(constr, ap, tmpl);
+            }  /* if */
+            match_found = TRUE;
+          }  /* if */
         }  /* if */
         break;
       case 'd':
@@ -3667,6 +3694,7 @@ this is &scp.attributes.)
     case iek_namespace:
     case iek_constant:
     case iek_asm_entry:
+    case iek_template:
       p_attributes = &((a_source_correspondence*)entity)->attributes;
       break;
     case iek_param_type:
@@ -5194,7 +5222,8 @@ the "unavailable" error will trump the "deprecated" warning).
                   entity_kind == iek_field || entity_kind == iek_type ||
                   entity_kind == iek_param_type ||
                   entity_kind == iek_namespace ||
-                  entity_kind == iek_constant);
+                  entity_kind == iek_constant ||
+                  entity_kind == iek_template);
   if (entity_kind == iek_type) {
     /* Only user-defined types can be marked as deprecated or unavailable. */
     a_type_ptr  tp = (a_type_ptr)entity;

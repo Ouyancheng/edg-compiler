@@ -35982,6 +35982,7 @@ following a template parameter clause.  Parse and record the concept.
   a_symbol_locator   loc;
   a_symbol_ptr       sym;
   an_expr_node_ptr   expr;
+  a_decl_parse_state *dps = decl_state->decl_parse;
 
   add_stop_token(tok_semicolon);
   check_assertion(curr_token == tok_concept);
@@ -36023,6 +36024,7 @@ following a template parameter clause.  Parse and record the concept.
       set_to_error_locator(loc);
     }  /* if */
   }  /* if */
+  dps->id_attributes = scan_attributes(al_declarator_id);
   (void)required_token_no_advance(tok_assign, ec_exp_assign);
   if (curr_token == tok_assign) (void)get_token();
   remove_stop_token(tok_assign);
@@ -36065,6 +36067,8 @@ following a template parameter clause.  Parse and record the concept.
     if (template_has_constraints(il_template, &diag_pos)) {
       pos_error(ec_constraint_concept_template, diag_pos);
     }  /* if */
+    dps->sym = sym;
+    attach_decl_attributes(dps, /*primary_decl=*/TRUE);
   }  /* if */
   /* Pop the template declaration scopes. */
   for (; decl_state->number_of_template_decl_scopes != 0;

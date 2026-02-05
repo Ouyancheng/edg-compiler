@@ -1,5 +1,14 @@
 Version 6.9
 
+2/5/26   [EDGcpfe/25818,EDGcpfe/28688]
+Attributes on concepts and [[deprecated]]
+
+The front end now accepts attributes on concept.  Initially, the only attribute
+accepted for a concept is [[deprecated]] (or the variant with a message).  This
+was added to the language through the defect resolution of the C++ committee's
+Core issue 2428.
+
+
 2/4/26   [EDGcpfe/28686]
 C++-generating back end: assertion failure with use of scoped enumerator
 
