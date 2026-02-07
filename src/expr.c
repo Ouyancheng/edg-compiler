@@ -50826,6 +50826,7 @@ is the value of an enumerator.  The value of the constant is returned in
                     /*suppress_object_lifetime=*/FALSE);
     transfer_expr_context_if_applicable(saved_expr_stack);
     if (is_array_bound) expr_stack->in_constant_array_dimension = TRUE;
+    if (is_enum) expr_stack->is_enumerator_value = TRUE;
     /* Scan the constant expression. */
     scan_expr(&result, prec_level, EOPT_DISALLOW_COMMA_OPERATOR);
     if (is_immediate_class_type(result.type) &&

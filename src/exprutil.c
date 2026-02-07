@@ -1885,6 +1885,7 @@ is pushed regardless of any of the other factors.
   new_entry->trace_unevaluated_lambdas = FALSE;
   new_entry->range_based_for_range = FALSE;
   new_entry->in_constant_array_dimension = FALSE;
+  new_entry->is_enumerator_value = FALSE;
   new_entry->const_eval_reattempt_state = {};
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
@@ -15412,13 +15413,19 @@ of a subscript operation).
              constant). */
       try_folding = FALSE;
     } else if (expr_stack->consteval_call_need_not_fold &&
-               !expr_stack->template_deduction_context) {
+               !expr_stack->template_deduction_context &&
+               !(clang_version_is(<190000) &&
+                 expr_stack->is_enumerator_value)) {
       /* This is a context that will require a constant expression at the top
          level, so there is no need to fold intermediate expressions.  Folding
          intermediate expressions anyway could reduce the quality of
          diagnostics in some configurations (e.g., if a static_assert
          comparison fails, the early folding may prevent a report of the
-         compared values). */
+         compared values).  Prior to version 19, Clang appears not to diagnose
+         integer overflow errors in expressions for enumerator constants.
+         E.g.: "enum E { e = INT_MAX+1 };" is accepted.  We approximate this
+         by performing early folding (in folding.c instead of interpreter.c)
+         and lowering the severity in issue_folding_diagnostic. */
       try_folding = FALSE;
     } else if (op == eok_psubtract || op == eok_padd) {
       /* Try folding only if that's desirable in the current expression. */

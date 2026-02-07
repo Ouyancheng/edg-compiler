@@ -1066,6 +1066,9 @@ typedef struct an_expr_stack_entry {
 			   to iterate over. */
   a_bit_field	in_constant_array_dimension:1;
 			/* TRUE if this is an array dimension expression. */
+  a_bit_field	is_enumerator_value:1;
+			/* TRUE if this is the expression for an explicit
+			   enumerator value.  E.g., "enum E { e = x+1 };". */
   a_const_eval_reattempt_state
 		const_eval_reattempt_state;
 			/* The current constant evaluation reattempt state

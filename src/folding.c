@@ -2111,6 +2111,9 @@ diagnostic is issued, do so with source position *err_pos.  Set
     if (err_severity != es_error &&
         is_effective_sfinae_error(err_code, err_severity, err_pos)) {
       err_severity = es_error;
+    } else if (clang_version_is(<190000) &&
+               expr_stack != NULL && expr_stack->is_enumerator_value) {
+      err_severity = es_warning;
     }  /* if */
   }  /* if */
   if (err_severity == es_error) {
