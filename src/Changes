@@ -1,5 +1,23 @@
 Version 6.9
 
+2/9/26   [EDGcpfe/28692]
+C++-generating back end: missing __integer_pack template argument
+
+With the changes for EDGcpfe/26294 in version 6.8, the front end failed to mark
+an __integer_pack template argument as explicitly specified, resulting in the
+argument not being included by the C++ generating back end in some contexts.
+For example, with --c++11 --gnu_version 150200:
+
+  template<int ... Is>
+  struct C {
+    struct D { };
+  };
+
+  template<int I>
+  using A = typename C<__integer_pack(I)...>::D;  // Previously generated as
+                                                  // "typename C<>::D"
+
+
 2/7/26   [EDGcpfe/28603]
 Clang compatibility: Integer overflow in enumerator constant values
 

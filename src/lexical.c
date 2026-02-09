@@ -20982,6 +20982,7 @@ of a_constant entries.
                        cp, (a_template_param_constant_kind)tpck_integer_pack);
     cp->variant.template_param.variant.bound = bound;
     args = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+    args->explicitly_specified = TRUE;
     args->is_integer_pack = TRUE;
     args->variant.constant = cp;
   } else if (constant_is(bound, ck_integer)) {
@@ -21008,6 +21009,7 @@ of a_constant entries.
         *p_arg = alloc_template_arg((a_templ_arg_kind)tak_nontype);
         set_integer_constant(cp, val, ikind);
         (*p_arg)->variant.constant = cp;
+        (*p_arg)->explicitly_specified = TRUE;
         p_arg = &(*p_arg)->next;
       }  /* for */
     }  /* if */
