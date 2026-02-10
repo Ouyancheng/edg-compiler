@@ -1,5 +1,14 @@
 Version 6.9
 
+2/10/26  [EDGcpfe/28693]
+Regression in cleanup of template_cache_segment_table
+
+With the changes for EDGcpfe/27955 (in version 6.8), template cache segments
+were not removed from template_cache_segment_table when destroyed.  This
+resulted in increased memory usage for some translation units and (in rare
+cases) segfaults.  This is now fixed.
+
+
 2/9/26   [EDGcpfe/28692]
 C++-generating back end: missing __integer_pack template argument
 

@@ -2598,6 +2598,7 @@ functions of a class template definition.  This information is used
 to extract the member bodies from the enclosing token cache.
 */
 typedef struct a_template_cache_segment {
+  ~a_template_cache_segment();
   a_symbol_ptr	symbol;
 			/* Pointer to the symbol entry for the member
 			   associated with this entry. */
@@ -5075,8 +5076,6 @@ extern
 a_template_cache_segment_ptr alloc_template_cache_segment(
                                 a_symbol_ptr				sym,
                                 a_template_symbol_supplement_ptr	tssp);
-
-extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
 
 extern a_template_cache_segment_ptr get_template_cache_segment(
                                 a_symbol_ptr                      sym,

@@ -3286,21 +3286,22 @@ to the symbol supplement associated with sym.
 }  /* alloc_template_cache_segment */
 
 
-void free_template_cache_segment(a_template_cache_segment_ptr tcsp)
+a_template_cache_segment::~a_template_cache_segment()
 /*
-Free a template cache segment entry and return it to the available list.
+Destroy the current template cache segment entry.
 */
 {
-  a_template_cache_segment_ptr  match;
+  a_token_range                 key{this->first_token_number,
+                                    this->last_token_number};
+  a_template_cache_segment_ptr  match = template_cache_segment_table->get(key);
 
-  match = template_cache_segment_table->get(
-          a_token_range{ tcsp->first_token_number, tcsp->last_token_number });
-  if (match != NULL) {
-    template_cache_segment_table->unmap(
-          a_token_range{ tcsp->first_token_number, tcsp->last_token_number });
+  if (match == this) {
+    /* Remove this template cache segment from the template cache segment table
+       if it's being destroyed and it was mapped into the template cache
+       segment table. */
+    template_cache_segment_table->unmap(key);
   }  /* if */
-  delete_fe(&tcsp);
-}  /* free_template_cache_segment */
+}  /* a_template_cache_segment::~a_template_cache_segment */
 
 
 a_template_cache_segment_ptr get_template_cache_segment(
