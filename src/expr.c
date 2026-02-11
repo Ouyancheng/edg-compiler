@@ -55369,7 +55369,9 @@ operation of the given kind (bok_is_invocable or bok_is_nothrow_invocable).
     } else if (is_std_class(utype_1, "reference_wrapper")) {
       /* An instance of std::reference_wrapper<T>.  The "invocation" is applied
          to opnd1.get(), instead, which produces a type T&. */
-      a_template_arg  *tap = class_type_supp(utype_1)->template_arg_list;
+      a_template_arg  *tap;
+      utype_1 = skip_typerefs(utype_1);
+      tap = class_type_supp(utype_1)->template_arg_list;
       if (tap->kind != tak_type || tap->variant.type == NULL) {
         /* Something went wrong, such as an invalid definition of
            std::reference_wrapper. */

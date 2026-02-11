@@ -1,5 +1,23 @@
 Version 6.9
 
+2/11/26  [EDGcpfe/28699]
+Abort with __is_invocable
+
+Consider:
+
+  namespace std {
+    template<typename ... Ts> struct reference_wrapper {};
+  };
+  struct S {};
+  using X = std::reference_wrapper<S>;
+  static_assert(!__is_invocable(int S::*, X));
+
+This combination of applying __is_invocable on a pointer-to-member type with
+an object type that is an instance of std::reference_wrapper previously
+triggered an invalid memory access (usually resulting in an aborted process).
+That is now fixed.
+
+
 2/11/26  [EDGcpfe/28624]
 Template lower_bound renamed to low_bound
 
