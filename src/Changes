@@ -1,5 +1,13 @@
 Version 6.9
 
+2/11/26  [EDGcpfe/28624]
+Template lower_bound renamed to low_bound
+
+The EDG lower_bound template in util.h could trigger ambiguities with some
+std::lower_bound implementations.  To avoid such problems, the EDG template
+has been renamed to low_bound.
+
+
 2/11/26  [EDGcpfe/28698]
 Use FP_LONG_DOUBLE_IS_BINARY128 for 64-bit ARM and RISC-V on Linux
 
