@@ -279,7 +279,13 @@ Linux.
 #define MAX_INTEGER_VALUE 9223372036854775807LL
 #define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
 #define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
+
+#if defined(__aarch64__) || defined(__riscv)
+/* 64-bit ARM and RISC-V use a 128-bit long double representation. */
+#define FP_LONG_DOUBLE_IS_BINARY128 1
+#else /* !(defined(__aarch64__) || defined(__riscv)) */
 #define FP_LONG_DOUBLE_IS_80BIT_EXTENDED 1
+#endif /* defined(__aarch64__) || defined(__riscv) */
 
 #ifndef LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS
 #define LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS 1

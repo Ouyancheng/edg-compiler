@@ -1,5 +1,13 @@
 Version 6.9
 
+2/11/26  [EDGcpfe/28698]
+Use FP_LONG_DOUBLE_IS_BINARY128 for 64-bit ARM and RISC-V on Linux
+
+A change has been made to set FP_LONG_DOUBLE_IS_BINARY128 instead of
+FP_LONG_DOUBLE_IS_80BIT_EXTENDED in defines.h.linux for 64-bit ARM and RISC-V
+architectures.
+
+
 2/10/26  [EDGcpfe/28693]
 Regression in cleanup of template_cache_segment_table
 
