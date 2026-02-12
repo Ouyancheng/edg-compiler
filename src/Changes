@@ -1,5 +1,25 @@
 Version 6.9
 
+2/12/26  [EDGcpfe/28700]
+Missing name reference for function template specialization lvalue
+
+In configurations with DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE, the
+front end failed to record name references for function template specialization
+lvalues that are not used as the postfix expression in a function call.  This
+also prevented the C++-generating back end from accurately reconstructing such
+expressions. For example, with --c++14:
+
+  namespace ns1 {
+    template<typename> int f();
+  }
+  namespace ns2 {
+    using namespace ns1;
+  }
+  auto *f(int i) {
+    return ns2::f<decltype(i)>;  // Previously reconstructed as "ns1::f<int>".
+  }
+
+
 2/11/26  [EDGcpfe/28699]
 Abort with __is_invocable
 

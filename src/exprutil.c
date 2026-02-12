@@ -24481,12 +24481,16 @@ otherwise.
           ampersand_pos = &orig_operand.ampersand_position;
         }  /* if */
 
-        a_template_arg_ptr search_list = matching_arg_list.release();
+        a_template_arg_ptr orig_arg_list = matching_arg_list.release();
         sym = find_template_function(matching_sym,
-                                     &search_list,
+                                     &orig_arg_list,
                                      /*explicit_arg_list_present=*/TRUE,
                                      &orig_operand.position);
-        free_template_arg_list(search_list);
+        if (orig_operand.name_reference_set) {
+          orig_operand.name_reference.orig_template_arg_list = orig_arg_list;
+        } else {
+          free_template_arg_list(orig_arg_list);
+        }  /* if */
         check_assertion(sym != NULL && is_simple_function_symbol(sym));
         if (single_func_sym != NULL) *single_func_sym = sym;
         if (sym->kind == (a_symbol_kind)sk_member_function &&
@@ -24505,6 +24509,11 @@ otherwise.
             conv_sym_for_member_operand_to_ptr_to_member(operand,
                                                          ampersand_pos);
           }  /* if */
+          /* Restore any name reference. */
+          if (orig_operand.name_reference_set) {
+            operand->name_reference_set = TRUE;
+            operand->name_reference = orig_operand.name_reference;
+          }  /* if */
         } else {
           /* A nonmember function or static member function. */
           make_function_designator_operand(sym,
@@ -24516,6 +24525,11 @@ otherwise.
                                                                 &orig_operand),
                                            orig_operand.ref_entries_list,
                                            operand);
+          /* Restore any name reference. */
+          if (orig_operand.name_reference_set) {
+            operand->name_reference_set = TRUE;
+            operand->name_reference = orig_operand.name_reference;
+          }  /* if */
           if (is_a_prvalue(&orig_operand)) {
             conv_function_designator_to_ptr_to_function(operand,
                                                         ampersand_pos,
