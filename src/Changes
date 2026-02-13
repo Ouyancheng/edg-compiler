@@ -1,5 +1,18 @@
 Version 6.9
 
+2/13/26  [EDGcpfe/28701]
+Assertion failure in prelower_class_type
+
+An assertion failure in prelower_class_type had occurred in C mode on the
+following example and is now fixed.  With --gcc:
+
+  struct A { unsigned long x; };
+  const struct A a = { 0 };
+  void f() {
+    __asm__ ("movq %0, %%mm0" : : "m"(a) : "mm0");
+  }
+
+
 2/12/26  [EDGcpfe/28700]
 Missing name reference for function template specialization lvalue
 

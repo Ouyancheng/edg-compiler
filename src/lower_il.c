@@ -4568,7 +4568,8 @@ initialize some part of the aggregate, and that part contains pointers
 to data members, add initialization constants to ensure that the
 pointers to data members are properly initialized to -1 for NULL.
 Note that the constant should not contain any optimized empty classes
-at this point.
+at this point.  This is typically called only in C++ mode, but may be
+called in C mode.
 */
 {
   a_type_ptr type = skip_typerefs(constant->type);
@@ -4615,7 +4616,9 @@ at this point.
     /* Note that we generate initializers for base classes,
        virtual function table pointers, etc., because the class
        is prelowered.  Make sure it is. */
-    prelower_class_type(type);
+    if (!C_mode()) {
+      prelower_class_type(type);
+    }  /* if */
     f = next_non_empty_initializable_field(
                                   type->variant.class_struct_union.field_list);
 #if LOWER_DESIGNATED_INITIALIZERS
