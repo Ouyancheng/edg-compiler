@@ -768,6 +768,8 @@ static void gen_prop_event_or_op_synth_call(
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node);
 static a_boolean expr_is_unusable(an_expr_node_ptr expr);
+static a_boolean invalid_qual_in_curr_context(a_type_ptr trp);
+
 /*
 Options for gen_general_declaration_using_type.
 */
@@ -5321,12 +5323,38 @@ enum.  options gives a set of options for gen_name.  See gen_name for
 the meaning of need_closing_paren.
 */
 {
+  a_boolean scope_pushed = FALSE;
+
+  if (type_is(enum_type, tk_typeref) &&
+      is_typeref_kind(enum_type, trk_name_qualifier)) {
+    /* Under some circumstances, the front end adds a name qualifier
+       typeref to the type of an enumeration constant. */
+    if (!invalid_qual_in_curr_context(enum_type)) {
+      /* Put out the indicated qualifier(s) before the enumeration type
+         itself. */
+      gen_name_qualifier_list(
+                         enum_type->variant.typeref.extra_info->name_qualifier,
+                         /*from_name_qual_typeref=*/TRUE);
+      if (enum_type->source_corresp.parent_scope != NULL) {
+        /* Push the enum's parent scope to prevent gen_name from putting
+           out a qualifier of its own. */
+        push_name_context(enum_type->source_corresp.parent_scope);
+        scope_pushed = TRUE;
+      }  /* if */
+    }  /* if */
+    /* Skip over the trk_name_reference typeref to the actual enumeration
+       type. */
+    enum_type = enum_type->variant.typeref.type;
+  }  /* if */
   check_assertion(is_immediate_enum_type(enum_type) &&
                   integer_type_is_scoped_enum(enum_type));
   if (has_name_before_mangling(enum_type)) {
     gen_name(&enum_type->source_corresp, iek_type, options | GN_QUALIFIER,
              need_closing_paren);
     write_tok_str("::");
+    if (scope_pushed) {
+      pop_name_context();
+    }  /* if */
   }  /* if */
 }  /* gen_enum_qualifier */
 
@@ -6254,11 +6282,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
          the original enumerator constant and not this copy, so we need to
          find that constant to see if the name must be qualified. */
       a_constant_ptr cp;
-      a_type_ptr     enum_type;
-      check_assertion(con->type->kind == (a_type_kind)tk_integer);
-      if (con->type->variant.integer.enum_type) {
-        enum_type = con->type;
-      } else {
+      a_type_ptr     enum_type = skip_lexical_typerefs(con->type);
+      check_assertion(enum_type->kind == (a_type_kind)tk_integer);
+      if (!enum_type->variant.integer.enum_type) {
         enum_type = con->type->variant.integer.enum_info.affiliated_type;
       }  /* if */
       for (cp = enum_type->variant.integer.enum_info.constant_list;

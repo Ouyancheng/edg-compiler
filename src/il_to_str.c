@@ -6814,8 +6814,6 @@ precedence confusion.  Do the output in the way described by octl.
         a_scope_ptr orig_parent_scope = constant->source_corresp.parent_scope;
         a_boolean   orig_class_member =
                                       constant->source_corresp.is_class_member;
-        a_type_ptr  saved_type = constant->type;
-
         if (orig_parent_scope == NULL) {
           /* The parent scope can be lost when copying an enumerator
              constant.  Temporarily set the enumerator's parent scope as
@@ -6826,13 +6824,6 @@ precedence confusion.  Do the output in the way described by octl.
           if (tp->variant.integer.is_scoped_enum) {
             constant->source_corresp.parent_scope =
                                      tp->variant.integer.enum_info.assoc_scope;
-            if (is_for_cp_gen_be(octl)) {
-              /* The front end sometimes adds lexical typerefs to the
-                 type of a scoped enumerator, which interferes with the
-                 processing of gen_enum_qualifier.  Temporarily remove the
-                 lexical typerefs, if any. */
-              constant->type = skip_lexical_typerefs(constant->type);
-            }  /* if */
           } else {
             constant->source_corresp.parent_scope =
                                                tp->source_corresp.parent_scope;
@@ -6845,7 +6836,6 @@ precedence confusion.  Do the output in the way described by octl.
            overwritten above. */
         constant->source_corresp.parent_scope = orig_parent_scope;
         constant->source_corresp.is_class_member = orig_class_member;
-        constant->type = saved_type;
       } else if (is_enum && il_header.source_language == sl_Cplusplus &&
 #if DEBUG
                  !octl->debug_output &&

@@ -1,5 +1,14 @@
 Version 6.9
 
+2/13/26  [EDGcpfe/28687]
+C++-generating back end: name reference in scoped enumeration qualifier
+
+The changes for EDGcpfe/28686 (not in a release but distributed to
+customers in a patch) could result in generated code that, while correct,
+failed in some complex cases to reflect the actual name qualifier used for
+a scoped enumerator in the original source.  This is now fixed.
+
+
 2/13/26  [EDGcpfe/28701]
 Assertion failure in prelower_class_type
 
