@@ -5325,6 +5325,7 @@ the meaning of need_closing_paren.
 {
   a_boolean scope_pushed = FALSE;
 
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   if (type_is(enum_type, tk_typeref) &&
       is_typeref_kind(enum_type, trk_name_qualifier)) {
     /* Under some circumstances, the front end adds a name qualifier
@@ -5346,6 +5347,7 @@ the meaning of need_closing_paren.
        type. */
     enum_type = enum_type->variant.typeref.type;
   }  /* if */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   check_assertion(is_immediate_enum_type(enum_type) &&
                   integer_type_is_scoped_enum(enum_type));
   if (has_name_before_mangling(enum_type)) {
