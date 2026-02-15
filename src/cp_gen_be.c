@@ -768,7 +768,9 @@ static void gen_prop_event_or_op_synth_call(
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node);
 static a_boolean expr_is_unusable(an_expr_node_ptr expr);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
 static a_boolean invalid_qual_in_curr_context(a_type_ptr trp);
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 /*
 Options for gen_general_declaration_using_type.
