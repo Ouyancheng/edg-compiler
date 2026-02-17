@@ -2129,6 +2129,7 @@ could be a template-dependent value or an error).
       /* At least one bound is template-dependent or an error. */
       no_bound = TRUE;
       *p_dependent = TRUE;
+      first_idx = last_idx = 0;
     }  /* if */
     if (no_bound ||
         (first_idx < atype->variant.array.variant.number_of_elements &&
