@@ -2095,7 +2095,7 @@ none).  *is describes the initialization and *idx describes the index of the
 next element to be initialized (which is updated by this routine).  diag_pos is
 the position at which to issue diagnostics if no more specific position is
 available.  Set *p_dependent if the designator has an unknown index (which
-be a template-dependent value or an error).
+could be a template-dependent value or an error).
 */
 {
   a_boolean              okay, no_bound;
