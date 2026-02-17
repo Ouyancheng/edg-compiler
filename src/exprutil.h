@@ -3047,6 +3047,9 @@ extern void generic_cast_operand(an_operand         *operand,
                                  a_cast_source_form source_form,
                                  a_boolean          is_implicit_cast);
 
+extern void make_generic_designator_constant(an_arg_list_elem_ptr icp,
+                                             a_constant_ptr       con);
+
 extern void prep_generic_argument(an_arg_list_elem_ptr arg);
 
 extern void prep_generic_argument_list(an_arg_list_elem_ptr arg_list);

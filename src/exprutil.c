@@ -980,8 +980,8 @@ variant fields to default values.
       break;
     case ick_designator:
       icp->variant.designator.field_name = NULL;
-      icp->variant.designator.element_index = 0;
-      icp->variant.designator.last_element_index = 0;
+      icp->variant.designator.element_index = NULL;
+      icp->variant.designator.last_element_index = NULL;
       icp->variant.designator.position = null_source_position;
       icp->variant.designator.resolved_field = NULL;
       break;
@@ -1082,6 +1082,8 @@ subtree of entries, free those as well.
       break;
     case ick_designator:
       icp->variant.designator.field_name = NULL;
+      icp->variant.designator.element_index = NULL;
+      icp->variant.designator.last_element_index = NULL;
       break;
     case ick_continued:
       icp->variant.continuation.state = NULL;
@@ -1283,8 +1285,14 @@ Display an init component for debugging purposes.
         (void)fprintf(f_debug, ".%s\n", icp->variant.designator.field_name
                                            ->identifier);
       } else {
-        (void)fprintf(f_debug, "[%lu]\n",
-                      (unsigned long)icp->variant.designator.element_index);
+        (void)fprintf(f_debug, "[");
+        db_constant(icp->variant.designator.element_index);
+        if (icp->variant.designator.element_index != 
+                                 icp->variant.designator.last_element_index) {
+          (void)fprintf(f_debug, " ... ");
+          db_constant(icp->variant.designator.last_element_index);
+        }  /* if */
+        (void)fprintf(f_debug, "]\n");
       }  /* if */
       break;
     case ick_continued:
@@ -16064,6 +16072,32 @@ e.g., if the source operand is an lvalue.
 }  /* generic_cast_operand */
 
 
+void make_generic_designator_constant(an_arg_list_elem_ptr icp,
+                                      a_constant_ptr       con)
+/*
+Transfer the generic designator description in icp to the ck_designator
+constant pointed to by con.
+*/
+{
+  con->type = void_type();
+  con->variant.designator.is_generic = TRUE;
+  if (icp->variant.designator.field_name != NULL) {
+    con->variant.designator.is_field_designator = TRUE;
+    con->variant.designator.variant.field_name =
+                           icp->variant.designator.field_name->identifier;
+  } else {
+    a_constant_ptr  first = icp->variant.designator.element_index,
+                    last = icp->variant.designator.last_element_index;
+    first->next = last;
+    con->variant.designator.variant.subscript = first;
+    if (scope_stack_top().in_template_deduction_context) {
+      pos_error(ec_array_designator_for_deduced_context,
+                init_component_pos(icp));
+    }  /* if */
+  }  /* if */
+}  /* make_generic_designator_constant */
+
+
 void prep_generic_argument(an_arg_list_elem_ptr arg)
 /*
 Prepare a generic argument, i.e., an argument of a call scanned during
@@ -16080,14 +16114,10 @@ list.
     /* Change arg to an expression component representing a ck_designator
        constant. */
     a_constant_ptr  des_con = local_constant();
-    clear_constant(des_con, (a_constant_repr_kind)ck_designator);
-    des_con->type = void_type();
-    des_con->variant.designator.is_field_designator = TRUE;
-    des_con->variant.designator.is_generic = TRUE;
-    des_con->variant.designator.variant.field_name =
-                arg->variant.designator.field_name->identifier;
+    clear_constant(des_con, ck_designator);
+    make_generic_designator_constant(arg, des_con);
     des_con->type = type_of_unknown_templ_param_nontype;
-    set_init_component_kind(arg, (an_init_component_kind)ick_expression);
+    set_init_component_kind(arg, ick_expression);
     make_constant_operand(des_con, operand_of_arg_list_elem(arg));
     release_local_constant(&des_con);
   } else {

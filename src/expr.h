@@ -301,17 +301,17 @@ typedef struct an_init_component {
 		field_name;
 			/* Pointer to the symbol header for a field designator
 			   or NULL if this is an array element designator. */
-      a_targ_size_t
+      a_constant_ptr
 		element_index;
 			/* The constant value specified in an array element
 			   designator (the first one in the case of a GNU-style
-			   array range designator), or zero if this is a field
+			   array range designator), or NULL if this is a field
 			   designator. */
-      a_targ_size_t
+      a_constant_ptr
 		last_element_index;
 			/* If this component represents a GNU-style array range
 			   designator, the second constant value specified in
-			   the range.  Otherwise, zero for a field designator
+			   the range.  Otherwise, NULL for a field designator
 			   and the same value as element_index for an array
 			   designator. */
       a_source_position

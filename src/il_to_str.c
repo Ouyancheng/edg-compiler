@@ -7472,8 +7472,12 @@ do_sizeof_cases:
       } else {
         octl->output_str("[", octl);
         if (constant->variant.designator.is_generic) {
-          form_constant(constant->variant.designator.variant.subscript,
-                        /*need_parens=*/FALSE, octl);
+          a_constant  *idx = constant->variant.designator.variant.subscript;
+          form_constant(idx, /*need_parens=*/FALSE, octl);
+          if (idx->next != NULL) {
+            octl->output_str(" ... ", octl);
+            form_constant(idx->next, /*need_parens=*/FALSE, octl);
+          }  /* if */
         } else {
           form_unsigned_num(constant->variant.designator.variant.array_element,
                             octl);

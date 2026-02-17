@@ -8238,6 +8238,10 @@ brace/parenthesis delimiters around it should be suppressed.
     if (con->variant.designator.is_generic) {
       a_constant_ptr  subscript = con->variant.designator.variant.subscript;
       gen_constant(subscript, /*need_parens=*/FALSE);
+      if (subscript->next != NULL) {
+        write_tok_str(" ... ");
+        gen_constant(subscript->next, /*need_parens=*/FALSE);
+      }  /* if */
     } else {
       unsigned long start =
                  (unsigned long)con->variant.designator.variant.array_element;

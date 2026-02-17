@@ -3633,6 +3633,7 @@ ec_enum_previously_declared_without_explicit_base;;"%nd was previously declared 
 ec_missing_typename;;"missing \"typename\" is nonstandard here"
 ec_abbreviated_deduction_guide;;"abbreviated function template syntax is nonstandard for deduction guides"
 ec_explicit_this_is_cpp23;;"explicit \"this\" parameters are a C++23 feature"
+ec_array_designator_for_deduced_context;;"array designators are not supported in template deduction contexts"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

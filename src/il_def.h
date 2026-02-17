@@ -5488,7 +5488,8 @@ typedef struct a_constant {
         a_constant_ptr
 		subscript;
 			/* A constant representing the subscript of the
-			   designated array element.  (Not currently used.) */
+			   designated array element.  For a range-designator,
+			   this is a list of two constants. */
       } variant;
     } designator;
     /* When kind == ck_reflection: */

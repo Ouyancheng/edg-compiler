@@ -45251,12 +45251,12 @@ looks like the latter.
 }  /* designator_not_lambda_next */
 
 
-static a_boolean scan_array_designator_value(a_targ_size_t  *value)
+static a_boolean scan_array_designator_value(a_constant_ptr  *idx)
 /*
 Scan a constant value specified in an array designator (for GNU-style range
 designators this could be the second specified value) and return it through
-*value.  In error cases (e.g., template dependent values, negative values, or
-overflow), FALSE is returned and *value is undefined.  Otherwise, TRUE is
+*idx.  In error cases (e.g., template dependent values, negative values, or
+overflow), FALSE is returned and *idx is undefined.  Otherwise, TRUE is
 returned.
 */
 {
@@ -45269,8 +45269,8 @@ returned.
   switch (constant->kind) {
     case ck_integer:
       if (sign_of_integer_constant(constant) >= 0) {
-        a_boolean  overflow;
-        *value = unsigned_value_of_integer_constant(constant, &overflow);
+        a_boolean      overflow;
+        (void)unsigned_value_of_integer_constant(constant, &overflow);
         /* Check for overflow. */
         if (overflow) {
           pos_error(ec_subscript_out_of_range, &pos);
@@ -45283,8 +45283,6 @@ returned.
       }  /* if */
       break;
     case ck_template_param:
-      pos_error(ec_template_dependent_designator, &pos);
-      okay = FALSE;
       break;
     case ck_error:
       okay = FALSE;
@@ -45293,7 +45291,12 @@ returned.
       unexpected_condition_str(
                             "scan_array_designator_value: bad constant kind");
   }  /* switch */
-  release_local_constant(&constant);
+  if (okay) {
+    *idx = move_local_constant_to_il(&constant);
+  } else {
+    release_local_constant(&constant);
+    *idx = NULL;
+  }  /* if */
   return okay;
 }  /* scan_array_designator_value */
 
@@ -45363,7 +45366,7 @@ Both C99-style and GNU-style designators are handled here.
                (!lambdas_enabled || designator_not_lambda_next())) {
       /* An array element designator. */
       a_source_position  start_pos, pos;
-      a_targ_size_t      idx, last_idx;
+      a_constant_ptr     idx, last_idx;
       a_boolean          okay = TRUE;
       start_pos = pos_curr_token;
       if (cpp20_designators_restriction && !gpp_mode) {
@@ -45380,7 +45383,10 @@ Both C99-style and GNU-style designators are handled here.
         (void)get_token();
         pos = pos_curr_token;
         okay &= scan_array_designator_value(&last_idx);
-        if (okay && last_idx < idx) {
+        if (okay && idx != last_idx &&
+            constant_is(idx, ck_integer) &&
+            constant_is(last_idx, ck_integer) &&
+            cmp_integer_constants(last_idx, idx) < 0) {
           pos_error(ec_no_negative_designator_range, &pos);
           okay = FALSE;
         }  /* if */
@@ -45392,8 +45398,7 @@ Both C99-style and GNU-style designators are handled here.
       (void)required_token(tok_rbracket, ec_exp_rbracket);
       remove_stop_token(tok_rbracket);
       if (okay) {
-        designator = alloc_init_component
-                                     ((an_init_component_kind)ick_designator);
+        designator = alloc_init_component(ick_designator);
         designator->variant.designator.position = start_pos;
         designator->variant.designator.element_index = idx;
         designator->variant.designator.last_element_index = last_idx;

@@ -4585,6 +4585,10 @@ only).
 }  /* mangled_encoding_for_unknown_function */
 
 
+static
+a_constant_ptr mangled_braced_expression(a_constant_ptr           con,
+                                         a_mangling_control_block *mctl);
+
 static void literal_representation(
                                   a_constant_ptr           con,
                                   a_boolean                old_form,
@@ -4834,8 +4838,8 @@ do_unknown_function:
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_designator:
-      /* Shouldn't get designated initializers here. */
-      unexpected_condition();
+      (void)mangled_braced_expression(con, mctl);
+      break;
     case ck_init_repeat:
       /* Handle a repeated constant. */
       for (a_targ_size_t i = 0; i < con->variant.init_repeat.count; ++i) {
@@ -6464,8 +6468,7 @@ together here).
         mangled_name_with_length(name, mctl);
       } else {
         /* An array element (or elements) designator. */
-        check_assertion(con->next != NULL);
-        if (con->next->kind == (a_constant_repr_kind)ck_init_repeat) {
+        if (con->next != NULL && constant_is(con->next, ck_init_repeat)) {
           /* A range of array elements, e.g., "[5 ... 10]". */
           add_str_to_mangled_name("dX", mctl);
           repeated_con = con->next;
@@ -6505,7 +6508,7 @@ together here).
                                     repeated_con->variant.init_repeat.constant,
                                     mctl);
         result = repeated_con->next;
-      } else {
+      } else if (con->next != NULL) {
         result = mangled_braced_expression(con->next, mctl);
       }  /* if */
       break;

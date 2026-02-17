@@ -1053,24 +1053,12 @@ of the whole initialization (*is) as appropriate.
                   is_prototype_instantiation_context() ||
                   is_error_type(gtype));
   if (is_designator_component(icp)) {
-    /* We don't permit designators in templates because we cannot represent a
-       field designator in the IL if we don't actually have a field entry to
-       point to. */
     if (is_error_type(gtype)) {
       is->init_error = TRUE;
       *init_con = NULL;
     } else if (!is->check_validity_only) {
-      *init_con = alloc_constant((a_constant_repr_kind)ck_designator);
-      (*init_con)->type = void_type();
-      (*init_con)->variant.designator.is_generic = TRUE;
-      if (icp->variant.designator.field_name != NULL) {
-        (*init_con)->variant.designator.is_field_designator = TRUE;
-        (*init_con)->variant.designator.variant.field_name =
-                               icp->variant.designator.field_name->identifier;
-      } else {
-        pos_error(ec_designator_for_template_dependent_type,
-                  init_component_pos(icp));
-      }  /* if */
+      *init_con = alloc_constant(ck_designator);
+      make_generic_designator_constant(icp, *init_con);
     }  /* if */
   } else if (is->check_validity_only) {
     /* Except for designators, this routine always "succeeds" without
@@ -2094,6 +2082,7 @@ static void aggr_init_array_designator(an_init_component_ptr  *p_icp,
                                        a_type_ptr             atype,
                                        an_init_state          *is,
                                        a_targ_size_t          *idx,
+                                       a_boolean              *p_dependent,
                                        a_constant_ptr         aggr_con,
                                        a_source_position      *diag_pos)
 /*
@@ -2105,15 +2094,17 @@ consumes initializer components up to and including a non-designator (and
 none).  *is describes the initialization and *idx describes the index of the
 next element to be initialized (which is updated by this routine).  diag_pos is
 the position at which to issue diagnostics if no more specific position is
-available.
+available.  Set *p_dependent if the designator has an unknown index (which
+be a template-dependent value or an error).
 */
 {
   a_boolean              okay, no_bound;
   an_init_component_ptr  icp = *p_icp;
   a_targ_size_t          repeat_count = 1, orig_idx = *idx;
+  a_constant_ptr         first = NULL, last = NULL;
 
   atype = skip_typerefs(atype);
-  check_assertion(atype->kind == (a_type_kind)tk_array);
+  check_assertion(type_is(atype, tk_array));
   no_bound = has_unknown_specified_bound(atype) ||
              (atype->variant.array.variant.number_of_elements == 0 &&
               !atype->variant.array.bound_is_zero);
@@ -2122,36 +2113,52 @@ available.
        Issue an error. */
     okay = FALSE;
     pos_error(ec_invalid_designator_kind, init_component_pos(icp));
-  } else if (no_bound ||
-             (icp->variant.designator.element_index <
-                            atype->variant.array.variant.number_of_elements &&
-              icp->variant.designator.last_element_index <
-                            atype->variant.array.variant.number_of_elements)) {
-    okay = TRUE;
-    *idx = icp->variant.designator.element_index;
-    repeat_count = icp->variant.designator.last_element_index - *idx + 1;
   } else {
-    /* The designator indicates a subscript outside the array bounds. */
-    okay = FALSE;
-    pos_error(ec_subscript_out_of_range, init_component_pos(icp));
-  }  /* if */
-  if (!C_mode() && okay) {
-    a_type_ptr  etype = underlying_array_element_type(atype);
-    etype = skip_typerefs(etype);
-    if (is_immediate_class_type(etype) &&
-        !etype->variant.class_struct_union.is_nonreal_class &&
-        is_nonPOD_or_has_nontrivial_copy_semantics(etype)) {
-      /* Allowing designators in non-POD types (for C++03; classes with
-         non-trivial copy/construction semantics in modern C++) might raise
-         subtle questions about order of initialization and destruction.
-         GCC only permits them if they are "trivial" (i.e., do not actually
-         change the index of the next initializer) and we emulate that. */
-      an_init_component  *next_icp = next_elem(icp);
-      if (gpp_mode && *idx == orig_idx && !is_designator_component(next_icp)) {
-        pos_warning(ec_no_array_designators_in_cpp_mode,
-                    init_component_pos(icp));
-      } else {
-        pos_error(ec_designator_for_non_POD, init_component_pos(icp));
+    a_targ_size_t  first_idx, last_idx;
+    first = icp->variant.designator.element_index;
+    last = icp->variant.designator.last_element_index;
+    if (constant_is(first, ck_integer) && constant_is(last, ck_integer)) {
+      a_boolean  overflow = FALSE;
+      first_idx = unsigned_value_of_integer_constant(first, &overflow);
+      check_assertion(!overflow);
+      last_idx = unsigned_value_of_integer_constant(last, &overflow);
+      check_assertion(!overflow && last_idx >= first_idx);
+      repeat_count = last_idx - first_idx + 1;
+      first = last = NULL;
+    } else {
+      /* At least one bound is template-dependent or an error. */
+      no_bound = TRUE;
+      *p_dependent = TRUE;
+    }  /* if */
+    if (no_bound ||
+        (first_idx < atype->variant.array.variant.number_of_elements &&
+         last_idx < atype->variant.array.variant.number_of_elements)) {
+      okay = TRUE;
+      *idx = first_idx;
+    } else {
+      /* The designator indicates a subscript outside the array bounds. */
+      okay = FALSE;
+      pos_error(ec_subscript_out_of_range, init_component_pos(icp));
+    }  /* if */
+    if (!C_mode() && okay) {
+      a_type_ptr  etype = underlying_array_element_type(atype);
+      etype = skip_typerefs(etype);
+      if (is_immediate_class_type(etype) &&
+          !etype->variant.class_struct_union.is_nonreal_class &&
+          is_nonPOD_or_has_nontrivial_copy_semantics(etype)) {
+        /* Allowing designators in non-POD types (for C++03; classes with
+           non-trivial copy/construction semantics in modern C++) might raise
+           subtle questions about order of initialization and destruction.
+           GCC only permits them if they are "trivial" (i.e., do not actually
+           change the index of the next initializer) and we emulate that. */
+        an_init_component  *next_icp = next_elem(icp);
+        if (gpp_mode && *idx == orig_idx &&
+            !is_designator_component(next_icp)) {
+          pos_warning(ec_no_array_designators_in_cpp_mode,
+                      init_component_pos(icp));
+        } else {
+          pos_error(ec_designator_for_non_POD, init_component_pos(icp));
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2165,10 +2172,15 @@ available.
       /* Append the array designator constant to the end of the enclosing
          aggregate constant. */
       a_constant_ptr  des_con;
-      des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+      des_con = alloc_constant(ck_designator);
       des_con->type = void_type();
       des_con->variant.designator.is_field_designator = FALSE;
-      des_con->variant.designator.variant.array_element = *idx;
+      if (first != NULL) {
+        des_con->variant.designator.is_generic = TRUE;
+        des_con->variant.designator.variant.subscript = first;
+      } else {
+        des_con->variant.designator.variant.array_element = *idx;
+      }  /* if */
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
       add_constant_to_aggregate(des_con, aggr_con,
                                 (a_base_class_ptr)NULL, (a_field_ptr)NULL);
@@ -2359,10 +2371,15 @@ for this array initialization).  *is describes the initialization as a whole.
              level. */
           break;
         } else {
+          a_boolean  dependent = FALSE;
           is->chained_designator_okay = FALSE;
-          aggr_init_array_designator(&icp, atype, is, &idx, *init_con,
-                                     diag_pos);
-          if (idx > icount) icount = idx;
+          aggr_init_array_designator(&icp, atype, is, &idx, &dependent,
+                                     *init_con, diag_pos);
+          if (dependent) {
+            no_bound = TRUE;
+          } else if (idx > icount) {
+            icount = idx;
+          }  /* if */
         }  /* if */
       } else if (zero_sized_element) {
         /* Some modes allow zero-length arrays.  If the member type contains

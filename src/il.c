@@ -8695,6 +8695,32 @@ Return TRUE if the given subobject paths are equivalent.
 }  /* equiv_subobject_paths */
 
 
+static
+a_boolean compare_constants_list(a_constant_ptr                   list1,
+                                 a_constant_ptr                   list2,
+                                 a_compare_constants_options_set  options)
+/*
+Return TRUE if both lists point to the same number of constants, and each
+respective pair produces a TRUE value for a call to compare_constants with
+the given options.
+*/
+{
+  a_boolean  eq = TRUE;
+
+  for (; list1 != NULL && list2 != NULL;
+       list1 = list1->next, list2 = list2->next) {
+    if (!compare_constants(list1, list2, options)) {
+      eq = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (list1 != NULL || list2 != NULL) {
+    eq = FALSE;
+  }  /* if */
+  return eq;
+}  /* compare_constants_list */
+
+
 a_boolean compare_constants(a_constant_ptr                   cp1,
                             a_constant_ptr                   cp2,
                             a_compare_constants_options_set  options)
@@ -8976,18 +9002,9 @@ definition of the CC flags in il.h for more information.
         }  /* if */
         break;
       case ck_aggregate:
-        { a_constant_ptr ac1 = cp1->variant.aggregate.first_constant;
-          a_constant_ptr ac2 = cp2->variant.aggregate.first_constant;
-          eq = TRUE;
-          for (; ac1 != NULL && ac2 != NULL;
-               ac1 = ac1->next, ac2 = ac2->next) {
-            if (!compare_constants(ac1, ac2, options)) {
-              eq = FALSE;
-              break;
-            }  /* if */
-          }  /* for */
-          if (ac1 != NULL || ac2 != NULL) eq = FALSE;
-        }
+        eq = compare_constants_list(cp1->variant.aggregate.first_constant,
+                                    cp2->variant.aggregate.first_constant,
+                                    options);
         break;
       case ck_init_repeat:
         eq = compare_constants(cp1->variant.init_repeat.constant,
@@ -9171,9 +9188,9 @@ definition of the CC flags in il.h for more information.
               eq = strcmp(cp1->variant.designator.variant.field_name,
                           cp2->variant.designator.variant.field_name) == 0;
             } else {
-              eq = compare_constants(cp1->variant.designator.variant.subscript,
-                                     cp2->variant.designator.variant.subscript,
-                                     options);
+              a_constant  *idx1 = cp1->variant.designator.variant.subscript,
+                          *idx2 = cp2->variant.designator.variant.subscript;
+              eq = compare_constants_list(idx1, idx2, options);
             }  /* if */
           } else {
             if (cp1->variant.designator.is_field_designator) {
@@ -9675,9 +9692,10 @@ alloc_shareable_constant would return a shareable constant.
         }  /* if */
         break;
       case ck_aggregate:
+      case ck_designator:
         /* Don't share aggregate constants (they come up for compound literals
            used to initialize static variables in gcc mode, when recording
-           constant expressions). */
+           constant expressions).  Similarly, do not share designators. */
         shareable = FALSE;
         break;
       case ck_string:
