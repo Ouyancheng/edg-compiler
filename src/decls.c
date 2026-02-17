@@ -7275,10 +7275,14 @@ of the variable.
     mark_inline_variable(vp, is_definition);
   }  /* if */
   if (dps->dso_flags & DSO_CONSTEXPR) {
+    /* A constexpr variable must be defined and "initialized".  For prototype
+       instantiations, we accept variable that are not explicitly initialized
+       if they could have a class type (or an array of class types). */
+    a_type_ptr  vtp = skip_array_types(vp->type);
     if (is_definition || vp->initializer_in_class ||
         (vp->is_prototype_instantiation &&
-         (could_be_dependent_class_type(vp->type) ||
-          is_class_struct_union_type(vp->type)))) {
+         (could_be_dependent_class_type(vtp) ||
+          is_class_struct_union_type(vtp)))) {
       vp->is_constexpr = TRUE;
     } else if ((gpp_version_is(any_version) ||
                 (clang_version_is(>= 30900) && cpp17_mode)) &&

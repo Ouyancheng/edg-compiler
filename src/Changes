@@ -1,5 +1,18 @@
 Version 6.9
 
+2/17/26  [EDGcpfe/28696]
+Constexpr array variable templates
+
+Consider:
+
+  template<typename T> constexpr T arr[8];  // Previously an error.  Now okay.
+
+Previously, the front end issued an error because it treated arr as an
+uninitialized array.  However, type T might still turn out to be a class type
+with a nontrivial default constructor.  The spurious error is now no longer
+issued.
+
+
 2/16/26  [EDGcpfe/28671]
 Template-dependent array designators
 
