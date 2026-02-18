@@ -205,7 +205,7 @@ struct Is_trivially_destructible_edg_impl<a_module_entity_stack_entry> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 using a_module_entity_stack = Dyn_array<a_module_entity_stack_entry>;
                         /* The type used to represent the stack of module

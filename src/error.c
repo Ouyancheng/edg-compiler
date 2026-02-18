@@ -681,7 +681,7 @@ struct Is_trivially_destructible_edg_impl<a_pragma_diag_elem> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 inline a_pragma_diag_elem::a_pragma_diag_elem(a_pragma_kind     _kind,
                                               a_source_position *pos)
@@ -5146,7 +5146,7 @@ Append the given new diagnostic to the given diagnostic list.
   diag_list->tail = new_diag;
 }  /* append_to_diag_list */
 
-}  /* detail */
+}  /* namespace detail */
 
 using namespace detail;
 
@@ -8617,7 +8617,7 @@ diagnostic specified by diag.
   add_reflection_fill_in(diag, rv);
 }  /* Fill_in<a_reflection*>::add */
 
-}  /* detail */
+}  /* namespace detail */
 
 #if !STANDALONE_UTILITY_PROGRAM
 

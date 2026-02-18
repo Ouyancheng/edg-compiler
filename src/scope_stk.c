@@ -3944,7 +3944,7 @@ struct Is_trivially_copyable_edg_impl<a_module_scope_reuse_state> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_copyable_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 using a_module_scope_reuse_state_array =
                                 Small_dyn_array<a_module_scope_reuse_state, 3>;

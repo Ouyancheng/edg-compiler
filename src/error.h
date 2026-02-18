@@ -1166,7 +1166,7 @@ extern a_diagnostic_ptr create_sub_message(a_diagnostic_ptr primary_dp,
 extern void append_to_diag_list(a_diag_list_ptr  diag_list,
                                 a_diagnostic_ptr new_diag);
 
-}  /* detail */
+}  /* namespace detail */
 
 template<typename... a_Fill_in_type>
 inline a_diagnostic_ptr pos_start_diagnostic(

@@ -3568,7 +3568,7 @@ more information.
   return result;
 }  /* a_token_factory::build_tok_insert_string */
 
-}  /* detail */
+}  /* namespace detail */
 
 a_shared_token build_cached_token(a_token_kind            kind,
                                   a_token_sequence_number sequence_number,
@@ -5756,7 +5756,7 @@ struct Is_trivially_destructible_edg_impl<a_bad_unicode_char> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 void gen_pp_output_for_curr_line(a_const_char *start_loc)
 /*

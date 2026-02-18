@@ -481,7 +481,7 @@ bugs that prevent that solution from working.
   (*pplp).~Dyn_array<a_shared_pending_pragma>();
 }  /* destroy_pending_pragma_list */
 
-}  /* detail */
+}  /* namespace detail */
 
 a_pending_pragma_list make_fresh_copy_of_pragmas_on_list(
                                          const a_pending_pragma_list &old_list)

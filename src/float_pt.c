@@ -3596,7 +3596,7 @@ an overestimate (i.e., maximum) number of characters this value might use.
 
 #endif /* IA64_ABI */
 
-}  /* detail */
+}  /* namespace detail */
 
 a_number_buffer fp_to_string(a_float_kind            kind,
                              an_internal_float_value *float_value,

@@ -608,7 +608,7 @@ using an_ovl_res_stack_backing_array =
                         /* The array type that is the underlying implementation
                            type for an_ovl_res_stack. */
 
-}  /* detail */
+}  /* namespace detail */
 
 using an_ovl_res_descr_ptr =
 		Array_ptr<detail::an_ovl_res_stack_backing_array>;

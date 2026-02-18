@@ -54,7 +54,7 @@ struct Is_trivially_destructible_edg_impl<a_token_kind> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_copyable_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 inline a_boolean operator==(a_tagged_pointer ptr1,
                             a_tagged_pointer ptr2)

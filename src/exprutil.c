@@ -25419,7 +25419,7 @@ struct Is_trivially_destructible_edg_impl<a_charted_constraint> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 struct a_constraint_chart {
   inline a_constraint_chart(size_t cap)
@@ -25597,7 +25597,7 @@ struct Is_trivially_destructible_edg_impl<a_map_check_pair> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 using a_map_check_list = Dyn_array<a_map_check_pair>;
 

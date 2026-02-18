@@ -103,7 +103,7 @@ struct Is_trivially_destructible_edg_impl<an_ifc_type_index> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 template<typename an_ifc_Index_type>
 extern an_ifc_Index_type from_lexical_index(a_lexical_ifc_index_reference idx);

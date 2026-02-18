@@ -324,7 +324,7 @@ extern void free_fe_huge(a_void_ptr ptr,
 extern void free_fe_normal(a_void_ptr ptr,
                            sizeof_t   size);
 
-}  /* detail */
+}  /* namespace detail */
 
 
 inline char *alloc_fe(sizeof_t     size)

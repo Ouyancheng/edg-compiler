@@ -4448,7 +4448,7 @@ struct Is_trivially_destructible_edg_impl<a_deferred_module_entry> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 /*
 A type used to encapsulate the list of module entries that should be considered
@@ -4913,7 +4913,7 @@ extern a_symbol_ptr find_symbol_list_in_non_null_table(
                                                 a_hash_table_ptr    hash_table,
                                                 a_symbol_header_ptr header);
 
-}  /* detail */
+}  /* namespace detail */
 
 /* Forward declaration of skip_module_partitions (defined in modules.h). */
 inline a_module_ptr skip_module_partitions(a_module_ptr mod);

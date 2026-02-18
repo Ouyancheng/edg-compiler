@@ -581,7 +581,7 @@ struct Is_trivially_destructible_edg_impl<a_struct_stmt_stack_state> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 extern void new_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 extern void restore_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);

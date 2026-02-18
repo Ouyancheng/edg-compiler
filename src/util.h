@@ -317,7 +317,7 @@ struct Is_trivially_destructible_helper {
 #endif /* (defined(__clang__) && __clang_major__ >= 5) && !defined(__EDG__) */
 };  /* Is_trivially_destructible_helper */
 
-}  /* detail */
+}  /* namespace detail */
 
 /*
 Is_trivially_copyable<a_Type>::value is TRUE when the given type is trivially
@@ -923,7 +923,7 @@ struct Is_trivially_destructible_edg_impl<Ptr_with_flag<a_Ptr>> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 template<typename a_Ptr>
 INLINE Ptr_with_flag<a_Ptr> ptr_with_flag(a_Ptr      ptr,
@@ -958,7 +958,7 @@ struct Is_trivially_copyable_edg_impl<Allocation<a_Type>> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_copyable_edg_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 /*
 A general allocator for front end memory.
@@ -2335,7 +2335,7 @@ struct Shared_obj_control_block {
                         /* The number of references to this control block. */
 };  /* Shared_obj_control_block */
 
-}  /* detail */
+}  /* namespace detail */
 
 /*
 This type is used to represent a reference counted object.
@@ -3892,7 +3892,7 @@ struct Padded_string {
     {}
 };  /* Padded_string */
 
-}  /* detail */
+}  /* namespace detail */
 
 template<typename a_Type>
 INLINE detail::Hex_view<a_Type> hex_view_of(a_Type value)
@@ -4774,7 +4774,7 @@ formatter::append_into functions.
 #undef DELEGATE_HEX_FORMATTER
 #undef DELEGATE_DEC_FORMATTER
 
-}  /* detail */
+}  /* namespace detail */
 
 /*
 The fundamental string type, which can be instantiated with different
@@ -6303,7 +6303,7 @@ The provided function will be called as follows:
   }  /* while */
 }  /* Seq_comparator_impl::diff */
 
-}  /* detail */
+}  /* namespace detail */
 
 /*
 This class is used to compare two sequences using a dynamic programming
@@ -6602,8 +6602,8 @@ constexpr uint32_t
                         /* The round constants used by the SHA-2 algorithm's
                            compression loop. */
 
-}  /* sha256 */
-}  /* detail */
+}  /* namespace sha256 */
+}  /* namespace detail */
 
 /*
 This structure is used to represent a SHA-2 256 bit digest.

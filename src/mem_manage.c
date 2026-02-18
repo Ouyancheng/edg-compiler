@@ -1854,7 +1854,7 @@ specified size.  The block is recorded for possible reuse later by alloc_fe.
   freed_blocks->push_back(ptr);
 }  /* free_fe_normal */
 
-}  /* detail */
+}  /* namespace detail */
 #if DEBUG
 
 void db_text_buffer(a_const_char	*prefix,

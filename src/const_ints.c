@@ -2007,7 +2007,7 @@ into the underlying array.  size_hint is the previously computed size hint.
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 }  /* append_into */
 
-}  /* detail */
+}  /* namespace detail */
 
 a_number_buffer str_for_integer_value(an_integer_value *p_value,
                                       a_boolean        is_signed,

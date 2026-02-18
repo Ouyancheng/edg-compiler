@@ -255,7 +255,7 @@ namespace detail {
 extern void copy_construct_pragma_list(a_pending_pragma_list       *dest,
                                        const a_pending_pragma_list &old_list);
 extern void destroy_pending_pragma_list(a_pending_pragma_list *pplp);
-}  /* detail */
+}  /* namespace detail */
 
 /*
 Forward declaration of types of extra information associated with a token
@@ -861,7 +861,7 @@ Move-assign the given cached token's state into this token.
   return *this;
 }  /* a_cached_token_base::operator= */
 
-}  /* detail */
+}  /* namespace detail */
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #define extra_il_src_pos(pos) pos
@@ -1036,7 +1036,7 @@ offset.  Additionally, both iterators must point to the same cache.
   return (sizeof_t)(this->offset - other.offset);
 }  /* a_token_cache_iterator_base::operator- */
 
-}  /* detail */
+}  /* namespace detail */
 
 /*
 An iterator for traversing tokens in a token cache.
@@ -3726,7 +3726,7 @@ the same cache) as this iterator; otherwise, return FALSE.
   return result;
 }  /* a_token_cache_iterator::operator== */
 
-}  /* detail */
+}  /* namespace detail */
 
 a_shared_token& a_token_cache_iterator::operator*() const
 /*
@@ -4059,7 +4059,7 @@ token in the cache.
   }  /* if */
 }  /* find_first_and_last_impl */
 
-}  /* detail */
+}  /* namespace detail */
 
 void a_token_cache::find_first_and_last(
                                 a_token_sequence_number first_token_number,

@@ -6045,7 +6045,7 @@ symbol list from the hash table or NULL if no entry was found.
   return result_sym;
 }  /* find_symbol_list_in_non_null_table */
 
-}  /* detail */
+}  /* namespace detail */
 
 static void add_symbol_to_lookup_table(a_symbol_ptr     symbol,
                                        a_hash_table_ptr lookup_table)
