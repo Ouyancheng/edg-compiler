@@ -383,7 +383,7 @@ extern void copy_construct_pragma_list(a_pending_pragma_list       *dest,
                                        const a_pending_pragma_list &old_list);
 extern void destroy_pending_pragma_list(a_pending_pragma_list *pplp);
 
-}  /* detail */
+}  /* namespace detail */
 
 extern a_pending_pragma_list make_fresh_copy_of_pragmas_on_list(
                                         const a_pending_pragma_list &old_list);
