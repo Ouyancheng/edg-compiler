@@ -7276,7 +7276,7 @@ of the variable.
   }  /* if */
   if (dps->dso_flags & DSO_CONSTEXPR) {
     /* A constexpr variable must be defined and "initialized".  For prototype
-       instantiations, we accept variable that are not explicitly initialized
+       instantiations, we accept variables that are not explicitly initialized
        if they could have a class type (or an array of class types). */
     a_type_ptr  vtp = skip_array_types(vp->type);
     if (is_definition || vp->initializer_in_class ||
