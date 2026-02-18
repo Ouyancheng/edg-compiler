@@ -524,10 +524,10 @@ Destroy the pending pragma.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* If this source sequence entry was never bound to another IL entry,
      remove it from the source sequence list. */
-  if (ppp->source_sequence_entry != NULL &&
-      ppp->source_sequence_entry->entity.kind == iek_none) {
-    remove_from_src_seq_list(ppp->source_sequence_entry);
-    ppp->source_sequence_entry = NULL;
+  if (this->source_sequence_entry != NULL &&
+      this->source_sequence_entry->entity.kind == iek_none) {
+    remove_from_src_seq_list(this->source_sequence_entry);
+    this->source_sequence_entry = NULL;
   }  /* if */
 #endif /* if GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* a_pending_pragma::~a_pending_pragma */
@@ -628,32 +628,31 @@ completed when the corresponding IL pragma entry is created (or removed
 if it turns out that no IL pragma entry is created).
 */
 {
-  a_pending_pragma_ptr	ppp = curr_token_pragmas;
   db_enter(4, "add_source_sequence_entry_to_curr_token_pragmas");
   if ((!is_nonspecialized_instantiation_context() &&
        depth_template_declaration_scope == NO_SCOPE_DEPTH) ||
       is_prototype_instantiation_context()) {
-    while (ppp != NULL) {
-      if (ppp->source_sequence_entry == NULL &&
+    for (a_shared_pending_pragma spp : *curr_token_pragmas) {
+      if (spp->source_sequence_entry == NULL &&
           (binding_kind == pbk_none ||
-           binding_kind == ppp->descr_ptr->binding_kind)) {
-        ppp->source_sequence_entry = add_empty_src_seq_entry_for_pragma(ppp);
-        if (ppp->il_pragma_entry != NULL) {
+           binding_kind == spp->descr_ptr->binding_kind)) {
+        spp->source_sequence_entry =
+                                 add_empty_src_seq_entry_for_pragma(spp.ptr());
+        if (spp->il_pragma_entry != NULL) {
           /* This pragma was already processed.  Associate the source sequence
              entry with it. */
           a_source_sequence_entry_ptr  prev_ssep = 
-                                  ppp->il_pragma_entry->source_sequence_entry;
-          update_source_sequence_list((char*)ppp->il_pragma_entry,
+                                  spp->il_pragma_entry->source_sequence_entry;
+          update_source_sequence_list((char*)spp->il_pragma_entry,
                                       (an_il_entry_kind)iek_pragma,
-                                      ppp->source_sequence_entry);
+                                      spp->source_sequence_entry);
           if (prev_ssep != NULL) {
             remove_src_seq_entry(prev_ssep);
           }  /* if */
-          ppp->source_sequence_entry = NULL;
+          spp->source_sequence_entry = NULL;
         }  /* if */
       }  /* if */
-      ppp = ppp->next;
-    }  /* while */
+    }  /* for */
   }  /* if */
   db_exit();
 }  /* add_source_sequence_entry_to_curr_token_pragmas */
@@ -727,12 +726,13 @@ otherwise return FALSE.
     }  /* for */
   }
 #if ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING
-  if (list_start == NULL && !no_checking_pragmas &&
+  if (curr_construct_list->is_empty() && !no_checking_pragmas &&
       !no_very_expensive_checking) {
-    list_start = alloc_pending_pragma
-                 (pragma_description_for_pragma_kind[(int)pk_checking_pragma]);
+    curr_construct_list->push_back(shared_obj<a_pending_pragma>(
+                 pragma_description_for_pragma_kind[(int)pk_checking_pragma]));
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    list_start->source_sequence_entry = add_empty_source_sequence_entry();
+    curr_construct_list->back_elem()->source_sequence_entry =
+                                             add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 #endif /* ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING */
@@ -1402,7 +1402,7 @@ Restore a list of pragmas as the current token pragmas.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* The source sequence entries were cleared when the current construct
        pragmas were extracted.  Create new source sequence entries now. */
-    for (a_shared_pending_pragma &spp : *scope_list_addr) {
+    for (a_shared_pending_pragma &spp : **scope_list_addr) {
       spp->source_sequence_entry =
                                  add_empty_src_seq_entry_for_pragma(spp.ptr());
     }  /* for */
