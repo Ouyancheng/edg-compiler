@@ -15467,7 +15467,7 @@ is called, resulting in a diagnostic.
     return spp->descr_ptr->kind == pk_if_exists;
   };
 
-  curr_token_pragmas.remove_if(is_if_exists_pragma);
+  curr_token_pragmas->remove_if(is_if_exists_pragma);
 }  /* f_check_for_if_exists_pragmas */
 
 

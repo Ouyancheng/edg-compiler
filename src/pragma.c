@@ -353,9 +353,9 @@ Construct a pending pragma with the given pragma kind description.
 */
   : descr_ptr(pkdp), id_position(null_source_position),
     pragma_position(null_source_position),
-#if GENERATE_SOURCE_SEQUENCE_ENTRIES
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entry(NULL),
-#endif /* GENERATE_SOURCE_SEQUENCE_ENTRIES */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     is_microsoft_pragma_operator(FALSE), is_function_style_pragma(FALSE),
     has_been_processed(FALSE), pragma_text(NULL), il_pragma_entry(NULL)
 {
