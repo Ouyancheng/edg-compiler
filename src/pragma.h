@@ -377,13 +377,16 @@ extern void test_next_construct_pragma(a_pending_pragma_ptr  ppp,
 				       a_statement_ptr	     stmt_ptr);
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
 
-extern a_pending_pragma_list make_copy_of_pragma_list(
-                                        const a_pending_pragma_list &old_list);
+namespace detail {
+
+extern void copy_construct_pragma_list(a_pending_pragma_list       *dest,
+                                       const a_pending_pragma_list &old_list);
+extern void destroy_pending_pragma_list(a_pending_pragma_list *pplp);
+
+}  /* detail */
 
 extern a_pending_pragma_list make_fresh_copy_of_pragmas_on_list(
                                         const a_pending_pragma_list &old_list);
-
-extern void free_pending_pragma_list(a_pending_pragma_list *pplp);
 
 extern void add_to_curr_token_pragma_list(const a_shared_pending_pragma &spp);
 

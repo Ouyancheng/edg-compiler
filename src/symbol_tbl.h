@@ -71,12 +71,6 @@ typedef struct a_def_arg_expr_fixup *a_def_arg_expr_fixup_ptr;
    available to symbol_tbl.h without creating recursive reference problems. */
 typedef struct a_pending_pragma *a_pending_pragma_ptr;
 
-/* Specialize the copy constructor to prevent issues with a_pending_pragma
-   being an incomplete type. */
-template<>
-Shared_obj<a_pending_pragma, FE_allocator>::Shared_obj(
-                            const Shared_obj<a_pending_pragma, FE_allocator>&);
-
 using a_shared_pending_pragma = Shared_obj<a_pending_pragma>;
 			/* The type used for a pending pragma potentially
 			   shared between multiple pending pragma lists. */

@@ -30,20 +30,6 @@ pragma.c -- Routines to support #pragma directives
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-template<>
-Shared_obj<a_pending_pragma, FE_allocator>::Shared_obj(
-                       const Shared_obj<a_pending_pragma, FE_allocator> &other)
-/*
-Explicitly specialize the copy constructor to avoid requiring a_pending_pragma
-to be a complete type
-*/
-  : an_allocator(other), ctrl_block(other.ctrl_block)
-{
-  if (this->ctrl_block != NULL) {
-    ++(this->ctrl_block->ref_counter);
-  }
-}  /* Shared_obj::Shared_obj */
-
 /*
 Macro used to get a pointer to the active pointer to the current construct
 pragma list.  The list pointer is stored in the scope stack entry.
@@ -464,16 +450,38 @@ Construct a pending pragma with the given pragma kind description.
   }  /* switch */
 }  /* a_pending_pragma::a_pending_pragma */
 
+namespace detail {
 
-a_pending_pragma_list make_copy_of_pragma_list(
-                                         const a_pending_pragma_list &old_list)
+void copy_construct_pragma_list(a_pending_pragma_list       *dest,
+                                const a_pending_pragma_list &old_list)
 /*
-Make an exact copy of a list of pending pragma entries.
+Make an exact copy of a list of pending pragma entries constructed at the given
+destination address.
+
+This function exists to work around a_pending_pragma being incomplete in
+lexical.h.  Modern compilers allow that problem to be resolved by specializing
+the copy constructor of Shared_obj<a_pending_pragma>; however, legacy compilers
+have bugs that prevent that solution from working.
 */
 {
-  return old_list;
-}  /* make_copy_of_pragma_list */
+  new (dest) a_pending_pragma_list(old_list);
+}  /* copy_construct_pragma_list */
 
+
+void destroy_pending_pragma_list(a_pending_pragma_list *pplp)
+/*
+Destroy the list of pending pragmas at the given pointer.
+
+This function exists to work around a_pending_pragma being incomplete in
+lexical.h.  Modern compilers allow that problem to be resolved by specializing
+the destructor of Shared_obj<a_pending_pragma>; however, legacy compilers have
+bugs that prevent that solution from working.
+*/
+{
+  (*pplp).~Dyn_array<a_shared_pending_pragma>();
+}  /* destroy_pending_pragma_list */
+
+}  /* detail */
 
 a_pending_pragma_list make_fresh_copy_of_pragmas_on_list(
                                          const a_pending_pragma_list &old_list)
@@ -505,15 +513,6 @@ with the token being processed.
   }  /* for */
   return new_list;
 }  /* make_fresh_copy_of_pragmas_on_list */
-
-
-void free_pending_pragma_list(a_pending_pragma_list *pplp)
-/*
-Free the list of pending pragmas at the given pointer.
-*/
-{
-  (*pplp).~Dyn_array<a_shared_pending_pragma>();
-}  /* free_pending_pragma_list */
 
 
 a_pending_pragma::~a_pending_pragma()

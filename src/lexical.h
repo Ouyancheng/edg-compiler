@@ -249,11 +249,13 @@ enum an_identifier_lookup_mode {
 extern a_constant_ptr alloc_cached_constant();
 extern void free_cached_token_constant(a_constant_ptr cp);
 
-/* Forward declaration of make_fresh_copy_of_pragmas_on_list (defined in
-   pragma.c). */
-extern a_pending_pragma_list make_copy_of_pragma_list(
-                                        const a_pending_pragma_list &old_list);
-extern void free_pending_pragma_list(a_pending_pragma_list *pplp);
+/* Forward declaration of copy_construct_pragma_list and
+   destroy_pending_pragma_list (defined in pragma.c). */
+namespace detail {
+extern void copy_construct_pragma_list(a_pending_pragma_list       *dest,
+                                       const a_pending_pragma_list &old_list);
+extern void destroy_pending_pragma_list(a_pending_pragma_list *pplp);
+}  /* detail */
 
 /*
 Forward declaration of types of extra information associated with a token
@@ -694,8 +696,8 @@ Copy-construct a new cached token base object from the given cached token base.
       }
       break;
     case teik_pragma:
-      new (&this->extra_info.pragmas) a_pending_pragma_list(
-                                                     other.extra_info.pragmas);
+      detail::copy_construct_pragma_list(&this->extra_info.pragmas,
+                                         move_from(&other.extra_info.pragmas));
       break;
     case teik_pp_token:
       new (&this->extra_info.pp_token_descr) a_pp_token_descr(
@@ -805,7 +807,7 @@ Destroy the current cached token base object.
       free_cached_token_constant(this->extra_info.constant);
       break;
     case teik_pragma:
-      free_pending_pragma_list(&this->extra_info.pragmas);
+      detail::destroy_pending_pragma_list(&this->extra_info.pragmas);
       break;
     case teik_pp_token:
       this->extra_info.pp_token_descr.~a_pp_token_descr();

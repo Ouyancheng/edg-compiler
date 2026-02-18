@@ -4666,8 +4666,7 @@ pragma entries, it is possible for there to be no actual token.
     check_assertion_str(!suppress_pragma_processing,
                     "get_token_from...: pragma found in suppress_pragma mode");
 
-    a_pending_pragma_list pragma_list =
-                           make_copy_of_pragma_list(*token->get_pragma_list());
+    a_pending_pragma_list pragma_list = *token->get_pragma_list();
     for (a_shared_pending_pragma &spp : pragma_list) {
       curr_token_pragmas->push_back(spp);
     }  /* for */
