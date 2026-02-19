@@ -385,8 +385,8 @@ extern void destroy_pending_pragma_list(a_pending_pragma_list *pplp);
 
 }  /* namespace detail */
 
-extern a_pending_pragma_list make_fresh_copy_of_pragmas_on_list(
-                                        const a_pending_pragma_list &old_list);
+extern void copy_fresh_pragmas_into(a_pending_pragma_list       *dest,
+                                    const a_pending_pragma_list &old_list);
 
 extern void add_to_curr_token_pragma_list(const a_shared_pending_pragma &spp);
 

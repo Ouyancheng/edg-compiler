@@ -4669,9 +4669,7 @@ pragma entries, it is possible for there to be no actual token.
        with the cached token. */
     check_assertion_str(!suppress_pragma_processing,
                     "get_token_from...: pragma found in suppress_pragma mode");
-
-    a_pending_pragma_list pragma_list = *token->get_pragma_list();
-    for (a_shared_pending_pragma &spp : pragma_list) {
+    for (a_shared_pending_pragma &spp : *token->get_pragma_list()) {
       curr_token_pragmas->push_back(spp);
     }  /* for */
     if (cached_token_rescan_stack->is_empty()) {
@@ -4859,12 +4857,7 @@ equivalent change.
          with the cached token. */
       check_assertion_str(!suppress_pragma_processing,
                     "get_token_from...: pragma found in suppress_pragma mode");
-
-      a_pending_pragma_list pragma_list = 
-                 make_fresh_copy_of_pragmas_on_list(*token->get_pragma_list());
-      for (a_shared_pending_pragma &spp : pragma_list) {
-        curr_token_pragmas->push_back(spp);
-      }  /* for */
+      copy_fresh_pragmas_into(curr_token_pragmas, *token->get_pragma_list());
     }  /* if */
   }  /* for */
   /* When fetch_pp_tokens is FALSE, make sure that the token being retrieved

@@ -483,20 +483,20 @@ bugs that prevent that solution from working.
 
 }  /* namespace detail */
 
-a_pending_pragma_list make_fresh_copy_of_pragmas_on_list(
-                                         const a_pending_pragma_list &old_list)
+void copy_fresh_pragmas_into(a_pending_pragma_list       *dest,
+                             const a_pending_pragma_list &old_list)
 /*
-Make a copy of a list of pending pragma entries and reset the
-has_been_processed_flag (for immediate pragmas).  This routine is used, for
-example, when rescanning tokens from a reusable cache.  When a token with
-associated pragma entries is rescanned, the pragma entries must be copied
-because the original entries will remain attached to the token in the reusable
-cache and must not be affected by operations performed on the copies associated
-with the token being processed.
+Copy the given old list of pending pragma entries into the given destination
+list.  While pragma entries are copied the has_been_processed_flag is reset
+(for immediate pragmas).
+
+This routine is used, for example, when rescanning tokens from a reusable
+cache.  When a token with associated pragma entries is rescanned, the pragma
+entries must be copied because the original entries will remain attached to the
+token in the reusable cache and must not be affected by operations performed on
+the copies associated with the token being processed.
 */
 {
-  a_pending_pragma_list new_list(old_list.length());
-
   for (const a_shared_pending_pragma &spp : old_list) {
     /* Create a deep copy of the pending pragma. */
     a_shared_pending_pragma new_pp(*spp);
@@ -509,10 +509,9 @@ with the token being processed.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     new_pp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    new_list.push_back(new_pp);
+    dest->push_back(new_pp);
   }  /* for */
-  return new_list;
-}  /* make_fresh_copy_of_pragmas_on_list */
+}  /* copy_fresh_pragmas_into */
 
 
 a_pending_pragma::~a_pending_pragma()
@@ -1397,8 +1396,8 @@ Restore a list of pragmas as the current token pragmas.
   /* Make a copy of the list of pragmas associated with this template and
      set this scope's current construct list to point to the new copy. */
   if (pplp != NULL && !pplp->is_empty()) {
-    *scope_list_addr = new_fe<a_pending_pragma_list>(
-                                    make_fresh_copy_of_pragmas_on_list(*pplp));
+    *scope_list_addr = new_fe<a_pending_pragma_list>(pplp->length());
+    copy_fresh_pragmas_into(*scope_list_addr, *pplp);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* The source sequence entries were cleared when the current construct
        pragmas were extracted.  Create new source sequence entries now. */
