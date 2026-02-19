@@ -966,8 +966,8 @@ handle_next_entry:
               }  /* if */
             } else {
               if (eptr->variant.designator.is_generic) {
-                walk_list(eptr->variant.designator.variant.subscript,
-                          a_constant_ptr, iek_constant);
+                walk_ptr(eptr->variant.designator.variant.subscript,
+                         a_constant_ptr, iek_constant);
               }  /* if */
             }  /* if */
             break;
