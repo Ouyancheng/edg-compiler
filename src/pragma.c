@@ -628,9 +628,10 @@ if it turns out that no IL pragma entry is created).
 */
 {
   db_enter(4, "add_source_sequence_entry_to_curr_token_pragmas");
-  if ((!is_nonspecialized_instantiation_context() &&
-       depth_template_declaration_scope == NO_SCOPE_DEPTH) ||
-      is_prototype_instantiation_context()) {
+  if (!source_sequence_entries_disallowed &&
+      ((!is_nonspecialized_instantiation_context() &&
+        depth_template_declaration_scope == NO_SCOPE_DEPTH) ||
+       is_prototype_instantiation_context())) {
     for (a_shared_pending_pragma spp : *curr_token_pragmas) {
       if (spp->source_sequence_entry == NULL &&
           (binding_kind == pbk_none ||
