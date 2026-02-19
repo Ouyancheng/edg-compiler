@@ -27063,6 +27063,12 @@ diagnostic in *ips.
           } else {
             /* Some "address" constants are integers cast to a pointer type. */
             check_assertion(constant_is(rt_con, ck_integer));
+            if (ips->is_constant_evaluated &&
+                type->variant.pointer.is_reference) {
+              info_with_pos(ec_null_reference,
+                            &rt_con->source_corresp.decl_position, ips);
+              do_constexpr_fail(result);
+            }  /* if */
           }  /* if */
           /* Copy the run-time constant to con. */
           (void)copy_constant_full(rt_con, con,

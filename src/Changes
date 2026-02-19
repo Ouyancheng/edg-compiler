@@ -1,5 +1,24 @@
 Version 6.9
 
+2/19/26  [EDGcpfe/28682]
+Abort in prep_special_selector_operand
+
+Consider, in a recent Clang C++ mode:
+
+  template<int> struct V {};
+  template<typename T> struct X: V<__is_assignable(T, T)> {};
+  struct S {
+    operator int();
+    S operator=(int p) __attribute__((enable_if(p, "")));
+  };
+  int g() { X<S> v; }
+
+Previously, this triggered an internal error in prep_special_selector_operand
+(in overload.c) while the front end attempted to evaluate the enable_if operand
+(a dummy operand created to evaluate the __is_assignable intrinsic).  That is
+now fixed.
+
+
 2/17/26  [EDGcpfe/28636,EDGcpfe/23609,EDGcpfe/23845,EDGcpfe/23927,
           EDGcpfe/24247,EDGcpfe/27220]
 Pragma processing corrections
