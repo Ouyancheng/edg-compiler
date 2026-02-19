@@ -19,8 +19,8 @@ Previously, this triggered an internal error in prep_special_selector_operand
 now fixed.
 
 
-2/17/26  [EDGcpfe/28636,EDGcpfe/23609,EDGcpfe/23845,EDGcpfe/23927,
-          EDGcpfe/24247,EDGcpfe/27220]
+2/17/26  [EDGcpfe/23609,EDGcpfe/23845,EDGcpfe/23927,EDGcpfe/24247,
+          EDGcpfe/27220,EDGcpfe/28636]
 Pragma processing corrections
 
 Pragma processing has been significantly simplified.  In configurations that
