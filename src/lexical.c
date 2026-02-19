@@ -17369,12 +17369,12 @@ to speed in some cases.
       process_curr_token_pragmas();
       recalc_any_initial_get_token_tests_needed();
     }  /* if */
-restart:
     /* Clear any pragmas from the prior token before (potentially) loading a
        previously cached token. */
     if (!suppress_pragma_processing) {
       curr_token_pragmas->clear();
     }  /* if */
+restart:
     /* If there are cached tokens to be rescanned, first check the
        cached_token_rescan_stack and take the first token from the top of the
        stack (if any); otherwise check the reusable cache stack. */
