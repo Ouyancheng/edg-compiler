@@ -17357,14 +17357,13 @@ to speed in some cases.
        tokens -- pragmas should only be processed when a "real" token of the
        source program is fetched.  Additionally, when tokens are being recorded
        for a cache, do not perform any pragma processing. */
-    if (!curr_token_pragmas->is_empty() && !suppress_pragma_processing &&
-        !caching_tokens) {
-      process_curr_token_pragmas();
-      recalc_any_initial_get_token_tests_needed();
-    }  /* if */
-    /* Clear any pragmas from the prior token before (potentially) loading a
-       previously cached token. */
     if (!suppress_pragma_processing) {
+      if (!caching_tokens && !curr_token_pragmas->is_empty()) {
+        process_curr_token_pragmas();
+        recalc_any_initial_get_token_tests_needed();
+      }  /* if */
+      /* Clear any pragmas from the prior token before (potentially) loading a
+         previously cached token. */
       curr_token_pragmas->clear();
     }  /* if */
 restart:
@@ -19148,7 +19147,7 @@ to alter the consistency check at the end of the routine.
   a_lexical_state_stack_entry_ptr lssep = curr_lexical_state_stack_entry;
 
   /* Ensure that when finishing caching tokens, the current token's pragmas are
-     cleared.  This in turn ensure that the next call to get_token does not
+     cleared.  This in turn ensures that the next call to get_token does not
      process the pragmas left over from building the token cache. */
   if (caching_tokens && !suppress_pragma_processing) {
     curr_token_pragmas->clear();
