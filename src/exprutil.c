@@ -16088,7 +16088,7 @@ constant pointed to by con.
   } else {
     a_constant_ptr  first = icp->variant.designator.element_index,
                     last = icp->variant.designator.last_element_index;
-    first->next = last;
+    first->next = first != last ? last : (a_constant*)NULL;
     con->variant.designator.variant.subscript = first;
     if (scope_stack_top().in_template_deduction_context) {
       pos_error(ec_array_designator_for_deduced_context,
