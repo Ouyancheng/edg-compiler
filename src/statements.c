@@ -4437,7 +4437,7 @@ The syntax is:
     if (curr_token == tok_end_of_source) {
       /* Don't create the cached entry in certain error cases. */
       expect_error();
-    } else if (curr_token_pragmas != NULL) {
+    } else if (!curr_token_pragmas->is_empty()) {
       /* The caching mechanism cannot be used if immediately followed by
          a pragma. */
     } else {

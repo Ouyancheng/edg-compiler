@@ -3314,7 +3314,7 @@ Construct and return a shared token representing the current token's pragmas.
                                      curr_token_sequence_number,
                                      last_token_sequence_number_of_token);
 
-  check_assertion(curr_token_pragmas != NULL);
+  check_assertion(!curr_token_pragmas->is_empty());
   result->extra_info_kind = teik_pragma;
   new (&result->extra_info.pragmas) a_pending_pragma_list(*curr_token_pragmas);
   return result;

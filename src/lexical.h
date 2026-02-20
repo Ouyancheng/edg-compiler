@@ -5240,7 +5240,7 @@ Macro used in locations where a source sequence entry can be created for
 an __if_exists directive.
 */
 #define check_for_if_exists_pragmas()					\
-  if (curr_token_pragmas != NULL) f_check_for_if_exists_pragmas()
+  if (!curr_token_pragmas->is_empty()) f_check_for_if_exists_pragmas()
 /*
 Macro used to determine whether a source sequence entry should be created
 for a given __if_exists directive.
