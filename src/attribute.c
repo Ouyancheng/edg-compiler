@@ -10325,18 +10325,18 @@ process_alias_fixup_list.
     add_alias_fixup((a_symbol_ptr)NULL,
                     copy_string_to_region(file_scope_region_number, asm_name),
                     src_name,
-                    &ppp->pragma_position);
+                    &ppp->pragma_position());
     /* Recreate the pragma string: "redefine_extname <src-name> <asm-name>". */
-    ppp->pragma_text  = (char *)alloc_primary_file_scope_il(pragma_len);
+    ppp->set_pragma_text((char *)alloc_primary_file_scope_il(pragma_len));
 #if DEBUG
     pragma_extname_string_space += pragma_len;
 #endif /* DEBUG */
-    /*lint -e(668)*/(void)memcpy(ppp->pragma_text, "redefine_extname ",
+    /*lint -e(668)*/(void)memcpy(ppp->pragma_text(), "redefine_extname ",
                                  size_t_arg(prefix_len));
-    /*lint -e(668)*/(void)memcpy(ppp->pragma_text+prefix_len, src_name,
+    /*lint -e(668)*/(void)memcpy(ppp->pragma_text() + prefix_len, src_name,
                                  size_t_arg(src_name_len));
-    ppp->pragma_text[prefix_len+src_name_len] = ' ';
-    /*lint -e(668)*/(void)memcpy(ppp->pragma_text+prefix_len+src_name_len+1,
+    ppp->pragma_text()[prefix_len+src_name_len] = ' ';
+    /*lint -e(668)*/(void)memcpy(ppp->pragma_text()+prefix_len+src_name_len+1,
                                  asm_name, size_t_arg(asm_name_len+1));
     /* Record the pragma in the IL. */
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);

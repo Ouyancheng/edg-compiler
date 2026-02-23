@@ -632,7 +632,7 @@ curr_max_member_alignment.
       }  /* if */
     }  /* if */
     if (sym != NULL) {
-      pos_sy_remark(ec_local_pragma_pack, &ppp->pragma_position, sym);
+      pos_sy_remark(ec_local_pragma_pack, &ppp->pragma_position(), sym);
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -649,12 +649,12 @@ curr_max_member_alignment.
   }  /* if */
 #endif /* DEBUG */
 #if BACK_END_IS_CP_GEN_BE
-  if (ppp->il_pragma_entry != NULL) {
+  if (ppp->il_pragma_entry() != NULL) {
     /* The C++-generating back end needs to track the current alignment
        in order to generate and revert #pragma pack directives.  (There
        will be no il_pragma_entry when the directive is encountered during
        the prototype instantiation of a template.) */
-    ppp->il_pragma_entry->variant.alignment = curr_max_member_alignment;
+    ppp->il_pragma_entry()->variant.alignment = curr_max_member_alignment;
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
   db_exit();

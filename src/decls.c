@@ -14093,7 +14093,7 @@ definition.
                                    /*curr_scope_only=*/FALSE);
     if (!ppl.is_empty()) {
       /* There is a currently active varargs comment. */
-      rtsp->lint_varargs_count = ppl[0]->variant.lint_varargs_count;
+      rtsp->lint_varargs_count = ppl[0]->lint_varargs_count();
     }  /* if */
   }  /* if */
 }  /* record_lint_argsused_and_varargs_state */
@@ -14112,7 +14112,7 @@ type, so that it can be referenced during argument processing.
   if (sym->kind == (a_symbol_kind)sk_routine ||
       sym->kind == (a_symbol_kind)sk_member_function) {
     routine_symbol_type(sym)->variant.routine.extra_info->arg_pragma =
-                                                        ppp->descr_ptr->kind;
+                                                        ppp->descr_ptr()->kind;
   } else {
     /* Diagnostic? */
   }  /* if */

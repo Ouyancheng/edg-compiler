@@ -36394,7 +36394,7 @@ is supposed to be handled in scan_tag_name, any automatic call of this
 routine is an error.
 */
 {
-  pos_error(ec_pragma_may_not_be_used_here, &ppp->id_position);
+  pos_error(ec_pragma_may_not_be_used_here, &ppp->id_position());
 }  /* define_type_info_pragma */
 
 

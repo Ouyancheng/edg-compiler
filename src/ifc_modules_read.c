@@ -19468,8 +19468,8 @@ rules of position inference).
   an_owned_pending_pragma       opp = owning_ptr<a_pending_pragma>(pkdp);
 
   pos = infer_next_source_position(cache, pos);
-  opp->id_position = *pos;
-  opp->pragma_position = *pos;
+  opp->set_id_position(*pos);
+  opp->set_pragma_position(*pos);
   /* Create a new token to hold the pragmas. */
   if (cache->is_empty() || !cache->get_last_token()->is_pragma()) {
     a_token_sequence_number seq_num =

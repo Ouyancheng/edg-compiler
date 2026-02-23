@@ -242,18 +242,14 @@ typedef struct a_pragma_kind_description {
                            issued. */
 } a_pragma_kind_description;
 
+namespace detail {
 
 /*
-Pending pragma entries describe pragmas that have been encountered
-in the source and recorded in token caches, but have not yet been
-processed by the front-end proper.
+Pending pragmas can have several different copies live at any given time.  This
+class encapsulates the global state of a given source level pragma across all
+copies.
 */
-/* a_pending_pragma_ptr declared earlier. */
-typedef struct a_pending_pragma {
-  a_pending_pragma(a_pragma_kind_description_ptr pkdp);
-  INLINE a_pending_pragma(const a_pending_pragma &other) = default;
-  ~a_pending_pragma();
-
+struct a_pending_pragma_global_state {
   a_pragma_kind_description_ptr
 		descr_ptr;
 			/* Pointer to the structure that describes the
@@ -265,36 +261,6 @@ typedef struct a_pending_pragma {
 			   following the identifier(s) used to determine the
 			   pragma kind.  The cache is terminated by a
 			   tok_newline followed by a tok_end_of_source. */
-  a_source_position
-		id_position;
-			/* Source position of the identifier that indicates
-			   the kind of pragma being processed.  For a
-			   C99 _Pragma, it points to the pragma string
-			   literal. */
-  a_source_position
-		pragma_position;
-			/* Source position of the start of the #pragma
-			   directive. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr
-		source_sequence_entry;
-			/* Pointer to source sequence entry that represents
-			   the place this pragma appears within the current
-			   file or function scope relative to other
-			   declarations, statements, comments, etc. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_bit_field	is_microsoft_pragma_operator:1;
-			/* TRUE if the pragma was specified using a Microsoft
-			   __pragma operator. */
-  a_bit_field	is_function_style_pragma:1;
-			/* TRUE if the pragma was specified as a function-style
-			   pragma (i.e., _Pragma or __pragma, but not #pragma).
-			   */
-  a_bit_field	has_been_processed:1;
-			/* TRUE if this pragma has already been processed.
-			   This is used for immediate pragmas that are
-			   processed but must be kept on the current token
-			   pragmas list in case the token is cached. */
   char		*pragma_text;
 			/* For pragmas that are passed through to the
 			   back end as an uninterpreted character string,
@@ -307,10 +273,23 @@ typedef struct a_pending_pragma {
 			   need to be moved.  For pbk_preproc_immediate
 			   pragmas, the pragma_text is only present if the
 			   automatically_include_in_il flag is TRUE. */
-  a_pragma_ptr	il_pragma_entry;
-			/* A pointer to the IL pragma entry associated with
-			   this pending pragma, if any. */
-
+  a_source_position
+		id_position;
+			/* Source position of the identifier that indicates
+			   the kind of pragma being processed.  For a
+			   C99 _Pragma, it points to the pragma string
+			   literal. */
+  a_source_position
+		pragma_position;
+			/* Source position of the start of the #pragma
+			   directive. */
+  a_bit_field	is_microsoft_pragma_operator:1;
+			/* TRUE if the pragma was specified using a Microsoft
+			   __pragma operator. */
+  a_bit_field	is_function_style_pragma:1;
+			/* TRUE if the pragma was specified as a function-style
+			   pragma (i.e., _Pragma or __pragma, but not #pragma).
+			   */
   /* Pragma-specific information.  This union contains other information
      about the pragma and may be used to preserve information about the
      pragma between the time the tokens are scanned and some later time
@@ -329,6 +308,108 @@ typedef struct a_pending_pragma {
 		gcc;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;
+};  /* a_pending_pragma_global_state */
+
+/*
+Pending pragmas can have several different copies live at any given time.  This
+class encapsulates the state of a given source level pragmas that is reset
+during rescanning.
+*/
+struct a_pending_pragma_processing_state {
+  a_pragma_ptr	il_pragma_entry;
+			/* A pointer to the IL pragma entry associated with
+			   this pending pragma, if any. */
+  a_bit_field	has_been_processed:1;
+			/* TRUE if this pragma has already been processed.
+			   This is used to allow pragmas to be processed but
+			   kept on the current token.  This is important both
+			   for immediate pragmas and configurations where
+			   RECORD_TEMPLATE_STRINGS is TRUE. */
+};  /* a_pending_pragma_processing_state */
+
+}  /* namespace detail */
+
+/*
+Pending pragma entries describe pragmas that have been encountered
+in the source and recorded in token caches, but may have not yet been
+processed by the front-end proper.
+*/
+/* a_pending_pragma_ptr declared earlier. */
+typedef struct a_pending_pragma {
+  a_pending_pragma(a_pragma_kind_description_ptr pkdp);
+  INLINE a_pending_pragma(const a_pending_pragma &other) = default;
+  ~a_pending_pragma();
+
+  /* Functions for accessing general information about this pragma. */
+  a_pragma_kind_description* descr_ptr()
+    { return this->global_state->descr_ptr; }
+  const a_pragma_kind_description* descr_ptr() const
+    { return this->global_state->descr_ptr; }
+  a_shared_token_cache& token_cache()
+    { return this->global_state->token_cache; }
+  const a_shared_token_cache& token_cache() const
+    { return this->global_state->token_cache; }
+  void set_token_cache(const a_shared_token_cache &cache)
+    { this->global_state->token_cache = cache; }
+  char *pragma_text() const
+    { return this->global_state->pragma_text; }
+  void set_pragma_text(char *text)
+    { this->global_state->pragma_text = text; }
+  a_source_position& id_position() const
+    { return this->global_state->id_position; }
+  void set_id_position(const a_source_position &pos)
+    { this->global_state->id_position = pos; }
+  a_source_position& pragma_position() const
+    { return this->global_state->pragma_position; }
+  void set_pragma_position(const a_source_position &pos)
+    { this->global_state->pragma_position = pos; }
+  a_boolean is_microsoft_pragma_operator() const
+    { return this->global_state->is_microsoft_pragma_operator; }
+  void set_microsoft_pragma_operator(a_boolean val)
+    { this->global_state->is_microsoft_pragma_operator = val; }
+  a_boolean is_function_style_pragma() const
+    { return this->global_state->is_function_style_pragma; }
+  void set_function_style_pragma(a_boolean val)
+    { this->global_state->is_function_style_pragma = val; }
+
+  /* Functions for accessing variant specific information about this pragma. */
+  a_lint_varargs_count lint_varargs_count() const
+    { return this->global_state->variant.lint_varargs_count; }
+  void set_lint_varargs_count(a_lint_varargs_count count)
+    { this->global_state->variant.lint_varargs_count = count; }
+#if GNU_EXTENSIONS_ALLOWED
+  a_gcc_pragma_descr& gcc()
+    { return this->global_state->variant.gcc; }
+  const a_gcc_pragma_descr& gcc() const
+    { return this->global_state->variant.gcc; }
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+  /* Functions for accessing information about this pragma's processing. */
+  a_pragma_ptr il_pragma_entry() const
+    { return this->processing_state->il_pragma_entry; }
+  void set_il_pragma_entry(a_pragma_ptr il_pragma)
+    { this->processing_state->il_pragma_entry = il_pragma; }
+  a_boolean has_been_processed() const
+    { return this->processing_state->has_been_processed; }
+  void mark_processed()
+    { this->processing_state->has_been_processed = TRUE; }
+  void reset_processing();
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		source_sequence_entry;
+			/* Pointer to source sequence entry that represents
+			   the place this pragma appears within the current
+			   file or function scope relative to other
+			   declarations, statements, comments, etc. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+private:
+  Shared_obj<detail::a_pending_pragma_global_state>
+		global_state;
+			/* The global state of the pragma across all copies. */
+  Shared_obj<detail::a_pending_pragma_processing_state>
+		processing_state;
+			/* A resettable processing state. */
 } a_pending_pragma;
 
 

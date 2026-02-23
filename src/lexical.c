@@ -3308,11 +3308,11 @@ Construct and return a shared token representing the current token's pragmas.
   /* Use the token sequence number information for the current token to
      maintain ordering of the token sequence. */
   a_shared_token result = shared_obj<an_immutable_cached_token>(
-                                     tok_error,
-                                     (*curr_token_pragmas)[0]->pragma_position,
-                                     (*curr_token_pragmas)[0]->pragma_position,
-                                     curr_token_sequence_number,
-                                     last_token_sequence_number_of_token);
+                                   tok_error,
+                                   (*curr_token_pragmas)[0]->pragma_position(),
+                                   (*curr_token_pragmas)[0]->pragma_position(),
+                                   curr_token_sequence_number,
+                                   last_token_sequence_number_of_token);
 
   check_assertion(!curr_token_pragmas->is_empty());
   result->extra_info_kind = teik_pragma;
@@ -11665,7 +11665,7 @@ normal_comment:
             a_pending_pragma_ptr ppp = add_curr_token_pseudo_pragma(
                                                          pk_lint_varargs_count,
                                                          &comment_start_pos);
-            ppp->variant.lint_varargs_count = varargs_count;
+            ppp->set_lint_varargs_count(varargs_count);
           }  /* if */
         }  /* if */
         /* Scan to the * / marking the end.  This may involve reading extra
@@ -15460,7 +15460,7 @@ is called, resulting in a diagnostic.
 {
   auto is_if_exists_pragma =
                           [](const an_owned_pending_pragma &opp) -> a_boolean {
-    return opp->descr_ptr->kind == pk_if_exists;
+    return opp->descr_ptr()->kind == pk_if_exists;
   };
 
   curr_token_pragmas->remove_if(is_if_exists_pragma);
@@ -15475,8 +15475,8 @@ locations where they are allowed.  A diagnostic is issued for any
 entries that have not been handled.
 */
 {
-  pos_diagnostic(ppp->descr_ptr->error_severity,
-                 ec_if_exists_not_allowed, &ppp->pragma_position);
+  pos_diagnostic(ppp->descr_ptr()->error_severity,
+                 ec_if_exists_not_allowed, &ppp->pragma_position());
 }  /* if_exists_pragma */
 
 
@@ -27827,14 +27827,14 @@ Activate the token cache containing the pragma to be scanned and push a
 pragma scope to be used while scanning the pragma tokens.
 */
 {
-  check_assertion_str2(ppp->descr_ptr->binding_kind != pbk_preproc_immediate,
+  check_assertion_str2(ppp->descr_ptr()->binding_kind != pbk_preproc_immediate,
                        "begin_rescan_of_pragma_tokens:",
                        "cannot be used for preproc_immediate pragmas");
   /* Start a new lexical state. */
   push_lexical_state_stack();
   /* If the pragma was scanned as pp-tokens, go into pp-token mode now. */
-  fetch_pp_tokens = ppp->descr_ptr->fetch_pp_tokens;
-  rescan_shared_reusable_cache(ppp->token_cache);
+  fetch_pp_tokens = ppp->descr_ptr()->fetch_pp_tokens;
+  rescan_shared_reusable_cache(ppp->token_cache());
   /* Push a pragma scope.  This prevents names introduced by the pragma
      processing from polluting the current scope. */
   (void)push_scope((a_scope_kind)sck_pragma, NO_SCOPE_NUMBER, (a_type_ptr)NULL,
@@ -28191,25 +28191,25 @@ encountered, whatever their other characteristics, are included.
   db_enter(5, "add_pragmas_to_string");
   for (const an_owned_pending_pragma &ppp : pragmas) {
     a_boolean	is_pragma_directive;
-    a_boolean	new_seq = ppp->pragma_position.seq >= curr_seq;
-    is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
+    a_boolean	new_seq = ppp->pragma_position().seq >= curr_seq;
+    is_pseudo_pragma = ppp->descr_ptr()->is_pseudo_pragma;
     is_pragma_directive = !is_pseudo_pragma &&
-                          !ppp->is_function_style_pragma &&
-                          !ppp->is_microsoft_pragma_operator;
+                          !ppp->is_function_style_pragma() &&
+                          !ppp->is_microsoft_pragma_operator();
     if (new_seq || is_pragma_directive) {
       /* We have moved to a new line, or we are generating a #pragma (which
          must begin on a new line).  Compute the indentation. */
-      column_incr = ppp->pragma_position.column - 1;
+      column_incr = ppp->pragma_position().column - 1;
       /* Compute the number of line feed characters to add. */
       if (new_seq) {
-        seq_incr = ppp->pragma_position.seq - curr_seq;
+        seq_incr = ppp->pragma_position().seq - curr_seq;
       }  /* if */
       if (is_pragma_directive) {
         if (seq_incr == 0) seq_incr = 1;
       }  /* if */
       /* Reset the current line. */
-      curr_seq = ppp->pragma_position.seq;
-    } else if (ppp->pragma_position.seq <= curr_seq) {
+      curr_seq = ppp->pragma_position().seq;
+    } else if (ppp->pragma_position().seq <= curr_seq) {
       /* We're on the same line as the previous token processed, so just add
          a space (in most cases) to separate the tokens.  (Note: the line for
          the current token may be less than curr_seq when a macro expansion
@@ -28225,21 +28225,21 @@ encountered, whatever their other characteristics, are included.
     if (is_pseudo_pragma) {
       /* Add comment delimiter to the template string. */
       put_str_to_temp_text_buffer("/*");
-    } else if (ppp->is_microsoft_pragma_operator) {
+    } else if (ppp->is_microsoft_pragma_operator()) {
       /* A Microsoft __pragma operator. */
       put_str_to_temp_text_buffer("__pragma(");
-    } else if (ppp->is_function_style_pragma) {
+    } else if (ppp->is_function_style_pragma()) {
       /* The _Pragma form. */
       put_str_to_temp_text_buffer("_Pragma(");
     } else {
       /* Add "#pragma " to the template string. */
       put_str_to_temp_text_buffer("#pragma ");
     }  /* if */
-    if (ppp->descr_ptr->record_pragma_text) {
+    if (ppp->descr_ptr()->record_pragma_text) {
       /* Note: the pragma id is already part of pragma_text. */
-      check_assertion(ppp->pragma_text != NULL);
-      if (ppp->is_function_style_pragma &&
-          !ppp->is_microsoft_pragma_operator) {
+      check_assertion(ppp->pragma_text() != NULL);
+      if (ppp->is_function_style_pragma() &&
+          !ppp->is_microsoft_pragma_operator()) {
         /* The operand of _Pragma is a quoted string, but the enclosing
            quotes aren't part of the recorded pragma text.  Add enclosing
            quotes and escape any embedded quote and backslash
@@ -28247,7 +28247,7 @@ encountered, whatever their other characteristics, are included.
            removed by the process of converting the string operand of
            _Pragma to the non-string operand of #pragma). */
         put_ch_to_temp_text_buffer('"');
-        for (a_const_char *p = ppp->pragma_text; *p != '\0'; ++p) {
+        for (a_const_char *p = ppp->pragma_text(); *p != '\0'; ++p) {
           if (*p == '"' || *p == '\\') {
             put_ch_to_temp_text_buffer('\\');
           }  /* if */
@@ -28256,33 +28256,33 @@ encountered, whatever their other characteristics, are included.
         put_str_to_temp_text_buffer("\"");
       } else {
         /* The recorded pragma text can be used directly. */
-        put_str_to_temp_text_buffer(ppp->pragma_text);
+        put_str_to_temp_text_buffer(ppp->pragma_text());
       }  /* if */
     } else {
       /* The pragma id is not part of pragma_text, so it has to be added
          explicitly. */
-      if (ppp->is_function_style_pragma &&
-          !ppp->is_microsoft_pragma_operator) {
+      if (ppp->is_function_style_pragma() &&
+          !ppp->is_microsoft_pragma_operator()) {
         /* The operand of _Pragma is a quoted string.  Enclose the
            pragma name and its operands in quotes. */
         put_ch_to_temp_text_buffer('"');
       }  /* if */
-      put_str_to_temp_text_buffer(pragma_ids[(int)ppp->descr_ptr->kind]);
-      check_assertion(ppp->token_cache.ptr() != NULL);
-      if (!ppp->token_cache->is_empty()) {
+      put_str_to_temp_text_buffer(pragma_ids[(int)ppp->descr_ptr()->kind]);
+      check_assertion(ppp->token_cache().ptr() != NULL);
+      if (!ppp->token_cache()->is_empty()) {
         /* Add the tokens from the pragma token cache to the string. */
-        add_token_cache_to_string(ppp->token_cache.ptr());
+        add_token_cache_to_string(ppp->token_cache().ptr());
       }  /* if */
-      if (ppp->is_function_style_pragma &&
-          !ppp->is_microsoft_pragma_operator) {
+      if (ppp->is_function_style_pragma() &&
+          !ppp->is_microsoft_pragma_operator()) {
         put_ch_to_temp_text_buffer('"');
       }  /* if */
     }  /* if */
     if (is_pseudo_pragma) {
       /* Add terminating comment delimiter to the template string. */
       put_str_to_temp_text_buffer("*/");
-    } else if (ppp->is_microsoft_pragma_operator ||
-               ppp->is_function_style_pragma) {
+    } else if (ppp->is_microsoft_pragma_operator() ||
+               ppp->is_function_style_pragma()) {
       /* Put out the closing parenthesis for the _Pragma or Microsoft
          __pragma operator. */
       put_str_to_temp_text_buffer(")");
@@ -28987,7 +28987,7 @@ Display a single cached token.
   if (tok.is_pragma()) {
     for (const an_owned_pending_pragma &ppp : *tok.get_pragma_list()) {
       fprintf(f_debug, "  Pragma: %s\n",
-              pragma_ids[(int)ppp->descr_ptr->kind]);
+              pragma_ids[(int)ppp->descr_ptr()->kind]);
     }  /* for */
   } else if (tok.is_ud_literal()) {
     const a_ud_literal_descr *ud_lit_descr = tok.get_ud_literal_descr();
