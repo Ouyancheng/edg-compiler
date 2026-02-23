@@ -16445,7 +16445,7 @@ already-evaluated arguments of the call.
   allocation = find_constexpr_allocation(ips, cap->address,
                                          &call_node->position);
   if (allocation == NULL) {
-    result = FALSE;
+    do_constexpr_fail(result);
     goto done;
   }  /* if */
   size_arg = ptr_arg->next;
@@ -20625,22 +20625,35 @@ Evaluate the given new-expression.
           /* Initialize element-by-element. */
           if (constant_is(init_cp, ck_aggregate)) {
             /* Aggregate list case. */
+            a_boolean      repeat = FALSE;
+            a_targ_size_t  count = 1;
             elem_cp = init_cp->variant.aggregate.first_constant;
             for (; k<(int)alloc_length; ++k, elem += elem_size) {
               if (elem_cp == NULL) {
                 init_subobject_to_zero(ips, elem, elem_type, complete_obj);
                 continue;
-              } else if (constant_is(elem_cp, ck_init_repeat) &&
-                         elem_cp->variant.init_repeat.count == 0) {
-                /* A ck_init_repeat entry with zero count indicates that the
-                   remainder of the array should be filled with that
-                   initializer. */
+              } else if (constant_is(elem_cp, ck_init_repeat)) {
+                if (!repeat) {
+                  /* Start a counter to extract this element multiple times.
+                     A zero count means to repeat until the end. */
+                  count = elem_cp->variant.init_repeat.count;
+                  repeat = TRUE;
+                }  /* if */
                 elem_cap.address = elem;
                 if (!extract_value_from_constant(
                                    ips, elem_cp->variant.init_repeat.constant,
                                    elem_cap)) {
                   result = FALSE;
                   goto done;
+                }  /* if */
+                if (count == 0) {
+                  /* Keep repeating. */
+                } else if (count == 1) {
+                  /* Last element was initializer.  Stop the counter. */
+                  repeat = FALSE;
+                  elem_cp = elem_cp->next;
+                } else {
+                  count -= 1;
                 }  /* if */
               } else {
                 /* A normal array element value to evaluate. */
@@ -20793,7 +20806,7 @@ Evaluate the given delete-expression.
   }  /* if */
   allocation = find_constexpr_allocation(ips, obj_bytes, &expr->position);
   if (allocation == NULL) {
-    result = FALSE;
+    do_constexpr_fail(result);
     goto done;
   } else {
     /* Perform necessary destructions and mark subobject uninitialized. */
@@ -21975,8 +21988,8 @@ the value representation of the integer value.
                     result = FALSE;
                     break;
                   }  /* if */
+                  unmark_complete_object_initialized(complete_obj);
                 }  /* if */
-                unmark_complete_object_initialized(complete_obj);
               }  /* if */
             } else {
               a_type_ptr  otp;

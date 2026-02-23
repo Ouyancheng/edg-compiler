@@ -1,5 +1,14 @@
 Version 6.9
 
+2/23/26  [EDGcpfe/28662]
+Bad handling of new-expression with ck_init_repeat in interpreter
+
+When the initialization part of an array new-expression contains a ck_aggregate
+constant with a ck_init_repeat component, the front end sometimes did not
+correctly handle the initialization of elements after the first one covered by
+the ck_init_repeat entry.  That is now fixed.
+
+
 1/26/26  [EDGcpfe/28471]
 Microsoft compatibility: __builtin_is_implicit_lifetime
 
