@@ -866,7 +866,8 @@ modes.
     enter_keyword(tok_builtin_is_virtual_base_of,
                   "__builtin_is_virtual_base_of");
   }  /* if */
-  if (gnu_version_is(>=160000) || clang_version_is(>=200000)) {
+  if (gnu_version_is(>=160000) || clang_version_is(>=200000) ||
+      ms_version_is(>=1951)) {
     enter_keyword(tok_builtin_is_implicit_lifetime,
                   "__builtin_is_implicit_lifetime");
   }  /* if */

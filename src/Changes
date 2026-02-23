@@ -1,5 +1,12 @@
 Version 6.9
 
+1/26/26  [EDGcpfe/28471]
+Microsoft compatibility: __builtin_is_implicit_lifetime
+
+The new type trait intrinsic __builtin_is_implicit_lifetime is now also enabled
+in Microsoft mode with microsoft_version >= 1951.
+
+
 2/19/26  [EDGcpfe/28682]
 Abort in prep_special_selector_operand
 
