@@ -1,5 +1,21 @@
 Version 6.9
 
+2/23/26  [EDGcpfe/28677]
+Missing has_temporary_lifetime flag
+
+Consider:
+
+  struct S { constexpr S() {} };
+  struct X { X(S const&); };
+  void g() {
+    X xs((S()));
+  }
+
+The changes for EDGcpfe/27839 caused the "has_temporary_lifetime" flag to be
+FALSE on the a_dynamic_init_entry representing the constructor call S().  That
+regression (introduced in version 6.8) is now fixed.
+
+
 2/23/26  [EDGcpfe/28662]
 Bad handling of new-expression with ck_init_repeat in interpreter
 

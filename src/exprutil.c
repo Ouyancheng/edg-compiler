@@ -6336,14 +6336,19 @@ calls to std::is_constant_evaluated should to "true".
   a_constant_ptr con = local_constant();
   an_operand     orig_operand;
 
-  if (constexpr_enabled &&
-      (curr_expr_kind_is_const() ||
-       (expr_stack->favor_constant_result &&
-        !is_template_dependent_context())) &&
-      (is_constant_evaluated || constexpr_call_folding_should_be_done()) &&
-      is_expression_operand(operand) && is_a_prvalue(operand) &&
-      fold_constexpr_expr(operand->variant.expression, con,
-                          is_constant_evaluated, /*force_prvalue=*/FALSE)) {
+  if (!is_expression_operand(operand)) {
+    /* Nothing to do. */
+  } else if (!is_a_prvalue(operand)) {
+    /* Nothing to do. */
+  } else if (constexpr_enabled &&
+             (curr_expr_kind_is_const() ||
+              (expr_stack->favor_constant_result &&
+               !is_template_dependent_context())) &&
+             (is_constant_evaluated ||
+              constexpr_call_folding_should_be_done()) &&
+             fold_constexpr_expr(operand->variant.expression, con,
+                                 is_constant_evaluated,
+                                 /*force_prvalue=*/FALSE)) {
     /* With constexpr enabled, the expression can be folded to a constant. */
     orig_operand = *operand;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -6361,9 +6366,7 @@ calls to std::is_constant_evaluated should to "true".
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     make_constant_operand(con, operand);
     restore_operand_details(operand, &orig_operand);
-  } else if (is_expression_operand(operand) &&
-             is_a_prvalue(operand) &&
-             is_pointer_type(operand->type)) {
+  } else if (is_pointer_type(operand->type)) {
     a_constant_ptr conaddr = local_constant();
     if (constant_prvalue_pointer(operand->variant.expression, conaddr,
                                  /*address_escapes=*/TRUE)) {
@@ -18470,7 +18473,13 @@ If it indicates a destructor, add it to the current object lifetime.
       record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                          block_lifetime);
     }  /* if */
-    dip->has_temporary_lifetime = !block_lifetime;
+    if (!block_lifetime) {
+      dip->has_temporary_lifetime = TRUE;
+      if (dyn_init_is(dip, dik_constant) && constexpr_enabled) {
+        a_dynamic_init_ptr  udip = skip_constexpr_init_folding(dip);
+        udip->has_temporary_lifetime = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* set_temp_dynamic_init_lifetime */
 

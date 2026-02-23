@@ -30137,7 +30137,8 @@ freed by this routine.
                         /*fill_in_dtor=*/TRUE,
                         /*elision_allowed=*/TRUE,
                         /*is_custom_ms_attr_arg_list=*/FALSE,
-                        CCO_DIRECT_INITIALIZATION,
+                        CCO_DIRECT_INITIALIZATION |
+                        CCO_CAST | CCO_FUNC_NOTATION_CAST,
                         rcblock,
                         /*arg_list_supplied=*/TRUE,
                         supplied_arg_list,
