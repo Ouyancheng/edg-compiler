@@ -379,18 +379,19 @@ extern void test_next_construct_pragma(a_pending_pragma_ptr  ppp,
 
 namespace detail {
 
-extern void copy_construct_pragma_list(a_pending_pragma_list       *dest,
-                                       const a_pending_pragma_list &old_list);
 extern void destroy_pending_pragma_list(a_pending_pragma_list *pplp);
 
 }  /* namespace detail */
 
+extern void copy_construct_pragma_list(a_pending_pragma_list       *dest,
+                                       const a_pending_pragma_list &old_list);
+
 extern void copy_fresh_pragmas_into(a_pending_pragma_list       *dest,
                                     const a_pending_pragma_list &old_list);
 
-extern void add_to_curr_token_pragma_list(const a_shared_pending_pragma &spp);
+extern void add_to_curr_token_pragma_list(an_owned_pending_pragma &&opp);
 
-extern void add_to_curr_token_pragma_list(const a_pending_pragma_list &list);
+extern void add_to_curr_token_pragma_list(a_pending_pragma_list &&list);
 
 extern a_boolean select_curr_construct_pragmas(a_boolean  add_to_list);
 
@@ -400,8 +401,8 @@ extern void add_pragma_to_il(a_pending_pragma_ptr  ppp,
                              a_boolean             is_global);
 
 extern
-a_shared_pending_pragma add_curr_token_pseudo_pragma(a_pragma_kind      kind,
-                                                     a_source_position *pos);
+a_pending_pragma_ptr add_curr_token_pseudo_pragma(a_pragma_kind      kind,
+                                                  a_source_position *pos);
 
 extern void create_il_entry_for_pragma(a_pending_pragma_ptr ppp,
                                        a_symbol_ptr         sym,

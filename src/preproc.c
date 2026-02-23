@@ -2924,7 +2924,7 @@ TRUE when the pragma being scanned is a function-style pragma (i.e., _Pragma
 or __pragma, but not #pragma).
 */
 {
-  a_shared_pending_pragma ppp(pkdp);
+  an_owned_pending_pragma ppp = owning_ptr<a_pending_pragma>(pkdp);
 
   ppp->id_position = *id_pos;
   ppp->pragma_position = *directive_pos;
@@ -2972,7 +2972,7 @@ or __pragma, but not #pragma).
           are to be passed to the C or C++ generating back end, but may be
           used for other pragmas in which a character string is simpler to
           manipulate. */
-      convert_pragma_to_string(ppp.ptr());
+      convert_pragma_to_string(ppp.raw());
     }  /* if */
     /* Remove the initial token from the token cache.  For historical
        reasons, the cache does not include the pragma identifier, but
@@ -2989,18 +2989,18 @@ or __pragma, but not #pragma).
     a_preproc_immediate_pragma_function_ptr pipfp;
     pipfp = (a_preproc_immediate_pragma_function_ptr)index_to_function_pointer(
                                               pkdp->processing_function_index);
-    if (pipfp != NULL) (*pipfp)(ppp.ptr());
+    if (pipfp != NULL) (*pipfp)(ppp.raw());
     if (pkdp->automatically_include_in_il) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       ppp->source_sequence_entry = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      add_pragma_to_il(ppp.ptr(), (an_il_entry_kind)iek_none, (char*)NULL,
+      add_pragma_to_il(ppp.raw(), (an_il_entry_kind)iek_none, (char*)NULL,
                        /*is_global=*/TRUE);
     }  /* if */
   } else {
     /* Add this pragma to the list of pragmas associated with the
        current token. */
-    add_to_curr_token_pragma_list(ppp);
+    add_to_curr_token_pragma_list(move_from(&ppp));
   }  /* if */
 }  /* enter_pending_pragma */
 
@@ -3653,15 +3653,15 @@ If there are any current token pragmas that are C99 predefined pragmas
 {
   /* Process all stdc pragmas keeping only the non-stdc pragmas on the current
      token's pragma list. */
-  a_pending_pragma_list tmp_list = *curr_token_pragmas;
+  a_pending_pragma_list tmp_list(move_from(curr_token_pragmas));
 
-  curr_token_pragmas->clear();
-  for (const a_shared_pending_pragma &spp : tmp_list) {
-    if (spp->descr_ptr->kind == pk_stdc) {
-      spp->has_been_processed = TRUE;
-      process_stdc_pragma(spp.ptr());
+  *curr_token_pragmas = a_pending_pragma_list();
+  for (an_owned_pending_pragma &opp : tmp_list) {
+    if (opp->descr_ptr->kind == pk_stdc) {
+      opp->has_been_processed = TRUE;
+      process_stdc_pragma(opp.raw());
     } else {
-      curr_token_pragmas->push_back(spp);
+      curr_token_pragmas->emplace_back(move_from(&opp));
     }  /* if */
   }  /* for */
 }  /* check_for_stdc_pragmas */
@@ -4419,15 +4419,15 @@ pragma appears.
 {
   /* Process all upc pragmas keeping only the non-upc pragmas on the current
      token's pragma list. */
-  a_pending_pragma_list tmp_list = *curr_token_pragmas;
+  a_pending_pragma_list tmp_list(move_from(curr_token_pragmas));
 
-  curr_token_pragmas->clear();
-  for (const a_shared_pending_pragma &spp : tmp_list) {
-    if (spp->descr_ptr->kind == pk_upc) {
-      spp->has_been_processed = TRUE;
-      process_upc_pragma(spp.ptr(), sp);
+  *curr_token_pragmas = a_pending_pragma_list();
+  for (an_owned_pending_pragma &opp : tmp_list) {
+    if (opp->descr_ptr->kind == pk_upc) {
+      opp->has_been_processed = TRUE;
+      process_upc_pragma(opp.raw(), sp);
     } else {
-      curr_token_pragmas->push_back(spp);
+      curr_token_pragmas->emplace_back(move_from(&opp));
     }  /* if */
   }  /* for */
 }  /* check_for_upc_pragmas */

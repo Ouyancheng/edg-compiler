@@ -71,11 +71,22 @@ typedef struct a_def_arg_expr_fixup *a_def_arg_expr_fixup_ptr;
    available to symbol_tbl.h without creating recursive reference problems. */
 typedef struct a_pending_pragma *a_pending_pragma_ptr;
 
-using a_shared_pending_pragma = Shared_obj<a_pending_pragma>;
-			/* The type used for a pending pragma potentially
-			   shared between multiple pending pragma lists. */
+using an_owned_pending_pragma = Owning_ptr<a_pending_pragma>;
+			/* The type used for a pending pragma on a pending
+			   pragma lists.
 
-using a_pending_pragma_list = Dyn_array<a_shared_pending_pragma>;
+			   Note this is based on Owning_ptr rather than
+			   Shared_obj because a_pending_pragma has a close
+			   relationship with the scope stack when
+			   GENERATE_SOURCE_SEQUENCE_LISTS is TRUE; namely
+			   pending pragmas (outside of reusable token caches)
+			   are expected to be constructed and destroyed within
+			   the same scope stack scope.  When using Shared_obj
+			   it is easy to introduce bugs that result in a
+			   instances of a_pending_pragma being destroyed after
+			   the relevant scope has been popped.  */
+
+using a_pending_pragma_list = Dyn_array<an_owned_pending_pragma>;
 			/* The type used for a list of pending pragmas. */
 
 

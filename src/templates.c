@@ -33017,10 +33017,13 @@ parameter lists that were scanned.
       if (tssp != NULL) {
         if (tssp->pragmas_bound_to_template != NULL) {
           if (decl_state->pragmas_bound_to_template != NULL) {
-            tssp->pragmas_bound_to_template->insert(
-                              tssp->pragmas_bound_to_template->length(),
-                              decl_state->pragmas_bound_to_template->begin(),
+            tssp->pragmas_bound_to_template->reserve(
+                              tssp->pragmas_bound_to_template->length() +
                               decl_state->pragmas_bound_to_template->length());
+            for (an_owned_pending_pragma &opp :
+                                      *decl_state->pragmas_bound_to_template) {
+              tssp->pragmas_bound_to_template->emplace_back(move_from(&opp));
+            }  /* for */
             delete_fe(&decl_state->pragmas_bound_to_template);
           }  /* if */
         } else {

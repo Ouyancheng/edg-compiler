@@ -452,36 +452,34 @@ Construct a pending pragma with the given pragma kind description.
 
 namespace detail {
 
-void copy_construct_pragma_list(a_pending_pragma_list       *dest,
-                                const a_pending_pragma_list &old_list)
-/*
-Make an exact copy of a list of pending pragma entries constructed at the given
-destination address.
-
-This function exists to work around a_pending_pragma being incomplete in
-lexical.h.  Modern compilers allow that problem to be resolved by specializing
-the copy constructor of Shared_obj<a_pending_pragma>; however, legacy compilers
-have bugs that prevent that solution from working.
-*/
-{
-  new (dest) a_pending_pragma_list(old_list);
-}  /* copy_construct_pragma_list */
-
-
 void destroy_pending_pragma_list(a_pending_pragma_list *pplp)
 /*
 Destroy the list of pending pragmas at the given pointer.
 
 This function exists to work around a_pending_pragma being incomplete in
 lexical.h.  Modern compilers allow that problem to be resolved by specializing
-the destructor of Shared_obj<a_pending_pragma>; however, legacy compilers have
+the destructor of Owning_ptr<a_pending_pragma>; however, legacy compilers have
 bugs that prevent that solution from working.
 */
 {
-  (*pplp).~Dyn_array<a_shared_pending_pragma>();
+  (*pplp).~Dyn_array<an_owned_pending_pragma>();
 }  /* destroy_pending_pragma_list */
 
 }  /* namespace detail */
+
+void copy_construct_pragma_list(a_pending_pragma_list       *dest,
+                                const a_pending_pragma_list &old_list)
+/*
+Make an exact copy of a list of pending pragma entries constructed at the given
+destination address.
+*/
+{
+  new (dest) a_pending_pragma_list(old_list.length());
+  for (const an_owned_pending_pragma &opp : old_list) {
+    dest->emplace_back(owning_ptr<a_pending_pragma>(*opp));
+  }  /* for */
+}  /* copy_construct_pragma_list */
+
 
 void copy_fresh_pragmas_into(a_pending_pragma_list       *dest,
                              const a_pending_pragma_list &old_list)
@@ -497,9 +495,8 @@ token in the reusable cache and must not be affected by operations performed on
 the copies associated with the token being processed.
 */
 {
-  for (const a_shared_pending_pragma &spp : old_list) {
-    /* Create a deep copy of the pending pragma. */
-    a_shared_pending_pragma new_pp(*spp);
+  for (const an_owned_pending_pragma &opp : old_list) {
+    an_owned_pending_pragma new_pp = owning_ptr<a_pending_pragma>(*opp);
 
     if (new_pp->descr_ptr->binding_kind == pbk_immediate) {
       /* Immediate pragmas must be reprocessed when rescanned from a token
@@ -509,7 +506,7 @@ the copies associated with the token being processed.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     new_pp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    dest->push_back(new_pp);
+    dest->emplace_back(move_from(&new_pp));
   }  /* for */
 }  /* copy_fresh_pragmas_into */
 
@@ -531,31 +528,31 @@ Destroy the pending pragma.
 }  /* a_pending_pragma::~a_pending_pragma */
 
 
-void add_to_curr_token_pragma_list(const a_shared_pending_pragma &spp)
+void add_to_curr_token_pragma_list(an_owned_pending_pragma &&opp)
 /*
 Add a pragma to the list of pragmas associated with the current token.
 */
 {
-  curr_token_pragmas->push_back(spp);
+  curr_token_pragmas->push_back(move_from(&opp));
   /* Indicate that the special case code at the beginning of get_token
      is needed to do current token pragma processing. */
   any_initial_get_token_tests_needed = TRUE;
 }  /* add_to_curr_token_pragma_list */
 
 
-void add_to_curr_token_pragma_list(const a_pending_pragma_list &list)
+void add_to_curr_token_pragma_list(a_pending_pragma_list &&list)
 /*
 Add the given pragmas to the list of pragmas associated with the current token.
 */
 {
-  for (const a_shared_pending_pragma &spp : list) {
-    curr_token_pragmas->push_back(spp);
+  for (an_owned_pending_pragma &opp : list) {
+    curr_token_pragmas->push_back(move_from(&opp));
   }  /* for */
 }  /* add_to_curr_token_pragma_list */
 
 
-a_shared_pending_pragma add_curr_token_pseudo_pragma(a_pragma_kind     kind,
-                                                     a_source_position *pos)
+a_pending_pragma_ptr add_curr_token_pseudo_pragma(a_pragma_kind     kind,
+                                                  a_source_position *pos)
 /*
 This routine is used to create pragma entries for things like lint comments
 that are treated as "pseudo pragmas" by the front end (although this
@@ -567,14 +564,15 @@ information can be updated, if necessary.
 {
   a_pragma_kind_description_ptr pkdp =
                                  pragma_description_for_pragma_kind[(int)kind];
-  a_shared_pending_pragma       spp = shared_obj<a_pending_pragma>(pkdp);
+  an_owned_pending_pragma       opp = owning_ptr<a_pending_pragma>(pkdp);
+  a_pending_pragma_ptr          result = opp.raw();
 
   /* We don't have two positions for pseudo pragmas.  Use the same
      position for both the ID and the start of the directive. */
-  spp->id_position = *pos;
-  spp->pragma_position = *pos;
-  add_to_curr_token_pragma_list(spp);
-  return spp;
+  opp->id_position = *pos;
+  opp->pragma_position = *pos;
+  add_to_curr_token_pragma_list(move_from(&opp));
+  return result;
 }  /* add_curr_token_pseudo_pragma */
 
 
@@ -631,24 +629,24 @@ if it turns out that no IL pragma entry is created).
       ((!is_nonspecialized_instantiation_context() &&
         depth_template_declaration_scope == NO_SCOPE_DEPTH) ||
        is_prototype_instantiation_context())) {
-    for (a_shared_pending_pragma spp : *curr_token_pragmas) {
-      if (spp->source_sequence_entry == NULL &&
+    for (an_owned_pending_pragma &opp : *curr_token_pragmas) {
+      if (opp->source_sequence_entry == NULL &&
           (binding_kind == pbk_none ||
-           binding_kind == spp->descr_ptr->binding_kind)) {
-        spp->source_sequence_entry =
-                                 add_empty_src_seq_entry_for_pragma(spp.ptr());
-        if (spp->il_pragma_entry != NULL) {
+           binding_kind == opp->descr_ptr->binding_kind)) {
+        opp->source_sequence_entry =
+                                 add_empty_src_seq_entry_for_pragma(opp.raw());
+        if (opp->il_pragma_entry != NULL) {
           /* This pragma was already processed.  Associate the source sequence
              entry with it. */
           a_source_sequence_entry_ptr  prev_ssep = 
-                                  spp->il_pragma_entry->source_sequence_entry;
-          update_source_sequence_list((char*)spp->il_pragma_entry,
+                                   opp->il_pragma_entry->source_sequence_entry;
+          update_source_sequence_list((char*)opp->il_pragma_entry,
                                       (an_il_entry_kind)iek_pragma,
-                                      spp->source_sequence_entry);
+                                      opp->source_sequence_entry);
           if (prev_ssep != NULL) {
             remove_src_seq_entry(prev_ssep);
           }  /* if */
-          spp->source_sequence_entry = NULL;
+          opp->source_sequence_entry = NULL;
         }  /* if */
       }  /* if */
     }  /* for */
@@ -706,21 +704,21 @@ otherwise return FALSE.
   if (curr_construct_list == NULL) {
     curr_construct_list = new_fe<a_pending_pragma_list>();
   }  /* if */
-  { a_pending_pragma_list tmp_list(*curr_token_pragmas);
+  { a_pending_pragma_list tmp_list(move_from(curr_token_pragmas));
 
-    curr_token_pragmas->clear();
-    for (a_shared_pending_pragma &spp : tmp_list) {
+    *curr_token_pragmas = a_pending_pragma_list();
+    for (an_owned_pending_pragma &opp : tmp_list) {
       a_pragma_kind_description_ptr
-                            pkdp = spp->descr_ptr;
+                            pkdp = opp->descr_ptr;
       a_pragma_binding_kind binding_kind = pkdp->binding_kind;
 
       if (binding_kind == pbk_next_construct) {
         /* Add the entry to the end of the list of pragmas for the current
            declaration or statement. */
-        curr_construct_list->push_back(spp);
+        curr_construct_list->push_back(move_from(&opp));
       } else {
         /* The entry remains on the current token's pragma list */
-        curr_token_pragmas->push_back(spp);
+        curr_token_pragmas->push_back(move_from(&opp));
       }  /* if */
     }  /* for */
   }
@@ -982,16 +980,16 @@ pbk_immediate pragmas are processed here.
   add_source_sequence_entry_to_curr_token_pragmas(pbk_none);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  a_pending_pragma_list tmp_list(*curr_token_pragmas);
-  curr_token_pragmas->clear();
-  for (a_shared_pending_pragma &spp : tmp_list) {
-    pkdp = spp->descr_ptr;
-    if (spp->has_been_processed) {
+  a_pending_pragma_list tmp_list(move_from(curr_token_pragmas));
+  *curr_token_pragmas = a_pending_pragma_list();
+  for (an_owned_pending_pragma &opp : tmp_list) {
+    pkdp = opp->descr_ptr;
+    if (opp->has_been_processed) {
       /* This pragma has already been processed (but remains on the list to
          preserve pragma information within the token cache). */
       continue;
     }  /* if */
-    spp->has_been_processed = TRUE;
+    opp->has_been_processed = TRUE;
     switch (pkdp->binding_kind) {
       case pbk_next_construct:
         if (pkdp->error_severity != es_none) {
@@ -1007,7 +1005,7 @@ pbk_immediate pragmas are processed here.
           }  /* if */
           if (pkdp->error_severity != es_none) {
             pos_diagnostic(pkdp->error_severity, error_code,
-                           &spp->id_position);
+                           &opp->id_position);
           }  /* if */
         }  /* if */
         break;
@@ -1017,26 +1015,26 @@ pbk_immediate pragmas are processed here.
         if (pkdp->automatically_include_in_il) {
           /* Create an IL entry for pragmas that should automatically be
              included in the IL. */
-          create_il_entry_for_pragma(spp.ptr(), (a_symbol_ptr)NULL,
+          create_il_entry_for_pragma(opp.raw(), (a_symbol_ptr)NULL,
                                      (a_statement_ptr)NULL);
         }  /* if */
         ntfp = (a_next_token_pragma_function_ptr)index_to_function_pointer(
                                               pkdp->processing_function_index);
         if (ntfp != NULL) {
-          (*ntfp)(spp.ptr());
+          (*ntfp)(opp.raw());
         }  /* if */
         break;
       case pbk_immediate:
         if (pkdp->automatically_include_in_il) {
           /* Create an IL entry for pragmas that should automatically be
              included in the IL. */
-          create_il_entry_for_pragma(spp.ptr(), (a_symbol_ptr)NULL,
+          create_il_entry_for_pragma(opp.raw(), (a_symbol_ptr)NULL,
                                      (a_statement_ptr)NULL);
         }  /* if */
         ipfp = (an_immediate_pragma_function_ptr)index_to_function_pointer(
                                             pkdp->processing_function_index);
         if (ipfp != NULL) {
-          (*ipfp)(spp.ptr());
+          (*ipfp)(opp.raw());
         }  /* if */
         break;
       case pbk_other:
@@ -1048,7 +1046,8 @@ pbk_immediate pragmas are processed here.
           if (ssep->pending_pragmas == NULL) {
             ssep->pending_pragmas = new_fe<a_pending_pragma_list>();
           }  /* if */
-          ssep->pending_pragmas->push_back(spp);
+          ssep->pending_pragmas->emplace_back(
+                                           owning_ptr<a_pending_pragma>(*opp));
         }
         break;
       default:
@@ -1069,7 +1068,6 @@ been processed.  They are kept on the list in case they are associated
 with a token that is to be cached.
 */
 {
-  a_pending_pragma_list         *saved_curr_token_pragmas;
   a_pragma_kind_description_ptr pkdp;
   an_immediate_pragma_function_ptr
                                 ipfp;
@@ -1081,36 +1079,37 @@ with a token that is to be cached.
     add_source_sequence_entry_to_curr_token_pragmas(pbk_immediate);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
   /* Clear curr_token_pragmas so that enclosing pragmas won't be considered
      part of this pragma. */
-  saved_curr_token_pragmas = curr_token_pragmas;
-  curr_token_pragmas = new_fe<a_pending_pragma_list>();
-  for (a_shared_pending_pragma &spp : *saved_curr_token_pragmas) {
-    pkdp = spp->descr_ptr;
+  a_pending_pragma_list saved_curr_token_pragmas(
+                                                move_from(curr_token_pragmas));
+  *curr_token_pragmas = a_pending_pragma_list();
+  for (an_owned_pending_pragma &opp : saved_curr_token_pragmas) {
+    pkdp = opp->descr_ptr;
     if (pkdp->binding_kind == pbk_immediate) {
-      if (!spp->has_been_processed) {
+      if (!opp->has_been_processed) {
         /* Unless this token is going into a reusable token cache, mark this
            pragma as having been processed so that it won't be applied again by
            process_curr_token_pragmas. */
-        spp->has_been_processed = TRUE;
+        opp->has_been_processed = TRUE;
         if (pkdp->automatically_include_in_il ||
             is_template_declaration_context()) {
           /* Create an IL entry for pragmas that should automatically be
              included in the IL. */
-          create_il_entry_for_pragma(spp.ptr(), (a_symbol_ptr)NULL,
+          create_il_entry_for_pragma(opp.raw(), (a_symbol_ptr)NULL,
                                      (a_statement_ptr)NULL);
         }  /* if */
         ipfp = (an_immediate_pragma_function_ptr)index_to_function_pointer(
                                               pkdp->processing_function_index);
         if (ipfp != NULL) {
-          (*ipfp)(spp.ptr());
+          (*ipfp)(opp.raw());
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
   check_assertion(curr_token_pragmas->is_empty());
-  delete_fe(&curr_token_pragmas);
-  curr_token_pragmas = saved_curr_token_pragmas;
+  *curr_token_pragmas = move_from(&saved_curr_token_pragmas);
 }  /* process_immediate_pragmas */
 
 
@@ -1125,12 +1124,12 @@ pragma is not valid in this location.
 */
 {
   db_enter(4, "end_of_scope_pragma_processing");
-  for (const a_shared_pending_pragma &spp : ppl) {
-    a_pragma_kind_description_ptr pkdp = spp->descr_ptr;
+  for (const an_owned_pending_pragma &opp : ppl) {
+    a_pragma_kind_description_ptr pkdp = opp->descr_ptr;
 
     if (pkdp->error_severity != es_none) {
       pos_diagnostic(pkdp->error_severity, ec_pragma_may_not_be_used_here,
-                     &spp->id_position);
+                     &opp->id_position);
     }  /* if */
   }  /* for */
   db_exit();
@@ -1185,21 +1184,21 @@ instead of looking through all of the active scope stack entries.
      to the file scope, are checked in turn. */
   for (;;) {
     if (*scope_list_addr != NULL && !(*scope_list_addr)->is_empty()) {
-      a_pending_pragma_list scope_list_copy(**scope_list_addr);
+      a_pending_pragma_list scope_list_copy(move_from(*scope_list_addr));
 
-      (*scope_list_addr)->clear();
+      **scope_list_addr = a_pending_pragma_list();
       /* Check the appropriate list of pending-pragma entries. */
-      for (a_shared_pending_pragma &spp : scope_list_copy) {
-        if (spp->descr_ptr == pkdp) {
+      for (an_owned_pending_pragma &opp : scope_list_copy) {
+        if (opp->descr_ptr == pkdp) {
           /* It's the right kind remove it from the scope stack list. */
-          new_list.push_back(spp);
+          new_list.push_back(move_from(&opp));
           /* If an IL pragma should be generated for it, do that now. */
           if (pkdp->automatically_include_in_il) {
-            create_il_entry_for_pragma(spp.ptr(), sym, sp);
+            create_il_entry_for_pragma(opp.raw(), sym, sp);
           }  /* if */
         } else {
           /* It's not the right kind: keep it on the scope stack list. */
-          (*scope_list_addr)->push_back(spp);
+          (*scope_list_addr)->push_back(move_from(&opp));
         }  /* if */
       }  /* for */
     }  /* if */
@@ -1249,15 +1248,16 @@ the pragmas.
      declaration or statement. */
   if (*curr_list_of_curr_construct_pragmas() != NULL &&
       !(*curr_list_of_curr_construct_pragmas())->is_empty()) {
-    a_pending_pragma_list tmp_list(**curr_list_of_curr_construct_pragmas());
+    a_pending_pragma_list tmp_list(
+                            move_from(*curr_list_of_curr_construct_pragmas()));
 
     /* Clear the list now so that pragmas can be added to this list as
        a consequence of processing the list of pragmas. */
     delete_fe(curr_list_of_curr_construct_pragmas());
-    for (a_shared_pending_pragma &spp : tmp_list) {
+    for (an_owned_pending_pragma &opp : tmp_list) {
       a_next_construct_pragma_function_ptr ncpfp;
       a_boolean                            err = FALSE;
-      a_pragma_kind_description_ptr	   pkdp = spp->descr_ptr;
+      a_pragma_kind_description_ptr	   pkdp = opp->descr_ptr;
 
       /* Make sure that the binding information in the pragma description
          is consistent with the argument list.  Issue diagnostics for
@@ -1277,7 +1277,7 @@ the pragmas.
             check_assertion(pkdp->may_bind_to_stmt);
             error_code = ec_pragma_must_precede_statement;
           }  /* if */
-          pos_diagnostic(pkdp->error_severity, error_code, &spp->id_position);
+          pos_diagnostic(pkdp->error_severity, error_code, &opp->id_position);
         }  /* if */
       }  /* if */
       if (!err) {
@@ -1287,12 +1287,12 @@ the pragmas.
         if (pkdp->automatically_include_in_il) {
           /* Create an IL entry for pragmas that should automatically be
              included in the IL. */
-          create_il_entry_for_pragma(spp.ptr(), sym, sp);
+          create_il_entry_for_pragma(opp.raw(), sym, sp);
         }  /* if */
         if (ncpfp != NULL) {
           /* Call the pragma processing function associated with this
              pragma. */
-          (*ncpfp)(spp.ptr(), sym, sp);
+          (*ncpfp)(opp.raw(), sym, sp);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -1314,13 +1314,15 @@ clears the curr_construct_pragma list.
   db_enter(4, "cannot_bind_to_curr_construct");
   if (*curr_list_of_curr_construct_pragmas() != NULL &&
       !(*curr_list_of_curr_construct_pragmas())->is_empty()) {
-    a_pending_pragma_list tmp_list(**curr_list_of_curr_construct_pragmas());
+    a_pending_pragma_list tmp_list(
+                            move_from(*curr_list_of_curr_construct_pragmas()));
+
     delete_fe(curr_list_of_curr_construct_pragmas());
-    for (a_shared_pending_pragma &spp : tmp_list) {
-      a_pragma_kind_description_ptr pkdp = spp->descr_ptr;
+    for (an_owned_pending_pragma &opp : tmp_list) {
+      a_pragma_kind_description_ptr pkdp = opp->descr_ptr;
       if (pkdp->error_severity != es_none) {
         pos_diagnostic(pkdp->error_severity, ec_pragma_may_not_be_used_here,
-                       &spp->id_position);
+                       &opp->id_position);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -1362,16 +1364,16 @@ the pragmas may be applied to each instance of a template.
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (result != NULL) {
-    for (a_shared_pending_pragma &spp : *result) {
-      if (spp->source_sequence_entry != NULL) {
+    for (an_owned_pending_pragma &opp : *result) {
+      if (opp->source_sequence_entry != NULL) {
         /* If this source sequence entry was never bound to another IL entry,
            remove it from the source sequence list. */
-        check_assertion_str2((spp->source_sequence_entry->entity.kind ==
+        check_assertion_str2((opp->source_sequence_entry->entity.kind ==
                                                                      iek_none),
                              "extract_curr_construct_pragmas:",
                              "source sequence entry already in use");
-        remove_from_src_seq_list(spp->source_sequence_entry);
-        spp->source_sequence_entry = NULL;
+        remove_from_src_seq_list(opp->source_sequence_entry);
+        opp->source_sequence_entry = NULL;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -1401,9 +1403,9 @@ Restore a list of pragmas as the current token pragmas.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* The source sequence entries were cleared when the current construct
        pragmas were extracted.  Create new source sequence entries now. */
-    for (a_shared_pending_pragma &spp : **scope_list_addr) {
-      spp->source_sequence_entry =
-                                 add_empty_src_seq_entry_for_pragma(spp.ptr());
+    for (an_owned_pending_pragma &opp : **scope_list_addr) {
+      opp->source_sequence_entry =
+                                 add_empty_src_seq_entry_for_pragma(opp.raw());
     }  /* for */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {

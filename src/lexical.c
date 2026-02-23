@@ -3316,7 +3316,7 @@ Construct and return a shared token representing the current token's pragmas.
 
   check_assertion(!curr_token_pragmas->is_empty());
   result->extra_info_kind = teik_pragma;
-  new (&result->extra_info.pragmas) a_pending_pragma_list(*curr_token_pragmas);
+  copy_construct_pragma_list(&result->extra_info.pragmas, *curr_token_pragmas);
   return result;
 }  /* a_token_factory::copy_curr_pragma_as_token */
 
@@ -4669,8 +4669,8 @@ pragma entries, it is possible for there to be no actual token.
        with the cached token. */
     check_assertion_str(!suppress_pragma_processing,
                     "get_token_from...: pragma found in suppress_pragma mode");
-    for (a_shared_pending_pragma &spp : *token->get_pragma_list()) {
-      curr_token_pragmas->push_back(spp);
+    for (an_owned_pending_pragma &opp : *token->get_pragma_list()) {
+      curr_token_pragmas->emplace_back(owning_ptr<a_pending_pragma>(*opp));
     }  /* for */
     if (cached_token_rescan_stack->is_empty()) {
       *no_tokens_on_stack = TRUE;
@@ -11662,10 +11662,10 @@ normal_comment:
 #endif /* DEBUG */
             determine_comment_pos_if_not_yet_done();
 
-            a_shared_pending_pragma spp = add_curr_token_pseudo_pragma(
+            a_pending_pragma_ptr ppp = add_curr_token_pseudo_pragma(
                                                          pk_lint_varargs_count,
                                                          &comment_start_pos);
-            spp->variant.lint_varargs_count = varargs_count;
+            ppp->variant.lint_varargs_count = varargs_count;
           }  /* if */
         }  /* if */
         /* Scan to the * / marking the end.  This may involve reading extra
@@ -15382,12 +15382,12 @@ the cache.
   a_boolean		keep_tokens;
   a_boolean		is_dependent;
   a_source_position	start_pos;
-  a_pending_pragma_list	saved_curr_token_pragmas;
-
   /* Clear the curr_token_pragmas list so that it can be restored after the
      tokens of the __if_exists directive have been scanned. */
-  saved_curr_token_pragmas = *curr_token_pragmas;
-  curr_token_pragmas = new_fe<a_pending_pragma_list>();
+  a_pending_pragma_list	saved_curr_token_pragmas(
+                                                move_from(curr_token_pragmas));
+
+  *curr_token_pragmas = a_pending_pragma_list();
   start_pos = pos_curr_token;
   /* Bypass the directive token. */
   (void)get_token();
@@ -15433,7 +15433,7 @@ the cache.
   }  /* if */
   /* Add the saved curr_token_pragmas list to the current list.  It will
      usually be empty, but this is done just in case a new entry was added. */
-  add_to_curr_token_pragma_list(saved_curr_token_pragmas);
+  add_to_curr_token_pragma_list(move_from(&saved_curr_token_pragmas));
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   /* Create a pseudo-pragma that indicates that a source sequence entry
      was created for this __if_exists.  This is used to detect cases
@@ -15459,8 +15459,8 @@ is called, resulting in a diagnostic.
 */
 {
   auto is_if_exists_pragma =
-                          [](const a_shared_pending_pragma &spp) -> a_boolean {
-    return spp->descr_ptr->kind == pk_if_exists;
+                          [](const an_owned_pending_pragma &opp) -> a_boolean {
+    return opp->descr_ptr->kind == pk_if_exists;
   };
 
   curr_token_pragmas->remove_if(is_if_exists_pragma);
@@ -28189,7 +28189,7 @@ encountered, whatever their other characteristics, are included.
   a_column_number column_incr = 0;
 
   db_enter(5, "add_pragmas_to_string");
-  for (const a_shared_pending_pragma &ppp : pragmas) {
+  for (const an_owned_pending_pragma &ppp : pragmas) {
     a_boolean	is_pragma_directive;
     a_boolean	new_seq = ppp->pragma_position.seq >= curr_seq;
     is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
@@ -28985,7 +28985,7 @@ Display a single cached token.
     fprintf(f_debug, "  special kind: %s\n", s);
   }  /* if */
   if (tok.is_pragma()) {
-    for (const a_shared_pending_pragma &ppp : *tok.get_pragma_list()) {
+    for (const an_owned_pending_pragma &ppp : *tok.get_pragma_list()) {
       fprintf(f_debug, "  Pragma: %s\n",
               pragma_ids[(int)ppp->descr_ptr->kind]);
     }  /* for */
