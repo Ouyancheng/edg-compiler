@@ -25,7 +25,7 @@ correctly handle the initialization of elements after the first one covered by
 the ck_init_repeat entry.  That is now fixed.
 
 
-1/26/26  [EDGcpfe/28471]
+2/23/26  [EDGcpfe/28471]
 Microsoft compatibility: __builtin_is_implicit_lifetime
 
 The new type trait intrinsic __builtin_is_implicit_lifetime is now also enabled
