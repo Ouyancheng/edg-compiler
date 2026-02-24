@@ -1214,11 +1214,13 @@ instead of looking through all of the active scope stack entries.
       /* Check the appropriate list of pending-pragma entries. */
       for (an_owned_pending_pragma &opp : scope_list_copy) {
         if (opp->descr_ptr() == pkdp) {
+          a_pending_pragma *raw_pp = opp.raw();
+
           /* It's the right kind remove it from the scope stack list. */
           new_list.push_back(move_from(&opp));
           /* If an IL pragma should be generated for it, do that now. */
           if (pkdp->automatically_include_in_il) {
-            create_il_entry_for_pragma(opp.raw(), sym, sp);
+            create_il_entry_for_pragma(raw_pp, sym, sp);
           }  /* if */
         } else {
           /* It's not the right kind: keep it on the scope stack list. */
