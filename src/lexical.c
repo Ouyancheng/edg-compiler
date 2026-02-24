@@ -23826,6 +23826,8 @@ original type or namespace that was specified.
     an_enum_symbol_supplement_ptr       essp;
     essp = symbol_supplement_for_enum(qualifier_type);
     qualifier_list = &essp->name_qualifiers;
+  } else if (qualifier_type != NULL) {
+    /* There is no qualifier list for this case. */
   } else if (qualifier_namespace != NULL) {
     a_namespace_symbol_supplement_ptr	nssp;
     nssp = symbol_supplement_for_namespace(qualifier_namespace);
@@ -23841,7 +23843,6 @@ original type or namespace that was specified.
           /* If there is no qualifier symbol (i.e., for some decltype cases),
              do the comparison based on the type. */
           check_assertion(is_type);
-          new_type = new_nqp->qualifier.class_type;
           if (identical_types(new_nqp->qualifier.class_type,
                               new_type)) {
             break;
