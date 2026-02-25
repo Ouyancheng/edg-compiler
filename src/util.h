@@ -40,6 +40,10 @@ extern char *alloc_general(sizeof_t size);
 extern void free_general(a_void_ptr ptr,
                          sizeof_t   size);
 
+/* Predeclare FE_allocator. */
+template<typename an_Elem>
+struct FE_allocator;
+
 NORETURN extern void insufficient_address_space();
 
 /* Conditionally close the "edg" namespace. */
@@ -676,6 +680,95 @@ accessible "next" pointer fields) contains a cycle.
 }  /* simple_list_has_cycle */
 
 
+template<typename a_List_elem, typename a_Predicate,
+         template<typename> class Deleter = FE_allocator>
+INLINE void delete_from_simple_list_if(a_List_elem          **head,
+                                       a_List_elem          **tail,
+                                       a_Predicate          predicate_fn,
+                                       Deleter<a_List_elem> deleter = {})
+/*
+Given a predicate function that accepts a value of an_Elem* type and returns a
+boolean, apply the predicate function to all elements (*head through *tail) and
+delete any elements where the function returns TRUE.
+*/
+{
+  a_List_elem *cursor = *head;
+
+  /* If this assertion fail, the given tail was not the real tail of the
+     list. */
+  check_assertion(*head == NULL || (*head)->prev == NULL);
+  *head = *tail = NULL;
+  while (cursor != NULL) {
+    if (predicate_fn(cursor)) {
+      /* Drop and delete the element from the rewritten list. */
+      a_List_elem *next_cursor = cursor->next;
+
+      deleter.delete_object(&cursor);
+      cursor = next_cursor;
+    } else {
+      /* Include the element in the rewritten list. */
+      if (*head == NULL) {
+        *head = cursor;
+        *tail = cursor;
+      } else {
+        (*tail)->next = cursor;
+        *tail = cursor;
+      }  /* if */
+      cursor = cursor->next;
+    }  /* if */
+  }  /* while */
+  if (*tail != NULL) {
+    (*tail)->next = NULL;
+  }  /* if */
+}  /* delete_from_simple_list_if */
+
+
+template<typename a_List_elem, typename a_Predicate,
+         template<typename> class Deleter = FE_allocator>
+INLINE void delete_from_double_list_if(a_List_elem          **head,
+                                       a_List_elem          **tail,
+                                       a_Predicate          predicate_fn,
+                                       Deleter<a_List_elem> deleter = {})
+/*
+Given a predicate function that accepts a value of an_Elem* type and returns a
+boolean, apply the predicate function to all elements (*head through *tail) and
+delete any elements where the function returns TRUE.
+*/
+{
+  a_List_elem *cursor = *head;
+
+  /* If this assertion fail, the given head was not the real head or the given
+     tail was not the real tail of the list. */
+  check_assertion((*head == NULL || (*head)->prev == NULL) &&
+                  (*tail == NULL || (*tail)->next == NULL));
+  *head = *tail = NULL;
+  while (cursor != NULL) {
+    if (predicate_fn(cursor)) {
+      /* Drop and delete the element from the rewritten list. */
+      a_List_elem *next_cursor = cursor->next;
+
+      deleter.delete_object(&cursor);
+      cursor = next_cursor;
+    } else {
+      /* Include the element in the rewritten list. */
+      if (*head == NULL) {
+        *head = cursor;
+        *tail = cursor;
+        (*head)->prev = NULL;
+      } else {
+        (*tail)->next = cursor;
+        cursor->prev = *tail;
+        *tail = cursor;
+      }  /* if */
+      cursor = cursor->next;
+    }  /* if */
+  }  /* while */
+  if (*tail != NULL) {
+    (*tail)->next = NULL;
+  }  /* if */
+}  /* delete_from_double_list_if */
+
+
 template<typename an_Object_type, typename an_Array>
 INLINE void copy_construct_element(an_Array             &dest_array,
                                    const an_Object_type &elem,
@@ -960,8 +1053,13 @@ struct Is_trivially_copyable_edg_impl<Allocation<a_Type>> :
 
 }  /* namespace detail */
 
+/* Forward declaration of delete_fe. */
+template<typename an_Object>
+INLINE void delete_fe(an_Object **p);
+
 /*
-A general allocator for front end memory.
+A general allocator for front end memory and deleter for front end allocated
+objects.
 */
 template<typename an_Elem>
 struct FE_allocator {
@@ -969,6 +1067,7 @@ struct FE_allocator {
   typedef Allocation<an_elem> an_allocation;
   typedef FE_allocator<an_elem> an_allocator;
   typedef FE_allocator<an_elem> a_deallocator;
+  /* Allocator concept. */
   INLINE static auto alloc(size_t n) -> an_allocation;
   INLINE static auto replace_alloc(an_allocation  a,
                                    size_t         new_capacity,
@@ -980,6 +1079,9 @@ struct FE_allocator {
                      -> an_allocation
     { return src_alloc; }
   INLINE static void dealloc(an_allocation allocation);
+  /* Deleter concept. */
+  INLINE static void delete_object(an_Elem **elem)
+    { delete_fe(elem); }
 };  /* FE_allocator */
 
 
@@ -2124,20 +2226,20 @@ Grow the capacity of the array by about half, unless the capacity is less than
 
 
 template<typename an_Object,
-         template<typename> class Deallocator = FE_allocator>
-struct Owning_ptr: private Deallocator<an_Object> {
+         template<typename> class Deleter = FE_allocator>
+struct Owning_ptr: private Deleter<an_Object> {
   /* A smart pointer managing an object it owns. */
   typedef an_Object an_object;
-  typedef Deallocator<an_Object> a_deallocator;
+  typedef Deleter<an_Object> a_deleter;
   INLINE Owning_ptr()
-    : a_deallocator(), ptr(NULL) {}
-  INLINE Owning_ptr(an_object *p, const a_deallocator &d = a_deallocator())
-    : a_deallocator(d), ptr(p) {}
-  INLINE Owning_ptr(a_nullptr, const a_deallocator &d = a_deallocator())
-    : a_deallocator(d), ptr(NULL) {}
+    : a_deleter(), ptr(NULL) {}
+  INLINE Owning_ptr(an_object *p, const a_deleter &d = a_deleter())
+    : a_deleter(d), ptr(p) {}
+  INLINE Owning_ptr(a_nullptr, const a_deleter &d = a_deleter())
+    : a_deleter(d), ptr(NULL) {}
   INLINE Owning_ptr(const Owning_ptr&) = delete;
   INLINE Owning_ptr(Owning_ptr&& src)
-    : a_deallocator(move_from(&src)), ptr(src.ptr) { src.ptr = NULL; }
+    : a_deleter(move_from(&src)), ptr(src.ptr) { src.ptr = NULL; }
   INLINE ~Owning_ptr();
   INLINE auto operator=(const Owning_ptr&) -> Owning_ptr& = delete;
   INLINE auto operator=(Owning_ptr&& src) -> Owning_ptr&;
@@ -2152,28 +2254,22 @@ struct Owning_ptr: private Deallocator<an_Object> {
     { return this->ptr; }
   INLINE auto release() -> an_object*;
 private:
-  typedef typename a_deallocator::an_allocation an_allocation;
   an_object	*ptr;	/* Pointer to the owned object. */
 };  /* Owning_ptr */
 
 
-template<typename an_Object, template<typename> class Deallocator>
-Owning_ptr<an_Object, Deallocator>::~Owning_ptr()
+template<typename an_Object, template<typename> class Deleter>
+Owning_ptr<an_Object, Deleter>::~Owning_ptr()
 /*
 Destroy and deallocate the pointed-to object, if any.
 */
 {
-  an_Object  *p = this->ptr;
-
-  if (p != NULL) {
-    destroy(p);
-    this->dealloc(an_allocation{p, sizeof(an_Object)});
-  }  /* if */
+  this->delete_object(&this->ptr);
 }  /* Owning_ptr::~Owning_ptr */
 
 
-template<typename an_Object, template<typename> class Deallocator>
-auto Owning_ptr<an_Object, Deallocator>::operator=(Owning_ptr &&src)
+template<typename an_Object, template<typename> class Deleter>
+auto Owning_ptr<an_Object, Deleter>::operator=(Owning_ptr &&src)
                                                 -> Owning_ptr&
 /*
 Move src to *this, then return *this.
@@ -2187,27 +2283,21 @@ Move src to *this, then return *this.
 }  /* Owning_ptr::operator= */
 
 
-template<typename an_Object, template<typename> class Deallocator>
-auto Owning_ptr<an_Object, Deallocator>::operator=(a_nullptr)
+template<typename an_Object, template<typename> class Deleter>
+auto Owning_ptr<an_Object, Deleter>::operator=(a_nullptr)
                                                 -> Owning_ptr&
 /*
 Destroy and deallocate the pointed-to object, if any.  Then, set the owning
 pointer to a null value.  Return *this.
 */
 {
-  an_Object  *p = this->ptr;
-
-  if (p != NULL) {
-    destroy(p);
-    this->dealloc(an_allocation{p, sizeof(an_Object)});
-    this->ptr = NULL;
-  }  /* if */
+  this->delete_object(&this->ptr);
   return *this;
 }  /* Owning_ptr::operator= */
 
 
-template<typename an_Object, template<typename> class Deallocator>
-auto Owning_ptr<an_Object, Deallocator>::release() -> an_object*
+template<typename an_Object, template<typename> class Deleter>
+auto Owning_ptr<an_Object, Deleter>::release() -> an_object*
 /*
 Release the owned pointer from management and return it.  The caller takes
 responsibility for memory management of the returned pointer.
@@ -2221,10 +2311,10 @@ responsibility for memory management of the returned pointer.
 
 
 template<typename an_Object,
-         template<typename> class Deallocator_A,
-         template<typename> class Deallocator_B>
-INLINE a_boolean operator==(const Owning_ptr<an_Object, Deallocator_A> &ptr_a,
-                            const Owning_ptr<an_Object, Deallocator_B> &ptr_b)
+         template<typename> class Deleter_A,
+         template<typename> class Deleter_B>
+INLINE a_boolean operator==(const Owning_ptr<an_Object, Deleter_A> &ptr_a,
+                            const Owning_ptr<an_Object, Deleter_B> &ptr_b)
 /*
 Return TRUE if the given pointer values are equal; otherwise, return FALSE.
 */
@@ -2234,10 +2324,10 @@ Return TRUE if the given pointer values are equal; otherwise, return FALSE.
 
 
 template<typename an_Object,
-         template<typename> class Deallocator_A,
-         template<typename> class Deallocator_B>
-INLINE a_boolean operator!=(const Owning_ptr<an_Object, Deallocator_A> &ptr_a,
-                            const Owning_ptr<an_Object, Deallocator_B> &ptr_b)
+         template<typename> class Deleter_A,
+         template<typename> class Deleter_B>
+INLINE a_boolean operator!=(const Owning_ptr<an_Object, Deleter_A> &ptr_a,
+                            const Owning_ptr<an_Object, Deleter_B> &ptr_b)
 /*
 Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
 */
@@ -2246,9 +2336,9 @@ Return TRUE if the given pointer values are not equal; otherwise, return FALSE.
 }  /* operator!= */
 
 
-template<typename an_Object, template<typename> class Deallocator>
-INLINE a_boolean operator==(a_nullptr                                ptr_a,
-                            const Owning_ptr<an_Object, Deallocator> &ptr_b)
+template<typename an_Object, template<typename> class Deleter>
+INLINE a_boolean operator==(a_nullptr                            ptr_a,
+                            const Owning_ptr<an_Object, Deleter> &ptr_b)
 /*
 Return TRUE if ptr_b is a null pointer; otherwise, return FALSE.
 */
@@ -2257,9 +2347,9 @@ Return TRUE if ptr_b is a null pointer; otherwise, return FALSE.
 }  /* operator== */
 
 
-template<typename an_Object, template<typename> class Deallocator>
-INLINE a_boolean operator!=(a_nullptr                                ptr_a,
-                            const Owning_ptr<an_Object, Deallocator> &ptr_b)
+template<typename an_Object, template<typename> class Deleter>
+INLINE a_boolean operator!=(a_nullptr                            ptr_a,
+                            const Owning_ptr<an_Object, Deleter> &ptr_b)
 /*
 Return TRUE if ptr_b is not a null pointer; otherwise, return FALSE.
 */
@@ -2268,9 +2358,9 @@ Return TRUE if ptr_b is not a null pointer; otherwise, return FALSE.
 }  /* operator!= */
 
 
-template<typename an_Object, template<typename> class Deallocator>
-INLINE a_boolean operator==(const Owning_ptr<an_Object, Deallocator> &ptr_a,
-                            a_nullptr                                ptr_b)
+template<typename an_Object, template<typename> class Deleter>
+INLINE a_boolean operator==(const Owning_ptr<an_Object, Deleter> &ptr_a,
+                            a_nullptr                            ptr_b)
 /*
 Return TRUE if ptr_a is a null pointer; otherwise, return FALSE.
 */
@@ -2279,9 +2369,9 @@ Return TRUE if ptr_a is a null pointer; otherwise, return FALSE.
 }  /* operator== */
 
 
-template<typename an_Object, template<typename> class Deallocator>
-INLINE a_boolean operator!=(const Owning_ptr<an_Object, Deallocator> &ptr_a,
-                            a_nullptr                                ptr_b)
+template<typename an_Object, template<typename> class Deleter>
+INLINE a_boolean operator!=(const Owning_ptr<an_Object, Deleter> &ptr_a,
+                            a_nullptr                            ptr_b)
 /*
 Return TRUE if ptr_a is not a null pointer; otherwise, return FALSE.
 */

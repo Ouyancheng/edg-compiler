@@ -110,25 +110,22 @@ extern a_template_arg_ptr alloc_template_arg(a_templ_arg_kind	kind);
 
 extern void free_template_arg_list(a_template_arg_ptr  tap);
 
-/*
-This is a deallocator type that frees template arguments back to the template
-argument list.  This deallocator is only valid for a_template_arg objects.
-*/
-template<typename>
-struct Template_arg_list_deallocator {
-};  /* Template_arg_list_deallocator */
 
 template<>
-struct Template_arg_list_deallocator<a_template_arg> {
-  typedef Allocation<a_template_arg> an_allocation;
-  typedef FE_allocator<a_template_arg> an_allocator;
-  typedef FE_allocator<a_template_arg> a_deallocator;
-  inline static void dealloc(an_allocation allocation)
-    { free_template_arg_list(allocation.start); }
-};  /* Template_arg_list_deallocator */
+INLINE void delete_fe(a_template_arg **tap)
+/*
+This is a specialization of delete_fe that frees template arguments back to the
+special template argument list recycling logic.
+*/
+{
+  if (*tap != NULL) {
+    free_template_arg_list(*tap);
+    *tap = NULL;
+  }  /* if */
+}  /* delete_fe */
 
-using an_owned_template_arg_list = Owning_ptr<a_template_arg,
-                                              Template_arg_list_deallocator>;
+
+using an_owned_template_arg_list = Owning_ptr<a_template_arg>;
                         /* The type used for a template argument list that
                            should be freed when no longer in used. */
 
