@@ -135,6 +135,10 @@ make the overall result dependent in the other senses.
   } else if (operand->symbol != NULL &&
              is_template_dependent_indefinite_function(operand)) {
     contains_template_param = TRUE;
+  } else if (is_braced_init_list_operand(operand)) {
+    an_arg_list_elem_ptr  alep = operand->variant.braced_init_list
+                                        ->variant.braced.list;
+    contains_template_param = arg_list_is_instantiation_dependent(alep);
   } else if (is_an_lvalue(operand) &&
              (con = value_of_constant_var_lvalue_operand(operand)) != NULL) {
     /* A const variable with a dependent initializer is considered
