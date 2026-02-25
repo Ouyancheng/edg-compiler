@@ -17840,7 +17840,7 @@ since these pragmas are automatically recorded in the IL, the tokens
 */
 {
   a_boolean         keywords_visible = FALSE;
-  a_pragma_kind     kind = ppp->descr_ptr()->kind;
+  a_pragma_kind     kind = ppp->descr_ptr->kind;
   a_symbol_locator  loc;
 
   switch (kind) {
@@ -17916,8 +17916,8 @@ mode.
   /* Record the balance of the current source line in the pragma text field
      of the pragma. */
   if (ppp != NULL) {
-    ppp->set_pragma_text(copy_string_to_region(file_scope_region_number,
-                                               start_of_curr_token));
+    ppp->pragma_text = copy_string_to_region(file_scope_region_number,
+                                             start_of_curr_token);
   }  /* if */
   /* Bypass the pragma identifier. */
   (void)get_token();

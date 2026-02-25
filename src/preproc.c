@@ -2801,14 +2801,14 @@ there.
   db_enter(4, "convert_pragma_to_string");
   /* Initialize the token string.  Use the pragma ID position as the start
      position associated with the token string. */
-  init_token_string(&ppp->id_position(), /*keep_spacing=*/FALSE,
+  init_token_string(&ppp->id_position, /*keep_spacing=*/FALSE,
                     /*suppress_identifier_wrapping=*/FALSE);
-  add_token_cache_to_string(ppp->token_cache().ptr());
+  add_token_cache_to_string(ppp->token_cache.ptr());
   /* Copy the string to IL memory. */
-  ppp->set_pragma_text(make_copy_of_token_string());
+  ppp->pragma_text = make_copy_of_token_string();
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("pragma_string")) {
-    fprintf(f_debug, "Saved pragma string: '%s'\n", ppp->pragma_text());
+    fprintf(f_debug, "Saved pragma string: '%s'\n", ppp->pragma_text);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -2924,12 +2924,12 @@ TRUE when the pragma being scanned is a function-style pragma (i.e., _Pragma
 or __pragma, but not #pragma).
 */
 {
-  an_owned_pending_pragma ppp = owning_ptr<a_pending_pragma>(pkdp);
+  a_shared_pending_pragma ppp(pkdp);
 
-  ppp->set_id_position(*id_pos);
-  ppp->set_pragma_position(*directive_pos);
-  ppp->set_microsoft_pragma_operator(is_microsoft_pragma_operator);
-  ppp->set_function_style_pragma(is_function_style_pragma);
+  ppp->id_position = *id_pos;
+  ppp->pragma_position = *directive_pos;
+  ppp->is_microsoft_pragma_operator = is_microsoft_pragma_operator;
+  ppp->is_function_style_pragma = is_function_style_pragma;
   if (pkdp->fetch_pp_tokens) {
     /* When fetching pp-tokens, convert the tokens to a string in
        such a way that no additional white space is added. */
@@ -2942,11 +2942,11 @@ or __pragma, but not #pragma).
          than having only the string representation. */
     } else {
       convert_pp_token_pragma_to_string(pkdp, is_microsoft_pragma_operator);
-      ppp->set_pragma_text(copy_string_to_region(file_scope_region_number,
-                                                 pp_dir_string_buffer));
+      ppp->pragma_text = copy_string_to_region(file_scope_region_number,
+                                               pp_dir_string_buffer);
 #if DEBUG
       if (db_flag_is_set("pragma_string")) {
-        fprintf(f_debug, "pp-token pragma string: '%s'\n", ppp->pragma_text());
+        fprintf(f_debug, "pp-token pragma string: '%s'\n", ppp->pragma_text);
       }  /* if */
 #endif /* DEBUG */
     }  /* if */
@@ -2966,19 +2966,19 @@ or __pragma, but not #pragma).
                           is_microsoft_pragma_operator);
     }
     /* Copy from the scan cache into a persistent cache. */
-    ppp->set_token_cache(shared_obj<a_token_cache>(*scanning_cache));
+    ppp->token_cache = shared_obj<a_token_cache>(*scanning_cache);
     if (pkdp->record_pragma_text) {
       /*  The character string representation is usually used for pragmas that
           are to be passed to the C or C++ generating back end, but may be
           used for other pragmas in which a character string is simpler to
           manipulate. */
-      convert_pragma_to_string(ppp.raw());
+      convert_pragma_to_string(ppp.ptr());
     }  /* if */
     /* Remove the initial token from the token cache.  For historical
        reasons, the cache does not include the pragma identifier, but
        it must be cached initially so that it can be included in the
        pragma string when making text, not tokens. */
-    ppp->token_cache()->remove_first_token();
+    ppp->token_cache->remove_first_token();
   }  /* if */
   if (pkdp->binding_kind == pbk_preproc_immediate) {
     /* Process a "preprocessing immediate" pragma.  Such pragmas are
@@ -2989,18 +2989,18 @@ or __pragma, but not #pragma).
     a_preproc_immediate_pragma_function_ptr pipfp;
     pipfp = (a_preproc_immediate_pragma_function_ptr)index_to_function_pointer(
                                               pkdp->processing_function_index);
-    if (pipfp != NULL) (*pipfp)(ppp.raw());
+    if (pipfp != NULL) (*pipfp)(ppp.ptr());
     if (pkdp->automatically_include_in_il) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       ppp->source_sequence_entry = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      add_pragma_to_il(ppp.raw(), (an_il_entry_kind)iek_none, (char*)NULL,
+      add_pragma_to_il(ppp.ptr(), (an_il_entry_kind)iek_none, (char*)NULL,
                        /*is_global=*/TRUE);
     }  /* if */
   } else {
     /* Add this pragma to the list of pragmas associated with the
        current token. */
-    add_to_curr_token_pragma_list(move_from(&ppp));
+    add_to_curr_token_pragma_list(ppp);
   }  /* if */
 }  /* enter_pending_pragma */
 
@@ -3488,8 +3488,8 @@ is issued if anything follows the string.
   }  /* if */
   if (!err) {
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
-    if (ppp->il_pragma_entry() != NULL) {
-      ppp->il_pragma_entry()->variant.ident_string = cp;
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.ident_string = cp;
     }  /* if */
   }  /* if */
 }  /* ident_directive */
@@ -3621,9 +3621,9 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
        This is only done if an IL entry is actually created.  An IL entry
        is not created if the pragma appears in an invalid location. */
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
-    if (ppp->il_pragma_entry() != NULL) {
-      ppp->il_pragma_entry()->variant.stdc.kind = kind;
-      ppp->il_pragma_entry()->variant.stdc.value = value;
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.stdc.kind = kind;
+      ppp->il_pragma_entry->variant.stdc.value = value;
     }  /* if */
     /* Update the state variable that indicates the current setting of this
        pragma. */
@@ -3641,7 +3641,7 @@ check_for_stdc_pragmas).  Pragmas that appear elsewhere result in diagnostics.
 */
 {
   pos_diagnostic(strict_ansi_error_severity,
-                 ec_stdc_pragma_not_allowed_here, &ppp->pragma_position());
+                 ec_stdc_pragma_not_allowed_here, &ppp->pragma_position);
 }  /* stdc_pragma */
 
 
@@ -3653,15 +3653,15 @@ If there are any current token pragmas that are C99 predefined pragmas
 {
   /* Process all stdc pragmas keeping only the non-stdc pragmas on the current
      token's pragma list. */
-  a_pending_pragma_list tmp_list(move_from(curr_token_pragmas));
+  a_pending_pragma_list tmp_list = *curr_token_pragmas;
 
-  *curr_token_pragmas = a_pending_pragma_list();
-  for (an_owned_pending_pragma &opp : tmp_list) {
-    if (opp->descr_ptr()->kind == pk_stdc) {
-      opp->mark_processed();
-      process_stdc_pragma(opp.raw());
+  curr_token_pragmas->clear();
+  for (const a_shared_pending_pragma &spp : tmp_list) {
+    if (spp->descr_ptr->kind == pk_stdc) {
+      spp->has_been_processed = TRUE;
+      process_stdc_pragma(spp.ptr());
     } else {
-      curr_token_pragmas->emplace_back(move_from(&opp));
+      curr_token_pragmas->push_back(spp);
     }  /* if */
   }  /* for */
 }  /* check_for_stdc_pragmas */
@@ -3715,8 +3715,8 @@ the construct is not correctly formed.
         (void)get_token();
         an_ELF_visibility_kind evk = visibility_from_curr_token();
         if (evk != evk_unspecified) {
-          ppp->gcc().kind = (a_gcc_pragma_kind)gcc_pk_visibility_push;
-          ppp->gcc().variant.visibility = evk;
+          ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_visibility_push;
+          ppp->variant.gcc.variant.visibility = evk;
           push_ELF_visibility(evk, /*namespace_attribute=*/FALSE);
           (void)get_token();
         } else {
@@ -3738,7 +3738,7 @@ the construct is not correctly formed.
       recognized = TRUE;
       pop_ELF_visibility(/*namespace_attribute=*/FALSE);
       (void)get_token();
-      ppp->gcc().kind = gcc_pk_visibility_pop;
+      ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_visibility_pop;
     }  /* if */
   }  /* if */
   if (warning_issued) {
@@ -3758,7 +3758,7 @@ Handle
    #pragma GCC system_header
 */
 {
-  ppp->gcc().kind = gcc_pk_system_header;
+  ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_system_header;
   check_assertion(curr_ise != NULL);
   if (!curr_ise->assoc_il_file->from_system_include_dir) {
     if (curr_ise->assoc_il_file->is_include_file) {
@@ -3824,17 +3824,17 @@ Handle
       is_normal_character_kind(const_for_curr_token.character_kind)) {
     a_const_char  *header_name = const_for_curr_token.variant.string.value;
     if (strcmp(header_name, "arm_acle.h") == 0) {
-      enter_arm_64_acle_predeclared_types(&ppp->pragma_position());
+      enter_arm_64_acle_predeclared_types(&ppp->pragma_position);
       load_overloadable_builtin_symbols(bfc_arm_64_acle);
     } else if (strcmp(header_name, "arm_neon.h") == 0) {
-      enter_arm_64_neon_predeclared_types(&ppp->pragma_position());
+      enter_arm_64_neon_predeclared_types(&ppp->pragma_position);
       load_overloadable_builtin_symbols(bfc_arm_64_neon);
     } else if (strcmp(header_name, "arm_neon_sve_bridge.h") == 0) {
       load_overloadable_builtin_symbols(bfc_arm_64_neon_sve_bridge);
     } else if (strcmp(header_name, "arm_sme.h") == 0) {
       load_overloadable_builtin_symbols(bfc_arm_64_sme);
     } else if (strcmp(header_name, "arm_sve.h") == 0) {
-      enter_arm_64_sve_predeclared_types(&ppp->pragma_position());
+      enter_arm_64_sve_predeclared_types(&ppp->pragma_position);
       load_overloadable_builtin_symbols(bfc_arm_64_sve);
     } else {
       pos_warning(ec_unrecognized_gcc_pragma, &error_position);
@@ -3861,7 +3861,7 @@ Handle
     if (strcmp(header_name, "arm_mve.h") == 0) {
       load_overloadable_builtin_symbols(bfc_arm_32_mve);
     } else if (strcmp(header_name, "arm_mve_types.h") == 0) {
-      enter_arm_32_mve_predeclared_types(&ppp->pragma_position());
+      enter_arm_32_mve_predeclared_types(&ppp->pragma_position);
     } else {
       pos_warning(ec_unrecognized_gcc_pragma, &error_position);
     }  /* if */
@@ -3892,7 +3892,7 @@ Handle
         is_normal_character_kind(const_for_curr_token.character_kind)) {
       a_const_char  *header_name = const_for_curr_token.variant.string.value;
       if (strcmp(header_name, "vector") == 0) {
-        enter_riscv_vector_predeclared_types(&ppp->pragma_position());
+        enter_riscv_vector_predeclared_types(&ppp->pragma_position);
         load_overloadable_builtin_symbols(bfc_riscv_vector);
         if (target_is_64_bits()) {
           load_overloadable_builtin_symbols(bfc_riscv_64_vector);
@@ -3995,7 +3995,7 @@ where "options" is a list of optionally-parenthesized strings.
   an_attribute_ptr      ap = NULL;
   an_attribute_arg_ptr  last_aap = NULL;
 
-  ppp->gcc().kind = gcc_pk_target;
+  ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_target;
   /* Skip the "target" identifier. */
   (void)get_token();
   if (innermost_function_scope != NULL) {
@@ -4120,7 +4120,7 @@ kind indicates which of the above is being processed.
 {
   a_gcc_pragma_options_entry_ptr  gpoep;
 
-  ppp->gcc().kind = gcc_pk_target;
+  ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_target;
   switch (kind) {
     case gcc_pk_push_options:
       /* Push a new stack entry. */
@@ -4212,11 +4212,11 @@ Process a "#pragma GCC ..." construct.
   wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
   /* Record an IL entry for the pragma. */
   create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
-  il_pragma_entry = ppp->il_pragma_entry();
+  il_pragma_entry = ppp->il_pragma_entry;
   if (recognized && il_pragma_entry != NULL) {
     /* Copy the GCC pragma description to the IL entry. */
     il_pragma_entry->ignore_in_back_end = ignore_in_back_end;
-    il_pragma_entry->variant.gcc = ppp->gcc();
+    il_pragma_entry->variant.gcc = ppp->variant.gcc;
   }  /* if */
 }  /* gcc_pragma */
 
@@ -4357,12 +4357,12 @@ assoc_statement should be NULL).
   }  /* if */
   if (unrecognized) {
       pos_diagnostic(strict_ansi_error_severity, ec_unrecognized_upc_pragma,
-                     &ppp->id_position());
+                     &ppp->id_position);
       err = TRUE;
   } else if (bad_context) {
       pos_diagnostic(strict_ansi_error_severity,
                      ec_pragma_may_not_be_used_here,
-                     &ppp->id_position());
+                     &ppp->id_position);
       err = TRUE;
   }  /* if */
   /* Bypass the value. */
@@ -4383,9 +4383,10 @@ assoc_statement should be NULL).
     }  /* if */
     /* Record the pragma in the IL. */
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
-    if (ppp->il_pragma_entry() != NULL) {
-      ppp->il_pragma_entry()->variant.upc.kind = upc_pk_access;
-      ppp->il_pragma_entry()->variant.upc.value.access_method = access;
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.upc.kind =
+                                              (a_upc_pragma_kind)upc_pk_access;
+      ppp->il_pragma_entry->variant.upc.value.access_method = access;
     }  /* if */
   } else if (stack_op !=
                   (a_upc_coherence_stack_operation)upc_coherence_stack_noop) {
@@ -4400,9 +4401,10 @@ assoc_statement should be NULL).
     }  /* if */
     /* Record the pragma in the IL. */
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
-    if (ppp->il_pragma_entry() != NULL) {
-      ppp->il_pragma_entry()->variant.upc.kind = upc_pk_coherence;
-      ppp->il_pragma_entry()->variant.upc.value.operation = stack_op;
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.upc.kind =
+                                           (a_upc_pragma_kind)upc_pk_coherence;
+      ppp->il_pragma_entry->variant.upc.value.operation = stack_op;
     }  /* if */
   }  /* if */
 }  /* process_upc_pragma */
@@ -4417,15 +4419,15 @@ pragma appears.
 {
   /* Process all upc pragmas keeping only the non-upc pragmas on the current
      token's pragma list. */
-  a_pending_pragma_list tmp_list(move_from(curr_token_pragmas));
+  a_pending_pragma_list tmp_list = *curr_token_pragmas;
 
-  *curr_token_pragmas = a_pending_pragma_list();
-  for (an_owned_pending_pragma &opp : tmp_list) {
-    if (opp->descr_ptr()->kind == pk_upc) {
-      opp->mark_processed();
-      process_upc_pragma(opp.raw(), sp);
+  curr_token_pragmas->clear();
+  for (const a_shared_pending_pragma &spp : tmp_list) {
+    if (spp->descr_ptr->kind == pk_upc) {
+      spp->has_been_processed = TRUE;
+      process_upc_pragma(spp.ptr(), sp);
     } else {
-      curr_token_pragmas->emplace_back(move_from(&opp));
+      curr_token_pragmas->push_back(spp);
     }  /* if */
   }  /* for */
 }  /* check_for_upc_pragmas */
@@ -4443,7 +4445,7 @@ is called directly by compound_statement.
   if (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_file) {
     process_upc_pragma(ppp, (a_statement_ptr)NULL);
   } else {
-    pos_warning(ec_pragma_may_not_be_used_here, &ppp->pragma_position());
+    pos_warning(ec_pragma_may_not_be_used_here, &ppp->pragma_position);
   }  /* if */
 }  /* upc_pragma */
 
@@ -4612,9 +4614,9 @@ executable file.
   wrapup_rescan_of_pragma_tokens(err);
   if (!err) {
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
-    if (ppp->il_pragma_entry() != NULL) {
-      ppp->il_pragma_entry()->variant.comment.kind = kind;
-      ppp->il_pragma_entry()->variant.comment.str = cp;
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.comment.kind = kind;
+      ppp->il_pragma_entry->variant.comment.str = cp;
     }  /* if */
   }  /* if */
 }  /* microsoft_comment_pragma */
@@ -4816,14 +4818,15 @@ end_of_parse:
     check_assertion(!on || !off);
     /* Create the IL entry. */
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
-    if (ppp->il_pragma_entry() != NULL) {
-      ppp->il_pragma_entry()->variant.conform.kind = mpck_forScope;
-      ppp->il_pragma_entry()->variant.conform.on = on;
-      ppp->il_pragma_entry()->variant.conform.off = off;
-      ppp->il_pragma_entry()->variant.conform.show = show;
-      ppp->il_pragma_entry()->variant.conform.push = push;
-      ppp->il_pragma_entry()->variant.conform.pop = pop;
-      ppp->il_pragma_entry()->variant.conform.identifier = id;
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.conform.kind =
+                                (a_microsoft_pragma_conform_kind)mpck_forScope;
+      ppp->il_pragma_entry->variant.conform.on = on;
+      ppp->il_pragma_entry->variant.conform.off = off;
+      ppp->il_pragma_entry->variant.conform.show = show;
+      ppp->il_pragma_entry->variant.conform.push = push;
+      ppp->il_pragma_entry->variant.conform.pop = pop;
+      ppp->il_pragma_entry->variant.conform.identifier = id;
     }  /* if */
     /* Apply the pragma. */
     if (C_mode()) {
@@ -4834,23 +4837,23 @@ end_of_parse:
       if (use_nonstandard_for_init_scope ||
           microsoft_type_dependent_for_init_scope) {
         pos_warning(ec_show_pragma_conform_forScope_is_nonstandard,
-                     &ppp->id_position());
+                     &ppp->id_position);
       } else {
         pos_warning(ec_show_pragma_conform_forScope_is_standard,
-                     &ppp->id_position());
+                     &ppp->id_position);
       }  /* if */
     } else {
       if (push) {
         push_forScope_stack_entry(id);
       } else if (pop) {
         if (forScope_stack == NULL) {
-          pos_warning(ec_forScope_stack_empty, &ppp->id_position());
+          pos_warning(ec_forScope_stack_empty, &ppp->id_position);
         } else {
           /* Determine the scope stack to pop. */
           a_forScope_stack_entry_ptr  fssep = find_forScope_stack_entry(id);
           if (fssep == NULL) {
             pos_st_warning(ec_no_matching_forScope_stack_entry,
-                           &ppp->id_position(), id);
+                           &ppp->id_position, id);
           } else {
             /* Restore the previously saved state. */
             use_nonstandard_for_init_scope =

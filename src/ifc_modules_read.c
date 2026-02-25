@@ -19465,11 +19465,11 @@ rules of position inference).
 {
   a_pragma_kind_description_ptr pkdp =
                                  pragma_description_for_pragma_kind[(int)kind];
-  an_owned_pending_pragma       opp = owning_ptr<a_pending_pragma>(pkdp);
+  a_shared_pending_pragma       spp = shared_obj<a_pending_pragma>(pkdp);
 
   pos = infer_next_source_position(cache, pos);
-  opp->set_id_position(*pos);
-  opp->set_pragma_position(*pos);
+  spp->id_position = *pos;
+  spp->pragma_position = *pos;
   /* Create a new token to hold the pragmas. */
   if (cache->is_empty() || !cache->get_last_token()->is_pragma()) {
     a_token_sequence_number seq_num =
@@ -19478,13 +19478,13 @@ rules of position inference).
     a_shared_token          new_tok = build_tok_pragma(seq_num, pos);
 
     /* Start the pragma list with the given pragma. */
-    new_tok->get_pragma_list()->emplace_back(move_from(&opp));
+    new_tok->get_pragma_list()->push_back(spp);
     cache->append_token(move_from(&new_tok));
   } else {
     a_shared_token new_tok = cache->get_last_token();
 
     /* Find the end of the pragma list and append the new pragma. */
-    new_tok->get_pragma_list()->emplace_back(move_from(&opp));
+    new_tok->get_pragma_list()->push_back(spp);
     /* Replace the token with the modified copy. */
     *cache->get_last_token_iter() = move_from(&new_tok);
   }  /* if */

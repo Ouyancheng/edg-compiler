@@ -8121,7 +8121,7 @@ upon when not in an instantiation (except for function-style pragmas such
 as _Pragma that are not parsed except during instantiations).
 */
 {
-  a_pragma_kind_description_ptr	pkdp = ppp->descr_ptr();
+  a_pragma_kind_description_ptr	pkdp = ppp->descr_ptr;
   a_pragma_kind			kind = pkdp->kind;
   a_boolean			error_in_pragma = FALSE;
   a_source_position		pos;

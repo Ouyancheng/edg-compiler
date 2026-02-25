@@ -33017,13 +33017,10 @@ parameter lists that were scanned.
       if (tssp != NULL) {
         if (tssp->pragmas_bound_to_template != NULL) {
           if (decl_state->pragmas_bound_to_template != NULL) {
-            tssp->pragmas_bound_to_template->reserve(
-                              tssp->pragmas_bound_to_template->length() +
+            tssp->pragmas_bound_to_template->insert(
+                              tssp->pragmas_bound_to_template->length(),
+                              decl_state->pragmas_bound_to_template->begin(),
                               decl_state->pragmas_bound_to_template->length());
-            for (an_owned_pending_pragma &opp :
-                                      *decl_state->pragmas_bound_to_template) {
-              tssp->pragmas_bound_to_template->emplace_back(move_from(&opp));
-            }  /* for */
             delete_fe(&decl_state->pragmas_bound_to_template);
           }  /* if */
         } else {
@@ -42148,7 +42145,7 @@ assumed if the return type is omitted.
      performed to ensure that no other instantiations are implicitly
      requested as a consequence of scanning the pragma. */
   instantiation_mode = tim_none;
-  pragma_kind = ppp->descr_ptr()->kind;
+  pragma_kind = ppp->descr_ptr->kind;
   if (pragma_kind == (a_pragma_kind)pk_can_instantiate) {
     if (saved_instantiation_mode == tim_all) {
       /* In tim_all mode the can_instantiate pragma is treated as an
