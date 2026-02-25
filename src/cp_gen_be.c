@@ -9493,9 +9493,10 @@ elaborated-type-specifier, even if it would be required in some contexts.
       /* Alias template specializations do not require a "typename"
          prefix unless they are members of dependent classes. */
     } else if (is_lexical_typeref(type) &&
-               !(in_prototype_instantiation_context &&
-                 skip_lexical_typerefs(type)->
-                                             source_corresp.is_class_member)) {
+               (suppress_typename_kwd ||
+                (!(in_prototype_instantiation_context &&
+                   skip_lexical_typerefs(type)->
+                                           source_corresp.is_class_member)))) {
       /* Alternative template argument lists and name qualifiers only
          require a "typename" keyword inside a template definition. */
     } else {

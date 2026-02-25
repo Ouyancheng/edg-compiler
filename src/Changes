@@ -1,5 +1,20 @@
 Version 6.9
 
+2/25/25  [EDGcpfe/28710]
+C++-generating back end: extraneous "template" keyword in base class list
+
+As a result of the changes for EDGcpfe/26294 in version 6.8, the
+C++-generating back end sometimes incorrectly added a "template" keyword in
+a dependent base class list.  This is now fixed.  For example, with --c++11:
+
+  template<typename U> struct C {
+    template<typename T> struct B { };
+    template<typename T>
+    struct D : C<U>::B<T>  // Previously generated as C<U>::template B<T>
+    { };
+  };
+
+
 2/24/26  [EDGcpfe/24532,EDGcpfe/25753,EDGcpfe/26858,EDGcpfe/28017,
           EDGcpfe/28664,EDGcpfe/28666]
 Operators with template-dependent but not type-dependent operands
