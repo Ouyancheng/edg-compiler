@@ -49353,8 +49353,8 @@ and can have the following forms (see [stmt.ranged] for specifics):
       /* We failed to resolve the auto (or "decltype(auto)") type of the
          iterator variable, so make it an error type (or an unknown dependent
          type). */
-      check_assertion(!passed);
-      rbflp->iterator->type = dependent_case ?
+      check_assertion(!passed || is_template_dependent_context());
+      rbflp->iterator->type = (dependent_case || passed) ?
                                 type_of_unknown_templ_param_nontype :
                                 error_type();
     }  /* if */

@@ -15192,6 +15192,10 @@ The operation is a unary operation if unary_operator is TRUE.
         /* Only used in template-dependent contexts. */
         op = (an_expr_operator_kind)eok_await;
         break;
+      case onk_arrow:
+        /* Only used in template-dependent contexts. */
+        op = (an_expr_operator_kind)eok_points_to_field;
+        break;
       default:
         unexpected_condition_str("bad unary opname kind");
     }  /* switch */

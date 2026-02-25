@@ -17819,6 +17819,8 @@ to operands of the given type.
   } else if (kind1 == (a_type_kind)tk_nullptr ||
              kind2 == (a_type_kind)tk_nullptr) {
     result = (a_type_kind)tk_nullptr;
+  } else if (is_template_dependent_context()) {
+    result = tk_template_param;
   } else {
     unexpected_condition();
   }  /* if */
