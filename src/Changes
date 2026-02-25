@@ -1,7 +1,7 @@
 Version 6.9
 
-2/24/26  [EDGcpfe/28666,EDGcpfe/24532,EDGcpfe/25753,EDGcpfe/26858,
-          EDGcpfe/28017,EDGcpfe/28664]
+2/24/26  [EDGcpfe/24532,EDGcpfe/25753,EDGcpfe/26858,EDGcpfe/28017,
+          EDGcpfe/28664,EDGcpfe/28666]
 Operators with template-dependent but not type-dependent operands
 
 The front end previously attempted to perform full semantic analysis on
