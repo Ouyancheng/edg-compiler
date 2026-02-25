@@ -252,7 +252,6 @@ processed by the front-end proper.
 typedef struct a_pending_pragma {
   a_pending_pragma(a_pragma_kind_description_ptr pkdp);
   INLINE a_pending_pragma(const a_pending_pragma &other) = default;
-  ~a_pending_pragma();
 
   a_pragma_kind_description_ptr
 		descr_ptr;

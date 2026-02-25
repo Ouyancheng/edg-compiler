@@ -1413,6 +1413,19 @@ to tail.
   }  /* for */
 }  /* remove_src_seq_list */
 
+
+void prune_src_seq_list(a_source_sequence_entry_ptr  *head,
+                        a_source_sequence_entry_ptr  *tail)
+/*
+Remove iek_none source sequence entries from the given linked list.
+*/
+{
+  auto is_useless_entry = [](a_source_sequence_entry_ptr entry) {
+    return entry->entity.kind == iek_none;
+  };
+  delete_from_double_list_if(head, tail, is_useless_entry);
+}  /* prune_src_seq_list */
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(

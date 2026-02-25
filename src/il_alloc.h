@@ -356,6 +356,24 @@ extern a_src_seq_sublist_ptr alloc_src_seq_sublist(void);
 
 extern an_instantiation_directive_ptr alloc_instantiation_directive(void);
 
+/* Defined in src_seq.c. */
+extern void recycle_src_seq_entry(a_source_sequence_entry_ptr  ssep);
+
+
+template<>
+INLINE void delete_fe(a_source_sequence_entry **elem_ptr)
+/*
+This is a specialization of delete_fe that frees a source sequence entry back
+to the special source sequence entry recycling logic.
+*/
+{
+  if (*elem_ptr != NULL) {
+    recycle_src_seq_entry(*elem_ptr);
+    *elem_ptr = NULL;
+  }  /* if */
+}  /* delete_fe */
+
+
 #if GENERATE_LINKAGE_SPEC_BLOCKS
 extern a_linkage_spec_block_ptr alloc_linkage_spec_block(void);
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */

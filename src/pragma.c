@@ -514,23 +514,6 @@ the copies associated with the token being processed.
 }  /* copy_fresh_pragmas_into */
 
 
-a_pending_pragma::~a_pending_pragma()
-/*
-Destroy the pending pragma.
-*/
-{
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* If this source sequence entry was never bound to another IL entry,
-     remove it from the source sequence list. */
-  if (this->source_sequence_entry != NULL &&
-      this->source_sequence_entry->entity.kind == iek_none) {
-    remove_from_src_seq_list(this->source_sequence_entry);
-    this->source_sequence_entry = NULL;
-  }  /* if */
-#endif /* if GENERATE_SOURCE_SEQUENCE_LISTS */
-}  /* a_pending_pragma::~a_pending_pragma */
-
-
 void add_to_curr_token_pragma_list(const a_shared_pending_pragma &spp)
 /*
 Add a pragma to the list of pragmas associated with the current token.

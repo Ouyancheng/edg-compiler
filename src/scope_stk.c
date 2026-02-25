@@ -9876,6 +9876,10 @@ being popped.
 #endif /* FIXED_POINT_ALLOWED */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Prune the list ahead of being moved onto the IL here or merging below
+     during pop_scope_stack_entry. */
+  prune_src_seq_list(&ssep->source_sequence_list,
+                     &ssep->end_of_source_sequence_list);
   if (ssep->kind == (a_scope_kind)sck_file ||
       ssep->kind == (a_scope_kind)sck_function) {
     if (il_scope != NULL && ssep->source_sequence_list != NULL) {
