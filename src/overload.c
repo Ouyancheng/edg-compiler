@@ -19664,6 +19664,11 @@ like sizeof(sizeof(T)) is instantiation-dependent but not type-dependent).
        interpretation of "template dependent". */
     result = operand_is_dependent(opnd1) ||
              (!unary_op && operand_is_dependent(opnd2));
+  } else if (opname_kind == onk_and_and || opname_kind == onk_or_or) {
+    /* Don't prevent short-circuiting if the second operand is instantiation-
+       dependent but not type-dependent. */
+    result = operand_is_instantiation_dependent(opnd1) ||
+             (!unary_op && operand_is_dependent(opnd2));
   } else {
     result = operand_is_instantiation_dependent(opnd1) ||
              (!unary_op && operand_is_instantiation_dependent(opnd2));
