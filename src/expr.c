@@ -32110,6 +32110,14 @@ NULL, return in *p_none_viable whether no viable spaceship operator was found.
       err_case = TRUE;
       goto done_with_builtin_spaceship;
     }  /* if */
+    if ((is_array_type(opnd1->type) && !is_pointer_type(opnd2->type)) ||
+        (is_array_type(opnd2->type) && !is_pointer_type(opnd1->type))) {
+      /* Array decay only happens if one of the two operands is a pointer. */
+      expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
+                         opnd1->type, opnd2->type);
+      err_case = TRUE;
+      goto done_with_builtin_spaceship;
+    }  /* if */
     do_operand_transformations(opnd1, TOPT_NO_OPTIONS);
     do_operand_transformations(opnd2, TOPT_NO_OPTIONS);
     if ((is_arithmetic_or_unscoped_enum_type(opnd1->type) &&
@@ -32119,8 +32127,8 @@ NULL, return in *p_none_viable whether no viable spaceship operator was found.
         (is_scoped_enum_type(opnd2->type) &&
          is_integral_type(opnd1->type))) {
       if (is_bool_type(opnd1->type) != is_bool_type(opnd2->type)) {
-        pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
-                      opnd1->type, opnd2->type);
+        expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
+                           opnd1->type, opnd2->type);
         err_case = TRUE;
         goto done_with_builtin_spaceship;
       } else {

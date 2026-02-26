@@ -1,5 +1,13 @@
 Version 6.9
 
+2/25/25  [EDGcpfe/23896,EDGcpfe/25187,EDGcpfe/25986]
+operator<=> and array types
+
+The front end previously performed implicit array-to-pointer conversion for any
+array operand of operator<=>.  Now, it only performs that conversion if the
+other operand is a pointer; otherwise, an error is issued.
+
+
 2/25/25  [EDGcpfe/28710]
 C++-generating back end: extraneous "template" keyword in base class list
 
