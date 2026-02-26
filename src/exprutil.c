@@ -9972,17 +9972,25 @@ is_qualified_name is TRUE if the source form used a qualified name.
        it in a tpck_template_ref constant that points to the constant for
        the template (from sym). */
     a_constant_ptr con = local_constant();
-    clear_constant(con, (a_constant_repr_kind)ck_template_param);
-    set_template_param_constant_kind(con,
-                            (a_template_param_constant_kind)tpck_template_ref);
-    check_assertion(unk_sym->kind == (a_symbol_kind)sk_constant &&
+    clear_constant(con, ck_template_param);
+    set_template_param_constant_kind(con, tpck_template_ref);
+    check_assertion(symbol_is(unk_sym, sk_constant) &&
                     in_file_scope(unk_sym->variant.constant));
+    /* Ensure any an_operand references are turned into a_constant entries. */
+    prep_generic_template_argument_list(template_arg_list);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    if (record_form_of_name_reference) {
+      /* This template argument list will be pointed to from a name reference
+         entry.  IL reading cannot deal with shared template argument lists,
+         so make a copy. */
+      template_arg_list = copy_template_arg_list(template_arg_list);
+    }  /* if */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     con->variant.template_param.variant.template_ref.con =
                                                      unk_sym->variant.constant;
     con->variant.template_param.variant.template_ref.arg_list =
                                                              template_arg_list;
     con->type = type_of_unknown_templ_param_nontype;
-    prep_generic_template_argument_list(template_arg_list);
     make_constant_operand(con, operand);
     release_local_constant(&con);
   }  /* if */

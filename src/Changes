@@ -1,5 +1,14 @@
 Version 6.9
 
+2/26/26  [EDGcpfe/28713]
+Abort in ptr_remap_function
+
+In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE and
+ALTERNATE_IL_FILE_FORMAT set to FALSE, the front end could abort in an internal
+error in ptr_remap_function ("address not in any mem block", in il_read.c).
+This regression, introduced in version 6.8 of the front end, is now fixed.
+
+
 2/25/26  [EDGcpfe/23896,EDGcpfe/25187,EDGcpfe/25986]
 operator<=> and array types
 
@@ -65,6 +74,7 @@ Microsoft compatibility: __builtin_is_implicit_lifetime
 
 The new type trait intrinsic __builtin_is_implicit_lifetime is now also enabled
 in Microsoft mode with microsoft_version >= 1951.
+
 
 
 2/19/26  [EDGcpfe/28682]
