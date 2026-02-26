@@ -29,6 +29,7 @@ struct Direct_allocator {
   typedef Allocation<an_elem> an_allocation;
   typedef Direct_allocator<an_elem> an_allocator;
   typedef Direct_allocator<an_elem> a_deallocator;
+  /* Allocator concept. */
   inline static auto alloc(size_t n) -> an_allocation;
   inline static auto replace_alloc(an_allocation  a,
                                    size_t         new_capacity,
@@ -39,6 +40,8 @@ struct Direct_allocator {
                          ARG_UNUSED size_t        n_to_move) -> an_allocation
     { return src_alloc; }
   inline static void dealloc(an_allocation allocation);
+  /* Deleter concept. */
+  inline static void delete_object(an_Elem **elem);
 };  /* Direct_allocator */
 
 
@@ -121,6 +124,17 @@ malloc.  The value of *p will be set to NULL.
     *p = NULL;
   }  /* if */
 }  /* delete_direct */
+
+
+template<typename an_Elem>
+void Direct_allocator<an_Elem>::delete_object(an_Elem **elem)
+/*
+Destroy and delete an object of type an_Object that was allocated directly via
+malloc.  The value of *p will be set to NULL.
+*/
+{
+  delete_direct(elem);
+}  /* Direct_allocator::delete_object */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
