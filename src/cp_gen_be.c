@@ -9427,6 +9427,31 @@ elaborated type specifier in the given scope.
   return result;
 }  /* elab_type_spec_needed_in_scope */
 
+
+static a_boolean qualified_name_required(a_type_ptr type)
+/*
+Return TRUE if the qualification_needed flag is TRUE for type or, if type is
+a template instance, for its associated template.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type->source_corresp.qualification_needed) {
+    result = TRUE;
+  } else if (is_immediate_class_type(type) &&
+             class_type_supp(type)->assoc_template != NULL &&
+             class_type_supp(type)->assoc_template->
+                                         source_corresp.qualification_needed) {
+    result = TRUE;
+  } else if (type_is(type, tk_typeref) &&
+             type->variant.typeref.extra_info->template_arg_list != NULL &&
+             type->variant.typeref.extra_info->assoc_template->
+                                         source_corresp.qualification_needed) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* qualified_name_required */
+
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 static void gen_type_reference(a_type_ptr type,
@@ -9656,9 +9681,11 @@ elaborated-type-specifier, even if it would be required in some contexts.
           a_gen_name_options_set noqual_options = options |
                                                   GN_NO_TEMPLATE_ARGS |
                                                   GN_TEMPLATE;
-          if (name_qual_suppressed) {
-            /* Since the original reference was qualified, force gen_name to
-               produce a qualified name. */
+          if (name_qual_suppressed || qualified_name_required(refp)) {
+            /* If the original reference was qualified or if a qualified
+               name is required because of hiding, force gen_name to
+               produce a qualified name.  (It would otherwise be suppressed
+               as a result of the GN_NO_TEMPLATE_ARGS option.) */
             noqual_options |= GN_FORCE_QUALIFIED_NAME;
           }  /* if */
           if (suppress_typename_kwd || typename_kwd_emitted) {
