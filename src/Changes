@@ -1,6 +1,6 @@
 Version 6.9
 
-2/25/25  [EDGcpfe/23896,EDGcpfe/25187,EDGcpfe/25986]
+2/25/26  [EDGcpfe/23896,EDGcpfe/25187,EDGcpfe/25986]
 operator<=> and array types
 
 The front end previously performed implicit array-to-pointer conversion for any
