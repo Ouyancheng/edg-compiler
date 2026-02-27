@@ -1,5 +1,16 @@
 Version 6.9
 
+2/27/36  [EDGcpfe/28529]
+GNU C++ compatibility: Narrowing conversions
+
+When resolving a constructor call with braced-initializer notation, the front
+end previously did not diagnose narrowing conversion as errors in GNU and Clang
+C++ modes (nor in Microsoft C++ mode, but that remains unchanged).  Now, this
+behavior is no longer enabled in Clang mode.  Furthermore, in GCC mode, it is
+limited to modes with gnu_version < 50000 if the narrowing happens in an
+unevaluated operand (e.g., in a decltype(...) or sizeof(...) construct).
+
+
 2/27/26  [EDGcpfe/28716]
 Missing skip_typerefs could lead to undefined behavior
 

@@ -15242,8 +15242,16 @@ specific function being called.
       check_assertion(is_expression_component(alep));
       if (alep->check_narrowing && param != NULL &&
           !pre_cpp11_list_init) {
-        a_boolean  treat_as_warning,
-                   error_on_narrowing = !(gpp_mode || microsoft_mode);
+        a_boolean  treat_as_warning, error_on_narrowing = TRUE;
+        if (microsoft_mode ||
+            (curr_expr_is_potentially_evaluated() ? gpp_version_is(any_version)
+                                                  : gpp_version_is(<50000))) {
+          /* MSVC doesn't treat narrowing as an error in this context.
+             GCC doesn't treat it as an error prior to GCC 5.x, and doesn't
+             treat it as an error in potentially evaluated contexts after
+             that (tested up to GCC 16). */
+          error_on_narrowing = FALSE;
+        }  /* if */
 retry_narrowing_diagnostic:
         (void)check_narrowing_conversion(operand_of_arg_list_elem(alep),
                                          param->type,
