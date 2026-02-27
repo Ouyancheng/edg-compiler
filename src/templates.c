@@ -41958,6 +41958,8 @@ instantiation.
                                    NO_NESTING_DEPTH,
                                    severity_if_not_found,
                                    &is_new_template_instance);
+      a_routine_type_supplement_ptr
+                      rtsp = rout_type_supp(skip_typerefs(dps->type));
       if (new_sym != NULL) {
         dps->sym = new_sym;
         if (new_sym->kind == sk_member_function) {
@@ -41980,8 +41982,6 @@ instantiation.
                would be done in the non-template case) to perform propagation
                here. */
             a_type_ptr      class_type = sym_parent_class(new_sym);
-            a_routine_type_supplement_ptr
-                            rtsp = rout_type_supp(dps->type);
 
             rtsp->this_class = class_type;
             rtsp->has_this_param = TRUE;
@@ -42019,7 +42019,7 @@ instantiation.
         /* If a throw specification was mentioned in the instantiation
            directive, check that it matches up with that of the instantiated
            routine. */
-        if (rout_type_supp(dps->type)->exception_specification != NULL) {
+        if (rtsp->exception_specification != NULL) {
           instantiate_exception_spec_if_needed(new_sym);
           (void)check_exception_specification(dps->type, new_sym,
                                               &func_info.throw_position,
@@ -42036,7 +42036,7 @@ instantiation.
                           (kind != (a_pragma_kind)pk_do_not_instantiate),
                           (a_boolean)new_sym->variant.routine.ptr->is_inline);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-        if (rout_type_supp(dps->type)->calling_convention != cc_default &&
+        if (rtsp->calling_convention != cc_default &&
             (symbol_is(sym, sk_function_template) ||
              (symbol_is(sym, sk_member_function) &&
               sym->variant.routine.instance_ptr != NULL))) {

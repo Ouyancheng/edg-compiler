@@ -1,5 +1,15 @@
 Version 6.9
 
+2/27/26  [EDGcpfe/28716]
+Missing skip_typerefs could lead to undefined behavior
+
+A missing skip_typerefs call could lead to undefined behavior, for example in
+the following case (with --c++11):
+
+  template <int> void f() {}
+  template decltype(f<0>) f<0>;
+
+
 2/27/26  [EDGcpfe/28717]
 Clang compatibility: Allow GNU-style standard attributes in "clang" namespace
 
