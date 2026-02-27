@@ -1,5 +1,15 @@
 Version 6.9
 
+2/27/26  [EDGcpfe/28717]
+Clang compatibility: Allow GNU-style standard attributes in "clang" namespace
+
+Beginning with version 21, Clang now allows non-standard GNU attributes with
+standard attribute syntax when using the "clang" attribute namespace.  The
+front end now supports this; for example, with --clang_version 210000:
+
+  using vfloat4 = float [[clang::ext_vector_type(4)]];
+
+
 2/26/26  [EDGcpfe/28713]
 Abort in ptr_remap_function
 

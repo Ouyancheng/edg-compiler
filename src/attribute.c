@@ -1382,6 +1382,16 @@ Check whether the given attribute is in the gnu attribute namespace.
 }  /* is_attr_in_gnu_namespace */
 
 
+static a_boolean is_attr_in_clang_namespace(an_attribute_ptr  ap)
+/*
+Check whether the given attribute is in the clang attribute namespace.
+*/
+{
+  return strcmp(ap->namespace_name, "clang") == 0 ||
+         strcmp(ap->namespace_name, "_Clang") == 0;
+}  /* is_attr_in_clang_namespace */
+
+
 static a_boolean attribute_namespace_satisfied(a_const_char      **cond,
                                                an_attribute_ptr  ap)
 /*
@@ -1410,8 +1420,7 @@ the attribute string past the closing "]" or "}".
       a_boolean name_match = FALSE;
       if (strncmp(ap->namespace_name, ptr, len) == 0) {
         name_match = TRUE;
-      } else if (strncmp(ap->namespace_name, "_Clang", 7) == 0 &&
-                 strncmp(ptr, "clang", 5) == 0) {
+      } else if (is_attr_in_clang_namespace(ap)) {
         /* As a special case, map "_Clang" to "clang". */
         name_match = TRUE;
         len = 5;
@@ -1431,7 +1440,11 @@ the attribute string past the closing "]" or "}".
       if (!(clang_mode && ap->family == af_has_attribute) && gnu_mode &&
           is_attr_in_gnu_namespace(ap)) {
         match = TRUE;
-        /* *cond doesn't need to be updated. */
+      } else if (clang_version_is(>=210000) && ap->family == af_std &&
+                 is_attr_in_clang_namespace(ap)) {
+        /* It appears that clang accepts GNU attributes with standard attribute
+           syntax when using the clang namespace starting with version 21. */
+        match = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1618,8 +1631,7 @@ there is an applicable one; otherwise, return NULL.
              family == af_std &&
              ap->namespace_name != NULL &&
              !ms_extensions &&
-             (strcmp(ap->namespace_name, "clang") == 0 ||
-              strcmp(ap->namespace_name, "_Clang") == 0)) {
+             is_attr_in_clang_namespace(ap)) {
     /* Clang also maps [[ clang::xyz(...) ]] to __attribute((xyz(...))). */
     family = af_gnu;
     ap->is_std_gcc_attribute = TRUE;
