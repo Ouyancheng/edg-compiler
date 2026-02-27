@@ -19095,12 +19095,18 @@ template declaration and is NULL otherwise.
         var->declared_storage_class = decl_state->declared_storage_class;
       }  /* if */
     } else if (!(srk_flags & (SRK_DEFINITION | SRK_INITIALIZATION))) {
-      an_sssd_flag_set  flags = SSSD_FIRST_DECLARATION;
+      a_source_sequence_entry  *ssep;
+      an_sssd_flag_set         flags = SSSD_FIRST_DECLARATION;
       if (decl_state->marked_as_gnu_extension) {
         flags |= SSSD_MARKED_AS_GNU_EXTENSION;
       }  /* if */
       (void)update_src_seq_secondary_decl((char *)var, declared_type, name_ref,
                                           flags, &decl_info->decl_pos_block);
+      ssep = var->source_corresp.source_sequence_entry;
+      if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+        ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->
+                   declared_storage_class = decl_state->declared_storage_class;
+      }  /* if */
     } else {
       var->declared_type = declared_type;
       var->declared_storage_class = decl_state->declared_storage_class;
