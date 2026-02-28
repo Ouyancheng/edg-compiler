@@ -1420,7 +1420,8 @@ the attribute string past the closing "]" or "}".
       a_boolean name_match = FALSE;
       if (strncmp(ap->namespace_name, ptr, len) == 0) {
         name_match = TRUE;
-      } else if (is_attr_in_clang_namespace(ap)) {
+      } else if (strncmp(ap->namespace_name, "_Clang", 7) == 0 &&
+                 strncmp(ptr, "clang", 5) == 0) {
         /* As a special case, map "_Clang" to "clang". */
         name_match = TRUE;
         len = 5;
