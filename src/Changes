@@ -1,6 +1,6 @@
 Version 6.9
 
-2/27/36  [EDGcpfe/28529]
+2/27/26  [EDGcpfe/28529]
 GNU C++ compatibility: Narrowing conversions
 
 When resolving a constructor call with braced-initializer notation, the front
