@@ -29143,6 +29143,9 @@ and *class_state->pe_loc.
       pdp->is_default_indexed = TRUE;
     }  /* if */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  dps->source_sequence_entry = add_empty_source_sequence_entry();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Record the position of the name of the property or event. */
   decl_info->decl_pos_block.identifier_range.start = pos_curr_token;
