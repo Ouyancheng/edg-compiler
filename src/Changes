@@ -1,5 +1,14 @@
 Version 6.9
 
+3/2/26   [EDGcpfe/28724]
+RISC-V: Additional builtins for the RVA23 profile
+
+The builtin signatures have been updated to include additional builtins for the
+RISC-V RVA23 profile.  Additionally, the builtin condition 'R' has been added
+to enable defining RISC-V-specific builtin functions in the user-defined
+builtin table.
+
+
 2/27/26  [EDGcpfe/28529]
 GNU C++ compatibility: Narrowing conversions
 
