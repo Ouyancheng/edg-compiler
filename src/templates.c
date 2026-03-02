@@ -33000,6 +33000,7 @@ parameter lists that were scanned.
     } else if (decl_state->is_generic) {
       check_for_use_of_pending_constraints(&dps->start_pos);
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     if (dps->source_sequence_entry != NULL &&
         dps->source_sequence_entry->entity.kind == iek_none) {
       /* This can occur when a CPPCLI property is parsed.  In such a situation,
@@ -33009,6 +33010,7 @@ parameter lists that were scanned.
          pointer, it is cleared here.*/
       dps->source_sequence_entry = NULL;
     }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Pop all of the template declaration scopes that were pushed earlier.
