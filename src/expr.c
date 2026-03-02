@@ -44206,7 +44206,8 @@ bad_start_of_primary:
            body follows. */
         if ((curr_token == tok_lbracket && std_attributes_enabled &&
              next_token() == tok_lbracket) ||
-            ((curr_token == tok_lparen || curr_token == tok_lbrace) &&
+            (((curr_token == tok_arrow && lambda_declarator_params_optional) ||
+              curr_token == tok_lparen || curr_token == tok_lbrace) &&
              in_lambda_header())) {
           break;
         } else {
