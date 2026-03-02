@@ -153,7 +153,7 @@ typedef struct a_builtin_user_descr {
                              - emulation ('L', 'g', or 'm') or
                                "standard" ('s')
                              - mode ('c', '+', or 'x')
-                             - arch ('A' or 'X') [optional]
+                             - arch ('A', 'R', or 'X') [optional]
                              - bits ('4' or '8') [optional]
                              - version (version range in parens) [optional]
                              - restrictions ['v', 'i', 'f', 'c'][optional]
@@ -175,10 +175,10 @@ typedef struct a_builtin_user_descr {
                            A mode of 'c' indicates C mode, '+' indicates
                            C++ mode, and 'x' indicates both C and C++ modes.
 
-                           An 'A' indicates the function applies only to
-                           architectures where target_is_arm_based is TRUE
-                           and an 'X' indicates the function applies only to
-                           architectures where target_is_x86_based is TRUE.
+                           An 'A', 'R', or 'X' indicates the function applies
+                           only to architectures where target_is_arm_based,
+                           target_is_riscv_based, or target_is_x86_based is
+                           TRUE, respectively.
 
                            A '4' indicates the function applies only to
                            architectures where target_is_64_bits is FALSE

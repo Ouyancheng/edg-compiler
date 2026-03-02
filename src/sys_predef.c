@@ -597,6 +597,9 @@ restrictions).
       if (*p == 'A') {
         result = result && target_is_arm_based();
         p++;
+      } else if (*p == 'R') {
+        result = result && target_is_riscv_based();
+        p++;
       } else if (*p == 'X') {
         result = result && target_is_x86_based();
         p++;
