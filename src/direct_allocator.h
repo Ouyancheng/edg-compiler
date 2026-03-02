@@ -129,7 +129,7 @@ malloc.  The value of *p will be set to NULL.
 template<typename an_Elem>
 void Direct_allocator<an_Elem>::delete_object(an_Elem **elem)
 /*
-Destroy and delete an object of type an_Object that was allocated directly via
+Destroy and delete an object of type an_Elem that was allocated directly via
 malloc.  The value of *p will be set to NULL.
 */
 {

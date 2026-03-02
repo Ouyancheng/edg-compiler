@@ -687,14 +687,14 @@ INLINE void delete_from_simple_list_if(a_List_elem          **head,
                                        a_Predicate          predicate_fn,
                                        Deleter<a_List_elem> deleter = {})
 /*
-Given a predicate function that accepts a value of an_Elem* type and returns a
-boolean, apply the predicate function to all elements (*head through *tail) and
-delete any elements where the function returns TRUE.
+Given a predicate function that accepts a value of a_List_elem* type and
+returns a boolean, apply the predicate function to all elements (*head through
+*tail) and delete any elements where the function returns TRUE.
 */
 {
   a_List_elem *cursor = *head;
 
-  /* If this assertion fail, the given tail was not the real tail of the
+  /* If this assertion fails, the given tail was not the real tail of the
      list. */
   check_assertion(*head == NULL || (*head)->prev == NULL);
   *head = *tail = NULL;
@@ -730,14 +730,14 @@ INLINE void delete_from_double_list_if(a_List_elem          **head,
                                        a_Predicate          predicate_fn,
                                        Deleter<a_List_elem> deleter = {})
 /*
-Given a predicate function that accepts a value of an_Elem* type and returns a
-boolean, apply the predicate function to all elements (*head through *tail) and
-delete any elements where the function returns TRUE.
+Given a predicate function that accepts a value of a_List_elem* type and
+returns a boolean, apply the predicate function to all elements (*head through
+*tail) and delete any elements where the function returns TRUE.
 */
 {
   a_List_elem *cursor = *head;
 
-  /* If this assertion fail, the given head was not the real head or the given
+  /* If this assertion fails, the given head was not the real head or the given
      tail was not the real tail of the list. */
   check_assertion((*head == NULL || (*head)->prev == NULL) &&
                   (*tail == NULL || (*tail)->next == NULL));
