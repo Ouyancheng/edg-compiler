@@ -6085,6 +6085,7 @@ be called to check and adjust the argument and routine types as needed.
     case bfk_elementwise_atan2:
     case bfk_elementwise_copysign:
     case bfk_elementwise_fmod:
+    case bfk_elementwise_ldexp:
     case bfk_elementwise_max:
     case bfk_elementwise_maximum:
     case bfk_elementwise_min:
@@ -6810,16 +6811,39 @@ resulting return type is determined for the routine.
          The return type is the same as the types of the argument(s). */
       return_type = arg_type;
       if (n_args >= 2) {
-        an_arg_list_elem_ptr  arg = args->next;
-        if (!convert_to_prvalue_and_check_for_identical_types(arg_type, arg)) {
-          if (n_args == 2) {
-            expr_pos_error(ec_both_arguments_must_have_same_type,
-                           init_component_pos(args));
-          } else {
-            expr_pos_error(ec_all_arguments_must_have_same_type,
-                           init_component_pos(arg));
+        if (rout->variant.builtin_function_kind == bfk_elementwise_ldexp) {
+          check_assertion(n_args == 2);
+          a_type_ptr arg2_type =
+                     skip_typerefs(operand_of_arg_list_elem(args->next)->type);
+          if (is_error_type(arg2_type) || is_error_type(arg2_type) ||
+              (is_template_dependent_context() &&
+               is_template_dependent_type(arg2_type))) {
+            /* Don't bother checking. */
+          } else if (!is_vector_type(arg_type) ||
+                     !is_vector_type(arg2_type) ||
+                     !is_integral_type(
+                                     arg2_type->variant.vector.element_type) ||
+                     num_vector_elements(arg_type) !=
+                                              num_vector_elements(arg2_type)) {
+            /* The type of the second argument must be an integer type with the
+               same "shape" as the first argument. */
+            expr_pos_error(ec_second_argument_wrong_shape,
+                           init_component_pos(args->next));
+            err = TRUE;
           }  /* if */
-          err = TRUE;
+        } else {
+          an_arg_list_elem_ptr  arg = args->next;
+          if (!convert_to_prvalue_and_check_for_identical_types(arg_type,
+                                                                arg)) {
+            if (n_args == 2) {
+              expr_pos_error(ec_both_arguments_must_have_same_type,
+                             init_component_pos(args));
+            } else {
+              expr_pos_error(ec_all_arguments_must_have_same_type,
+                             init_component_pos(arg));
+            }  /* if */
+            err = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (!err && n_args >= 3) {
@@ -6881,6 +6905,7 @@ resulting return type is determined for the routine.
           case bfk_elementwise_floor:
           case bfk_elementwise_fma:
           case bfk_elementwise_fmod:
+          case bfk_elementwise_ldexp:
           case bfk_elementwise_log:
           case bfk_elementwise_log10:
           case bfk_elementwise_log2:

@@ -3634,6 +3634,7 @@ ec_missing_typename;;"missing \"typename\" is nonstandard here"
 ec_abbreviated_deduction_guide;;"abbreviated function template syntax is nonstandard for deduction guides"
 ec_explicit_this_is_cpp23;;"explicit \"this\" parameters are a C++23 feature"
 ec_array_designator_for_deduced_context;;"array designators are not supported in template deduction contexts"
+ec_second_argument_wrong_shape;;"the second argument must be a vector of integer type with the same number of elements as the first"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
