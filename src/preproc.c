@@ -3891,7 +3891,9 @@ Handle
     if (curr_token == tok_string_literal &&
         is_normal_character_kind(const_for_curr_token.character_kind)) {
       a_const_char  *header_name = const_for_curr_token.variant.string.value;
-      if (strcmp(header_name, "vector") == 0) {
+      /* Treat "xtheadvector" as a synonym for the "vector" extension. */
+      if (strcmp(header_name, "vector") == 0 ||
+          strcmp(header_name, "xtheadvector") == 0) {
         enter_riscv_vector_predeclared_types(&ppp->pragma_position);
         load_overloadable_builtin_symbols(bfc_riscv_vector);
         if (target_is_64_bits()) {
