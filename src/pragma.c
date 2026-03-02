@@ -1174,7 +1174,7 @@ instead of looking through all of the active scope stack entries.
       /* Check the appropriate list of pending-pragma entries. */
       for (a_shared_pending_pragma &spp : scope_list_copy) {
         if (spp->descr_ptr == pkdp) {
-          /* It's the right kind remove it from the scope stack list. */
+          /* It's the right kind: remove it from the scope stack list. */
           new_list.push_back(spp);
           /* If an IL pragma should be generated for it, do that now. */
           if (pkdp->automatically_include_in_il) {
