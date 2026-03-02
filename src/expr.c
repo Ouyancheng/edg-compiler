@@ -7018,12 +7018,23 @@ builtins.  Some checking of arguments is performed.
           err = !is_integral_type(arg1_type) ||
                 !is_signed_integral_type(arg1_type);
           break;
-        case bfk_clzg:
-        case bfk_ctzg:
-        case bfk_popcountg:
         case bfk_parityg:
           err = !is_integral_type(arg1_type) ||
                 is_signed_integral_type(arg1_type);
+          break;
+        case bfk_clzg:
+        case bfk_ctzg:
+        case bfk_popcountg:
+          err = !is_integral_type(arg1_type) ||
+                is_signed_integral_type(arg1_type);
+          if (err && clang_mode &&
+              (is_bool_type(arg1_type) ||
+               (is_vector_type(arg1_type) &&
+                is_bool_type(skip_typerefs(arg1_type)->
+                                              variant.vector.element_type)))) {
+            /* Clang allows bool (or vectors of bool) type for the argument. */
+            err = FALSE;
+          }  /* if */
           break;
         default:
           unexpected_condition_str(

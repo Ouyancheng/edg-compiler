@@ -1,5 +1,12 @@
 Version 6.9
 
+3/2/26   [EDGcpfe/28722]
+Clang compatibility: builtin signatures
+
+In Clang mode, the __builtin_popcountg, __builtin_ctzg, and __builtin_clzg
+builtins now accept a bool or vector of bool argument.
+
+
 3/2/26   [EDGcpfe/28724]
 RISC-V: Additional builtins for the RVA23 profile
 
