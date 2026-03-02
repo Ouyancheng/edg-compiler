@@ -1,5 +1,18 @@
 Version 6.9
 
+3/2/26   [EDGcpfe/28721]
+Clang compatibility: __builtin_lt_synthesizes_from_spaceship, etc.
+
+In Clang C++ mode, with clang_version >= 220000, the front end now accepts the
+following type trait helpers:
+   __builtin_lt_synthesizes_from_spaceship(Type1, Type2)
+   __builtin_gt_synthesizes_from_spaceship(Type1, Type2)
+   __builtin_le_synthesizes_from_spaceship(Type1, Type2)
+   __builtin_ge_synthesizes_from_spaceship(Type1, Type2)
+which return whether, respectively, applying operator <, >, <=, or >= to
+operands of types Type1 and Type2 involves the use of an operator<=>.
+
+
 3/2/26   [EDGcpfe/28722]
 Clang compatibility: builtin signatures
 

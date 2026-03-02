@@ -15790,8 +15790,20 @@ previously-scanned construct of this kind.  Either way, return the result in
       case tok_builtin_is_virtual_base_of:
         bok = bok_builtin_is_virtual_base_of;
         break;
-      case tok_builtin_is_implicit_lifetime:
+      case tok_builtin_is_implicit_lifetime:  // FIXME: delete?
         bok = bok_builtin_is_implicit_lifetime;
+        break;
+      case tok_builtin_lt_synthesizes_from_spaceship:
+        bok = bok_builtin_lt_synthesizes_from_spaceship;
+        break;
+      case tok_builtin_gt_synthesizes_from_spaceship:
+        bok = bok_builtin_gt_synthesizes_from_spaceship;
+        break;
+      case tok_builtin_le_synthesizes_from_spaceship:
+        bok = bok_builtin_le_synthesizes_from_spaceship;
+        break;
+      case tok_builtin_ge_synthesizes_from_spaceship:
+        bok = bok_builtin_ge_synthesizes_from_spaceship;
         break;
       default:
         unexpected_condition();
@@ -34059,6 +34071,10 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_is_bitwise_cloneable:
     case tok_builtin_is_virtual_base_of:
     case tok_builtin_is_implicit_lifetime:
+    case tok_builtin_lt_synthesizes_from_spaceship:
+    case tok_builtin_gt_synthesizes_from_spaceship:
+    case tok_builtin_le_synthesizes_from_spaceship:
+    case tok_builtin_ge_synthesizes_from_spaceship:
       result = TRUE;
       break;
     default:
@@ -35955,6 +35971,64 @@ otherwise.
   return result_tp;
 }  /* conditional_result_type */
 
+
+a_boolean rel_op_synthesizes_from_spaceship(a_type          *tp1,
+                                            a_type          *tp2,
+                                            an_opname_kind  rel_op)
+/*
+Return TRUE if the given operator applied to operands of the given types
+(operands corresponding to std::declval<T>()) would invoke a spaceship
+operator.
+*/
+{
+  a_boolean   result = FALSE;
+  an_operand  opnd1, opnd2, result_opnd;
+
+  make_declval_opnd(&opnd1, tp1);
+  make_declval_opnd(&opnd2, tp2);
+  if (is_overloadable_type_operand(&opnd1) ||
+      is_overloadable_type_operand(&opnd2)) {
+    /* Look for C++ operator overloading cases. */
+    an_expr_stack_entry   expr_stack_entry, *saved_expr_stack;
+    a_candidate_function  rewritten_candidate;
+    a_boolean             processed = FALSE, none_viable = FALSE;
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack(ek_sizeof, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/TRUE);
+    expr_stack->suppress_diagnostics = TRUE;
+    expr_stack->suppress_constexpr_call_folding = TRUE;
+    clear_candidate_function(&rewritten_candidate);
+    f_check_for_operator_overloading(rel_op,
+                                     /*unary_operator=*/FALSE,
+                                     /*must_be_member_function=*/FALSE,
+                                     /*try_conversions=*/TRUE,
+                                     /*has_predef_meaning=*/FALSE,
+                                     &opnd1, &opnd2, &pos_curr_token,
+                                     curr_token_sequence_number,
+                                     (a_nondependent_call_depth)0,
+                                     (a_source_position*)NULL, &result_opnd,
+                                     &none_viable, &rewritten_candidate,
+                                     &processed);
+    if (processed && !none_viable && !expr_stack->any_suppressed_error) {
+      a_symbol_ptr  sym = rewritten_candidate.function_symbol;
+      if (sym != NULL) {
+        sym = fundamental_symbol_of(sym);
+        if (is_simple_function_or_template_symbol(sym)) {
+          a_routine  *rp = func_sym_routine(sym);
+          if (special_kind_is(rp, sfk_operator) &&
+              rp->variant.opname_kind == onk_spaceship) {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
+  }  /* if */
+  return result;
+}  /* rel_op_synthesizes_from_spaceship */
+
 #if ASSIGNMENT_TO_THIS_ALLOWED
 
 static a_boolean check_assignment_to_this_pointer(an_operand *operand)
@@ -37083,6 +37157,10 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_bitwise_cloneable:
     case tok_builtin_is_virtual_base_of:
     case tok_builtin_is_implicit_lifetime:
+    case tok_builtin_lt_synthesizes_from_spaceship:
+    case tok_builtin_gt_synthesizes_from_spaceship:
+    case tok_builtin_le_synthesizes_from_spaceship:
+    case tok_builtin_ge_synthesizes_from_spaceship:
     case tok_coroutine_yield:
     case tok_coroutine_await:
     case tok_lsplice:
@@ -43734,6 +43812,10 @@ handle_nullptr:
     case tok_is_layout_compatible:
     case tok_is_pointer_interconvertible_base_of:
     case tok_builtin_is_virtual_base_of:
+    case tok_builtin_lt_synthesizes_from_spaceship:
+    case tok_builtin_gt_synthesizes_from_spaceship:
+    case tok_builtin_le_synthesizes_from_spaceship:
+    case tok_builtin_ge_synthesizes_from_spaceship:
       /* Various binary type traits helper constructs: */
       scan_binary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);

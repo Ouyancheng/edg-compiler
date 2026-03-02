@@ -1576,6 +1576,16 @@ Install the keywords in the symbol table.
     }  /* if */
     if (clang_version_is(>= 180000)) {
       enter_keyword(tok_datasizeof, "__datasizeof");
+      if (clang_version_is(>= 220000)) {
+        enter_keyword(tok_builtin_lt_synthesizes_from_spaceship,
+                      "__builtin_lt_synthesizes_from_spaceship");
+        enter_keyword(tok_builtin_gt_synthesizes_from_spaceship,
+                      "__builtin_gt_synthesizes_from_spaceship");
+        enter_keyword(tok_builtin_le_synthesizes_from_spaceship,
+                      "__builtin_le_synthesizes_from_spaceship");
+        enter_keyword(tok_builtin_ge_synthesizes_from_spaceship,
+                      "__builtin_ge_synthesizes_from_spaceship");
+      }  /* if */
     }  /* if */
     if (coroutines_enabled) {
       enter_keyword((a_token_kind)tok_coroutine_yield, "co_yield");

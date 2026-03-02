@@ -10455,6 +10455,70 @@ a constant (though it may be an error constant in some __array_extent cases).
 }  /* fold_array_intrinsic */
 
 
+static void fold_synthesizes_from_spaceship(an_expr_node_ptr   expr,
+                                            a_constant_ptr     constant,
+                                            a_boolean          maintain_expr)
+/*
+expr is an enk_builtin_operation node for one of the following Clang 22
+intrinsics:
+    __builtin_lt_synthesized_from_spaceship
+    __builtin_gt_synthesized_from_spaceship
+    __builtin_le_synthesized_from_spaceship
+    __builtin_ge_synthesized_from_spaceship
+Store a boolean constant in *constant whose value is "true" if the indicated
+operator ("<" for "lt", ">" for "gt", "<=" for "le", or ">=" for "ge") applied
+to the operand types would involve a spaceship operator.  If either of the
+operand types is dependent, store a ck_template_param constant in *constant.
+The constant will be of the tpck_expression variant and will point to the
+given expression.  If maintain_expr is TRUE, the backing expression for the
+returned constant will be set as well.
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  a_type_ptr        type1, type2;
+
+  /* eok_parens shouldn't appear here, since types cannot be parenthesized. */
+  check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
+                  arg1->kind == enk_type_operand &&
+                  arg2->kind == enk_type_operand);
+  type1 = arg1->variant.type_operand.type;
+  type2 = arg2->variant.type_operand.type;
+  if (is_template_dependent_type(type1) ||
+      is_template_dependent_type(type2)) {
+    clear_constant(constant, ck_template_param);
+    set_template_param_constant_kind(constant, tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    an_opname_kind  rel_op;
+    switch (expr->variant.builtin_operation.kind) {
+      case bok_builtin_lt_synthesizes_from_spaceship:
+        rel_op = onk_lt;
+        break;
+      case bok_builtin_gt_synthesizes_from_spaceship:
+        rel_op = onk_gt;
+        break;
+      case bok_builtin_le_synthesizes_from_spaceship:
+        rel_op = onk_le;
+        break;
+      case bok_builtin_ge_synthesizes_from_spaceship:
+        rel_op = onk_ge;
+        break;
+      default_is_unexpected();
+    }  /* switch */
+    arg1->type_definition_needed = TRUE;
+    arg2->type_definition_needed = TRUE;
+    clear_constant(constant, ck_integer);
+    set_integer_value(&constant->variant.integer_value,
+                      (a_host_large_integer)rel_op_synthesizes_from_spaceship(
+                                                       type1, type2, rel_op));
+    if (maintain_expr) constant->expr = expr;
+
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_synthesizes_from_spaceship */
+
+
 void fold_builtin_operation_if_possible(
                               an_expr_node_ptr             expr,
                               a_constant_ptr               constant,
@@ -10671,6 +10735,12 @@ constant is set as well.
            traits (because their return is size_t instead of boolean and
            __array_extent takes a second argument). */
         fold_array_intrinsic(expr, constant, maintain_expression);
+        break;
+      case bok_builtin_lt_synthesizes_from_spaceship:
+      case bok_builtin_gt_synthesizes_from_spaceship:
+      case bok_builtin_le_synthesizes_from_spaceship:
+      case bok_builtin_ge_synthesizes_from_spaceship:
+        fold_synthesizes_from_spaceship(expr, constant, maintain_expression);
         break;
       default:
         unexpected_condition();

@@ -1093,6 +1093,10 @@ a_type_ptr conditional_result_type(a_type     *tp2,
                                    a_type     *tp3,
                                    a_boolean  add_const_ref);
 
+extern a_boolean rel_op_synthesizes_from_spaceship(a_type          *tp1,
+                                                   a_type          *tp2,
+                                                   an_opname_kind  rel_op);
+
 extern an_init_component_ptr cache_expression(bool  immediate_context);
 
 typedef struct an_initializer_cache *an_initializer_cache_ptr;

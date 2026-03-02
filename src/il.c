@@ -10217,9 +10217,9 @@ Its integer kind is as given by kind.  Note that the kind is not restricted
 to be a signed kind.
 */
 {
-  clear_constant(cp, (a_constant_repr_kind)ck_integer);
+  clear_constant(cp, ck_integer);
   cp->type = integer_type(kind);
-  set_integer_value(&cp->variant.integer_value, (a_host_large_integer)value);
+  set_integer_value(&cp->variant.integer_value, value);
 }  /* set_integer_constant */
 
 
@@ -10232,10 +10232,9 @@ Its integer kind is as given by kind.  Note that the kind is not restricted
 to be an unsigned kind.
 */
 {
-  clear_constant(cp, (a_constant_repr_kind)ck_integer);
+  clear_constant(cp, ck_integer);
   cp->type = integer_type(kind);
-  set_unsigned_integer_value(&cp->variant.integer_value,
-                             (a_host_large_unsigned)value);
+  set_unsigned_integer_value(&cp->variant.integer_value, value);
 }  /* set_unsigned_integer_constant */
 
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
