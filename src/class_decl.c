@@ -29144,7 +29144,19 @@ and *class_state->pe_loc.
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  dps->source_sequence_entry = add_empty_source_sequence_entry();
+  { Value_saver<a_scope_depth> saved_scope_depth(&depth_scope_stack);
+
+    /* If the property is in a template declaration context, temporarily move
+       the scope stack depth pointer used for the source sequence entry.  The
+       property's source sequence entry needs to be on the class scope's list
+       not the template scope's list. */
+    if (scope_stack[depth_scope_stack].kind == sck_template_declaration) {
+      --depth_scope_stack;
+    }  /* if */
+    check_assertion(scope_stack[depth_scope_stack].kind !=
+                    sck_template_declaration);
+    dps->source_sequence_entry = add_empty_source_sequence_entry();
+  }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Record the position of the name of the property or event. */
