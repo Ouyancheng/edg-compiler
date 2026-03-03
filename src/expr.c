@@ -6819,6 +6819,7 @@ resulting return type is determined for the routine.
               (is_template_dependent_context() &&
                is_template_dependent_type(arg2_type))) {
             /* Don't bother checking. */
+#if GNU_VECTOR_TYPES_ALLOWED
           } else if (!is_vector_type(arg_type) ||
                      !is_vector_type(arg2_type) ||
                      !is_integral_type(
@@ -6830,6 +6831,7 @@ resulting return type is determined for the routine.
             expr_pos_error(ec_second_argument_wrong_shape,
                            init_component_pos(args->next));
             err = TRUE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           }  /* if */
         } else {
           an_arg_list_elem_ptr  arg = args->next;
