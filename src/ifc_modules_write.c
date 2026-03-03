@@ -4413,6 +4413,10 @@ a_token_kind for more information about IFC token serialization.
     case tok_builtin_is_pointer_interconvertible_with_class:
     case tok_builtin_is_virtual_base_of:
     case tok_builtin_is_implicit_lifetime:
+    case tok_builtin_lt_synthesizes_from_spaceship:
+    case tok_builtin_gt_synthesizes_from_spaceship:
+    case tok_builtin_le_synthesizes_from_spaceship:
+    case tok_builtin_ge_synthesizes_from_spaceship:
     case tok_builtin_offsetof:
 #if GNU_VECTOR_TYPES_ALLOWED
     case tok_builtin_shuffle:

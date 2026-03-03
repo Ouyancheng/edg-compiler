@@ -10504,7 +10504,8 @@ returned constant will be set as well.
       case bok_builtin_ge_synthesizes_from_spaceship:
         rel_op = onk_ge;
         break;
-      default_is_unexpected();
+      default:
+        unexpected_condition();
     }  /* switch */
     arg1->type_definition_needed = TRUE;
     arg2->type_definition_needed = TRUE;
