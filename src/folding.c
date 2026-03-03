@@ -10513,7 +10513,6 @@ returned constant will be set as well.
                       (a_host_large_integer)rel_op_synthesizes_from_spaceship(
                                                        type1, type2, rel_op));
     if (maintain_expr) constant->expr = expr;
-
   }  /* if */
   constant->type = expr->type;
 }  /* fold_synthesizes_from_spaceship */
