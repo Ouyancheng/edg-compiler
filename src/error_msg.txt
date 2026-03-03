@@ -3635,6 +3635,10 @@ ec_abbreviated_deduction_guide;;"abbreviated function template syntax is nonstan
 ec_explicit_this_is_cpp23;;"explicit \"this\" parameters are a C++23 feature"
 ec_array_designator_for_deduced_context;;"array designators are not supported in template deduction contexts"
 ec_second_argument_wrong_shape;;"the second argument must be a vector of integer type with the same number of elements as the first"
+ec_vector_of_boolean_required;;"argument must be a vector of boolean types"
+ec_pointer_to_scalar_required;;"argument must be a pointer to a scalar type"
+ec_incorrect_masked_type;;"incorrect argument type (should be %t)"
+ec_vector_type_with_size_is_required;;"a vector type (with the same number of elements as the first argument) is required"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

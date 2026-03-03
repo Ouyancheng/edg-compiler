@@ -5739,6 +5739,7 @@ static a_builtin_call_adjustment_callback
 		adjust_elementwise_or_reduce_builtin,
 		adjust_type_generic_builtin,
 		adjust_return_type_to_type_of_first_argument,
+                adjust_masked_builtin,
 		adjust_srcloc_builtin;
 
 /*
@@ -6144,6 +6145,17 @@ be called to check and adjust the argument and routine types as needed.
       bcap->is_invoke = TRUE;
       bcap->callback = nullptr;
       break;
+   case bfk_masked_expand_load:
+   case bfk_masked_load:
+     bcap->n_args = 2;
+     bcap->replace_routine_type = TRUE;
+     bcap->callback = adjust_masked_builtin;
+     break;
+   case bfk_masked_gather:
+     bcap->n_args = 3;
+     bcap->replace_routine_type = TRUE;
+     bcap->callback = adjust_masked_builtin;
+     break;
     default:
       /* No special processing is needed for most builtins. */
       requires_processing = FALSE;
@@ -7172,6 +7184,158 @@ whose return type is the same as the type of the first argument.
   }  /* if */
   return rout;
 }  /* adjust_return_type_to_type_of_first_argument */
+
+
+static a_routine_ptr adjust_masked_builtin(
+                             an_operand                *target,
+                             an_arg_list_elem_ptr      args,
+                             a_source_position         *closing_paren_position,
+                             a_builtin_call_adjustment *bcap,
+                             an_expr_node_ptr          *arg_list)
+/*
+Perform special processing for some "masked" builtins whose return type
+is dependent on the argument types.  Note that only "masked" builtins whose
+return type is dependent are handled here (the others use the default
+void(...) signature so no argument checking is done).
+*/
+{
+  a_routine_ptr rout = routine_from_function_operand(target);
+#if GNU_VECTOR_TYPES_ALLOWED
+  an_operand    *op1;
+
+  *arg_list = NULL;
+  check_assertion(rout != NULL &&
+                  (bcap->n_args == 2 || bcap->n_args == 3));
+  if (args == NULL || args->next == NULL) {
+    /* Must have at least two arguments. */
+    expr_pos_error(ec_too_few_arguments,init_component_pos(args));
+    goto done;
+  } else if (args->next->next != NULL) {
+    if (bcap->n_args == 3 ||
+        rout->variant.builtin_function_kind == bfk_masked_load) {
+      /* __builtin_masked_load can have an optional third argument. */
+      if (args->next->next->next != NULL) {
+        expr_pos_error(ec_too_many_arguments,
+                       init_component_pos(args->next->next->next));
+        goto done;
+      }  /* if */
+    } else {
+      expr_pos_error(ec_too_many_arguments,
+                     init_component_pos(args->next->next));
+      goto done;
+    }  /* if */
+  }  /* if */
+  {
+    a_type_ptr    arg1_type, arg2_type, arg3_type = NULL;
+    check_arg_list_elem_is_expression(args);
+    op1 = operand_of_arg_list_elem(args);
+    if (is_a_glvalue(op1)) {
+      /* A prvalue is needed. */
+      conv_glvalue_to_prvalue(op1);
+    }  /* if */
+    arg1_type = skip_typerefs(op1->type);
+    if (is_error_type(arg1_type) || is_template_dependent_type(arg1_type)) {
+      goto done;
+    }  /* if */
+    if (!is_vector_type(arg1_type) ||
+        !is_bool_type(arg1_type->variant.vector.element_type)) {
+      expr_pos_error(ec_vector_of_boolean_required, init_component_pos(args));
+      goto done;
+    }  /* if */
+    a_type_ptr return_type, underlying_element;
+    an_operand *op2 = operand_of_arg_list_elem(args->next);
+    if (is_a_glvalue(op2)) {
+      /* A prvalue is needed. */
+      conv_glvalue_to_prvalue(op2);
+    }  /* if */
+    arg2_type = skip_typerefs(op2->type);
+    if (is_error_type(arg2_type) || is_template_dependent_type(arg2_type)) {
+      goto done;
+    }  /* if */
+    if (rout->variant.builtin_function_kind == bfk_masked_gather) {
+      /* A vector (of the same shape as the first argument) is required. */
+      if (!is_vector_type(arg2_type) ||
+          num_vector_elements(arg1_type) != num_vector_elements(arg2_type)) {
+        expr_pos_error(ec_vector_type_with_size_is_required,
+                       init_component_pos(args->next));
+        goto done;
+      }  /* if */
+      underlying_element = arg2_type->variant.vector.element_type;
+    } else {
+      /* A pointer to a scalar type is required for the second argument. */
+      if (!is_pointer_type(arg2_type) ||
+          !is_scalar_type(type_pointed_to(arg2_type))) {
+        expr_pos_error(ec_pointer_to_scalar_required,
+                       init_component_pos(args->next));
+        goto done;
+      }  /* if */
+      underlying_element = type_pointed_to(arg2_type);
+    }  /* if */
+    /* The return type is a vector with the same shape as the first argument,
+       but with an underlying type that depends on the second argument. */
+    return_type = make_vector_type(underlying_element,
+                                   num_vector_elements(arg1_type),
+                                   arg1_type->variant.vector.kind);
+    if (args->next->next != NULL) {
+      an_operand *op3 = operand_of_arg_list_elem(args->next->next);
+      if (is_a_glvalue(op3)) {
+        /* A prvalue is needed. */
+        conv_glvalue_to_prvalue(op3);
+      }  /* if */
+      arg3_type = skip_typerefs(op3->type);
+      if (is_error_type(arg3_type) || is_template_dependent_type(arg3_type)) {
+        goto done;
+      }  /* if */
+      if (rout->variant.builtin_function_kind == bfk_masked_gather) {
+        /* The third argument should be a pointer to the appropriate scalar
+           type. */
+        if (!is_pointer_type(arg3_type) ||
+            !identical_types(type_pointed_to(arg3_type),
+                            arg2_type->variant.vector.element_type)) {
+          expr_pos_error(ec_pointer_to_scalar_required,
+                         init_component_pos(args->next->next));
+          goto done;
+        }  /* if */
+      } else {
+        /* The type of the third argument should match the return type. */
+        if (!identical_types(return_type, arg3_type)) {
+          expr_pos_ty_error(ec_incorrect_masked_type,
+                            init_component_pos(args->next->next),
+                            return_type);
+          goto done;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    a_type_ptr rout_type = make_routine_type(return_type, arg1_type,
+                                             arg2_type, arg3_type,
+                                             (a_type_ptr)NULL,
+                                             (a_type_ptr)NULL,
+                                             (a_type_ptr)NULL);
+    /* Create a routine with the desired type. */
+    a_symbol_ptr sym = builtin_with_particular_type(rout, rout_type);
+    rout = sym->variant.routine.ptr;
+    /* Update the operand: */
+    an_operand orig_operand = *target;
+    make_function_designator_operand(sym, target->is_qualified_name,
+                                     /*compiler_generated=*/FALSE,
+                                     &orig_operand.position,
+                                     end_position_of_operand(&orig_operand),
+                                     target->ref_entries_list, target);
+    if (!is_error_operand(target)) {
+      check_assertion(is_expression_operand(target) &&
+                      is_routine_node(target->variant.expression));
+      conv_function_designator_to_ptr_to_function(target,
+                                                  (a_source_position *)NULL,
+                                                  /*allow_ctor=*/FALSE,
+                                                  /*will_call=*/TRUE);
+    }  /* if */
+    /* Convert the argument. */
+    *arg_list = make_node_from_operand_for_expr_list(op1);
+  }
+done:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  return rout;
+}  /* adjust_masked_builtin */
 
 
 static a_routine_ptr adjust_srcloc_builtin(
