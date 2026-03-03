@@ -7054,6 +7054,7 @@ builtins.  Some checking of arguments is performed.
         case bfk_popcountg:
           err = !is_integral_type(arg1_type) ||
                 is_signed_integral_type(arg1_type);
+#if GNU_VECTOR_TYPES_ALLOWED
           if (err && clang_mode &&
               (is_bool_type(arg1_type) ||
                (is_vector_type(arg1_type) &&
@@ -7062,6 +7063,7 @@ builtins.  Some checking of arguments is performed.
             /* Clang allows bool (or vectors of bool) type for the argument. */
             err = FALSE;
           }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           break;
         default:
           unexpected_condition_str(
