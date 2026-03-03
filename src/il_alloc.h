@@ -348,6 +348,8 @@ extern a_static_assertion_ptr alloc_static_assertion(void);
 
 extern a_source_sequence_entry_ptr alloc_source_sequence_entry(void);
 
+extern void recycle_src_seq_entry(a_source_sequence_entry_ptr  ssep);
+
 extern a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void);
 
 extern a_src_seq_end_of_construct_ptr alloc_src_seq_end_of_construct(void);
@@ -355,9 +357,6 @@ extern a_src_seq_end_of_construct_ptr alloc_src_seq_end_of_construct(void);
 extern a_src_seq_sublist_ptr alloc_src_seq_sublist(void);
 
 extern an_instantiation_directive_ptr alloc_instantiation_directive(void);
-
-/* Defined in src_seq.c. */
-extern void recycle_src_seq_entry(a_source_sequence_entry_ptr  ssep);
 
 
 template<>

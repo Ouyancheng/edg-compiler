@@ -4796,6 +4796,9 @@ to it.
     ssep = *avail_list_ptr;
     trace_alloc_check(ssep);
     *avail_list_ptr = ssep->next;
+    /* If this assertion fails this source sequence entry was used after it was
+       "freed" via recycle_src_seq_entry.  This needs to be corrected. */
+    check_assertion(ssep->entity.kind == iek_none && ssep->entity.ptr == NULL);
   } else {
     ssep = alloc_cil_of_type(a_source_sequence_entry);
   }  /* if */
@@ -4806,6 +4809,31 @@ to it.
 
   return ssep;
 }  /* alloc_source_sequence_entry */
+
+
+void recycle_src_seq_entry(a_source_sequence_entry_ptr  ssep)
+/*
+Return the given source sequence entry to the appropriate available list.
+*/
+{
+  a_source_sequence_entry_ptr  *avail_list_ptr;
+
+#if CHECKING
+  /* Clear the entity information so that alloc_source_sequence_entry
+     can catch some instances of use "after free." */
+  clear_tagged_ptr(ssep->entity);
+#endif /* CHECKING */
+  if (in_file_scope(ssep)) {
+    avail_list_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE].
+                                                   source_sequence_avail_list;
+  } else {
+    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
+    avail_list_ptr = &scope_stack[depth_innermost_function_scope].
+                                                   source_sequence_avail_list;
+  }  /* if */
+  ssep->next = *avail_list_ptr;
+  *avail_list_ptr = ssep;
+}  /* recycle_src_seq_entry */
 
 
 a_src_seq_secondary_decl_ptr alloc_src_seq_secondary_decl(void)

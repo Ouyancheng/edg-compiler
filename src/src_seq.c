@@ -1260,26 +1260,6 @@ end; otherwise, insert it immediately before insert_before.
 }  /* insert_src_seq_list */
 
 
-void recycle_src_seq_entry(a_source_sequence_entry_ptr  ssep)
-/*
-Return the given source sequence entry to the appropriate available list.
-*/
-{
-  a_source_sequence_entry_ptr  *avail_list_ptr;
-
-  if (in_file_scope(ssep)) {
-    avail_list_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE].
-                                                   source_sequence_avail_list;
-  } else {
-    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH); 
-    avail_list_ptr = &scope_stack[depth_innermost_function_scope].
-                                                   source_sequence_avail_list;
-  }  /* if */
-  ssep->next = *avail_list_ptr;
-  *avail_list_ptr = ssep;
-}  /* recycle_src_seq_entry */
-
-
 void f_remove_from_src_seq_list(a_source_sequence_entry_ptr  ssep,
                                 a_scope_depth                depth)
 /*
