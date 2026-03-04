@@ -1,5 +1,17 @@
 Version 6.9
 
+3/4/26   [EDGcpfe/28581]
+reStructuredText output from mk_errinfo
+
+In addition to LaTeX and Maker Markup Language (Adobe FrameMaker) formats,
+mk_errinfo now also supports reStructuredText (see
+https://docutils.sourceforge.io/rst.html) when creating a human-readable
+summary description of the front end's diagnostic messages
+for inclusion in the front end documentation.  For example,
+
+  mk_errinfo -rst error_msg.txt error_tag.txt err_msgs.rst
+
+
 -------------------------------------------------------------------------------
 Version 6.8, November 21, 2025
 
