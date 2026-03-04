@@ -1,5 +1,22 @@
 Version 6.9
 
+3/4/26   [EDGcpfe/28702]
+Performance degradation due to long name qualifier lists
+
+In certain cases involving alias templates in namespace scope, the front end
+may create long lists of name qualifiers for namespace symbols, which can lead
+to significant performance degradation.  For example:
+
+  namespace ns {
+    template<typename T> struct C { using type = C; };
+    template<typename T> using B = typename C<T>::type;
+    template<typename T> using A = typename ns::B<T>::type;
+  }
+
+Here, any use of the alias template "ns::A" will add an entry to the name
+qualifier list of namespace "ns".
+
+
 3/4/26   [EDGcpfe/28695]
 Trailing return type in C++23 lambda without a parameter declaration clause
 
