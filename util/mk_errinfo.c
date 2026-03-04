@@ -24,7 +24,7 @@ Usage:
 
     - mk_errinfo -d error_msg.txt error_tag.txt err_msgs.tex
 
-	Generates an err_msgs.tex file that can be used with the Latex
+	Generates an err_msgs.tex file that can be used with the LaTeX
 	internal documentation.
 
     - mk_errinfo -mml error_msg.txt error_tag.txt err_msgs.mml
@@ -32,6 +32,12 @@ Usage:
 	Generates an err_msgs.mml file in FrameMaker MML (maker markup
 	language) that can be used to create a FrameMaker document containing
 	the error messages.
+
+    - mk_errinfo -rst error_msg.txt error_tag.txt err_msgs.rst
+
+	Generates an err_msgs.rst file in reStructuredText format that can
+	be processed by, e.g., Sphinx, to create a document containing the
+	error messages.
 */
 
 #include "basics.h"
@@ -177,7 +183,8 @@ static void me_command_line_error(void)
           "mk_errinfo [-cch] message_input_file_name tag_input_file_name",
           "codes_output_file data_output_file");
   fprintf(stderr, "  %s \\\n\t\t%s\n",
-          "mk_errinfo {-d|-mml} message_input_file_name tag_input_file_name",
+          "mk_errinfo {-d|-mml|-rst} message_input_file_name "
+            "tag_input_file_name",
           "documentation_output_file");
   me_error("command line error", (char *)NULL);
 }  /* me_command_line_error */
@@ -543,7 +550,7 @@ void me_output_latex_doc_string(a_const_char *string,
 /*
 Output characters that are part of the error text.  Make sure that
 certain characters are put in the right font, when needed.
-If the length specified is zero, the string is null terminated and strlen
+If the length specified is zero, the string is null-terminated and strlen
 should be used to determine the length.
 */
 {
@@ -592,48 +599,121 @@ should be used to determine the length.
   }  /* if */
 }  /* me_output_latex_doc_string */
 
+#define RST_BUFFER_SIZE 80
+#define RST_WRAP_COLUMN 77
+#define RST_CONTINUATION_INDENT 7
+
+static void put_rst_str(a_const_char *str,
+                        int          len,
+                        bool         font_setting)
+/*
+Add the specified string of the specified length to the pending text
+buffer, word-wrapping at RST_WRAP_COLUMN characters.  A newline puts out
+the buffer immediately and resets it to zero length.  If font_setting is
+true, a space character in str should not be considered a location at which
+word wrapping can occur and '*' and "__" should not be escaped..
+*/
+{
+  static char buffer[80];
+  static int  buf_pos = 0;
+  static int  last_blank = 0;
+
+  for (int i = 0; i < len; ++i) {
+    char ch = str[i];
+    if (ch == '\n') {
+      /* Put out the buffer and reset the position to zero. */
+      buffer[buf_pos] = '\0';
+      fprintf(doc_output_file, "%s\n", buffer);
+      buf_pos = 0;
+      last_blank = 0;
+    } else {
+      if ((ch == '*' || (ch == '_' && str[i + 1] == '_')) &&
+          buf_pos > RST_CONTINUATION_INDENT && !font_setting &&
+          curr_font != fk_tt) {
+        /* An '*' or "__" that is not part of a font setting, literal text,
+           or an rst control (i.e., appearing in the left margin area) must
+           be escaped.  We do it here to allow the extra character position
+           to be considered in the word-wrapping calculation. */
+        buffer[buf_pos++] = '\\';
+      }  /* if */
+      if (buf_pos >= RST_WRAP_COLUMN) {
+        /* Word wrap the buffer, put it out, and reset the buffer with the
+           appropriate indentation for a continuation line. */
+        if (last_blank == 0) {
+          /* We have a long unbroken string of non-blank characters.  This
+             presumably shouldn't happen, but if it does, we just break at
+             the current position. */
+          last_blank = buf_pos;
+        }  /* if */
+        buffer[last_blank] = '\0';
+        fprintf(doc_output_file, "%s\n", buffer);
+        if (last_blank < buf_pos) {
+          /* Copy the text following the last blank to the beginning of the
+             continuation line, following the indentation. */
+          int leftover_len = buf_pos - last_blank - 1;
+          memcpy(buffer + RST_CONTINUATION_INDENT, buffer + last_blank + 1,
+                 leftover_len);
+          buf_pos = RST_CONTINUATION_INDENT + leftover_len;
+        } else {
+          buf_pos = RST_CONTINUATION_INDENT;
+        }  /* if */
+        memset(buffer, ' ', RST_CONTINUATION_INDENT);
+        if (ch != ' ' || buf_pos > RST_CONTINUATION_INDENT) {
+          /* Avoid adding an extra space following the indentation. */
+          buffer[buf_pos++] = ch;
+        }  /* if */
+        last_blank = 0;
+      } else {
+        buffer[buf_pos] = ch;
+        if (ch == ' ' && buf_pos > RST_CONTINUATION_INDENT && !font_setting) {
+          last_blank = buf_pos;
+        }  /* if */
+        ++buf_pos;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* put_rst_str */
 
 static
 void me_output_rst_doc_string(a_const_char *string,
                               int          length,
                               a_font_kind  font)
 /*
-Output characters that are part of the error text.  Make sure that
-certain characters are put in the right font, when needed.
-If the length specified is zero, the string is null terminated and strlen
-should be used to determine the length.
+Output characters that are part of the error text.  Make sure that certain
+characters are put in the right font, when needed.  If the length specified
+is zero, the string is null-terminated and strlen should be used to
+determine the length.
 */
 {
-  int	i;
+  int	       i;
+  a_const_char *font_str;
 
   if (curr_font != font) {
-    a_const_char *rst_marker_str;
     /* We need to switch fonts.  Terminate the previous font. */
     switch (curr_font) {
-      case fk_normal: rst_marker_str = ""; break;
-      case fk_tt: rst_marker_str = "`` "; break;
-      case fk_em: rst_marker_str = "* "; break;
-      case fk_none: rst_marker_str = ""; break;
+      case fk_normal: font_str = "";      break;
+      case fk_tt:     font_str = "``\\ "; break;
+      case fk_em:     font_str = "*\\ ";  break;
+      case fk_none:   font_str = "";      break;
       default: me_internal_error("unexpected font");
     }  /* switch */
-    fprintf(doc_output_file, "%s", rst_marker_str);
+    put_rst_str(font_str, 0, /*font_setting=*/true);
     /* Begin the new font. */
     switch (font) {
-      case fk_normal: rst_marker_str = ""; break;
-      case fk_tt: rst_marker_str = "``"; break;
-      case fk_em: rst_marker_str = "*"; break;
-      case fk_none: rst_marker_str = ""; break;
+      case fk_normal: font_str = "";   break;
+      case fk_tt:     font_str = "``"; break;
+      case fk_em:     font_str = "*";  break;
+      case fk_none:   font_str = "";   break;
       default: me_internal_error("unexpected font");
     }  /* switch */
-    fprintf(doc_output_file, "%s", rst_marker_str);
+    put_rst_str(font_str, 0, /*font_setting=*/true);
     curr_font = font;
   }  /* if */
-  if (length == 0) length = (int)strlen(string);
+  if (length == 0) {
+    length = (int)strlen(string);
+  }  /* if */
   for (i = 0; i < length; ++i) {
-    char	ch = string[i];
-
-    /* Just a normal character. */
-    putc(ch, doc_output_file);
+    put_rst_str(string + i, 1, /*font_setting=*/false);
   }  /* if */
 }  /* me_output_rst_doc_string */
 
@@ -641,23 +721,26 @@ should be used to determine the length.
 static void me_write_rst_item_header(int          number,
                                      a_const_char *tag)
 /*
-Write the header information for a given error message to the latex
-documentation file.
+Write the header information for a given error message to the
+reStructuredText documentation file.
 */
 {
   a_const_char *ptr;
+  char         buffer[8];
 
   /* Write the item command containing the number. */
-  fprintf(doc_output_file, "   * - ``%04d``\n", number);
+  me_output_rst_doc_string(" * - ", 0, fk_normal);
+  sprintf(buffer, "%04d", number);
+  me_output_rst_doc_string(buffer, 4, fk_tt);
   /* Write the content cell. */
-  fprintf(doc_output_file, "     - | ``");
+  me_output_rst_doc_string("\n   - | ", 0, fk_normal);
   /* Write the tag name. */
   ptr = tag;
   while (*ptr != '\0') {
-    putc(*ptr, doc_output_file);
+    me_output_rst_doc_string(ptr, 1, fk_tt);
     ptr++;
   }  /* while */
-  fprintf(doc_output_file, "``:\n       | ");
+  me_output_rst_doc_string(":\n     | ", 0, fk_normal);
 }  /* me_write_rst_item_header */
 
 
@@ -668,7 +751,7 @@ void me_output_mml_doc_string(a_const_char *string,
 /*
 Output characters that are part of the error text.  Make sure that
 certain characters are put in the right font, when needed.
-If the length specified is zero, the string is null terminated and strlen
+If the length specified is zero, the string is null-terminated and strlen
 should be used to determine the length.
 */
 {
@@ -919,7 +1002,7 @@ static a_write_item_header_routine
 static void me_write_latex_item_header(int          number,
 		                       a_const_char *tag)
 /*
-Write the header information for a given error message to the latex
+Write the header information for a given error message to the LaTeX
 documentation file.
 */
 {
@@ -1006,9 +1089,8 @@ Generate a TeX file that documents the error messages
         /* Exit the loop when we find an unescaped quote. */
         if (ch == '"') break;
         if (ch == '\\') ptr++;
-        ch = *ptr;
         /* Just a normal character. */
-        output_doc_string(&ch, 1, fk_normal);
+        output_doc_string(ptr, 1, fk_normal);
         ptr++;
       }  /* if */
     }  /* for */
@@ -1025,13 +1107,13 @@ int main(int argc, char *argv[])
 
   if (argc < 5) me_command_line_error();
   if (strcmp(argv[argpos], "-d") == 0) {
-    /* We should generate a latex documentation output file. */
+    /* We should generate a LaTeX documentation output file. */
     doc_mode = TRUE;
     output_doc_string = me_output_latex_doc_string;
     write_item_header = me_write_latex_item_header;
     argpos++;
   } else if (strcmp(argv[argpos], "-rst") == 0) {
-    /* We should generate a RST documentation output file. */
+    /* We should generate a reStructuredText documentation output file. */
     doc_mode = TRUE;
     rst_doc = TRUE;
     output_doc_string = me_output_rst_doc_string;
