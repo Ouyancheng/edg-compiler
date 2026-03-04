@@ -7206,9 +7206,13 @@ void(...) signature so no argument checking is done).
   *arg_list = NULL;
   check_assertion(rout != NULL &&
                   (bcap->n_args == 2 || bcap->n_args == 3));
-  if (args == NULL || args->next == NULL) {
+  if (args == NULL) {
     /* Must have at least two arguments. */
-    expr_pos_error(ec_too_few_arguments,init_component_pos(args));
+    expr_pos_error(ec_too_few_arguments, closing_paren_position);
+    goto done;
+  } else if (args->next == NULL) {
+    /* Must have at least two arguments. */
+    expr_pos_error(ec_too_few_arguments, closing_paren_position);
     goto done;
   } else if (args->next->next != NULL) {
     if (bcap->n_args == 3 ||
