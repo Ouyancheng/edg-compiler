@@ -2149,35 +2149,31 @@ of GNU statement expressions in the expression).
     ssep->last_scope->next = NULL;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  { a_source_sequence_entry_ptr  ss_list, ss_ptr, ss_list_end;
-    ss_ptr = expr_stack->last_source_seq_entry_preceding_expr;
+  { a_source_sequence_entry_ptr  ss_ptr =
+                              expr_stack->last_source_seq_entry_preceding_expr;
+
     if (ss_ptr != NULL && ss_ptr->next != NULL) {
-      ss_list_end = ssep->end_of_source_sequence_list;
-      ss_list = ss_ptr->next;
-      ssep->end_of_source_sequence_list = ss_ptr;
-      if (ssep->end_of_source_sequence_list == NULL) {
-        ssep->source_sequence_list = NULL;
-      } else {
-        ssep->end_of_source_sequence_list->next = NULL;
-      }  /* if */
+      a_source_sequence_entry_ptr ss_list = ss_ptr->next;
+
       /* Traverse the dropped source sequence entries and ensure that no entry
          representing a type declaration points back to the dropped entry. */
       for (ss_ptr = ss_list; ss_ptr != NULL; ss_ptr = ss_ptr->next) {
-        if (ss_entry_kind(ss_ptr) ==
-                               (an_il_entry_kind)iek_src_seq_secondary_decl) {
-          a_src_seq_secondary_decl_ptr  sssdp;
-          sssdp = ss_entry_ptr(ss_ptr, a_src_seq_secondary_decl_ptr);
-          if (sssdp->entity.kind == iek_type &&
-              ((a_type_ptr)(sssdp->entity.ptr))
-                           ->source_corresp.source_sequence_entry == ss_ptr) {
-            ((a_type_ptr)(sssdp->entity.ptr))
-                                ->source_corresp.source_sequence_entry = NULL;
+        if (ss_entry_kind(ss_ptr) == iek_src_seq_secondary_decl) {
+          a_src_seq_secondary_decl_ptr  sssdp =
+                            ss_entry_ptr(ss_ptr, a_src_seq_secondary_decl_ptr);
+
+          if (sssdp->entity.kind == iek_type) {
+            a_type_ptr entity = (a_type_ptr)(sssdp->entity.ptr);
+
+            if (entity->source_corresp.source_sequence_entry == ss_ptr) {
+              entity->source_corresp.source_sequence_entry = NULL;
+            }  /* if */
           }  /* if */
         }  /* if */
+        /* Clear the entity so that pruning during scope pop drops the element
+           from the list. */
+        clear_tagged_ptr(ss_ptr->entity);
       }  /* for */
-      /* Place the list on the available entries list. */
-      ss_list_end->next = ssep->source_sequence_avail_list;
-      ssep->source_sequence_avail_list = ss_list;
     }  /* if */
   }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
