@@ -596,12 +596,13 @@ should be used to determine the length.
       putc(ch, doc_output_file);
     }  /* if */
     if (curr_font == fk_em) any_em_chars = TRUE;
-  }  /* if */
+  }  /* for */
 }  /* me_output_latex_doc_string */
 
 
 #define RST_BUFFER_SIZE 80
 #define RST_WRAP_COLUMN 77
+static_assert(RST_WRAP_COLUMN < RST_BUFFER_SIZE);
 #define RST_CONTINUATION_INDENT 7
 
 static void put_rst_str(a_const_char *str,
@@ -615,7 +616,7 @@ true, a space character in str should not be considered a location at which
 word wrapping can occur and '*' should not be escaped.
 */
 {
-  static char buffer[80];
+  static char buffer[RST_BUFFER_SIZE];
   static int  buf_pos = 0;
   static int  last_blank = 0;
 
@@ -716,7 +717,7 @@ determine the length.
   }  /* if */
   for (i = 0; i < length; ++i) {
     put_rst_str(string + i, 1, /*font_setting=*/false);
-  }  /* if */
+  }  /* for */
 }  /* me_output_rst_doc_string */
 
 
@@ -775,7 +776,7 @@ should be used to determine the length.
     /* Check for characters that must be escaped. */
     if (strchr("<>", ch) != NULL) putc('\\', doc_output_file);
     putc(ch, doc_output_file);
-  }  /* if */
+  }  /* for */
 }  /* me_output_mml_doc_string */
 
 
