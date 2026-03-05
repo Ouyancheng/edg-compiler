@@ -985,6 +985,12 @@ a_constexpr_address addr.
 
 
 /*
+Convenience macro to cast an opaque pointer to a pointer to an integer value.
+*/
+#define int_value(ptr) ((an_integer_value *)(ptr))
+
+
+/*
 Convenience macro to cast an opaque pointer to a pointer to a floating-point
 value.
 */
@@ -10265,6 +10271,323 @@ done:
 }  /* do_constexpr_builtin_op_overflow */
 
 
+static a_boolean prep_constexpr_array_op(an_interpreter_state  *ips,
+                                         a_type                **p_tp,
+                                         a_byte_count          n_bytes,
+                                         a_byte                **p_input,
+                                         a_byte                *complete_obj,
+                                         a_byte_count          *n_elems,
+                                         a_byte_count          *elem_size,
+                                         a_byte                **p_output)
+/*
+*p_storage points to an n_bytes-long array, vector, or scalar of type *p_tp
+(part of the complete object stored at complete_obj).  Return in *n_elems and
+*elem_size, respectively, the number of elements and individual element size
+for type *p_tp.  For a scalar type, n_elems will be set to 1.  Currently, only
+fixed-length types are considered, but this API accounts for the possibility
+of having *p_input start with a "length" field, in which case *p_input will be
+updated to point to the first data element (and similarly for *p_output).
+Return FALSE if any error occurs (e.g., type tp is invalid), and update ips to
+record a diagnostic note in that case.  Otherwise, also update *p_tp to the
+element type.
+*/
+{
+  a_boolean  result = TRUE;
+  a_type     *tp = *p_tp;
+
+  if (is_immediate_vector_type(tp)) {
+    a_type  *etp = skip_typerefs(tp->variant.array.element_type);
+    *elem_size = value_bytes_for_type(ips, etp, &result);
+    if (result) {
+      *n_elems = n_bytes / *elem_size;
+      *p_tp = etp;
+    }  /* if */
+  } else if (type_is(tp, tk_array)) {
+    if (tp->variant.array.is_variable_size_array ||
+        tp->variant.array.is_template_dependent_size_array ||
+        tp->incomplete) {
+      do_constexpr_fail(result);
+      info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp, ips);
+    } else {
+      *n_elems = (a_byte_count)tp->variant.array.variant.number_of_elements;
+      *elem_size = n_bytes / *n_elems;
+      *p_tp = skip_typerefs(tp->variant.array.element_type);
+    }  /* if */
+  } else {
+    /* A scalar type. */
+    *n_elems = 1;
+    *elem_size = n_bytes;
+  }  /* if */
+  return result;
+}  /* prep_constexpr_array_op */
+
+
+static a_boolean do_int_abs(an_integer_kind   int_kind,
+                            an_integer_value  *src,
+                            an_integer_value  *dst)
+/*
+Store in *dst the absolute value of the integer value *src of the given kind.
+Return FALSE if the operation overflows.
+*/
+{
+  a_boolean  result = TRUE;
+
+  *dst = *src;
+  if (int_kind_is_signed[int_kind] &&
+      cmp_integer_values(dst, /*is_signed=*/TRUE,
+                         (an_integer_value *)&zero_int,
+                         /*is_signed=*/TRUE) < 0) {
+    a_boolean  ovfl;
+    negate_integer_value(dst, &ovfl);
+    if (ovfl ||
+        cmp_integer_values(dst, /*is_signed=*/TRUE,
+                           &max_integer_value_of_kind[int_kind],
+                           /*is_signed=*/TRUE) > 0) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* do_int_abs */
+
+
+static void do_float_abs(a_float_kind             fk,
+                         an_internal_float_value  *src,
+                         an_internal_float_value  *dst)
+/*
+Store in dst the absolute value of the floating-point value *src of the given
+kind.
+*/
+{
+  if (fp_signbit(fk, src)) {
+    a_boolean  err, depends_on_fp_mode;
+    fp_negate(fk, src, dst, &err, &depends_on_fp_mode);
+  } else {
+    *dst = *src;
+  }  /* if */
+}  /* do_float_abs */
+
+
+static a_boolean do_constexpr_builtin_elementwise_unary_op(
+                                     an_interpreter_state     *ips,
+                                     a_builtin_function_kind  kind,
+                                     an_expr_node_ptr         call_node,
+                                     a_byte                   *result_storage,
+                                     a_boolean                *p_result)
+/*
+Evaluate a call to a built-in __builtin_elementwise_... function taking a
+single operand (e.g., __builtin_elementwise_abs but not
+__builtin_elementwise_max).  See do_constexpr_builtin_function for the meaning
+of the parameters.
+*/
+{
+  a_boolean         interpreted = TRUE;
+  an_expr_node_ptr  arg1 = call_node->variant.operation.operands->next;
+  a_byte            *arg1_bytes;
+
+  if (arg1 == NULL || arg1->next != NULL) {
+    unexpected_condition();
+  } else {
+    a_type_ptr    tp1 = skip_typerefs(arg1->type);
+    a_byte_count  n_bytes = value_bytes_for_type(ips, tp1, p_result);
+    if (!*p_result) goto done;
+    (void)alloc_complete_object(ips, n_bytes, tp1, arg1_bytes);
+    if (do_constexpr_expression(ips, arg1, arg1_bytes, arg1_bytes)) {
+      a_byte_count  n_elems, elem_size;
+      if (prep_constexpr_array_op(ips, &tp1, n_bytes, &arg1_bytes, arg1_bytes,
+                                  &n_elems, &elem_size, &result_storage)) {
+        a_byte  *elem = arg1_bytes;
+        for (a_byte_count  n = 0; n<n_elems; ++n) {
+          switch (kind) {
+            case bfk_elementwise_abs:
+              if (type_is(tp1, tk_integer)) {
+                if (!do_int_abs(tp1->variant.integer.int_kind, int_value(elem),
+                                 int_value(result_storage))) {
+                  do_constexpr_fail(*p_result);
+                  info_with_pos_type(ec_constexpr_integer_overflow,
+                                     &call_node->position, tp1, ips);
+                  break;
+                }  /* if */
+              } else if (type_is(tp1, tk_float)) {
+                do_float_abs(tp1->variant.float_kind, fp_value(elem),
+                             fp_value(result_storage));
+              } else {
+                unexpected_condition();
+              }  /* if */
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+          elem += elem_size;
+          result_storage += elem_size;
+        }  /* for */
+      }  /* if */
+    } else {
+      *p_result = FALSE;
+    }  /* if */
+  }  /* if */
+done:
+  return interpreted;
+}  /* do_constexpr_builtin_elementwise_unary_op */
+
+
+static void do_int_min(an_integer_kind   int_kind,
+                       an_integer_value  *src1,
+                       an_integer_value  *src2,
+                       an_integer_value  *dst)
+/*
+Store in *dst the smaller of the *src1 and *src2 values (both of the given
+integer kind).
+*/
+{
+  a_boolean  is_signed = int_kind_is_signed[int_kind];
+
+  if (cmp_integer_values(src1, is_signed, src2, is_signed) > 0) {
+    *dst = *src2;
+  } else {
+    *dst = *src1;
+  }  /* if */
+}  /* do_int_min */
+
+
+static void do_int_max(an_integer_kind   int_kind,
+                       an_integer_value  *src1,
+                       an_integer_value  *src2,
+                       an_integer_value  *dst)
+/*
+Store in *dst the larger of the *src1 and *src2 values (both of the given
+integer kind).
+*/
+{
+  a_boolean  is_signed = int_kind_is_signed[int_kind];
+
+  if (cmp_integer_values(src1, is_signed, src2, is_signed) < 0) {
+    *dst = *src2;
+  } else {
+    *dst = *src1;
+  }  /* if */
+}  /* do_int_max */
+
+
+static void do_float_min(a_float_kind             fk,
+                         an_internal_float_value  *src1,
+                         an_internal_float_value  *src2,
+                         an_internal_float_value  *dst)
+/*
+Store in dst the smaller value of the floating-point values *src1 and *src2 of
+the given kind.
+*/
+{
+  a_boolean  unord;
+
+  if (fp_compare(fk, fp_value(src1), fp_value(src2), &unord) > 0 && !unord) {
+    *dst = *src2;
+  } else {
+    *dst = *src1;
+  }  /* if */
+}  /* do_float_min */
+
+
+static void do_float_max(a_float_kind             fk,
+                         an_internal_float_value  *src1,
+                         an_internal_float_value  *src2,
+                         an_internal_float_value  *dst)
+/*
+Store in dst the larger value of the floating-point values *src1 and *src2 of
+the given kind.
+*/
+{
+  a_boolean  unord;
+
+  if (fp_compare(fk, fp_value(src1), fp_value(src2), &unord) < 0 && !unord) {
+    *dst = *src2;
+  } else {
+    *dst = *src1;
+  }  /* if */
+}  /* do_float_max */
+
+
+static a_boolean do_constexpr_builtin_elementwise_binary_op(
+                                     an_interpreter_state     *ips,
+                                     a_builtin_function_kind  kind,
+                                     an_expr_node_ptr         call_node,
+                                     a_byte                   *result_storage,
+                                     a_boolean                *p_result)
+/*
+Evaluate a call to a built-in __builtin_elementwise_... function taking two
+operands (e.g., __builtin_elementwise_max but not __builtin_elementwise_abs).
+See do_constexpr_builtin_function for the meaning of the parameters.
+*/
+{
+  a_boolean         interpreted = TRUE;
+  an_expr_node_ptr  arg1 = call_node->variant.operation.operands->next;
+  a_byte            *arg1_bytes, *arg2_bytes;
+
+  if (arg1 == NULL || arg1->next == NULL || arg1->next->next != NULL) {
+    unexpected_condition();
+  } else {
+    an_expr_node_ptr  arg2 = arg1->next;
+    a_type_ptr        tp1 = skip_typerefs(arg1->type),
+                      tp2 = skip_typerefs(arg2->type);
+    a_byte_count  n_bytes = value_bytes_for_type(ips, tp1, p_result);
+    if (!*p_result) goto done;
+    check_assertion(identical_types(tp1, tp2));
+    (void)alloc_complete_object(ips, n_bytes, tp1, arg1_bytes);
+    (void)alloc_complete_object(ips, n_bytes, tp2, arg2_bytes);
+    if (do_constexpr_expression(ips, arg1, arg1_bytes, arg1_bytes) &&
+        do_constexpr_expression(ips, arg2, arg2_bytes, arg2_bytes)) {
+      a_byte_count  n_elems, elem_size;
+      a_byte        *orig_arg1_bytes = arg1_bytes;
+      if (prep_constexpr_array_op(ips, &tp1, n_bytes, &arg1_bytes, arg1_bytes,
+                                  &n_elems, &elem_size, &result_storage)) {
+        /* prep_constexpr_array_op may adjust arg1_bytes in the future (for
+           variable-length vectors).  Adjust elem2 below correspondingly. */
+        a_byte  *elem1 = arg1_bytes,
+                *elem2 = arg2_bytes + (arg1_bytes - orig_arg1_bytes);
+        for (a_byte_count  n = 0; n<n_elems; ++n) {
+          switch (kind) {
+            case bfk_elementwise_min:
+              if (type_is(tp1, tk_integer)) {
+                do_int_min(tp1->variant.integer.int_kind,
+                           int_value(elem1), int_value(elem2),
+                           int_value(result_storage));
+              } else if (type_is(tp1, tk_float)) {
+                do_float_min(tp1->variant.float_kind,
+                             fp_value(elem1), fp_value(elem2),
+                             fp_value(result_storage));
+              } else {
+                unexpected_condition();
+              }  /* if */
+              break;
+            case bfk_elementwise_max:
+              if (type_is(tp1, tk_integer)) {
+                do_int_max(tp1->variant.integer.int_kind,
+                           int_value(elem1), int_value(elem2),
+                           int_value(result_storage));
+              } else if (type_is(tp1, tk_float)) {
+                do_float_max(tp1->variant.float_kind,
+                             fp_value(elem1), fp_value(elem2),
+                             fp_value(result_storage));
+              } else {
+                unexpected_condition();
+              }  /* if */
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+          elem1 += elem_size;
+          elem2 += elem_size;
+          result_storage += elem_size;
+        }  /* for */
+      }  /* if */
+    } else {
+      *p_result = FALSE;
+    }  /* if */
+  }  /* if */
+done:
+  return interpreted;
+}  /* do_constexpr_builtin_elementwise_binary_op */
+
+
 static a_boolean do_constexpr_builtin_function(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -10281,7 +10604,7 @@ to FALSE and the reason for the failure is recorded in *ips.
 {
   a_boolean         interpreted;
 #if C99_IL_EXTENSIONS_SUPPORTED
-  a_boolean         err = FALSE, depends_on_fp_mode;
+  a_boolean         err = FALSE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   a_boolean         has_count = FALSE, is_memcmp = FALSE;
   an_expr_node_ptr  args = call_node->variant.operation.operands->next;
@@ -10353,25 +10676,12 @@ to FALSE and the reason for the failure is recorded in *ips.
               !do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             do_constexpr_fail(*p_result);
           } else {
-            an_integer_kind  int_kind = tp->variant.integer.int_kind;
-            *(an_integer_value*)result_storage =
-                                               *(an_integer_value*)arg1_bytes;
-            if (int_kind_is_signed[int_kind] &&
-                cmp_integer_values((an_integer_value *)result_storage,
-                                   /*is_signed=*/TRUE,
-                                   (an_integer_value *)&zero_int,
-                                   /*is_signed=*/TRUE) < 0) {
-              a_boolean  ovfl;
-              negate_integer_value((an_integer_value *)result_storage, &ovfl);
-              if (ovfl ||
-                  cmp_integer_values((an_integer_value *)result_storage,
-                                     /*is_signed=*/TRUE,
-                                     &max_integer_value_of_kind[int_kind],
-                                     /*is_signed=*/TRUE) > 0) {
-                do_constexpr_fail(*p_result);
-                info_with_pos_type(ec_constexpr_integer_overflow,
-                                   &call_node->position, tp, ips);
-              }  /* if */
+            if  (!do_int_abs(tp->variant.integer.int_kind,
+                             int_value(arg1_bytes),
+                             int_value(result_storage))) {
+              do_constexpr_fail(*p_result);
+              info_with_pos_type(ec_constexpr_integer_overflow,
+                                 &call_node->position, tp, ips);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -10392,14 +10702,8 @@ to FALSE and the reason for the failure is recorded in *ips.
           check_assertion(is_real_floating_type(tp));
           if (alloc_complete_object(ips, n_bytes, tp, arg1_bytes) &&
               do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
-            a_float_kind  fk = tp->variant.float_kind;
-            if (fp_signbit(fk, fp_value(arg1_bytes))) {
-              fp_negate(fk, fp_value(arg1_bytes), fp_value(result_storage),
-                        &err, &depends_on_fp_mode);
-              check_assertion(!err);
-            } else {
-              *fp_value(result_storage) = *fp_value(arg1_bytes);
-            }  /* if */
+            do_float_abs(tp->variant.float_kind, fp_value(arg1_bytes),
+                         fp_value(result_storage));
           } else {
             do_constexpr_fail(*p_result);
           }  /* if */
@@ -11067,6 +11371,15 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bfk_umull_overflow:
     case bfk_umulll_overflow:
       interpreted = do_constexpr_builtin_op_overflow(
+                              ips, kind, call_node, result_storage, p_result);
+      break;
+    case bfk_elementwise_abs:
+      interpreted = do_constexpr_builtin_elementwise_unary_op(
+                              ips, kind, call_node, result_storage, p_result);
+      break;
+    case bfk_elementwise_min:
+    case bfk_elementwise_max:
+      interpreted = do_constexpr_builtin_elementwise_binary_op(
                               ips, kind, call_node, result_storage, p_result);
       break;
     default:

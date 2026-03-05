@@ -1,5 +1,15 @@
 Version 6.9
 
+3/5/26   [EDGcpfe/28719]
+Clang compatibility: Folding of __builtin_elementwise_... functions.
+
+In Clang mode, the front end can now constant-evaluate calls to some of the
+__builtin_elementwise_... built-in functions.  The initial list of supported
+functions is __builtin_elementwise_abs, __builtin_elementwise_min, and
+__builtin_elementwise_max.  Error recovery for erroneous uses of these
+functions has also been improved somewhat.
+
+
 3/5/26   [EDGcpfe/23609,EDGcpfe/23845,EDGcpfe/23927,EDGcpfe/24247,
           EDGcpfe/27220,EDGcpfe/28636]
 Pragma processing corrections

@@ -6739,7 +6739,7 @@ type is identical to tp, or if either type is dependent or an error type.
   a_boolean       okay = TRUE;
   an_operand_ptr  op = operand_of_arg_list_elem(arg);
   a_type_ptr      arg_type = skip_typerefs(op->type);
-  if (is_a_glvalue(op)) {
+  if (is_a_glvalue(op) && !is_array_type(op->type)) {
     /* A prvalue is needed. */
     conv_glvalue_to_prvalue(op);
   }  /* if */
@@ -6813,7 +6813,7 @@ resulting return type is determined for the routine.
   if (!err) {
     check_arg_list_elem_is_expression(args);
     op1 = operand_of_arg_list_elem(args);
-    if (is_a_glvalue(op1)) {
+    if (is_a_glvalue(op1) && !is_array_type(op1->type)) {
       /* A prvalue is needed. */
       conv_glvalue_to_prvalue(op1);
     }  /* if */
@@ -6972,7 +6972,10 @@ resulting return type is determined for the routine.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!err) {
+  if (err && !expr_stack->suppress_diagnostics) {
+    arg_type = return_type = error_type();
+  }  /* if */
+  if (!err || !expr_stack->suppress_diagnostics) {
     a_type_ptr rout_type = make_routine_type(return_type, arg_type,
                                              (n_args >= 2) ? arg_type : NULL,
                                              (n_args >= 3) ? arg_type : NULL);
