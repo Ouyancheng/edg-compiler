@@ -15962,9 +15962,6 @@ previously-scanned construct of this kind.  Either way, return the result in
       case tok_builtin_is_virtual_base_of:
         bok = bok_builtin_is_virtual_base_of;
         break;
-      case tok_builtin_is_implicit_lifetime:  // FIXME: delete?
-        bok = bok_builtin_is_implicit_lifetime;
-        break;
       case tok_builtin_lt_synthesizes_from_spaceship:
         bok = bok_builtin_lt_synthesizes_from_spaceship;
         break;
