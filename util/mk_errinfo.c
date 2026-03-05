@@ -611,7 +611,7 @@ Add the specified string of the specified length to the pending text
 buffer, word-wrapping at RST_WRAP_COLUMN characters.  A newline puts out
 the buffer immediately and resets it to zero length.  If font_setting is
 true, a space character in str should not be considered a location at which
-word wrapping can occur and '*' and "__" should not be escaped..
+word wrapping can occur and '*' and "__" should not be escaped.
 */
 {
   static char buffer[80];
@@ -658,16 +658,15 @@ word wrapping can occur and '*' and "__" should not be escaped..
           buf_pos = RST_CONTINUATION_INDENT;
         }  /* if */
         memset(buffer, ' ', RST_CONTINUATION_INDENT);
-        if (ch != ' ' || buf_pos > RST_CONTINUATION_INDENT) {
-          /* Avoid adding an extra space following the indentation. */
-          buffer[buf_pos++] = ch;
-        }  /* if */
         last_blank = 0;
-      } else {
-        buffer[buf_pos] = ch;
-        if (ch == ' ' && buf_pos > RST_CONTINUATION_INDENT && !font_setting) {
-          last_blank = buf_pos;
-        }  /* if */
+      }  /* if */
+      buffer[buf_pos] = ch;
+      if (ch == ' ' && buf_pos > RST_CONTINUATION_INDENT && !font_setting) {
+        last_blank = buf_pos;
+      }  /* if */
+      if (!(ch == ' ' && buf_pos == RST_CONTINUATION_INDENT)) {
+        /* Avoid extending the left margin by adding a blank immediately
+           following it. */
         ++buf_pos;
       }  /* if */
     }  /* if */
@@ -725,7 +724,6 @@ Write the header information for a given error message to the
 reStructuredText documentation file.
 */
 {
-  a_const_char *ptr;
   char         buffer[8];
 
   /* Write the item command containing the number. */
@@ -735,11 +733,8 @@ reStructuredText documentation file.
   /* Write the content cell. */
   me_output_rst_doc_string("\n   - | ", 0, fk_normal);
   /* Write the tag name. */
-  ptr = tag;
-  while (*ptr != '\0') {
-    me_output_rst_doc_string(ptr, 1, fk_tt);
-    ptr++;
-  }  /* while */
+  me_output_rst_doc_string(tag, 0, fk_tt);
+  /* Set up for the diagnostic string. */
   me_output_rst_doc_string(":\n     | ", 0, fk_normal);
 }  /* me_write_rst_item_header */
 
@@ -1079,19 +1074,19 @@ Generate a TeX file that documents the error messages
     /* Write the error text. */
     /* Skip the opening quote. */
     ptr = error_info[i].text;
-    ptr++;
+    ++ptr;
     for (;;) {
       char	ch = *ptr;
       if (ch == '%') {
-        ptr++;
+        ++ptr;
         me_create_doc_fillin(&ptr);
       } else {
         /* Exit the loop when we find an unescaped quote. */
         if (ch == '"') break;
-        if (ch == '\\') ptr++;
+        if (ch == '\\') ++ptr;
         /* Just a normal character. */
         output_doc_string(ptr, 1, fk_normal);
-        ptr++;
+        ++ptr;
       }  /* if */
     }  /* for */
     output_doc_string("\n", 0, fk_normal);
