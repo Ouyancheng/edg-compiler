@@ -34709,9 +34709,20 @@ next_capture:;
     if (!lambda_declarator_params_optional) {
       pos_warning(ec_lambda_without_parameters_nonstandard, &pos_curr_token);
     }  /* if */
+    if (curr_lexical_state_stack_entry->cache_tokens != 0) {
+      /* When background token caching is active, the current token is already
+         recorded in the lexical cache.  Remove it and re-add it (with a fresh
+         token sequence number) after the injected parentheses so that the
+         cache reflects the modified token order. */
+      a_token_cache_ptr  curr_lexical_cache =
+                                  curr_lexical_state_stack_entry->cache->ptr();
+      curr_lexical_cache->remove_token(
+                                    curr_lexical_cache->get_last_token_iter());
+    }  /* if */
     cache_token(&cache, tok_lparen, &pos_curr_token);
     cache_token(&cache, tok_rparen, &pos_curr_token);
-    rescan_cached_tokens(&cache);
+    cache_curr_token_fresh(&cache);
+    rescan_cached_tokens(&cache, /*discard_curr_token=*/TRUE);
     dps->lambda_with_omitted_parameters = TRUE;
   }  /* if */
   if (curr_token == tok_lparen) {

@@ -1,5 +1,15 @@
 Version 6.9
 
+3/5/26   [EDGcpfe/28024]
+Instantiation of C++23 lambda without a parameter declaration clause
+
+The front end failed to instantiate C++23 lambdas that are declared without a
+parameter declaration clause.  For example, with --c++23:
+
+  int i = []<int = 0> -> int { return 1; }();  // Previously an error.
+                                               // Now okay.
+
+
 3/4/26   [EDGcpfe/28702]
 Performance degradation due to long name qualifier lists
 
