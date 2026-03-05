@@ -29,8 +29,8 @@ Usage:
 
     - mk_errinfo -mml error_msg.txt error_tag.txt err_msgs.mml
 
-	Generates an err_msgs.mml file in FrameMaker MML (maker markup
-	language) that can be used to create a FrameMaker document containing
+	Generates an err_msgs.mml file in FrameMaker MML (Maker Markup
+	Language) that can be used to create a FrameMaker document containing
 	the error messages.
 
     - mk_errinfo -rst error_msg.txt error_tag.txt err_msgs.rst
@@ -599,6 +599,7 @@ should be used to determine the length.
   }  /* if */
 }  /* me_output_latex_doc_string */
 
+
 #define RST_BUFFER_SIZE 80
 #define RST_WRAP_COLUMN 77
 #define RST_CONTINUATION_INDENT 7
@@ -611,7 +612,7 @@ Add the specified string of the specified length to the pending text
 buffer, word-wrapping at RST_WRAP_COLUMN characters.  A newline puts out
 the buffer immediately and resets it to zero length.  If font_setting is
 true, a space character in str should not be considered a location at which
-word wrapping can occur and '*' and "__" should not be escaped.
+word wrapping can occur and '*' should not be escaped.
 */
 {
   static char buffer[80];
@@ -665,13 +666,15 @@ word wrapping can occur and '*' and "__" should not be escaped.
         last_blank = buf_pos;
       }  /* if */
       if (!(ch == ' ' && buf_pos == RST_CONTINUATION_INDENT)) {
-        /* Avoid extending the left margin by adding a blank immediately
-           following it. */
+        /* Adding a blank in the first column following the left margin
+           would incorrectly extend the left margin, so we effectively
+           ignore such a character. */
         ++buf_pos;
       }  /* if */
     }  /* if */
   }  /* for */
 }  /* put_rst_str */
+
 
 static
 void me_output_rst_doc_string(a_const_char *string,
@@ -684,7 +687,7 @@ is zero, the string is null-terminated and strlen should be used to
 determine the length.
 */
 {
-  int	       i;
+  int          i;
   a_const_char *font_str;
 
   if (curr_font != font) {
