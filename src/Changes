@@ -1,5 +1,17 @@
 Version 6.9
 
+3/5/26   [EDGcpfe/23609,EDGcpfe/23845,EDGcpfe/23927,EDGcpfe/24247,
+          EDGcpfe/27220,EDGcpfe/28636]
+Pragma processing corrections
+
+Pragma processing has been significantly simplified.  In configurations that
+generate template strings (RECORD_TEMPLATE_STRINGS=1) multiple bugs where the
+pragma was preserved in the wrong token cache or in the wrong position have
+been fixed.  Additional bugs have been resolved in rare cases where token
+lookahead would result in duplicate processing of a pragma or no pragma
+processing occurring at all.
+
+
 3/4/26   [EDGcpfe/28730]
 Use of __make_integer_seq without MICROSOFT_EXTENSIONS_ALLOWED enabled
 
@@ -201,16 +213,6 @@ Previously, this triggered an internal error in prep_special_selector_operand
 (in overload.c) while the front end attempted to evaluate the enable_if operand
 (a dummy operand created to evaluate the __is_assignable intrinsic).  That is
 now fixed.
-
-
-2/17/26  [EDGcpfe/23609,EDGcpfe/23845,EDGcpfe/23927,EDGcpfe/24247,
-          EDGcpfe/27220,EDGcpfe/28636]
-Pragma processing corrections
-
-Pragma processing has been significantly simplified.  In configurations that
-generate template strings (RECORD_TEMPLATE_STRINGS=1) multiple bugs where the
-pragma was preserved in the wrong token cache or in the wrong position have
-been fixed.
 
 
 2/17/26  [EDGcpfe/28696]
