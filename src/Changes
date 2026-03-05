@@ -12,7 +12,7 @@ lookahead would result in duplicate processing of a pragma or no pragma
 processing occurring at all.
 
 
-3/4/26   [EDGcpfe/28730]
+3/5/26   [EDGcpfe/28730]
 Use of __make_integer_seq without MICROSOFT_EXTENSIONS_ALLOWED enabled
 
 The changes for EDGcpfe/18124 (in version 4.14) enabled the use of
