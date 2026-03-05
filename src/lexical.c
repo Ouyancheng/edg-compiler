@@ -21312,9 +21312,7 @@ the <int> is matched with U and no argument is generated for V.
                                        scope_stack_top().in_template_arg_list;
   a_boolean                        too_many_args = FALSE;
   a_boolean                        any_args_in_list = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_source_position                arg1_pos, arg2_pos, arg3_pos;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   scope_stack_top().in_template_arg_list = TRUE;
   *first_defaulted_arg = -1L;
@@ -21380,7 +21378,6 @@ the <int> is matched with U and no argument is generated for V.
     }  /* if */
   }  /* if */
   param_list = param_ptr;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (internal_templates_enabled) {
     /* Record the starting positions of the argument(s) in case they are needed
        for diagnostics later on. */
@@ -21388,7 +21385,6 @@ the <int> is matched with U and no argument is generated for V.
     arg2_pos = null_source_position;
     arg3_pos = null_source_position;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   arg_number = 0;
   do {
     a_source_position			arg_pos;
@@ -21455,7 +21451,6 @@ next_integer_pack_element:
         }  /* if */
         arg_pos = pos_curr_token;
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
       if (internal_templates_enabled) {
         if (arg_number == 1) {
           arg2_pos = arg_pos;
@@ -21463,7 +21458,6 @@ next_integer_pack_element:
           arg3_pos = arg_pos;
         }  /* if */
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* If the template parameter list is empty, exit the loop.  This only
          occurs in error cases. */
       if (param_ptr == NULL) {
@@ -21906,7 +21900,6 @@ next_integer_pack_element:
     flush_to_end_of_arg_list();
     *any_errors = TRUE;
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (internal_templates_enabled && !*any_errors) {
     /* If internal templates are enabled, check that their arguments meet the
        requirements of the language. */
@@ -21914,7 +21907,6 @@ next_integer_pack_element:
                                                 &arg1_pos, &arg2_pos,
                                                 &arg3_pos);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   scope_stack_top().in_template_arg_list = saved_in_template_arg_list;
   return arg_list;
 }  /* scan_template_argument_list */

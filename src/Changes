@@ -1,5 +1,14 @@
 Version 6.9
 
+3/4/26   [EDGcpfe/28730]
+Use of __make_integer_seq without MICROSOFT_EXTENSIONS_ALLOWED enabled
+
+The changes for EDGcpfe/18124 (in version 4.14) enabled the use of
+__make_integer_seq in all modes (previously it was only available in Microsoft
+emulation modes).  Those changes were incomplete, requiring that the
+MICROSOFT_EXTENSIONS_ALLOWED configuration was TRUE.  That has been fixed.
+
+
 3/5/26   [EDGcpfe/28024]
 Instantiation of C++23 lambda without a parameter declaration clause
 
