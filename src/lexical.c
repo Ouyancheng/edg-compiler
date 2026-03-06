@@ -24089,6 +24089,14 @@ a previously created entry that can be reused.
       /* No match was found -- create a new entry. */
       nrp = alloc_name_reference();
       *nrp = *entry_to_copy;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+      if (nrp->orig_template_arg_list != NULL) {
+        /* IL reading cannot deal with shared template argument lists, so make
+           a copy. */
+        nrp->orig_template_arg_list =
+                          copy_template_arg_list(nrp->orig_template_arg_list);
+      }  /* if */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
       *nrp_in_table = nrp;
       /* Put this on the list of name references pointed to by the source
          correspondence. */
