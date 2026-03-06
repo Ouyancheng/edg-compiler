@@ -3,9 +3,9 @@ Version 6.9
 3/7/26   [EDGcpfe/28715]
 __builtin_add_overflow, etc.
 
-The changes for EDGcpfe/28586 introduced a bug with some combinations of
-unsigned 128-bit values and signed narrower values.  For example, in Clang
-C++17 mode:
+The changes for EDGcpfe/28586 (not yet in a release, but distributed as a
+patch) introduced a bug with some combinations of unsigned 128-bit values and
+signed narrower values.  For example, in Clang C++17 mode:
 
   constexpr bool plus_overflows(signed char x, unsigned __int128 y) {
     unsigned __int128  sum;
