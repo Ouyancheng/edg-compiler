@@ -602,7 +602,8 @@ should be used to determine the length.
 
 #define RST_BUFFER_SIZE 80
 #define RST_WRAP_COLUMN 77
-static_assert(RST_WRAP_COLUMN < RST_BUFFER_SIZE);
+static_assert(RST_WRAP_COLUMN < RST_BUFFER_SIZE,
+	      "Word wrap column too large for rst output");
 #define RST_CONTINUATION_INDENT 7
 
 static void put_rst_str(a_const_char *str,
