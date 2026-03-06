@@ -10280,7 +10280,7 @@ static a_boolean prep_constexpr_array_op(an_interpreter_state  *ips,
                                          a_byte_count          *elem_size,
                                          a_byte                **p_output)
 /*
-*p_storage points to an n_bytes-long array, vector, or scalar of type *p_tp
+*p_input points to an n_bytes-long array, vector, or scalar of type *p_tp
 (part of the complete object stored at complete_obj).  Return in *n_elems and
 *elem_size, respectively, the number of elements and individual element size
 for type *p_tp.  For a scalar type, n_elems will be set to 1.  Currently, only
