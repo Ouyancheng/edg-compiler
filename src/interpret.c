@@ -10249,9 +10249,9 @@ the parameters.
       /* Check if the result fits in the destination. */
       if (!ovflo && !opnds_have_max_width) {
         ovflo = cmp_integer_values(val, /*is_signed=*/TRUE,
-                                   p_max, /*is_signed=*/TRUE) > 0 ||
+                                   p_max, is_signed) > 0 ||
                 cmp_integer_values(val, /*is_signed=*/TRUE,
-                                   p_min, /*is_signed=*/TRUE) < 0;
+                                   p_min, is_signed) < 0;
       }  /* if */
       *(an_integer_value*)result_storage = ovflo ? one_int : zero_int;
       if (store) {
