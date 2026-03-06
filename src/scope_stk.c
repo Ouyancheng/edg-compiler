@@ -6558,7 +6558,7 @@ bindings.
   an_il_entity_list_entry_ptr
                   ielep = container->variant.bindings;
 
-  if ((a_variable_ptr)ielep->entity.ptr == binding) {
+  if (ielep != NULL && (a_variable_ptr)ielep->entity.ptr == binding) {
     /* This is the first binding on the list.  Return TRUE if all the other
        bindings are also unreferenced. */
     result = TRUE;
@@ -11055,16 +11055,19 @@ in such cases.
   prp->next = NULL;
   prp->symbol = NULL;
   prp->kind = kind;
-  prp->param_num = 0;
+  prp->param_or_binding_num = 0;
   prp->position = null_source_position;
   prp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   prp->primary_pack_symbol = NULL;
-  prp->function_scopes_to_skip = 0;
+  prp->function_or_block_scopes_to_skip = 0;
   prp->param_info = NULL;
   prp->coordinates = NULL;
   prp->template_param = NULL;
   switch (kind) {
-    case prk_variable:       prp->curr_argument.variable = NULL;     break;
+    case prk_variable:
+    case prk_binding:
+      prp->curr_argument.variable = NULL;
+      break;
     case prk_template_param:
     case prk_bases:
       prp->curr_argument.template_arg = NULL;
@@ -11689,7 +11692,7 @@ arguments in *elements.
 {
   a_param_id_ptr		result_param_id = NULL;
   a_scope_stack_entry_ptr	ssep;
-  uint32_t			param_num = prp->param_num;
+  uint32_t			param_num = prp->param_or_binding_num;
   a_param_id_ptr		param_id = NULL;
 
   /* Look through any enclosing function prototype scopes for the
@@ -11717,28 +11720,15 @@ arguments in *elements.
 }  /* find_parameter_for_pack */
 
 
-static a_variable_ptr find_variable_for_pack(
-				a_pack_reference_ptr	prp,
-				uint32_t		*elements)
+static a_scope_stack_entry_ptr skip_function_or_block_scopes(
+                                       a_scope_stack_entry_ptr  ssep,
+                                       uint32_t                 scopes_to_skip)
 /*
-Return the initial function parameter associated with the variadic
-function template currently being instantiated.  prp describes
-the parameter from the prototype instantiation.  If there are no 
-actual arguments for the pack, return NULL.  Return the number of actual
-arguments in *elements.
-
-This routine is only expected to be called in the context of a function
-template instantiation of a variadic template or some other context considered
-to be part of the function template such as a lambda nested therein.
+Starting from ssep, skip over scopes_to_skip function or block scopes and
+return the resulting scope stack entry.  This is used when looking up the scope
+containing a function parameter pack or structured binding pack.
 */
 {
-  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
-  a_variable_ptr		vp;
-  a_variable_ptr		result_vp = NULL;
-  uint32_t			param_num = prp->param_num;
-  uint32_t			function_scopes_to_skip =
-                                                  prp->function_scopes_to_skip;
-
   if (scope_is(ssep, sck_template_instantiation) && ssep->is_rescan) {
     /* We might run into a pack expansion during SFINAE checking.  In that
        case, skip the sck_template_instantiation and sck_instantiation_context
@@ -11757,20 +11747,46 @@ to be part of the function template such as a lambda nested therein.
       ssep -= 1;
     }  /* if */
   }  /* if */
-  /* Bypass the number of function scopes indicated by function_scopes_to_skip.
-     We can't start with depth_innermost_function_scope because that is
-     cleared if we are in a local class. */
+  /* Bypass the number of function or block scopes indicated by scopes_to_skip.
+     We can't start with depth_innermost_function_scope because that is cleared
+     if we are in a local class. */
   for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
-    /* Only consider function scopes. */
-    if (ssep->kind == (a_scope_kind)sck_function) {
-      if (function_scopes_to_skip == 0) break;
-      function_scopes_to_skip--;
+    /* Only consider function and block scopes. */
+    if (scope_is(ssep, sck_function) || scope_is(ssep, sck_block)) {
+      if (scopes_to_skip == 0) break;
+      scopes_to_skip--;
     }  /* if */
   }  /* for */
+  return ssep;
+}  /* skip_function_or_block_scopes */
+
+
+static a_variable_ptr find_variable_for_pack(
+				a_pack_reference_ptr	prp,
+				uint32_t		*elements)
+/*
+Return the initial function parameter associated with the variadic function
+template currently being instantiated.  prp describes the parameter from the
+prototype instantiation.  If there are no actual arguments for the pack, return
+NULL.  Return the number of actual arguments in *elements.
+
+This routine is only expected to be called in the context of a function
+template instantiation of a variadic template or some other context considered
+to be part of the function template such as a lambda nested therein.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+  a_variable_ptr		vp;
+  a_variable_ptr		result_vp = NULL;
+  uint32_t			param_num = prp->param_or_binding_num;
+
+  ssep = skip_function_or_block_scopes(
+                                  ssep, prp->function_or_block_scopes_to_skip);
   if (ssep == NULL) {
     expect_error();
     goto done;
   }  /* if */
+  check_assertion(ssep->kind == sck_function);
   for (vp = ssep->il_scope->variant.routine.parameters;
        vp != NULL; vp = vp->next) {
     if (vp->variant.assoc_param_type->param_num == param_num) {
@@ -11787,6 +11803,55 @@ to be part of the function template such as a lambda nested therein.
 done:
   return result_vp;
 }  /* find_variable_for_pack */
+
+
+static a_variable_ptr find_binding_for_pack(a_pack_reference_ptr  prp,
+                                            uint32_t              *elements)
+/*
+Return the initial binding pack element associated with the structured binding
+pack currently being instantiated.  prp describes the structured binding pack
+from the prototype instantiation.  If there are no actual bindings for the
+pack, return NULL.  Return the number of actual bindings in *elements.
+*/
+{
+  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+  a_variable_ptr		vp;
+  a_variable_ptr		result_vp = NULL;
+  uint32_t			binding_num = prp->param_or_binding_num;
+
+  ssep = skip_function_or_block_scopes(
+                                  ssep, prp->function_or_block_scopes_to_skip);
+  if (ssep == NULL) {
+    expect_error();
+    goto done;
+  }  /* if */
+  if (prp->symbol->variant.variable.ptr->storage_class == sc_static) {
+    vp = ssep->il_scope->variables;
+  } else {
+    vp = ssep->il_scope->nonstatic_variables;
+  }  /* if */
+  while (vp != NULL) {
+    if (vp->is_struct_binding_container) {
+      --binding_num;
+      if (binding_num == 0) break;
+    }  /* if */
+    vp = vp->next;
+  }  /* while */
+  *elements = 0;
+  if (vp != NULL) {
+    /* Count the number of pack elements. */
+    an_il_entity_list_entry_ptr  ielep = vp->variant.bindings;
+    for (; ielep != NULL; ielep = ielep->next) {
+      vp = (a_variable_ptr)ielep->entity.ptr;
+      if (vp->is_pack_element) {
+        if (result_vp == NULL) result_vp = vp;
+        (*elements)++;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+done:
+  return result_vp;
+}  /* find_binding_for_pack */
 
 
 static a_field_ptr find_init_capture_for_pack(
@@ -12117,10 +12182,14 @@ lengths) *err is set to TRUE, FALSE otherwise.
       /* In non-deduction contexts, find the current pack element to
          be used. */
       a_boolean  not_found = FALSE;
-      if (prp->kind == prk_variable) {
+      if (prp->kind == prk_variable || prp->kind == prk_binding) {
         a_variable_ptr	vp;
         a_symbol_ptr	sym;
-        vp = find_variable_for_pack(prp, &elements_for_pack);
+        if (prp->kind == prk_variable) {
+          vp = find_variable_for_pack(prp, &elements_for_pack);
+        } else {
+          vp = find_binding_for_pack(prp, &elements_for_pack);
+        }  /* if */
         if (vp != NULL) {
           sym = symbol_for(vp);
         } else {
@@ -12236,7 +12305,7 @@ lengths) *err is set to TRUE, FALSE otherwise.
                     /* Count the number of pack elements. */
                     for (a_param_type_ptr ptp = vpip->param_type;
                          ptp != NULL && ptp->is_pack_element &&
-                                              ptp->param_num == prp->param_num;
+                                   ptp->param_num == prp->param_or_binding_num;
                          ptp = ptp->next) {
                       ++elements_for_pack;
                     }  /* for */
@@ -12362,7 +12431,8 @@ pack expansion stack entry for which the symbols are to be updated.
         /* There is no argument -- set the symbol to an error value. */
         set_template_param_symbol_to_error(sym);
       }  /* if */
-    } else if (param_prp->kind == prk_variable) {
+    } else if (param_prp->kind == prk_variable ||
+               param_prp->kind == prk_binding) {
       if (arg_prp->primary_pack_symbol != NULL) {
         arg_prp->primary_pack_symbol->variant.variable.ptr =
                                                arg_prp->curr_argument.variable;
@@ -12840,7 +12910,7 @@ that *p_pedp is set even when FALSE is returned.
     } else if (pedp->uses_only_enclosing_packs) {
       a_pack_reference_ptr      prp;
       a_template_nesting_depth  max_pack_depth = NO_NESTING_DEPTH;
-      uint32_t                  min_function_scopes_to_skip = 0;
+      uint32_t                  min_scopes_to_skip = 0;
       a_boolean                 has_variable_pack_reference = FALSE,
                                 has_unhandled_pack_reference = FALSE;
 
@@ -12852,11 +12922,11 @@ that *p_pedp is set even when FALSE is returned.
           if (prp->coordinates->depth > max_pack_depth) {
             max_pack_depth = prp->coordinates->depth;
           }  /* if */
-        } else if (prp->kind == prk_variable) {
+        } else if (prp->kind == prk_variable || prp->kind == prk_binding) {
           has_variable_pack_reference = TRUE;
-          if (min_function_scopes_to_skip == 0 ||
-              prp->function_scopes_to_skip < min_function_scopes_to_skip) {
-            min_function_scopes_to_skip = prp->function_scopes_to_skip;
+          if (min_scopes_to_skip == 0 ||
+              prp->function_or_block_scopes_to_skip < min_scopes_to_skip) {
+            min_scopes_to_skip = prp->function_or_block_scopes_to_skip;
           }  /* if */
         } else {
           has_unhandled_pack_reference = TRUE;
@@ -12874,10 +12944,10 @@ that *p_pedp is set even when FALSE is returned.
            innermost variable pack reference. */
         skip_next_inst_scope = FALSE;
         for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
-          if (scope_is(ssep, sck_function)) {
-            if (min_function_scopes_to_skip > 0) {
+          if (scope_is(ssep, sck_function) || scope_is(ssep, sck_block)) {
+            if (min_scopes_to_skip > 0) {
               skip_next_inst_scope = TRUE;
-              --min_function_scopes_to_skip;
+              --min_scopes_to_skip;
             }  /* if */
           } else if (scope_is(ssep, sck_template_instantiation)) {
             if (has_variable_pack_reference && !skip_next_inst_scope) {
@@ -13347,22 +13417,44 @@ that list to pedp.
               prev_prp2 = prp2;
             }  /* if */
           }  /* for */
-          if (prp1->kind == prk_variable) {
-            uint32_t			function_scopes_to_skip = 0;
+          if (prp1->kind == prk_variable || prp1->kind == prk_binding) {
+            uint32_t  scopes_to_skip = 0;
             /* Find out how many function scopes need to be skipped to find
-              the parameter variable. */
+               the parameter or binding variable. */
             for (ssep = &scope_stack_top(); ssep != NULL;
                  ssep = previous_scope_of(ssep)) {
-              /* Only consider function scopes. */
-              if (ssep->kind != (a_scope_kind)sck_function) continue;
-              if (ssep->number == prp1->symbol->decl_scope) break;
-              function_scopes_to_skip++;
+              /* Only consider function and block scopes. */
+              if (!scope_is(ssep, sck_function) &&
+                  !scope_is(ssep, sck_block)) {
+                continue;
+              }  /* if */
+              if (ssep->number == prp1->symbol->decl_scope) {
+                break;
+              }  /* if */
+              scopes_to_skip++;
             }  /* for */
             if (ssep == NULL) {
               expect_error();
               break;
+            } else if (prp1->kind == prk_binding) {
+              /* For a binding pack, determine the binding declaration
+                 number. */
+              a_scope_ptr     sp = ssep->il_scope;
+              uint32_t        binding_num = 0;
+              a_variable_ptr  binding_var = prp1->symbol->variant.variable.ptr;
+              a_variable_ptr  vp = binding_var->storage_class == sc_static ?
+                                       sp->variables : sp->nonstatic_variables;
+              for (; vp != NULL; vp = vp->next) {
+                if (vp == binding_var) break;
+                if (vp->is_struct_binding_container) ++binding_num;
+              }  /* for */
+              if (vp != NULL) {
+                prp1->param_or_binding_num = binding_num;
+              } else {
+                unexpected_condition();
+              }  /* if */
             }  /* if */
-            prp1->function_scopes_to_skip = function_scopes_to_skip;
+            prp1->function_or_block_scopes_to_skip = scopes_to_skip;
           }  /* if */
         }  /* for */
       }
@@ -13542,19 +13634,22 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
          param_prp = param_prp->next, arg_prp = arg_prp->next) {
       a_symbol_ptr	sym = param_prp->symbol;
       check_assertion(arg_prp != NULL);
-      if (param_prp->kind == prk_variable) {
+      if (param_prp->kind == prk_variable || param_prp->kind == prk_binding) {
         /* The symbol for the first pack element is found by lookup.  Update
            that symbol (pointed to by primary_pack_symbol) to point
            to the current variable to be used. */
         a_variable_ptr	vp = arg_prp->curr_argument.variable;
         a_variable_ptr	next_vp = vp == NULL ? NULL : vp->next;
-        if (vp != NULL && vp->is_parameter_pack &&
+        if (vp != NULL && vp->is_pack &&
             pesep->instantiation_descr->has_hybrid_pack_expansion) {
           /* Don't advance past a pack in a hybrid expansion. */
-        } else if (next_vp == NULL ||
-            next_vp->variant.assoc_param_type == NULL ||
-            vp->variant.assoc_param_type->param_num !=
-                               next_vp->variant.assoc_param_type->param_num) {
+        } else if ((param_prp->kind == prk_variable &&
+                    (next_vp == NULL ||
+                     next_vp->variant.assoc_param_type == NULL ||
+                     vp->variant.assoc_param_type->param_num !=
+                              next_vp->variant.assoc_param_type->param_num)) ||
+                   (param_prp->kind == prk_binding &&
+                    (next_vp == NULL || !next_vp->is_pack_element))) {
           arg_prp->curr_argument.variable = NULL;
           done = TRUE;
         } else {
@@ -13837,7 +13932,11 @@ form.
         if (bases_type != NULL) {
           kind = prk_bases;
         } else if (symbol_is(pack_symbol, sk_variable)) {
-          kind = prk_variable;
+          if (pack_symbol->variant.variable.ptr->is_struct_binding) {
+            kind = prk_binding;
+          } else {
+            kind = prk_variable;
+          }  /* if */
         } else if (symbol_is(pack_symbol, sk_parameter)) {
           kind = prk_parameter;
         } else if (symbol_is(pack_symbol, sk_field)) {
@@ -13847,9 +13946,11 @@ form.
         }  /* if */
         prp = alloc_pack_reference(kind);
         prp->symbol = pack_symbol;
-        if (kind == prk_variable) {
-          prp->param_num = pack_symbol->variant.variable.ptr
-                                      ->variant.assoc_param_type->param_num;
+        if (kind == prk_variable || kind == prk_binding) {
+          if (kind == prk_variable) {
+            prp->param_or_binding_num = pack_symbol->variant.variable.ptr
+                                        ->variant.assoc_param_type->param_num;
+          }  /* if */
           if (depth_innermost_function_scope == NO_SCOPE_DEPTH ||
               pack_symbol->is_pack_expansion ||
               pack_symbol->decl_scope !=
@@ -13858,7 +13959,7 @@ form.
           }  /* if */
         } else if (kind == prk_parameter) {
           a_param_id_ptr  pip = pack_symbol->variant.param_id;
-          prp->param_num = pip->param_num;
+          prp->param_or_binding_num = pip->param_num;
           if (pip->uses_only_enclosing_pack) {
             prp->uses_enclosing_pack = TRUE;
           }  /* if */

@@ -11020,6 +11020,7 @@ bindings container variable.
   for (;;) {
     a_variable_ptr  vp = (a_variable_ptr)ep->entity.ptr;
     set_decl_position(&vp->source_corresp, (a_src_seq_secondary_decl_ptr)NULL);
+    if (vp->is_pack) write_tok_str("...");
     gen_bare_name(&vp->source_corresp, iek_variable);
     if (ep->next != NULL) {
       write_tok_str(", ");

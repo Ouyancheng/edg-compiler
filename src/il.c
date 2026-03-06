@@ -17325,6 +17325,17 @@ scope depth.
                           is_local_scope_kind(ssep->kind) ||
                           !in_file_scope(var_ptr),
                           "add_to_variables_list: var in file scope region");
+      if (ssep->last_nonstatic_variable == NULL) {
+        if (sp->nonstatic_variables != NULL) {
+          /* We can only get here when expanding a structured binding pack for
+             a for-range-declaration. */
+          a_variable_ptr  vp = sp->nonstatic_variables;
+          check_assertion(vp->is_struct_binding_container &&
+                          vp->is_enhanced_for_iterator);
+          while (vp->next != NULL) vp = vp->next;
+          ssep->last_nonstatic_variable = vp;
+        }  /* if */
+      }  /* if */
       if (sp->nonstatic_variables == NULL) {
         sp->nonstatic_variables = var_ptr;
       } else {

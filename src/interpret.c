@@ -7437,6 +7437,8 @@ Interpret the given block statement and its associated scope (if any).
       save_storage_stack(ips, saved_stack);
       local_storage = TRUE;
       for (; vp != NULL && result; vp = vp->next) {
+        /* Skip dummy structured binding pack variables. */
+        if (vp->is_pack && vp->compiler_generated) continue;
         /* Ordinarily, local variables are allocated and initialized when
            interpreting their associated stmk_init entry.  In C++20, however,
            uninitialized variables are permitted in constexpr expressions

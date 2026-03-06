@@ -698,13 +698,12 @@ pointer decay).
     vp = make_variable(type_of_unknown_templ_param_nontype, sc_static,
                        depth_scope_stack);
     vp->source_corresp.is_local_to_function = TRUE;
-    vp->is_parameter_pack = TRUE;
     vp->compiler_generated = TRUE;
   } else {
     vp = make_param_variable(tp, param_id->storage_class);
     add_to_parameters_list(vp);
   }  /* if */
-  vp->is_parameter_pack = ptp->is_parameter_pack;
+  vp->is_pack = ptp->is_parameter_pack;
   vp->is_pack_element = ptp->is_pack_element;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Record the type exactly as it was declared (before array-to-pointer

@@ -11521,9 +11521,10 @@ typedef struct a_variable {
 			/* In C++, TRUE for variables with linkage (but not
 			   extern "C" linkage) that were declared using
 			   types without linkage. */
-  a_bit_field	is_parameter_pack:1;
-			/* TRUE for the parameter variable for a function
-			   parameter pack of a variadic template. */
+  a_bit_field	is_pack:1;
+			/* TRUE for a structured binding pack or for the
+			   parameter variable for a function parameter pack of
+			   a variadic template. */
   a_bit_field	is_pack_element:1;
 			/* TRUE for parameters of an actual instantiation of
 			   a variadic template for those parameters that are

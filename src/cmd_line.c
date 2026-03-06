@@ -4286,6 +4286,7 @@ default mode (e.g., exception handling).
   }  /* if */
   if (cpp26_mode) {
     embed_enabled = TRUE;
+    struct_binding_packs_enabled = TRUE;
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
      issue 903). */

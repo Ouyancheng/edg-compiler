@@ -1,5 +1,22 @@
 Version 6.9
 
+3/6/26   [EDGcpfe/27775,EDGcpfe/28548]
+C++26: Structured binding packs
+
+The front end now supports structured binding packs, which have been adopted
+for the upcoming C++26 Standard via WG21 paper P1061R10.  For example, with
+--c++26:
+
+  auto l = [] (auto v) {
+    auto [... b] = v;
+    return (b + ...);
+  };
+
+As part of this change, the field is_parameter_pack of a_variable has been
+renamed to is_pack, as it is now also set to TRUE for a structured binding
+pack.  This is a small IL CHANGE.
+
+
 3/5/26   [EDGcpfe/28719]
 Clang compatibility: Folding of __builtin_elementwise_... functions.
 

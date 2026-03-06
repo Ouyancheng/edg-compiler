@@ -327,6 +327,8 @@ enum a_pack_reference_kind {
 			   variable. */
   prk_parameter,	/* An argument pack represented by a parameter
 			   symbol. */
+  prk_binding,		/* An argument pack represented by a structured
+			   binding. */
   prk_init_capture,	/* An init-capture that is a pack. */
   prk_bases		/* A generated pack that represents a g++ __bases
 			   or __direct_bases trait. */
@@ -356,10 +358,10 @@ typedef struct a_pack_reference {
 			   because the variable pointed to will be in the
 			   function memory region.  NULL for prk_bases
 			   entries. */
-  uint32_t	param_num;
-			/* This is used for function parameter packs to
-			   record the parameter number of the parameter
-			   pack. */
+  uint32_t	param_or_binding_num;
+			/* This is used for function parameter or structured
+			   binding packs to record the parameter or structured
+			   binding number of the pack, respectively. */
   a_source_position
 		position;
 			/* The source position of the pack reference. */
@@ -372,14 +374,16 @@ typedef struct a_pack_reference {
 			/* Specifies the kind of entity to which this
 			   entry refers. */
   a_symbol_ptr	primary_pack_symbol;
-			/* When kind == prk_variable, prk_parameter, or
-			   prk_init_capture in an actual instantiation,
-			   this points to the variable, parameter, or
-			   field symbol that is found by name lookup. */
-  uint32_t	function_scopes_to_skip;
-			/* When kind == prk_variable, this indicates the number
-			   of function scopes to be bypassed to look for the
-			   matching parameter variable. */
+			/* When kind == prk_variable, prk_binding,
+			   prk_parameter, or prk_init_capture in an actual
+			   instantiation, this points to the variable,
+			   parameter, or field symbol that is found by name
+			   lookup. */
+  uint32_t	function_or_block_scopes_to_skip;
+			/* When kind == prk_variable or prk_binding, this
+			   indicates the number of function or block scopes to
+			   be bypassed to look for the matching parameter or
+			   structured binding variable. */
   a_variadic_param_info_ptr
 		param_info;
 			/* When kind == prk_parameter and this is a rescan
@@ -400,8 +404,9 @@ typedef struct a_pack_reference {
   union {
     a_variable_ptr
 		variable;
-			/* When kind == prk_variable, this points to the
-			   variable to be used for the current expansion. */
+			/* When kind == prk_variable or prk_binding, this
+			   points to the variable to be used for the current
+			   expansion. */
     a_param_type_ptr
 		param_type;
 			/* When kind == prk_parameter and this is a rescan

@@ -4898,8 +4898,11 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
   { "",
     0,
     &struct_bindings_enabled,
-    "__cpp_structured_bindings",
-    "201606L" },
+    NULL,		/* __cpp_structured_bindings must be handled specially,
+			   as it will have different values depending on
+			   whether C++26 structured binding packs are
+			   supported. */
+    NULL },
   { "",
     0,
     &generalized_template_template_matching,
@@ -12223,6 +12226,18 @@ command line -D options.
                                  /*ref_suppresses_pch_file=*/FALSE);
       } else if (generic_lambdas_enabled) {
         (void)enter_predef_macro("201304L", "__cpp_generic_lambdas",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      }  /* if */
+      /* __cpp_structured_bindings must be handled specially, as it will have
+         different values depending on whether C++26 structured binding packs
+         are supported. */
+      if (struct_binding_packs_enabled) {
+        (void)enter_predef_macro("202411L", "__cpp_structured_bindings",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      } else if (struct_bindings_enabled) {
+        (void)enter_predef_macro("201606L", "__cpp_structured_bindings",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */

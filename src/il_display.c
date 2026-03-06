@@ -3150,8 +3150,8 @@ Display the indicated variable.
   if (ptr->declared_using_type_without_linkage) {
     disp_boolean("declared_using_type_without_linkage", TRUE);
   }  /* if */
-  if (ptr->is_parameter_pack) {
-    disp_boolean("is_parameter_pack", TRUE);
+  if (ptr->is_pack) {
+    disp_boolean("is_pack", TRUE);
   }  /* if */
   if (ptr->is_pack_element) {
     disp_boolean("is_pack_element", TRUE);

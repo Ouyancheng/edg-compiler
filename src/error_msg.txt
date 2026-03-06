@@ -3639,6 +3639,9 @@ ec_vector_of_boolean_required;;"argument must be a vector of boolean types"
 ec_pointer_to_scalar_required;;"argument must be a pointer to a scalar type"
 ec_incorrect_masked_type;;"incorrect argument type (should be %t)"
 ec_vector_type_with_size_is_required;;"a vector type (with the same number of elements as the first argument) is required"
+ec_struct_binding_packs_is_cpp26;;"structured binding packs are a C++26 feature"
+ec_non_template_structured_binding_pack;;"a structured binding pack can only be declared inside a template"
+ec_multiple_structured_binding_packs;;"cannot declare multiple packs in a structured binding declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
