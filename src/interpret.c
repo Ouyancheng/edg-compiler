@@ -10298,7 +10298,7 @@ element type.
   a_type     *tp = *p_tp;
 
   if (is_immediate_vector_type(tp)) {
-    a_type  *etp = skip_typerefs(tp->variant.array.element_type);
+    a_type  *etp = skip_typerefs(tp->variant.vector.element_type);
     *elem_size = value_bytes_for_type(ips, etp, &result);
     if (result) {
       *n_elems = n_bytes / *elem_size;
