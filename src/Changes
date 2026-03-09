@@ -1,5 +1,13 @@
 Version 6.9
 
+3/9/26   [EDGcpfe/28732]
+Clang compatibility: Accept a fourth argument on diagnose_if attributes
+
+Clang 20.1.0 allows a fourth string argument to diagnose_if attributes.  The
+front end now allows that as well.  Arguments to diagnose_if are parsed and
+recorded, but are otherwise ignored.
+
+
 3/9/26   [EDGcpfe/28735]
 Internal error when processing large types
 

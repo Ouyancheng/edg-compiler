@@ -266,7 +266,7 @@ static constexpr an_attr_descr known_attr_table[] = {
   { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },
   { "overloadable", "", "lx", ak_overloadable },
   { "pass_object_size", "(ci)", "lx", ak_pass_object_size },
-  { "diagnose_if", "(X,sn,sn)", "lx", ak_diagnose_if },
+  { "diagnose_if", "(X,sn,sn?,sn)", "lx", ak_diagnose_if },
 
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
