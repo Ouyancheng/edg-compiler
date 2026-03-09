@@ -1,5 +1,21 @@
 Version 6.9
 
+3/9/26   [EDGcpfe/22048,EDGcpfe/24821,EDGcpfe/28029,EDGcpfe/28146,
+          EDGcpfe/28737]
+Defaulted virtual function missing a definition
+
+The front end sometimes failed to trigger the generation of the definition for
+a defaulted virtual function.  For example:
+
+  #include <compare>
+  struct S {
+    virtual std::strong_ordering operator<=>(S const&) const = default;
+  } s;
+  int main() {}
+
+This could lead to linker errors or prelinker loops.  That is now fixed.
+
+
 3/9/26   [EDGcpfe/28738]
 Spurious constant-evaluation error when capturing an empty class variable
 

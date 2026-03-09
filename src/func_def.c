@@ -154,16 +154,13 @@ Require definitions for the virtual functions of the indicated class.
   /* If this is a template class, instantiate all the virtual member
      functions.  When instantiating extern inline functions in a way similar
      to templates, do this for all classes. */
-  if ((instantiate_extern_inline ||
-       (class_type->variant.class_struct_union.is_template_class &&
-        !class_type->variant.class_struct_union.is_specialized)) &&
-      class_type->variant.class_struct_union.any_virtual_functions) {
+  if (class_type->variant.class_struct_union.any_virtual_functions) {
     /* Look for virtual functions on the class routines list. */
-    a_routine_ptr rp = class_type->variant.class_struct_union.extra_info->
-                                                         assoc_scope->routines;
+    a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
+    a_boolean      keep_class_def = FALSE;
     for (; rp != NULL; rp = rp->next) {
       if (rp->is_virtual && !rp->pure_virtual) {
-        a_symbol_ptr sym;
+        keep_class_def = TRUE;
 #if IA64_ABI && DO_IL_LOWERING
         /* Secondary entry points of constructors and destructors should
            not get here. */
@@ -173,18 +170,26 @@ Require definitions for the virtual functions of the indicated class.
            that the defer-inline flag is important here to prevent the actual
            instantiation of these functions from occurring earlier than is
            absolutely necessary. */
-        sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
-        /* Set the instantiation_required flag for the virtual function. */
-        set_instance_required(sym, /*value=*/TRUE, SIR_DEFER_INLINE);
-#if DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS
-        /* Force the class definition to be kept, because if it is removed the
-           virtual function table variable will be detached, and later the
-           instance-required flag will be cleared on the virtual functions of
-           the class because there is no virtual function table. */
-        set_class_keep_definition_in_il(class_type);
-#endif /* DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS */
+        if (rp->is_defaulted) {
+          force_definition_of_compiler_generated_routine(rp);
+        }  /* if */
+        if ((instantiate_extern_inline && rp->is_inline) ||
+            is_unspecialized_template_member_function(rp)) {
+          a_symbol_ptr sym = symbol_for(rp);
+          /* Set the instantiation_required flag for the virtual function. */
+          set_instance_required(sym, /*value=*/TRUE, SIR_DEFER_INLINE);
+        }  /* if */
       }  /* if */
     }  /* for */
+#if DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS
+    if (keep_class_def) {
+      /* Force the class definition to be kept, because if it is removed the
+         virtual function table variable will be detached, and later the
+         instance-required flag will be cleared on the virtual functions of
+         the class because there is no virtual function table. */
+      set_class_keep_definition_in_il(class_type);
+    }  /* if */
+#endif /* DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS */
   }  /* if */
 }  /* require_definitions_of_virtual_functions_on_routine_list */
 
