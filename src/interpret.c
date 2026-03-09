@@ -20058,7 +20058,9 @@ closure object is placed at the location indicated by dst_addr.
               do_constexpr_fail(result);
               break;
             } else if (!is_function_address(&var_addr) &&
-                       !is_initialized(&var_addr)) {
+                       !is_initialized(&var_addr) &&
+                       !is_immediate_class_type(uvtp)) {
+              /* Do not copy uninitialized data (empty classes are okay). */
               info_with_pos(ec_object_not_initialized, pos, ips);
               do_constexpr_fail(result);
               break;
