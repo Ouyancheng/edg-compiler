@@ -2760,10 +2760,11 @@ option values if they were not already set by a command line option.
     }  /* if */
     if (!option_kind_used[(int)optk_parse_nonclass_templates]) {
       /* Parse nonclass templates if dependent name processing is being
-         done.  Note that --no_ms_permissive will force dependent name
-         processing to be done unless it is disabled explicitly by
-         the --no_dep_name option. */
-      nonclass_prototype_instantiations = do_dependent_name_processing;
+         done or C++26 is enabled.  Note that --no_ms_permissive will
+         force dependent name processing to be done unless it is disabled
+         explicitly by the --no_dep_name option. */
+      nonclass_prototype_instantiations = do_dependent_name_processing ||
+                                          cpp26_mode;
     }  /* if */
     if (!option_kind_used[(int)optk_implicit_typename]) {
       /* Implicit typename processing is not done unless dependent name
@@ -12134,6 +12135,16 @@ enable_microsoft_mode:
     nonclass_prototype_instantiations = TRUE;
     /* Do argument dependent lookup when doing dependent name processing. */
     arg_dependent_lookup_enabled = TRUE;
+  }  /* if */
+  if (cpp26_mode) {
+    /* Do nonclass prototype instantiations when C++26 is enabled. */
+    if (option_kind_used[(int)optk_parse_nonclass_templates] &&
+        !nonclass_prototype_instantiations) {
+      /* The option --no_parse_templates was used: it is incompatible with
+         C++26 features like structured binding packs. */
+      command_line_error(ec_cl_cpp26_requires_parse_nonclass_templates);
+    }  /* if */
+    nonclass_prototype_instantiations = TRUE;
   }  /* if */
   if (lambdas_enabled) {
     /* If lambdas are allowed, enable local types as template arguments too. */

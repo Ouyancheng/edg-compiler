@@ -3642,6 +3642,7 @@ ec_vector_type_with_size_is_required;;"a vector type (with the same number of el
 ec_struct_binding_packs_is_cpp26;;"structured binding packs are a C++26 feature"
 ec_non_template_structured_binding_pack;;"a structured binding pack can only be declared inside a template"
 ec_multiple_structured_binding_packs;;"cannot declare multiple packs in a structured binding declaration"
+ec_cl_cpp26_requires_parse_nonclass_templates;;"C++26 cannot be used with \"no_parse_templates\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
