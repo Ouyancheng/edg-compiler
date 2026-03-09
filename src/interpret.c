@@ -261,6 +261,18 @@ Macro defining the largest allowed size of a type in the interpreter.
 #define MAX_CONSTEXPR_TYPE_SIZE ((a_byte_count)(1<<30))
 
 /*
+Macros used to indicate a failure to compute the size of a type during constant
+folding.  This can occur either because the type is too large, contains an
+error node, or is otherwise invalid in the interpreter.
+CONSTEXPR_TYPE_SIZE_INPUT_ERROR is used only in the persistent_map's type size
+cache to indicate that the cached failure occurred specifically because of an
+error node in the type.  This is used to ensure the input_error ips flag is
+appropriately set on later cache lookups for this type.
+*/
+#define CONSTEXPR_TYPE_SIZE_ERROR MAX_CONSTEXPR_TYPE_SIZE + 1
+#define CONSTEXPR_TYPE_SIZE_INPUT_ERROR MAX_CONSTEXPR_TYPE_SIZE + 2
+
+/*
 Macros that control the maximum length of an array.  The length of arrays is
 sometimes stored in a bit field (see a_constexpr_address).  So, the width of
 that field is defined here.
@@ -3050,6 +3062,51 @@ initialization processing.  If there is no next such field, return NULL.
 }  /* next_alloc_field */
 
 
+static a_byte_count value_bytes_for_type_failure(
+                                                an_error_code        ec,
+                                                an_interpreter_state *ips,
+                                                a_type_ptr           tp,
+                                                a_boolean            *p_result)
+/*
+Issue a diagnostic indicating a failure to compute the size of a type during
+constant folding.  Sets the p_result failure bit and returns a normalized byte
+count which is used to propagate the failure condition.
+*/
+{
+  info_with_pos_type(ec, type_pos(tp, ips), tp, ips);
+  do_constexpr_fail(*p_result);
+  return CONSTEXPR_TYPE_SIZE_ERROR;
+}  /* value_bytes_for_type_failure */
+
+
+static void map_value_bytes_for_type(an_interpreter_state *ips,
+                                     a_data_map           *map,
+                                     a_type_ptr           tp,
+                                     a_byte_count         total_size)
+/*
+Adds a cache entry for the total size of type tp to map.  Note that we must
+record a nonzero size even in case of failure, since otherwise the computation
+of the size may be repeated, which could lead to erroneous recording of member
+offsets for a given field or base (which in turn would trigger an internal
+error).
+
+When recording a failure, indicate whether the failure occurred due to an input
+error so that the ips input_error flag can be propagated on later cache
+lookups.
+*/
+{
+  if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
+    if (ips->input_error) {
+      map_byte_count(map, tp, CONSTEXPR_TYPE_SIZE_INPUT_ERROR);
+    } else {
+      map_byte_count(map, tp, CONSTEXPR_TYPE_SIZE_ERROR);
+    }  /* if */
+  } else {
+    map_byte_count(map, tp, total_size);
+  }  /* if */
+}  /* map_value_bytes_for_type */
+
+
 static a_byte_count f_value_bytes_for_type(an_interpreter_state  *ips,
                                            a_type_ptr            tp,
                                            a_boolean             *p_result)
@@ -3098,23 +3155,13 @@ redo:
           } else if (n_elems > MAX_CONSTEXPR_TYPE_SIZE/result ||
                      n_elems > MAX_ARRAY_LENGTH) {
             /* Too many elements. */
-#if DEBUG
-            check_assertion(ips != NULL);
-#endif /* DEBUG */
-            info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips),
-                               tp, ips);
-            do_constexpr_fail(*p_result);
-            result = MAX_CONSTEXPR_TYPE_SIZE+1;
+            result = value_bytes_for_type_failure(ec_constexpr_type_too_large,
+                                                  ips, tp, p_result);
           } else {
             result *= (a_byte_count)n_elems;
           }  /* if */
         } else {
-#if DEBUG
-          check_assertion(ips != NULL);
-#endif /* DEBUG */
-          info_with_pos(err_code, type_pos(tp, ips), ips);
-          do_constexpr_fail(*p_result);
-          result = MAX_CONSTEXPR_TYPE_SIZE+1;
+          result = value_bytes_for_type_failure(err_code, ips, tp, p_result);
         }  /* if */
       }  /* if */
       break;
@@ -3136,10 +3183,8 @@ redo:
                template<int = []{ return 1; }()>  int f();
              The is_empty_class condition allows us to nonetheless handle such
              cases. */
-          info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp,
-                             ips);
-          do_constexpr_fail(*p_result);
-          result = MAX_CONSTEXPR_TYPE_SIZE+1;
+          result = value_bytes_for_type_failure(ec_constexpr_type_invalid,
+                                                ips, tp, p_result);
         } else if (!tp->incomplete) {
           result = lay_out_class_type(ips, tp, p_result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3154,23 +3199,21 @@ redo:
           result += 4*sizeof(an_integer_value);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
-#if DEBUG
-          check_assertion(ips != NULL);
-#endif /* DEBUG */
-          info_with_pos_type(ec_constexpr_incomplete_type,
-                             type_pos(tp, ips), tp, ips);
-          do_constexpr_fail(*p_result);
+          result = value_bytes_for_type_failure(ec_constexpr_incomplete_type,
+                                                ips, tp, p_result);
         }  /* if */
       } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
-        /* This type previously ran into a layout problem.  Treat this as
-           an IL error. */
 #if DEBUG
         check_assertion(ips != NULL);
 #endif /* DEBUG */
-        ips->input_error = TRUE;
-        info_with_pos_type(ec_constexpr_type_invalid, type_pos(tp, ips),
-                           tp, ips);
-        do_constexpr_fail(*p_result);
+        if (result == CONSTEXPR_TYPE_SIZE_INPUT_ERROR) {
+          ips->input_error = TRUE;
+        }  /* if */
+        /* The cache lookup indicated a previous failure to compute the size of
+           this type.  Issue a generic diagnostic because the actual cause of
+           the failure is not stored in the cache. */
+        result = value_bytes_for_type_failure(ec_constexpr_type_invalid,
+                                              ips, tp, p_result);
       }  /* if */
       break;
     case tk_union:
@@ -3180,24 +3223,26 @@ redo:
         check_assertion(ips != NULL);
 #endif /* DEBUG */
         if (tp->variant.class_struct_union.is_nonreal_class) {
-          info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp,
-                             ips);
-          do_constexpr_fail(*p_result);
-          result = MAX_CONSTEXPR_TYPE_SIZE+1;
+          result = value_bytes_for_type_failure(ec_constexpr_type_invalid,
+                                                ips, tp, p_result);
         } else if (!tp->incomplete) {
           result = lay_out_union_type(ips, tp, p_result);
         } else {
-          a_source_position  *pos = &tp->source_corresp.decl_position;
-          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-          do_constexpr_fail(*p_result);
+          result = value_bytes_for_type_failure(ec_constexpr_incomplete_type,
+                                                ips, tp, p_result);
         }  /* if */
       } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
-        a_source_position  *pos = &tp->source_corresp.decl_position;
 #if DEBUG
         check_assertion(ips != NULL);
 #endif /* DEBUG */
-        info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-        do_constexpr_fail(*p_result);
+        if (result == CONSTEXPR_TYPE_SIZE_INPUT_ERROR) {
+          ips->input_error = TRUE;
+        }  /* if */
+        /* The cache lookup indicated a previous failure to compute the size of
+           this type.  Issue a generic diagnostic because the actual cause of
+           the failure is not stored in the cache. */
+        result = value_bytes_for_type_failure(ec_constexpr_type_invalid,
+                                              ips, tp, p_result);
       }  /* if */
       break;
     case tk_typeref:
@@ -3215,14 +3260,11 @@ redo:
           /* Interpretation failure. */
         } else if (n_elems > MAX_CONSTEXPR_TYPE_SIZE/result ||
                    n_elems > MAX_ARRAY_LENGTH) {
-          /* Too many elements. */
-          a_source_position  *pos = &tp->source_corresp.decl_position;
 #if DEBUG
           check_assertion(ips != NULL);
 #endif /* DEBUG */
-          if (pos->seq == 0) pos = &ips->position;
-          info_with_pos_type(ec_constexpr_type_too_large, pos, tp, ips);
-          do_constexpr_fail(*p_result);
+          result = value_bytes_for_type_failure(ec_constexpr_type_too_large,
+                                                ips, tp, p_result);
         } else {
           result *= (a_byte_count)n_elems;
         }  /* if */
@@ -3232,29 +3274,15 @@ redo:
     case tk_scalable_vector_count:
     case tk_riscv_vector:
     case tk_mfp8:
-      { a_source_position  *pos = &tp->source_corresp.decl_position;
-#if DEBUG
-        check_assertion(ips != NULL);
-#endif /* DEBUG */
-        if (pos->seq == 0) pos = &ips->position;
-        info_with_pos_type(ec_constexpr_type_invalid, pos, tp, ips);
-        do_constexpr_fail(*p_result);
-        result = MAX_CONSTEXPR_TYPE_SIZE+1;
-      }
+      result = value_bytes_for_type_failure(ec_constexpr_type_invalid,
+                                            ips, tp, p_result);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:       /* All fixed-point types. */
       /* These types are not supported by the interpreter. */
-      { a_source_position  *pos = &tp->source_corresp.decl_position;
-#if DEBUG
-        check_assertion(ips != NULL);
-#endif /* DEBUG */
-        if (pos->seq == 0) pos = &ips->position;
-        info_with_pos_type(ec_constexpr_type_invalid, pos, tp, ips);
-        do_constexpr_fail(*p_result);
-        result = MAX_CONSTEXPR_TYPE_SIZE+1;
-      }
+      result = value_bytes_for_type_failure(ec_constexpr_type_invalid,
+                                            ips, tp, p_result);
       break;
 #endif /* FIXED_POINT_ALLOWED */
     case tk_reflection:
@@ -3269,9 +3297,8 @@ redo:
     case tk_template_param:
     case tk_unknown:
       /* Fail interpretation. */
-      info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp, ips);
-      do_constexpr_fail(*p_result);
-      result = MAX_CONSTEXPR_TYPE_SIZE+1;
+      result = value_bytes_for_type_failure(ec_constexpr_type_invalid,
+                                            ips, tp, p_result);
       break;
     default:
       /* These types should never be encountered by the interpreter. */
@@ -3325,11 +3352,13 @@ interpreter's limits; in that case, *p_result is set to FALSE.
     total_size += sub_size;
     if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
       if (*p_result) {
-        info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips), tp,
-                            ips);
-        do_constexpr_fail(*p_result);
+        total_size = value_bytes_for_type_failure(ec_constexpr_type_too_large,
+                                                  ips, tp, p_result);
+      } else {
+        /* A failure (and diagnostic) occurred while computing the size of a
+           field.  No need to issue another diagnostic. */
+        total_size = CONSTEXPR_TYPE_SIZE_ERROR;
       }  /* if */
-      total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
       goto done;
     }  /* if */
   }  /* for */
@@ -3342,7 +3371,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
       map_byte_count(&persistent_map, bcp, total_size);
       (void)value_bytes_for_type(ips, btp, p_result);
       if (!*p_result) {
-        total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
+        total_size = CONSTEXPR_TYPE_SIZE_ERROR;
         goto done;
       }  /* if */
       get_mapped_byte_count(&persistent_map,
@@ -3350,10 +3379,8 @@ interpreter's limits; in that case, *p_result is set to FALSE.
                             size_without_virtual_bases);
       total_size += size_without_virtual_bases;
       if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
-        info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips), tp,
-                           ips);
-        do_constexpr_fail(*p_result);
-        total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
+        total_size = value_bytes_for_type_failure(ec_constexpr_type_too_large,
+                                                  ips, tp, p_result);
         goto done;
       }  /* if */
     }  /* if */
@@ -3372,11 +3399,14 @@ interpreter's limits; in that case, *p_result is set to FALSE.
                                                          p_result);
         if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
           if (*p_result) {
-            info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips),
-                               tp, ips);
-            do_constexpr_fail(*p_result);
+            total_size = value_bytes_for_type_failure(
+                                                   ec_constexpr_type_too_large,
+                                                   ips, tp, p_result);
+          } else {
+            /* A failure (and diagnostic) occurred while computing the size of
+               a base.  No need to issue another diagnostic. */
+            total_size = CONSTEXPR_TYPE_SIZE_ERROR;
           }  /* if */
-          total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
           goto done;
         }  /* if */
       }  /* if */
@@ -3384,11 +3414,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
   }  /* if */
   do_host_alignment(&total_size);
 done:
-  /* Note that we must record a nonzero size even in case of failure, since
-     otherwise the process may be repeated, which could lead to erroneously
-     recording two offsets for a given field or base (which in turn would
-     trigger an internal error). */
-  map_byte_count(&persistent_map, tp, total_size);
+  map_value_bytes_for_type(ips, &persistent_map, tp, total_size);
   return total_size;
 }  /* lay_out_class_type */
 
@@ -3414,7 +3440,9 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
   for (fp = fields_of(tp); fp != NULL; fp = fp->next) {
     a_byte_count  field_size = value_bytes_for_type(ips, fp->type, p_result);
     if (!*p_result) {
-      total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
+      /* A failure (and diagnostic) occurred while computing the size of a
+         member.  No need to issue another diagnostic. */
+      total_size = CONSTEXPR_TYPE_SIZE_ERROR;
       goto done;
     }  /* if */
     map_byte_count(&persistent_map, fp, prefix_size);
@@ -3422,14 +3450,12 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
   }  /* for */
   total_size = prefix_size+max_field_size;
   do_host_alignment(&total_size);
-  if (total_size >= MAX_CONSTEXPR_TYPE_SIZE) {
-    info_with_pos_type(ec_constexpr_type_too_large, type_pos(tp, ips), tp,
-                       ips);
-    *p_result = TRUE;
-    total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
+  if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
+    total_size = value_bytes_for_type_failure(ec_constexpr_type_too_large,
+                                              ips, tp, p_result);
   }  /* if */
 done:
-  map_byte_count(&persistent_map, tp, total_size);
+  map_value_bytes_for_type(ips, &persistent_map, tp, total_size);
   return total_size;
 }  /* lay_out_union_type */
 
