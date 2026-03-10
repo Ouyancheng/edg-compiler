@@ -173,10 +173,12 @@ Require definitions for the virtual functions of the indicated class.
         if (rp->is_defaulted) {
           force_definition_of_compiler_generated_routine(rp);
         }  /* if */
-        if ((instantiate_extern_inline && rp->is_inline) ||
+        if (instantiate_extern_inline ||
             is_unspecialized_template_member_function(rp)) {
           a_symbol_ptr sym = symbol_for(rp);
-          /* Set the instantiation_required flag for the virtual function. */
+          /* Set the instantiation_required flag for the virtual function or
+             potentially-inline function (functions can be marked inline after
+             they have been declared: do not test the is_inline flag). */
           set_instance_required(sym, /*value=*/TRUE, SIR_DEFER_INLINE);
         }  /* if */
       }  /* if */
