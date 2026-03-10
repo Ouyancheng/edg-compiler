@@ -10323,14 +10323,7 @@ element type.
   a_boolean  result = TRUE;
   a_type     *tp = *p_tp;
 
-  if (is_immediate_vector_type(tp)) {
-    a_type  *etp = skip_typerefs(tp->variant.vector.element_type);
-    *elem_size = value_bytes_for_type(ips, etp, &result);
-    if (result) {
-      *n_elems = n_bytes / *elem_size;
-      *p_tp = etp;
-    }  /* if */
-  } else if (type_is(tp, tk_array)) {
+  if (type_is(tp, tk_array)) {
     if (tp->variant.array.is_variable_size_array ||
         tp->variant.array.is_template_dependent_size_array ||
         tp->incomplete) {
@@ -10341,6 +10334,15 @@ element type.
       *elem_size = n_bytes / *n_elems;
       *p_tp = skip_typerefs(tp->variant.array.element_type);
     }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+  } else if (is_immediate_vector_type(tp)) {
+    a_type  *etp = skip_typerefs(tp->variant.vector.element_type);
+    *elem_size = value_bytes_for_type(ips, etp, &result);
+    if (result) {
+      *n_elems = n_bytes / *elem_size;
+      *p_tp = etp;
+    }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else {
     /* A scalar type. */
     *n_elems = 1;
