@@ -42,7 +42,7 @@ Internal error when processing large types
 
 Previously, an internal error in lower_constant (lower_il.c) could occur
 when processing types whose size exceeded the front end's constexpr
-type size limit. For example, with --c++11:
+type size limit.  For example, with --c++11:
 
   struct arr { unsigned char x[1ull << 31]; };
 
@@ -54,7 +54,7 @@ type size limit. For example, with --c++11:
   }
 
 The error occurred due to incorrect handling of certain failure modes while
-constant folding. This issue has now been fixed.
+constant folding.  This issue has now been fixed.
 
 
 3/7/26   [EDGcpfe/28715]

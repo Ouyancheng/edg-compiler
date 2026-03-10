@@ -3069,8 +3069,8 @@ static a_byte_count value_bytes_for_type_failure(
                                                 a_boolean            *p_result)
 /*
 Issue a diagnostic indicating a failure to compute the size of a type during
-constant folding.  Sets the p_result failure bit and returns a normalized byte
-count which is used to propagate the failure condition.
+constant folding.  Additionally, set *p_result to FALSE and return a normalized
+byte count which is used to propagate the failure condition.
 */
 {
   info_with_pos_type(ec, type_pos(tp, ips), tp, ips);
