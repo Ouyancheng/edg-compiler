@@ -157,10 +157,14 @@ Require definitions for the virtual functions of the indicated class.
   if (class_type->variant.class_struct_union.any_virtual_functions) {
     /* Look for virtual functions on the class routines list. */
     a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
+#if DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS
     a_boolean      keep_class_def = FALSE;
+#endif /* DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS */
     for (; rp != NULL; rp = rp->next) {
       if (rp->is_virtual && !rp->pure_virtual) {
+#if DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS
         keep_class_def = TRUE;
+#endif /* DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS */
 #if IA64_ABI && DO_IL_LOWERING
         /* Secondary entry points of constructors and destructors should
            not get here. */
