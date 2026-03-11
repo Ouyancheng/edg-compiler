@@ -16240,8 +16240,9 @@ static a_type_ptr copy_vector_type_with_substitution(
 			a_boolean			*copy_error,
 			a_ctws_state_ptr		ctws_state)
 /*
-type points to an vector type.  Copy, with substitution, the element type
-and the size constant.
+type points to a vector type.  Copy, with substitution, the element type
+and the size constant, and return the resulting vector type (which may
+or may not be the given type).
 */
 {
   a_constant_ptr	orig_cp, new_cp;
