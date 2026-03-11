@@ -8359,6 +8359,61 @@ an error and return an error type.
 }  /* apply_neon_vector_type_attr */
 
 
+a_host_large_integer validate_ext_vector_size(a_constant         *size_con,
+                                              a_type_ptr         elem_type,
+                                              a_source_position  *diag_pos,
+                                              a_boolean          *p_err)
+/*
+Check that size_con is a valid operand for the ext_vector_size attribute, and
+return the resulting vector size (in bytes).  elem_type is the vector element
+type.  If diag_pos is non-NULL, issue any errors at the given position.  If
+size_con is not valid, set *p_err to TRUE.
+*/
+{
+  a_host_large_integer  size = 0;
+
+  if (constant_is(size_con, ck_template_param)) {
+    /* Record a dummy (nonzero) size. */
+    size = 1;
+  } else if (!constant_is(size_con, ck_integer)) {
+    check_assertion_or_expect_error(diag_pos == NULL);
+    *p_err = TRUE;
+  } else {
+    a_host_large_unsigned  elem_size;
+    a_boolean              ovflo = FALSE;
+    elem_type = skip_typerefs(elem_type);
+    elem_size = elem_type->size;
+    size = value_of_integer_constant(size_con, &ovflo);
+    if (ovflo || size <= 0 || size >= 2048) {
+      if (diag_pos != NULL) {
+        pos_error(ec_ext_vector_type_invalid_size, diag_pos);
+      }  /* if */
+      *p_err = TRUE;
+    } else if (elem_size == 0) {
+      check_assertion_or_expect_error(diag_pos == NULL);
+      *p_err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!*p_err) {
+    /* The attribute argument gives the number of elements in the vector;
+       convert that to the overall size of the vector type.  An exception is
+       made for vectors of bool type; in that case each element takes a single
+       bit (and rounded up to a size that is a power of two). */
+    if (is_bool_type(elem_type)) {
+      if (size <= targ_char_bit) {
+        size = 1;
+      } else {
+        size = (size + targ_char_bit - 1) / targ_char_bit;
+        size = (a_host_large_integer)next_pow2((uint64_t)size);
+      }  /* if */
+    } else {
+      size = (a_host_large_integer)elem_type->size * size;
+    }  /* if */
+  }  /*if */
+  return size;
+}  /* validate_ext_vector_size */
+
+                                              
 static char* apply_ext_vector_type_attr(an_attribute_ptr  ap,
                                         char              *entity,
                                         an_il_entry_kind  entity_kind)
@@ -8369,10 +8424,9 @@ attribute doesn't apply to the given type, issue an error and return an
 error type.
 */
 {
-  a_type_ptr            elem_type = (a_type_ptr)entity, vector_type, result;
+  a_type_ptr            elem_type = (a_type_ptr)entity, result;
   an_attribute_arg_ptr  aap = ap->arguments;
-  a_constant_ptr        size_con;
-  a_boolean             ovflo = FALSE, err = FALSE;
+  a_boolean             err = FALSE;
   a_boolean             bool_type_allowed = clang_version_is(>=150000);
   a_host_large_integer  size = 0;
   a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
@@ -8405,55 +8459,27 @@ error type.
   } else {
     check_assertion(!is_incomplete_type(elem_type));
   }  /* if */
-  /* Validate the argument. */
-  size_con = aap->variant.constant;
-  if (size_con->kind == (a_constant_repr_kind)ck_template_param) {
-    /* Record a dummy (nonzero) size. */
-    size = 1;
-  } else {
-    a_host_large_unsigned  elem_size = skip_typerefs(elem_type)->size;
-    check_assertion(size_con->kind == (a_constant_repr_kind)ck_integer);
-    size = value_of_integer_constant(size_con, &ovflo);
-    if (ovflo || size <= 0 || size > (a_host_large_integer)2047) {
-      pos_error(ec_ext_vector_type_invalid_size, &ap->position);
-      err = TRUE;
-    } else if (elem_size == 0) {
-      expect_error();
-    }  /* if */
-  }  /* if */
   if (!(dps->declared_storage_class == sc_typedef || dps->is_alias)) {
     /* The ext_vector_type attribute must appear in a typedef or an alias
        declaration. */
     pos_error(ec_ext_vector_type_not_in_typedef, &ap->position);
     err = TRUE;
   }  /* if */
+  /* Validate the argument. */
+  size = validate_ext_vector_size(aap->variant.constant, elem_type,
+                                  &ap->position, &err);
   if (err) {
     /* Make sure the attribute is marked as "unrecognized". */
     make_attr_unrecognized(ap);
     result = error_type();
   } else {
-    /* The attribute argument gives the number of elements in the vector;
-       convert that to the overall size of the vector type.  An exception is
-       made for vectors of bool type; in that case each element takes a single
-       bit (and rounded up to a size that is a power of two). */
-    a_host_large_unsigned type_size;
-    if (is_bool_type(elem_type)) {
-      if (size <= CHAR_BIT) {
-        type_size = 1;
-      } else {
-        type_size = ((a_host_large_unsigned)size + CHAR_BIT - 1) / CHAR_BIT;
-        type_size = next_pow2(type_size);
-      }  /* if */
-    } else {
-      type_size = skip_typerefs(elem_type)->size * (a_host_large_unsigned)size;
-    }  /* if */
     /* Allocate the vector type. */
-    vector_type = alloc_type((a_type_kind)tk_vector);
+    a_type_ptr  vector_type = alloc_type(tk_vector);
     vector_type->source_corresp.decl_position = ap->position;
-    vector_type->size = type_size;
-    vector_type->alignment = (a_targ_alignment)type_size;
+    vector_type->size = (a_targ_size_t)size;
+    vector_type->alignment = (a_targ_alignment)size;
     vector_type->variant.vector.element_type = elem_type;
-    vector_type->variant.vector.size_constant = size_con;
+    vector_type->variant.vector.size_constant = aap->variant.constant;
     vector_type->variant.vector.kind = vk_ext;
     result = vector_type;
   }  /* if */

@@ -14695,11 +14695,30 @@ points to the template parameter list.
 #if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
         case tk_vector:
           /* Vector types are in principle similar to array types.  However,
-             current GNU versions (4.4.x and earlier) do not appear to support
-             deduction of dependent vector types. */
-          match = !vector_type_is_template_dependent(type) &&
-                  !vector_type_is_template_dependent(templ_type) &&
-                  identical_types(templ_type, type);
+             current GNU versions (16.x and earlier) do not appear to support
+             deduction of dependent vector types.  Clang does appear to
+             support deduction for vk_ext vectors. */
+          if (clang_mode && type->variant.vector.kind == vk_ext) {
+            a_constant_ptr cp = type->variant.vector.size_constant,
+                           templ_cp = templ_type->variant.vector.size_constant;
+            if (cp != NULL && templ_cp != NULL) {
+              match = matches_template_constant(cp, templ_cp,
+                                                templ_arg_list,
+                                                templ_param_list, flags);
+            }  /* if */
+            if (match) {
+              an_mtt_flag_set  element_flags = new_flags;
+              tp = type->variant.array.element_type;
+              ttp = templ_type->variant.array.element_type;
+              match = matches_template_type(tp, ttp, templ_arg_list,
+                                            templ_param_list,
+                                            element_flags);
+            }  /* if */
+          } else {
+            match = !vector_type_is_template_dependent(type) &&
+                    !vector_type_is_template_dependent(templ_type) &&
+                    identical_types(templ_type, type);
+          }  /* if */
           break;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
         default:
@@ -16210,6 +16229,72 @@ on the ck_template_param constant pointed to by the expression.
   }  /* if */
   return new_type;
 }  /* copy_array_type_with_substitution */
+
+
+static a_type_ptr copy_vector_type_with_substitution(
+			a_type_ptr			type,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
+/*
+type points to an vector type.  Copy, with substitution, the element type
+and the size constant.
+*/
+{
+  a_constant_ptr	orig_cp, new_cp;
+  a_type_ptr		new_type, tp = type->variant.vector.element_type;
+
+  tp = copy_type_with_substitution(tp, templ_arg_list, templ_param_list,
+                                   source_pos, options, copy_error,
+                                   ctws_state);
+  /* Determine whether the number of elements is fixed, or whether
+     it requires substitution. */
+  orig_cp = type->variant.vector.size_constant;
+  if (!*copy_error &&
+      orig_cp != NULL && constant_is(orig_cp, ck_template_param)) {
+    /* The vector size is a template-dependent constant. */
+    new_cp = copy_template_param_con_with_substitution(
+                        orig_cp, templ_arg_list, templ_param_list,
+                        (a_type_ptr)NULL,
+                        source_pos, options, copy_error, ctws_state);
+  } else {
+    new_cp = orig_cp;
+  }  /* if */
+  if (tp == type->variant.array.element_type && orig_cp == new_cp) {
+    /* Reuse the current type. */
+    new_type = type;
+  } else if (!*copy_error) {
+    if (!is_integral_type(tp) && !is_real_floating_type(tp)) {
+      /* The element type is invalid. */
+      subst_fail(*copy_error);
+      new_type = NULL;
+    } else {
+      a_host_large_integer  size;
+      a_boolean             err = FALSE;
+      /* Currently, we only handle Clang vk_ext vectors. */
+      check_assertion(type->variant.vector.kind == vk_ext);
+      check_assertion(new_cp != NULL);
+      size = validate_ext_vector_size(new_cp, tp, (a_source_position*)NULL,
+                                      &err);
+      if (err) {
+        subst_fail(*copy_error);
+        new_type = NULL;
+      } else {
+        /* Create a new vector type. */
+        new_type = alloc_type(tk_vector);
+        copy_type(type, new_type);
+        new_type->variant.vector.element_type = tp;
+        new_type->variant.vector.size_constant = new_cp;
+        new_type->size = (a_targ_size_t)size;
+        new_type->alignment = (a_targ_alignment)size;
+      }  /*if */
+    }  /* if */
+  }  /* if */
+  return new_type;
+}  /* copy_vector_type_with_substitution */
 
 
 a_type_ptr type_if_unknown_conversion_function_symbol(a_symbol_ptr	sym)
@@ -17747,14 +17832,22 @@ done_with_routine:
 #if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
         /* Vector types are in principle similar to array types.  However,
-           current GNU versions (4.4.x and earlier) do not appear to support
-           substitution of vector types. */
-        if (vector_type_is_template_dependent(type)) {
-          subst_fail(*copy_error);
+           current GNU versions (16.x and earlier) do not appear to support
+           deduction of dependent vector types.  Clang does appear to
+           support deduction for vk_ext vectors. */
+        if (clang_mode && type->variant.vector.kind == vk_ext) {
+          new_type = copy_vector_type_with_substitution(
+                                      type, templ_arg_list, templ_param_list,
+                                      source_pos, options, copy_error,
+                                      ctws_state);
         } else {
-          /* There is nothing to substitute, so the current type can be
-             used. */
-          new_type = type;
+          if (vector_type_is_template_dependent(type)) {
+            subst_fail(*copy_error);
+          } else {
+            /* There is nothing to substitute, so the current type can be
+               used. */
+            new_type = type;
+         }  /* if */
         }  /* if */
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */

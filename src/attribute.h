@@ -370,6 +370,11 @@ extern a_const_char *attribute_string_for_kind(
                                               an_attribute_kind           kind,
                                               a_source_correspondence_ptr scp);
 
+extern
+a_host_large_integer validate_ext_vector_size(a_constant         *size_con,
+                                              a_type_ptr         elem_type,
+                                              a_source_position  *diag_pos,
+                                              a_boolean          *p_err);
 
 extern void attribute_one_time_init(void);
 

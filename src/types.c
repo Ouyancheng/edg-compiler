@@ -15699,23 +15699,32 @@ types, i.e., also for nonreal classes.
       /* A nonreal enumeration type is a dependent type. */
       *force_end_of_traversal = found = TRUE;
     } else if (find_all_dependent_types &&
-               type_ptr->kind == (a_type_kind)tk_typeref &&
+               type_is(type_ptr, tk_typeref) &&
                (type_ptr->variant.typeref.is_dependent_type_operator ||
                 type_ptr->variant.typeref.is_nonreal)) {
       /* A dependent decltype, typeof, or nonreal alias instance. */
       *force_end_of_traversal = found = TRUE;
     } else if (find_all_dependent_types &&
-               type_ptr->kind == (a_type_kind)tk_typeref &&
+               type_is(type_ptr, tk_typeref) &&
                typeref_is_type_operator(type_ptr)) {
       /* A nondependent decltype or typeof. */
       check_assertion(!type_ptr->variant.typeref.is_dependent_type_operator);
       *force_end_of_traversal = TRUE;
       found = FALSE;
     } else if (find_all_dependent_types &&
-               type_ptr->kind == (a_type_kind)tk_array &&
+               type_is(type_ptr, tk_array) &&
                type_ptr->variant.array.is_template_dependent_size_array) {
       /* A dependent array. */
       *force_end_of_traversal = found = TRUE;
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (find_all_dependent_types &&
+               type_is(type_ptr, tk_vector) &&
+               type_ptr->variant.vector.size_constant != NULL &&
+               constant_is(type_ptr->variant.vector.size_constant,
+                           ck_template_param)) {
+      /* A dependent vector. */
+      *force_end_of_traversal = found = TRUE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else {
       if (specific_template_param_type == NULL) {
         /* We are not looking for a specific template param type, so any
@@ -15893,6 +15902,15 @@ from which a template parameter value can be deduced.
           *force_end_of_traversal = TRUE;
         }  /* if */
       }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (type_is(type_ptr, tk_vector)) {
+      a_constant_ptr  cp = type_ptr->variant.vector.size_constant;
+      if (cp != NULL && constant_is(cp, ck_template_param) &&
+          is_deducible_template_param_constant(cp)) {
+        found = TRUE;
+        *force_end_of_traversal = TRUE;
+      }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     }  /* if */
     if (!found) {
       /* Check for a template template parameter used as a template
