@@ -2657,7 +2657,8 @@ option values if they were not already set by a command line option.
         ms_permissive = FALSE;
     }  /* if */
     enum_types_can_be_smaller_than_int = FALSE;
-    enum_types_can_be_larger_than_int = !ms_permissive;
+    enum_types_can_be_larger_than_int = !ms_permissive &&
+                                        microsoft_version >= 1934;
     if (force_ms_type_info_not_in_namespace_std) {
       type_info_in_namespace_std = FALSE;
     } else if (ms_compat) {
