@@ -16245,7 +16245,8 @@ and the size constant.
 */
 {
   a_constant_ptr	orig_cp, new_cp;
-  a_type_ptr		new_type, tp = type->variant.vector.element_type;
+  a_type_ptr		new_type = NULL,
+                        tp = type->variant.vector.element_type;
 
   tp = copy_type_with_substitution(tp, templ_arg_list, templ_param_list,
                                    source_pos, options, copy_error,
@@ -16270,7 +16271,6 @@ and the size constant.
     if (!is_integral_type(tp) && !is_real_floating_type(tp)) {
       /* The element type is invalid. */
       subst_fail(*copy_error);
-      new_type = NULL;
     } else {
       a_host_large_integer  size;
       a_boolean             err = FALSE;
@@ -16281,7 +16281,6 @@ and the size constant.
                                       &err);
       if (err) {
         subst_fail(*copy_error);
-        new_type = NULL;
       } else {
         /* Create a new vector type. */
         new_type = alloc_type(tk_vector);
