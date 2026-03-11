@@ -2483,8 +2483,6 @@ or --ms_extensions or --ms_compatibility have been specified.  Only set the
 option values if they were not already set by a command line option.
 */
 {
-  enum_types_can_be_smaller_than_int = FALSE;
-  enum_types_can_be_larger_than_int = FALSE;
   /* Microsoft's compilers use a "stack model" for include directories.
      Clang emulates that (but only when -fms-compatibility is specified, not
      -fms-extensions).  GNU doesn't emulate this in any mode. */
@@ -2658,6 +2656,8 @@ option values if they were not already set by a command line option.
          but that can be overridden using the /permissive flag. */
         ms_permissive = FALSE;
     }  /* if */
+    enum_types_can_be_smaller_than_int = FALSE;
+    enum_types_can_be_larger_than_int = !ms_permissive;
     if (force_ms_type_info_not_in_namespace_std) {
       type_info_in_namespace_std = FALSE;
     } else if (ms_compat) {

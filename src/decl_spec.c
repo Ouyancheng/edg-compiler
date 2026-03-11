@@ -5517,7 +5517,7 @@ there was an error; otherwise, return FALSE.
       }  /* if */
       if (conversion_allowed &&
           (f_skip_typerefs(constant->type)->size <= targ_sizeof_int ||
-           ms_compat)) {
+           ms_extensions)) {
         /* In non-strict mode, allow unsigned constants that can be coerced
            into an int.  (Microsoft compilers appear to even permit cases like:
            enum { e = static_cast<unsigned long>(-1) }; with unsigned long a
