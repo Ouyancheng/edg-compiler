@@ -5237,6 +5237,8 @@ extern void make_type_pack_element_internal_template(void);
 
 extern void make_builtin_common_type_internal_templates(void);
 
+extern void make_builtin_dedup_pack_internal_template(void);
+
 EXTERN_THREAD a_symbol_ptr
                 symbol_for_make_integer_seq;
                         /* Symbol for "__make_integer_seq", which is a
@@ -5278,6 +5280,12 @@ EXTERN_THREAD a_symbol_ptr
                            a builtin alias template (used for cases where
                            template arguments to __builtin_common_type are
                            non-dependent). */
+
+EXTERN_THREAD a_symbol_ptr
+                symbol_for_builtin_dedup_pack;
+                        /* Symbol for "__builtin_dedup_pack", which is a
+                           builtin class template, used to deduplicate a
+                           template type argument list. */
 
 extern void reenter_block_scope_symbol(a_symbol_ptr  sym);
 

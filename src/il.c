@@ -16016,6 +16016,37 @@ and return a pointer to the new list.
 }  /* copy_template_arg_list */
 
 
+a_template_arg_ptr copy_template_type_arg_list_with_deduplication(
+                                                 a_template_arg_ptr  orig_list)
+/*
+Create a copy of the template type argument list specified by orig_list and
+return a pointer to the new list with duplicate types removed.
+*/
+{
+  a_template_arg_ptr  result = NULL, *list_tail = &result;
+
+  for (; orig_list != NULL; orig_list = orig_list->next) {
+    a_type_ptr  type;
+    a_boolean   is_duplicate = FALSE;
+    check_assertion(is_type_templ_arg(orig_list));
+    type = orig_list->variant.type;
+    for (a_template_arg_ptr tap = result;
+         !is_duplicate && tap != NULL;
+         tap = tap->next) {
+      is_duplicate = identical_types(tap->variant.type, type);
+    }  /* for */
+    if (!is_duplicate) {
+      a_template_arg_ptr  new_tap = alloc_template_arg(orig_list->kind);
+      *new_tap = *orig_list;
+      new_tap->next = NULL;
+      *list_tail = new_tap;
+      list_tail = &new_tap->next;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* copy_template_type_arg_list_with_deduplication */
+
+
 a_boolean is_default_constructor(a_routine_ptr  rout,
                                  a_boolean      is_declarative_context)
 /*

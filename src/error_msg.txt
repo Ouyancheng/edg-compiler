@@ -3643,6 +3643,7 @@ ec_struct_binding_packs_is_cpp26;;"structured binding packs are a C++26 feature"
 ec_non_template_structured_binding_pack;;"a structured binding pack can only be declared inside a template"
 ec_multiple_structured_binding_packs;;"cannot declare multiple packs in a structured binding declaration"
 ec_cl_cpp26_requires_parse_nonclass_templates;;"The \"--no_parse_templates\" option cannot be used in C++26 mode"
+ec_type_pack_element_cannot_match;;"a type pack element cannot match %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

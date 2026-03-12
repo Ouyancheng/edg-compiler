@@ -21045,7 +21045,7 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
   a_template_arg_ptr              arg_ptr;
   a_template_arg_ptr              arg_list = NULL;
   a_template_arg_ptr              last_arg = NULL;
-  a_template_arg_ptr              integer_pack_elems = NULL;
+  a_template_arg_ptr              builtin_pack_elems = NULL;
   a_boolean                       is_type_param;
   a_templ_arg_kind		  arg_kind;
   a_constant_ptr                  constant;
@@ -21074,9 +21074,9 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
                                     /*allow_empty_list=*/FALSE,
                                     /*ignore_suppression=*/TRUE);
     while (any_args) {
-      a_boolean     is_secondary_integer_pack_elem = FALSE;
+      a_boolean     is_secondary_builtin_pack_elem = FALSE;
       a_token_kind  next_tok;
-      if (curr_token == tok_gt && integer_pack_elems == NULL) {
+      if (curr_token == tok_gt && builtin_pack_elems == NULL) {
         if (arg_list != NULL) {
           pos_error(ec_expected_template_arg, &error_position);
         }  /* if */
@@ -21096,15 +21096,16 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
           remove_stop_token(tok_comma);
           continue;
         }  /* if */
-        integer_pack_elems = args->next;
+        builtin_pack_elems = args->next;
         arg_ptr = args;
         arg_ptr->next = NULL;
         goto arg_produced;
-      } else if (integer_pack_elems != NULL) {
-        arg_ptr = integer_pack_elems;
-        integer_pack_elems = arg_ptr->next;
+      } else if (builtin_pack_elems != NULL) {
+        arg_ptr = builtin_pack_elems;
+        builtin_pack_elems = arg_ptr->next;
+        arg_ptr->is_pack_element = FALSE;
         arg_ptr->next = NULL;
-        is_secondary_integer_pack_elem = TRUE;
+        is_secondary_builtin_pack_elem = TRUE;
         goto arg_produced;
       }  /* if */
       sym = NULL;
@@ -21134,16 +21135,50 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
       }  /* if */
       arg_ptr = alloc_template_arg(arg_kind);
       if (is_type_templ_arg(arg_ptr)) {
-        a_boolean	is_injected_class_name;
-        arg_ptr->variant.type = scan_template_type_argument(
-                                                     &is_injected_class_name,
-                                                     /*is_default_arg=*/FALSE);
+        a_boolean           is_injected_class_name;
+        a_type_ptr          argument_type;
+        a_template_arg_ptr  dedup_pack_args;
+        argument_type = scan_template_type_argument(&is_injected_class_name,
+                                                    /*is_default_arg=*/FALSE);
+        arg_ptr->variant.type = argument_type;
+        argument_type = skip_lexical_typerefs(argument_type);
         if (!is_nonreal) {
           /* The "real" case will be for function template explicit arguments.
              If the type was specified using the injected class name, record
              that information.  The injected class name can be used as
              both a type and a template template argument in certain cases. */
           arg_ptr->type_is_injected_class_name = is_injected_class_name;
+        }  /* if */
+        if (symbol_for_builtin_dedup_pack != NULL &&
+            curr_token == tok_ellipsis &&
+            is_immediate_class_type(argument_type) &&
+            is_instance_of_class_template(argument_type,
+                                          symbol_for_builtin_dedup_pack,
+                                          &dedup_pack_args)) {
+          /* Handle special __builtin_dedup_pack expansion.  Skip the
+             ellipsis. */
+          (void)get_token();
+          if (!is_template_dependent_type(argument_type)) {
+            check_assertion(is_start_of_pack_expansion_templ_arg(
+                                                             dedup_pack_args));
+            dedup_pack_args = copy_template_type_arg_list_with_deduplication(
+                                                        dedup_pack_args->next);
+            if (dedup_pack_args == NULL) {
+              (void)end_potential_pack_expansion_context(
+                                               pesep, /*is_declarator=*/FALSE);
+              any_args = advance_to_next_pack_element(pesep);
+              remove_stop_token(tok_comma);
+              continue;
+            }  /* if */
+            *arg_ptr = *dedup_pack_args;
+            arg_ptr->is_pack_element = FALSE;
+            builtin_pack_elems = dedup_pack_args->next;
+            dedup_pack_args->next = NULL;
+            free_template_arg_list(dedup_pack_args);
+            goto arg_produced;
+          } else {
+            arg_ptr->is_pack = TRUE;
+          }  /* if */
         }  /* if */
       } else if (is_nontype_templ_arg(arg_ptr)) {
         if (is_nonreal) {
@@ -21197,12 +21232,12 @@ arg_produced:
       if (arg_list == NULL) arg_list = arg_ptr;
       if (last_arg != NULL) last_arg->next = arg_ptr;
       last_arg = arg_ptr;
-      if (!is_secondary_integer_pack_elem) {
+      if (!is_secondary_builtin_pack_elem) {
         arg_ptr->pack_expansion_descr =
          end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
         if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
       }  /* if */
-      any_args = integer_pack_elems != NULL ||
+      any_args = builtin_pack_elems != NULL ||
                  advance_to_next_pack_element(pesep);
       remove_stop_token(tok_comma);
     }  /* while */
@@ -21299,7 +21334,7 @@ the <int> is matched with U and no argument is generated for V.
   a_template_arg_ptr               arg_ptr = NULL;
   a_template_arg_ptr               arg_list = NULL;
   a_template_arg_ptr               last_arg = NULL;
-  a_template_arg_ptr               integer_pack_elems = NULL;
+  a_template_arg_ptr               builtin_pack_elems = NULL;
   a_templ_arg_kind		   arg_kind;
   a_template_decl_info_ptr	   decl_info;
   a_template_symbol_supplement_ptr tssp;
@@ -21410,7 +21445,7 @@ the <int> is matched with U and no argument is generated for V.
                                     /*is_lookahead=*/FALSE,
                                     /*allow_empty_list=*/FALSE,
                                     /*ignore_suppression=*/TRUE);
-next_integer_pack_element:
+next_builtin_pack_element:
     /* If we have run out of parameters but there are more arguments, exit
        the loop.  This test is done here so that a construct like
        "A<X, args...>" will be accepted when args is an empty pack. */
@@ -21423,19 +21458,19 @@ next_integer_pack_element:
       break;
     }  /* if */
     while (any_args) {
-      a_boolean  is_secondary_integer_pack_elem = FALSE;
+      a_boolean  is_secondary_builtin_pack_elem = FALSE;
       any_args_in_list = TRUE;
-      if (integer_pack_elems == NULL) {
-        if (!in_pack && param_ptr != NULL && param_ptr->is_pack) {
-          /* Create a start of parameter pack placeholder. */
-          arg_ptr =
-             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
-          /* Link this entry on to the argument list. */
-          if (arg_list == NULL) arg_list = arg_ptr;
-          if (last_arg != NULL) last_arg->next = arg_ptr;
-          last_arg = arg_ptr;
-          in_pack = !param_ptr->is_pack_element;
-        }  /* if */
+      if (!in_pack && param_ptr != NULL && param_ptr->is_pack) {
+        /* Create a start of parameter pack placeholder. */
+        arg_ptr =
+          alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
+        /* Link this entry on to the argument list. */
+        if (arg_list == NULL) arg_list = arg_ptr;
+        if (last_arg != NULL) last_arg->next = arg_ptr;
+        last_arg = arg_ptr;
+        in_pack = !param_ptr->is_pack_element;
+      }  /* if */
+      if (builtin_pack_elems == NULL) {
         if (curr_token == tok_shift_right &&
             right_shift_can_be_angle_brackets) {
           /* Check for the case where a "right shift" could be interpreted as
@@ -21471,14 +21506,22 @@ next_integer_pack_element:
       arg_ptr = alloc_template_arg(arg_kind);
       arg_ptr->explicitly_specified = TRUE;
       if (is_type_templ_arg(arg_ptr)) {
-        a_boolean	is_unnamed, is_local, is_vla, is_generic;
-        a_boolean	is_invalid = FALSE;
-        if (integer_pack_elems != NULL) {
-          /* There are pending arguments from an __integer_pack(N) construct.
-             Those cannot match a type parameter. */
-          pos_sy_error(ec_integer_pack_element_for_type, &arg_pos, sym);
-          integer_pack_elems = NULL;
-          argument_type = error_type();
+        a_template_arg_ptr  dedup_pack_args;
+        a_boolean           is_unnamed, is_local, is_vla, is_generic,
+                            is_invalid = FALSE;
+        if (builtin_pack_elems != NULL) {
+          if (is_type_templ_arg(builtin_pack_elems)) {
+            /* Get the next pending type element from __builtin_dedup_pack. */
+            argument_type = builtin_pack_elems->variant.type;
+            builtin_pack_elems = builtin_pack_elems->next;
+            is_secondary_builtin_pack_elem = TRUE;
+          } else {
+            /* There are pending arguments from an __integer_pack(N) construct.
+               Those cannot match a type parameter. */
+            pos_sy_error(ec_integer_pack_element_for_type, &arg_pos, sym);
+            builtin_pack_elems = NULL;
+            argument_type = error_type();
+          }  /* if */
         } else {
           argument_type = scan_template_type_argument(
                                                      (a_boolean*)NULL,
@@ -21516,6 +21559,38 @@ next_integer_pack_element:
           if (is_invalid) argument_type = error_type();
         }  /* if */
         arg_ptr->variant.type = argument_type;
+        argument_type = skip_lexical_typerefs(argument_type);
+        if (symbol_for_builtin_dedup_pack != NULL &&
+            curr_token == tok_ellipsis &&
+            is_immediate_class_type(argument_type) &&
+            is_instance_of_class_template(argument_type,
+                                          symbol_for_builtin_dedup_pack,
+                                          &dedup_pack_args)) {
+          /* Handle special __builtin_dedup_pack expansion.  Skip the
+             ellipsis. */
+          (void)get_token();
+          if (!is_template_dependent_type(argument_type)) {
+            check_assertion(is_start_of_pack_expansion_templ_arg(
+                                                             dedup_pack_args));
+            dedup_pack_args = copy_template_type_arg_list_with_deduplication(
+                                                        dedup_pack_args->next);
+            if (dedup_pack_args == NULL) {
+              (void)end_potential_pack_expansion_context(
+                                               pesep, /*is_declarator=*/FALSE);
+              any_args = advance_to_next_pack_element(pesep);
+              remove_stop_token(tok_comma);
+              continue;
+            }  /* if */
+            *arg_ptr = *dedup_pack_args;
+            arg_ptr->is_pack_element = FALSE;
+            builtin_pack_elems = dedup_pack_args->next;
+            dedup_pack_args->next = NULL;
+            free_template_arg_list(dedup_pack_args);
+            is_secondary_builtin_pack_elem = TRUE;
+          } else {
+            arg_ptr->is_pack = TRUE;
+          }  /* if */
+        }  /* if */
       } else if (is_nontype_templ_arg(arg_ptr)) {
         a_type_ptr  constant_type = sym->variant.constant->type;
         /* If the type of a constant involves a template parameter type,
@@ -21552,7 +21627,7 @@ next_integer_pack_element:
             remove_stop_token(tok_comma);
             continue;
           }  /* if */
-          integer_pack_elems = args->next;
+          builtin_pack_elems = args->next;
           arg_ptr = args;
           arg_ptr->next = NULL;
           if (constant_is(arg_ptr->variant.constant, ck_integer)) {
@@ -21564,19 +21639,29 @@ next_integer_pack_element:
                                  /*maintain_expression=*/FALSE,
                                  &did_not_fold, &arg_pos);
           }  /* if */
-        } else if (integer_pack_elems != NULL) {
-          arg_ptr = integer_pack_elems;
-          integer_pack_elems = arg_ptr->next;
-          arg_ptr->next = NULL;
-          is_secondary_integer_pack_elem = TRUE;
-          if (constant_is(arg_ptr->variant.constant, ck_integer)) {
-            /* Adjust the type of the constant to that expected by the
-               parameter. */
-            a_boolean  did_not_fold;
-            type_change_constant(arg_ptr->variant.constant, constant_type,
-                                 /*is_implicit_cast=*/TRUE,
-                                 /*maintain_expression=*/FALSE,
-                                 &did_not_fold, &arg_pos);
+        } else if (builtin_pack_elems != NULL) {
+          if (is_type_templ_arg(builtin_pack_elems)) {
+            /* There are pending arguments from a __builtin_dedup_pack
+               construct.  Those cannot match a non-type template parameter. */
+            pos_sy_error(ec_type_pack_element_cannot_match, &arg_pos, sym);
+            builtin_pack_elems = NULL;
+            constant = fs_constant(ck_error);
+            set_error_constant(constant);
+            arg_ptr->variant.constant = constant;
+          } else {
+            arg_ptr = builtin_pack_elems;
+            builtin_pack_elems = arg_ptr->next;
+            arg_ptr->next = NULL;
+            is_secondary_builtin_pack_elem = TRUE;
+            if (constant_is(arg_ptr->variant.constant, ck_integer)) {
+              /* Adjust the type of the constant to that expected by the
+                 parameter. */
+              a_boolean  did_not_fold;
+              type_change_constant(arg_ptr->variant.constant, constant_type,
+                                   /*is_implicit_cast=*/TRUE,
+                                   /*maintain_expression=*/FALSE,
+                                   &did_not_fold, &arg_pos);
+            }  /* if */
           }  /* if */
         } else {
           constant = fs_constant((a_constant_repr_kind)ck_error);
@@ -21609,12 +21694,15 @@ next_integer_pack_element:
                                          template_sym, param_ptr, arg_list);
           arg_ptr->variant.templ.substituted_param_template = param_template;
         }  /* if */
-        if (integer_pack_elems != NULL) {
-          /* There are pending arguments from an __integer_pack(N) construct.
-             Those cannot match a type parameter. */
+        if (builtin_pack_elems != NULL) {
+          /* There are pending builtin pack arguments that cannot match a
+             template template parameter. */
           a_symbol_ptr  error_sym;
-          pos_sy_error(ec_integer_pack_element_for_template, &arg_pos, sym);
-          integer_pack_elems = NULL;
+          pos_sy_error(is_type_templ_arg(builtin_pack_elems) ?
+                                          ec_type_pack_element_cannot_match :
+                                          ec_integer_pack_element_for_template,
+                       &arg_pos, sym);
+          builtin_pack_elems = NULL;
           error_sym = error_class_template();
           templ = error_sym->variant.template_info->il_template_entry;
         } else {
@@ -21630,15 +21718,13 @@ next_integer_pack_element:
       last_arg = arg_ptr;
       remove_stop_token(tok_comma);
       ++arg_number;
-      if (!is_secondary_integer_pack_elem) {
+      if (!is_secondary_builtin_pack_elem) {
         arg_ptr->pack_expansion_descr =
          end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
         if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
-        if (arg_ptr->pack_expansion_descr != NULL && first_pack == NULL) {
-          first_pack = arg_ptr;
-        }  /* if */
+        if (arg_ptr->is_pack && first_pack == NULL) first_pack = arg_ptr;
       }  /* if */
-      any_args = (integer_pack_elems != NULL && param_ptr->is_pack) ||
+      any_args = (builtin_pack_elems != NULL && param_ptr->is_pack) ||
                  advance_to_next_pack_element(pesep);
       /* Record whether, for a pack expansion in an instantiation, the
          argument was part of a pack expansion.  This is needed for
@@ -21688,14 +21774,15 @@ next_integer_pack_element:
         }  /* if */
       }  /* if */
     }  /* while */
-    if (integer_pack_elems != NULL) {
-      /* Iterate over __integer_pack(N) elements, unless we ran out of
+    if (builtin_pack_elems != NULL) {
+      /* Iterate over remaining builtin pack elements, unless we ran out of
          parameters. */
       if (param_ptr == NULL) {
         too_many_args = TRUE;
         break;
       } else {
-        goto next_integer_pack_element;
+        any_args = TRUE;
+        goto next_builtin_pack_element;
       }  /* if */
     }  /* if */
   } while (loop_token(tok_comma));
@@ -21893,7 +21980,7 @@ next_integer_pack_element:
       break;
     }  /* if */
   }  /* for */
-  if (too_many_args && (curr_token != tok_gt || integer_pack_elems != NULL)) {
+  if (too_many_args && (curr_token != tok_gt || builtin_pack_elems != NULL)) {
     /* All of the formal parameters have been accounted for and there are
        more actuals -- too many arguments were supplied. */
     pos_sy_error(ec_too_many_template_args, &pos_curr_token, template_sym);

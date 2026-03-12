@@ -2065,6 +2065,9 @@ extern void skip_start_of_pack_placeholders_simple(a_template_arg_ptr *p_tap);
 
 extern a_template_arg_ptr copy_template_arg_list(a_template_arg_ptr orig_list);
 
+extern a_template_arg_ptr copy_template_type_arg_list_with_deduplication(
+                                                 a_template_arg_ptr orig_list);
+
 extern a_boolean is_default_constructor(a_routine_ptr  rout,
                                         a_boolean      is_declarative_context);
 

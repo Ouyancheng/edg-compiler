@@ -8726,6 +8726,21 @@ template argument list.
 }  /* make_builtin_common_type_internal_templates */
 
 
+void make_builtin_dedup_pack_internal_template(void)
+/*
+Creates a builtin class template for "__builtin_dedup_pack" at the file scope.
+*/
+{
+  check_assertion(variadic_templates_enabled);
+  symbol_for_builtin_dedup_pack = make_internal_template(
+      "__builtin_dedup_pack",
+      "template<typename ...T>"
+      "  struct __builtin_dedup_pack;",
+      (a_namespace_ptr)NULL,
+      /*is_metadata=*/FALSE);
+}  /* make_builtin_dedup_pack_internal_template */
+
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void init_cli_symbol(a_cli_symbol_kind  csk);
@@ -19535,6 +19550,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(symbol_for_type_pack_element_alias),
       pch_saved_var_array_elem(symbol_for_builtin_common_type),
       pch_saved_var_array_elem(symbol_for_builtin_common_type_alias),
+      pch_saved_var_array_elem(symbol_for_builtin_dedup_pack),
       pch_saved_var_array_elem(va_list_global_alias_has_been_created),
       pch_saved_var_array_elem(file_scope_symbols_are_on_inactive_list),
       pch_saved_var_array_elem(symbols_with_no_scope),
@@ -19626,6 +19642,7 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(symbol_for_type_pack_element_alias);
   register_trans_unit_variable(symbol_for_builtin_common_type);
   register_trans_unit_variable(symbol_for_builtin_common_type_alias);
+  register_trans_unit_variable(symbol_for_builtin_dedup_pack);
   register_trans_unit_variable(va_list_global_alias_has_been_created);
 #if IA64_ABI
   register_trans_unit_variable(symbol_for_namespace_abi);
@@ -19682,6 +19699,7 @@ given translation unit.
   symbol_for_type_pack_element_alias = NULL;
   symbol_for_builtin_common_type = NULL;
   symbol_for_builtin_common_type_alias = NULL;
+  symbol_for_builtin_dedup_pack = NULL;
   va_list_global_alias_has_been_created = FALSE;
 #if IA64_ABI
   symbol_for_namespace_abi = NULL;

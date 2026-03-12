@@ -15719,7 +15719,7 @@ If there is an error in the copying, set *copy_error to TRUE.
 do_substitution:
       /* Do the substitution on the argument. */
       if (!is_start_of_pack_expansion_templ_arg(tap)) {
-        a_template_arg_ptr     list_for_subst = new_list;
+        a_template_arg_ptr     list_for_subst = new_list, dedup_pack_args;
         /* Ordinarily we can just use new_list for substitutions, since that
            is what we have substituted so far.  However, when dealing with
            partial specializations, that doesn't always work, and instead we
@@ -15750,6 +15750,24 @@ do_substitution:
           if (new_tap == NULL) {
             /* The expansion produced an empty list.  End the loop. */
             goto end_of_loop;
+          }  /* if */
+        } else if (!*copy_error && is_type_templ_arg(new_tap) &&
+                   symbol_for_builtin_dedup_pack != NULL && tap->is_pack &&
+                   is_immediate_class_type(new_tap->variant.type) &&
+                   is_instance_of_class_template(new_tap->variant.type,
+                                                 symbol_for_builtin_dedup_pack,
+                                                 &dedup_pack_args)) {
+          /* Handle special __builtin_dedup_pack expansion. */
+          if (!is_template_dependent_type(new_tap->variant.type)) {
+            check_assertion(is_start_of_pack_expansion_templ_arg(
+                                                             dedup_pack_args));
+            free_template_arg_list(new_tap);
+            new_tap = copy_template_type_arg_list_with_deduplication(
+                                                        dedup_pack_args->next);
+            if (new_tap == NULL) {
+              goto end_of_loop;
+            }  /* if */
+            new_tap->is_pack_element = have_params && tpp->is_pack;
           }  /* if */
         }  /* if */
         if (copy_arg_operands && !*copy_error) {
@@ -15788,9 +15806,10 @@ do_substitution:
         ttp_tpp = ttp_tpp != NULL ? ttp_tpp->next : NULL;
       }  /* if */
       if (new_tap->next != NULL) {
-        /* An  __integer_pack expansion produced multiple arguments.  Move on
-           to the next one and process it. */
+        /* An __integer_pack or __builtin_dedup_pack expansion produced
+           multiple arguments.  Move on to the next one and process it. */
         new_tap = new_tap->next;
+        new_tap->is_pack_element = have_params && tpp->is_pack;
         /* Repeat the substitution.  This will not actually replace template
            parameters (since they were already substituted just prior to the
            expansion), but it will match the expanded argument to the next

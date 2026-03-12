@@ -10393,10 +10393,13 @@ can only contain CLI interfaces.
         syntax_error(ec_exp_identifier);
       } else {
         /* Scan the base class name. */
-        a_boolean         err = FALSE, is_decltype = FALSE;
-        a_boolean         is_dependent_type = FALSE;
+        a_boolean           err = FALSE, is_decltype = FALSE,
+                            is_dependent_type = FALSE,
+                            is_dedup_pack = FALSE,
+                            is_dedup_dependent_pack = FALSE;
+        a_template_arg_ptr  dedup_pack_args = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        a_source_position decltype_end_pos = end_pos_curr_token;
+        a_source_position   decltype_end_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         base_class_decl_pos = pos_curr_token;
         base_class_type = NULL;
@@ -10491,6 +10494,34 @@ can only contain CLI interfaces.
           base_class_type = type_symbol_type(sym);
           base_class_type->source_corresp.referenced = TRUE;
         }  /* if */
+        if (symbol_for_builtin_dedup_pack != NULL &&
+            next_token() == tok_ellipsis &&
+            is_immediate_class_type(base_class_type) &&
+            is_instance_of_class_template(base_class_type,
+                                          symbol_for_builtin_dedup_pack,
+                                          &dedup_pack_args)) {
+          /* Handle special __builtin_dedup_pack expansion.  Skip both the
+             identifier and the ellipsis. */
+          (void)get_token();
+          (void)get_token();
+          is_dedup_pack = TRUE;
+          if (is_template_dependent_type(base_class_type)) {
+            is_dedup_dependent_pack = TRUE;
+            orig_base_class_type = base_class_type;
+            dedup_pack_args = NULL;
+          } else {
+            check_assertion(is_start_of_pack_expansion_templ_arg(
+                                                             dedup_pack_args));
+            dedup_pack_args = copy_template_type_arg_list_with_deduplication(
+                                                        dedup_pack_args->next);
+            if (dedup_pack_args == NULL) {
+              goto dedup_base_done;
+            }  /* if */
+            base_class_type = dedup_pack_args->variant.type;
+            dedup_pack_args = dedup_pack_args->next;
+          }  /* if */
+        }  /* if */
+normal_base_class_processing:
         /* Be sure a type symbol was found and that it identifies a class. */
         if (is_dependent_type) {
           /* No diagnostic on template parameters or dependent decltypes, which
@@ -10511,7 +10542,7 @@ can only contain CLI interfaces.
           type_error(ec_implements_requires_interface, type_symbol_type(sym));
           goto skip_base_class;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (!is_decltype &&
+        } else if (!is_decltype && !is_dedup_pack &&
                    locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible
              according to the ARM lookup rules but is returned in support of
@@ -10526,13 +10557,13 @@ can only contain CLI interfaces.
              has already been issued. */
           goto skip_base_class;
         }  /* if */
-        if (!is_decltype) {
+        if (!is_decltype && !is_dedup_pack) {
           /* Record the symbol as referenced. */
           mark_referenced(sym, &locator_for_curr_id.source_position);
           /* Do ambiguity and access control checking for the symbol. */
           check_ambiguity_and_verify_access(&locator_for_curr_id);
         }  /* if */
-        if (!is_dependent_type) {
+        if (!is_dependent_type && !is_dedup_dependent_pack) {
           if (!check_base_class_type(type_ptr, base_class_type)) {
             /* The type of the base class is invalid (e.g., incomplete). */
             goto skip_base_class;
@@ -10672,6 +10703,9 @@ can only contain CLI interfaces.
         if (is_virtual) new_direct_bcp->is_virtual = TRUE;
         mark_base_dependent_if_needed(new_direct_bcp, class_state,
                                       proto_base_number);
+        if (is_dedup_dependent_pack) {
+          new_direct_bcp->is_pack_expansion = TRUE;
+        }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         new_direct_bcp->base_specifier_range.start = base_specifier_start_pos;
         if (is_decltype) {
@@ -10695,9 +10729,17 @@ can only contain CLI interfaces.
                             &may_be_first_direct_nonvirtual_base);
 skip_base_class:
         first_base_class = FALSE;
-        /* Advance past the base class name to the comma or right brace
-           (in the decltype case the tokens have already been consumed). */
-        if (!is_decltype) (void)get_token();
+        /* Advance past the base class name to the comma or right brace (in the
+           decltype and dedup_pack cases the tokens have already been
+           consumed). */
+        if (!is_decltype && !is_dedup_pack) (void)get_token();
+        if (dedup_pack_args != NULL) {
+          base_class_type = dedup_pack_args->variant.type;
+          dedup_pack_args = dedup_pack_args->next;
+          direct_base_number++;
+          goto normal_base_class_processing;
+        }  /* if */
+dedup_base_done:;
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

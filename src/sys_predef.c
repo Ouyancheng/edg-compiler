@@ -2735,6 +2735,10 @@ Enter predeclared symbols as required by the implementation.
       /* Create class and alias templates for "__builtin_common_type". */
       make_builtin_common_type_internal_templates();
     }  /* if */
+    if (clangcpp_version_is(>=220000)) {
+      /* Create a class template for "__builtin_dedup_pack". */
+      make_builtin_dedup_pack_internal_template();
+    }  /* if */
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
