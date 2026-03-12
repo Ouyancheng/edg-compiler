@@ -3,7 +3,7 @@ Version 6.9
 3/11/26  [EDGcpfe/25488,EDGcpfe/27895]
 Out-of-range enumerator values with --ms_extensions
 
-In Microsoft mode, enumerator constants an type "int", and out-of-range
+In Microsoft mode, enumerator constants have type "int", and out-of-range
 enumerator constant values are truncated if needed.  Previously, the second
 part was not done in non-Microsoft modes with --ms_extensions, but the first
 part still applied.  This resulted in error with an example like
