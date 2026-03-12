@@ -2864,6 +2864,7 @@ default values.
   tblock->follow_addressing_path = FALSE;
   tblock->follow_class_rvalue_addressing_path = FALSE;
   tblock->has_recursive_aggregate_constant = FALSE;
+  tblock->skip_expr_process_type = FALSE;
   tblock->set_unordered_on_dynamic_inits = FALSE;
   tblock->relink_dynamic_inits = FALSE;
   tblock->last_relinked_dynamic_init = NULL;
@@ -3418,7 +3419,7 @@ Walk the tree of the given expression.  Call user-provided routines
 as specified in the control block.
 */
 {
-  if (tblock->process_type != NULL) {
+  if (tblock->process_type != NULL && !tblock->skip_expr_process_type) {
     tblock->process_type(expr->type, tblock);
     if (tblock->terminate) goto end_of_routine;
   }  /* if */

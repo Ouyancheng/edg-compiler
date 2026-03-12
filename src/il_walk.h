@@ -322,6 +322,10 @@ typedef struct an_expr_or_stmt_traversal_block {
   a_boolean	has_recursive_aggregate_constant;
 			/* TRUE if traverse_constant found a recursive
 			   aggregate. */
+  a_boolean	skip_expr_process_type;
+			/* TRUE if traverse_expr should not call process_type
+			   up front.  (process_type might still be called
+			   elsewhere, including by process_expr.) */
   /* Fields used by examine_expr_for_unordered_temp_inits: */
   a_boolean	set_unordered_on_dynamic_inits;
 			/* If TRUE, set the "unordered" flag in dynamic
