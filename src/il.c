@@ -26397,8 +26397,6 @@ Called from traverse_expr to check whether the expression is
 instantiation-dependent.
 */
 {
-  a_boolean  skip_typecheck = FALSE;
-
   /* Most cases are resolved by the type, but a routine node that is the
      address of a static member of the current instantiation is not. */
   if (expr_is_dep_static_member_of_current_instantiation(expr)) {
@@ -26408,11 +26406,7 @@ instantiation-dependent.
     /* Treat local variables of function templates as "instantiation
        dependent". */
     a_variable  *vp = node_variable(expr);
-    if (vp->is_this_parameter) {
-      /* The "this" parameter refers to the current instantiations and
-         should not be treated as instantiation-dependent. */
-      skip_typecheck = TRUE;
-    } else if (vp->is_nonreal) {
+    if (vp->is_nonreal) {
       tblock->result = TRUE;
       tblock->terminate = TRUE;
     } else {
@@ -26423,12 +26417,6 @@ instantiation-dependent.
        dependence is in the operand type. */
     examine_type_for_instantiation_dependence(expr->variant.type_operand.type,
                                               tblock);
-    skip_typecheck = TRUE;
-  }  /* if */
-  if (skip_typecheck || tblock->terminate) {
-    /* No need to check the type. */
-  } else {
-    examine_type_for_instantiation_dependence(expr->type, tblock);
   }  /* if */
 }  /* examine_expr_for_instantiation_dependence */
 
@@ -26471,7 +26459,6 @@ value-dependent.
                                 examine_dyn_init_for_instantiation_dependence;
     tblock.process_type = examine_type_for_instantiation_dependence;
     tblock.process_non_dynamic_constants = TRUE;
-    tblock.skip_expr_process_type = TRUE;
     traverse_expr(expr, &tblock);
     result = tblock.result;
   }  /* if */

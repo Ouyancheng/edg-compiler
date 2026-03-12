@@ -19000,45 +19000,6 @@ e.g., conversion functions).
 }  /* same_comparison_candidate_types */
 
 
-static a_boolean treat_operator_generically(an_opname_kind  opname_kind,
-                                            a_boolean       unary_op,
-                                            an_operand      *opnd1,
-                                            an_operand      *opnd2)
-/*
-An operator described by opname_kind (unary if unary_op is TRUE, binary
-otherwise) is being applied to the given operands (opnd2 is ignored if
-unary_op is TRUE) in a template-dependent context.  Return TRUE if the
-operator should be treated "generically"; i.e., without full non-dependent
-checking.  Other implementations are generally relaxed about this and so any
-"instantiation dependence" causes the operator to be handled "generically",
-but in some cases we must fall back to strict "type dependence" (an expression
-like sizeof(sizeof(T)) is instantiation-dependent but not type-dependent).
-*/
-{
-  a_boolean  result;
-
-  if (opname_kind == onk_arrow || !dependent_lookup_finds_static_functions) {
-    /* Something like "x<sizeof(sizeof(T))> -> f<T>()" should not be treated
-       "generically" because that would require "-> template f<T>" for parsing
-       to succeed.  I.e., only check type dependence, not instantiation
-       dependence.  In strict C++03 mode, dependent name lookup won't find
-       internal-linkage functions, and so we must keep to a conservative
-       interpretation of "template dependent". */
-    result = operand_is_dependent(opnd1) ||
-             (!unary_op && operand_is_dependent(opnd2));
-  } else if (opname_kind == onk_and_and || opname_kind == onk_or_or) {
-    /* Don't prevent short-circuiting if the second operand is instantiation-
-       dependent but not type-dependent. */
-    result = operand_is_instantiation_dependent(opnd1) ||
-             (!unary_op && operand_is_dependent(opnd2));
-  } else {
-    result = operand_is_instantiation_dependent(opnd1) ||
-             (!unary_op && operand_is_instantiation_dependent(opnd2));
-  }  /* if */
-  return result;
-}  /* treat_operator_generically */
-
-
 static a_candidate_function_ptr select_overloaded_operator(
                            an_opname_kind             kind,
                            a_boolean                  unary_operator,
@@ -19160,11 +19121,10 @@ except that it was inaccessible because of hide-by-sig lookup.
          the code above should have spotted that and generated a generic
          expression operator.  Note that nonreal instantiations are
          excluded. */
-#if EXPENSIVE_CHECKING
-      check_assertion_str(!treat_operator_generically(kind, unary_operator,
-                                                      operand_1, operand_2),
+      check_assertion_str(!is_template_dependent_type(eff_operand_1_type)&&
+                          (unary_operator ||
+                           !is_template_dependent_type(operand_2->type)),
                           "select_overloaded_operator: dep operand");
-#endif /* EXPENSIVE_CHECKING */
     } else if (do_dependent_name_processing &&
                is_nonspecialized_instantiation_context()) {
       /* In a real (not prototype) instantiation, and doing dependent
@@ -19684,6 +19644,45 @@ select_best_function:
   *p_dependent_call = dependent_call;
   return candidate_functions;
 }  /* select_overloaded_operator */
+
+
+static a_boolean treat_operator_generically(an_opname_kind  opname_kind,
+                                            a_boolean       unary_op,
+                                            an_operand      *opnd1,
+                                            an_operand      *opnd2)
+/*
+An operator described by opname_kind (unary if unary_op is TRUE, binary
+otherwise) is being applied to the given operands (opnd2 is ignored if
+unary_op is TRUE) in a template-dependent context.  Return TRUE if the
+operator should be treated "generically"; i.e., without full non-dependent
+checking.  Other implementations are generally relaxed about this and so any
+"instantiation dependence" causes the operator to be handled "generically",
+but in some cases we must fall back to strict "type dependence" (an expression
+like sizeof(sizeof(T)) is instantiation-dependent but not type-dependent).
+*/
+{
+  a_boolean  result;
+
+  if (opname_kind == onk_arrow || !dependent_lookup_finds_static_functions) {
+    /* Something like "x<sizeof(sizeof(T))> -> f<T>()" should not be treated
+       "generically" because that would require "-> template f<T>" for parsing
+       to succeed.  I.e., only check type dependence, not instantiation
+       dependence.  In strict C++03 mode, dependent name lookup won't find
+       internal-linkage functions, and so we must keep to a conservative
+       interpretation of "template dependent". */
+    result = operand_is_dependent(opnd1) ||
+             (!unary_op && operand_is_dependent(opnd2));
+  } else if (opname_kind == onk_and_and || opname_kind == onk_or_or) {
+    /* Don't prevent short-circuiting if the second operand is instantiation-
+       dependent but not type-dependent. */
+    result = operand_is_instantiation_dependent(opnd1) ||
+             (!unary_op && operand_is_dependent(opnd2));
+  } else {
+    result = operand_is_instantiation_dependent(opnd1) ||
+             (!unary_op && operand_is_instantiation_dependent(opnd2));
+  }  /* if */
+  return result;
+}  /* treat_operator_generically */
 
 
 void f_check_for_operator_overloading(
