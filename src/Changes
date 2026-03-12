@@ -1,5 +1,14 @@
 Version 6.9
 
+3/12/26  [EDGcpfe/28718]
+Clang compatibility: __builtin_elementwise_ldexp, __builtin_masked_load,
+__builtin_masked_expand_load, __builtin_masked_gather
+
+Support has been added for these Clang builtins whose return type is
+dependent on the type of arguments supplied: __builtin_elementwise_ldexp,
+__builtin_masked_load, __builtin_masked_expand_load, __builtin_masked_gather.
+
+
 3/12/26  [EDGcpfe/28720]
 Clang compatibility: __builtin_dedup_pack
 
