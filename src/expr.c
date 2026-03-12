@@ -7204,8 +7204,9 @@ void(...) signature so no argument checking is done).
 *target describes the function specified in the call; on return it is updated
 to describe the appropriate concrete function based on the argument types.
 args gives the argument list.  *closing_paren_position gives the position of
-the final ")" in the argument list.  On return, *arg_list is set to point to
-the argument list in expression form.
+the final ")" in the argument list.  bcap points to a data structure describing
+the adjustment to be made.  On return, *arg_list is set to point to the
+argument list in expression form.
 */
 {
   a_routine_ptr rout = routine_from_function_operand(target);
