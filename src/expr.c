@@ -5739,7 +5739,7 @@ static a_builtin_call_adjustment_callback
 		adjust_elementwise_or_reduce_builtin,
 		adjust_type_generic_builtin,
 		adjust_return_type_to_type_of_first_argument,
-                adjust_masked_builtin,
+		adjust_masked_builtin,
 		adjust_srcloc_builtin;
 
 /*
@@ -6147,15 +6147,15 @@ be called to check and adjust the argument and routine types as needed.
       break;
    case bfk_masked_expand_load:
    case bfk_masked_load:
-     bcap->n_args = 2;
-     bcap->replace_routine_type = TRUE;
-     bcap->callback = adjust_masked_builtin;
-     break;
+      bcap->n_args = 2;
+      bcap->replace_routine_type = TRUE;
+      bcap->callback = adjust_masked_builtin;
+      break;
    case bfk_masked_gather:
-     bcap->n_args = 3;
-     bcap->replace_routine_type = TRUE;
-     bcap->callback = adjust_masked_builtin;
-     break;
+      bcap->n_args = 3;
+      bcap->replace_routine_type = TRUE;
+      bcap->callback = adjust_masked_builtin;
+      break;
     default:
       /* No special processing is needed for most builtins. */
       requires_processing = FALSE;
@@ -7200,6 +7200,12 @@ Perform special processing for some "masked" builtins whose return type
 is dependent on the argument types.  Note that only "masked" builtins whose
 return type is dependent are handled here (the others use the default
 void(...) signature so no argument checking is done).
+
+*target describes the function specified in the call; on return it is updated
+to describe the appropriate concrete function based on the argument types.
+args gives the argument list.  *closing_paren_position gives the position of
+the final ")" in the argument list.  On return, *arg_list is set to point to
+the argument list in expression form.
 */
 {
   a_routine_ptr rout = routine_from_function_operand(target);
