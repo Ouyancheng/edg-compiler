@@ -16249,6 +16249,7 @@ on the ck_template_param constant pointed to by the expression.
   return new_type;
 }  /* copy_array_type_with_substitution */
 
+#if GNU_VECTOR_TYPES_ALLOWED
 
 static a_type_ptr copy_vector_type_with_substitution(
 			a_type_ptr			type,
@@ -16315,6 +16316,7 @@ or may not be the given type).
   return new_type;
 }  /* copy_vector_type_with_substitution */
 
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 a_type_ptr type_if_unknown_conversion_function_symbol(a_symbol_ptr	sym)
 /*
@@ -17848,7 +17850,7 @@ done_with_routine:
           }  /* if */
         }  /* if */
         break;
-#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+#if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
         /* Vector types are in principle similar to array types.  However,
            current GNU versions (16.x and earlier) do not appear to support
@@ -17869,7 +17871,7 @@ done_with_routine:
          }  /* if */
         }  /* if */
         break;
-#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:;
         /* No modification required. */
         new_type = type;
