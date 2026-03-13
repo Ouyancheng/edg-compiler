@@ -324,8 +324,11 @@ typedef struct an_expr_or_stmt_traversal_block {
 			   aggregate. */
   a_boolean	skip_expr_process_type;
 			/* TRUE if traverse_expr should not call process_type
-			   up front.  (process_type might still be called
-			   elsewhere, including by process_expr.) */
+			   directly on a given expression's type.
+			   (process_type might still be called elsewhere,
+			   including by process_expr, or by traverse_expr on
+			   a type that is not pointed-to directly by the
+			   expression passed to traverse_expr.) */
   /* Fields used by examine_expr_for_unordered_temp_inits: */
   a_boolean	set_unordered_on_dynamic_inits;
 			/* If TRUE, set the "unordered" flag in dynamic

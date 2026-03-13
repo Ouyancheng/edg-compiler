@@ -26409,8 +26409,8 @@ instantiation-dependent.
        dependent". */
     a_variable  *vp = node_variable(expr);
     if (vp->is_this_parameter) {
-      /* The "this" parameter refers to the current instantiations and
-         should not be treated as instantiation-dependent. */
+      /* The "this" parameter refers to the current instantiation and should
+         not be treated as instantiation-dependent. */
       skip_typecheck = TRUE;
     } else if (vp->is_nonreal) {
       tblock->result = TRUE;
