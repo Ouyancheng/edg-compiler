@@ -6145,8 +6145,8 @@ be called to check and adjust the argument and routine types as needed.
       bcap->is_invoke = TRUE;
       bcap->callback = nullptr;
       break;
-   case bfk_masked_expand_load:
-   case bfk_masked_load:
+    case bfk_masked_expand_load:
+    case bfk_masked_load:
       bcap->n_args = 2;
       bcap->replace_routine_type = TRUE;
       bcap->callback = adjust_masked_builtin;
