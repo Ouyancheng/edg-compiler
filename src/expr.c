@@ -6151,7 +6151,7 @@ be called to check and adjust the argument and routine types as needed.
       bcap->replace_routine_type = TRUE;
       bcap->callback = adjust_masked_builtin;
       break;
-   case bfk_masked_gather:
+    case bfk_masked_gather:
       bcap->n_args = 3;
       bcap->replace_routine_type = TRUE;
       bcap->callback = adjust_masked_builtin;
