@@ -3458,7 +3458,8 @@ specializations.
 					     /*extend_namespace=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  if (!scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_entries_disallowed) {
+  if (!scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_entries_disallowed &&
+      is_primary_translation_unit) {
     a_type_ptr                   tp;
     a_source_sequence_entry_ptr  ssep;
     /* Turn on the generation of source sequence entries. */
@@ -35532,7 +35533,8 @@ For example:
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   saved_source_sequence_entries_disallowed =
                                             source_sequence_entries_disallowed;
-  if (!is_real_instantiation_context() && src_seq_entries_permitted_in_il()) {
+  if (!is_real_instantiation_context() && src_seq_entries_permitted_in_il() &&
+      is_primary_translation_unit) {
     scope_stack_top().source_sequence_entries_disallowed = FALSE;
     source_sequence_entries_disallowed = FALSE;
   }  /* if */

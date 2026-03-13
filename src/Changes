@@ -1,5 +1,17 @@
 Version 6.9
 
+3/13/26  [EDGcpfe/28622]
+Abort in trans_copy in some configurations
+
+The changes for EDGcpfe/27217 could cause the generation of source sequence
+entries in secondary translation units when GENERATE_SOURCE_SEQUENCE_LISTS is
+TRUE, which in turn triggered an internal error in trans_copy.c.  This
+regression, introduced in version 6.7 of the front end, is now fixed.  (It is
+unusual to enable secondary translation unit support -- i.e., setting
+COMPILE_MULTIPLE_TRANSLATION_UNITS to TRUE -- and source sequence entries at
+the same time.)
+
+
 3/12/26  [EDGcpfe/28718]
 Clang compatibility: __builtin_elementwise_ldexp, __builtin_masked_load,
 __builtin_masked_expand_load, __builtin_masked_gather
