@@ -8403,6 +8403,7 @@ size_con is not valid, set *p_err to TRUE.
       if (size <= targ_char_bit) {
         size = 1;
       } else {
+        check_assertion(targ_char_bit != 0);
         size = (size + targ_char_bit - 1) / targ_char_bit;
         size = (a_host_large_integer)next_pow2((uint64_t)size);
       }  /* if */
