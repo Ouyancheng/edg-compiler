@@ -12652,6 +12652,18 @@ and return the result in *result (or an error indication in *rcblock).
       } else if (property_ref_case) {
         /* No further checking here. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else if ((gpp_version_is(any_version) || ms_version_is(any_version)) &&
+                 is_prototype_instantiation_context() &&
+                 !is_const_qualified_type(operand.type)) {
+        /* GCC and MSVC accept cases such as the following:
+             template<typename T> struct S {
+               void f() { ++this; }
+             };
+        */
+        prep_generic_operand_full(&operand, /*lvalue_expected=*/TRUE,
+                                  /*rvalue_expected=*/FALSE);
+        orig_result_type = operand.type;
+        result_type = prvalue_type(orig_result_type);
       } else if (!check_modifiable_lvalue_operand(&operand)) {
         /* Operand is not a modifiable lvalue. */
         err = TRUE;
