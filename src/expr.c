@@ -32029,7 +32029,11 @@ operator_position describe the location of the operator in the token stream.
          unqualified versions of compatible types (i.e., object, incomplete,
          or function types), and null pointer constants and "void *" pointers
          are specially handled (ANSI C 3.3.9).  Ditto in C++. */
-      (void)check_compatibility_of_pointer_operands(
+      if ((gnu_version_is(any_version) || ms_version_is(any_version)) &&
+          is_prototype_instantiation_context()) {
+        /* GCC and MSVC do not perform full type checking in templates. */
+      } else {
+        (void)check_compatibility_of_pointer_operands(
                          operand_1, operand_2, operator_position,
                          opname_kind_for_token[(int)operator_token],
                          /*pointer_normalization_standard_in_C=*/TRUE,
@@ -32037,13 +32041,19 @@ operator_position describe the location of the operator in the token stream.
                          /*pointers_to_incomplete_standard_in_C=*/TRUE,
                          /*mixed_object_and_incomplete_standard_in_C=*/TRUE,
                          &operation_type);
+      }  /* if */
     } else if (is_ptr_to_member_type(operand_1->type) ||
                is_ptr_to_member_type(operand_2->type)) {
       /* At least one operand is a pointer to member.  See if the operands
          are compatible. */
-      (void)check_ptr_to_member_operands_for_compatibility(
-                         operand_1, operand_2, operator_position,
-                         &operation_type);
+      if ((gnu_version_is(any_version) || ms_version_is(any_version)) &&
+          is_prototype_instantiation_context()) {
+        /* GCC and MSVC do not perform full type checking in templates. */
+      } else {
+        (void)check_ptr_to_member_operands_for_compatibility(
+                           operand_1, operand_2, operator_position,
+                           &operation_type);
+      }
     } else if (is_reflection_type(operand_1->type) ||
                is_reflection_type(operand_2->type)) {
       /* At least one operand is a reflection: The other operand should also
