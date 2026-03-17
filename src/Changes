@@ -1,5 +1,13 @@
 Version 6.9
 
+3/17/26  [EDGcpfe/28731]
+__builtin_invoke and class templates
+
+The front end previously failed to trigger the instantiation of a class
+template specialization passed to __builtin_invoke.  This resulted in spurious
+diagnostics about a missing call operator.  That is now fixed.
+
+
 3/13/26  [EDGcpfe/28622]
 Abort in trans_copy in some configurations
 

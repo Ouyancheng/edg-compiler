@@ -8228,7 +8228,7 @@ and bound_function_selector are expected to be NULL in that case.
 #if BUILTIN_FUNCTIONS_ENABLED
   if (bcap != NULL) {
     if (bcap->is_invoke) {
-      /* Special handling for __builin_invoke. */
+      /* Special handling for __builtin_invoke. */
       an_operand_ptr  first_operand;
 
       if (arg_list == NULL) {
@@ -8264,7 +8264,7 @@ and bound_function_selector are expected to be NULL in that case.
           /* For a class-type operand, look for a function call operator. */
           a_type_ptr    class_type = skip_typerefs(first_operand->type);
           a_symbol_ptr  member_function_symbol;
-
+          complete_class_type_is_needed(class_type);
           try_surrogate_functions = TRUE;
           overloaded_function_case = TRUE;
           operand = first_operand;
