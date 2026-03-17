@@ -19,7 +19,7 @@ Consider, in C++17 mode:
   }
 
 The fold expression expands to the equivalent of (Tmp<0>{} && Tmp<1>{}), where
-only the first temporary is constructed since it convert to a false value.
+only the first temporary is constructed since it converts to a false value.
 Hence, only that temporary should be destroyed, but the front end failed to
 maintain the needed conditions to track the evaluated temporaries in this
 situation.  As a result, a destructor was also run for potential temporaries
