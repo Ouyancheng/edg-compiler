@@ -57183,7 +57183,17 @@ function operand: The selector is then returned in *bound_function_selector.
        operands. */
     while (any_more) {
       if (!first_time) {
+        a_boolean  saved_inside_conditional_expression =
+                                    expr_stack->inside_conditional_expression;
+        if (op_token == tok_or_or || op_token == tok_and_and) {
+          /* This is the second (or subsequent) operand of a short circuiting
+             operator.  Mark the expression stack appropriately so that, e.g.,
+             destructors for temporaries get conditionally evaluated. */
+          expr_stack->inside_conditional_expression = TRUE;
+        }  /* if */
         scan_expr(result, PREC_LOWEST, EOPT_FOLD_EXPR_CONTEXT);
+        expr_stack->inside_conditional_expression =
+                                          saved_inside_conditional_expression;
         check_assertion_or_expect_error(curr_token == op_token);
         (void)get_token();
         if (curr_token == tok_ellipsis) {
@@ -57232,6 +57242,7 @@ function operand: The selector is then returned in *bound_function_selector.
   } else if (!unary || left_associative) {
     a_pack_expansion_stack_entry_ptr right_pesep;
     a_boolean                        any_more;
+    a_boolean                        first_in_rhs = TRUE;
     any_more = begin_potential_pack_expansion_context(&right_pesep);
     record_pack_expansion_ellipsis_position(&ellipsis_pos);
     if (!unary && !left_associative && right_pesep != NULL) {
@@ -57242,7 +57253,23 @@ function operand: The selector is then returned in *bound_function_selector.
     if (any_more) {
       do {
         a_pack_expansion_descr_ptr  pedp;
+        a_boolean                   saved_inside_conditional_expression =
+                                     expr_stack->inside_conditional_expression;
+        if (op_token == tok_or_or || op_token == tok_and_and) {
+          /* This is an operand of a short circuiting operator.  Mark the
+             expression stack for all but the first operand that that, e.g.,
+             destructors for temporaries are executed conditionally. */
+          if (unary && left_associative && first_in_rhs) {
+            /* This is the left-most operand in a unary left-associative
+               fold: This operand is not by default in condition expression. */
+          } else {
+            expr_stack->inside_conditional_expression = TRUE;
+          }  /* if */
+        }  /* if */
+        first_in_rhs = FALSE;
         scan_expr(result, PREC_CAST, EOPT_NO_OPTIONS);
+        expr_stack->inside_conditional_expression =
+                                          saved_inside_conditional_expression;
         if (any_packs_referenced_in_curr_context()) {
           pack_seen = TRUE;
           if (!left_associative && !unary) {

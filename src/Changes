@@ -1,5 +1,32 @@
 Version 6.9
 
+3/17/26  [EDGcpfe/28736]
+Temporaries in short-circuiting fold-expressions
+
+Consider, in C++17 mode:
+
+  extern "C" int printf(char const*, ...);
+  template<int N>
+  struct Tmp {
+    ~Tmp() { if (N != 0) printf("%d\n", N); }
+    operator bool() const { return N != 0; }
+  };
+  template<int ... N> void f() {
+    (Tmp<N>{} && ...);
+  }
+  int main() {
+    f<0, 1>();
+  }
+
+The fold expression expands to the equivalent of (Tmp<0>{} && Tmp<1>{}), where
+only the first temporary is constructed since it convert to a false value.
+Hence, only that temporary should be destroyed, but the front end failed to
+maintain the needed conditions to track the evaluated temporaries in this
+situation.  As a result, a destructor was also run for potential temporaries
+that were not actually produced (in this case, the temporary that Tmp<1>{}
+might have produced).  This is now fixed.
+
+
 3/17/26  [EDGcpfe/28731]
 __builtin_invoke and class templates
 
