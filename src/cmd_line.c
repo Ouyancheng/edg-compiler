@@ -13592,6 +13592,7 @@ variables declared in cmd_line.h.
   lambda_declarator_params_optional = FALSE;
   auto_cast_enabled = FALSE;
   embed_enabled = FALSE;
+  struct_binding_packs_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 
