@@ -57257,11 +57257,11 @@ function operand: The selector is then returned in *bound_function_selector.
                                      expr_stack->inside_conditional_expression;
         if (op_token == tok_or_or || op_token == tok_and_and) {
           /* This is an operand of a short circuiting operator.  Mark the
-             expression stack for all but the first operand that that, e.g.,
+             expression stack for all but the first operand so that, e.g.,
              destructors for temporaries are executed conditionally. */
           if (unary && left_associative && first_in_rhs) {
-            /* This is the left-most operand in a unary left-associative
-               fold: This operand is not by default in condition expression. */
+            /* This is the left-most operand in a unary left-associative fold:
+               This operand is not by default in a conditional expression. */
           } else {
             expr_stack->inside_conditional_expression = TRUE;
           }  /* if */
