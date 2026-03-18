@@ -1,5 +1,19 @@
 Version 6.9
 
+3/18/26  [EDGcpfe/28745]
+Address of C11 _Generic lvalue
+
+In some configurations, the front end was unable to "see through" a C11
+_Generic selection to identify a constant address.  That could result in
+spurious errors.  For example:
+
+  struct S* arr[1];
+  struct S** p = _Generic(arr, struct S**: arr);  // Previously an error in
+                                                  // some configurations.
+
+That is now fixed.
+
+
 3/18/26  [EDGcpfe/21155,EDGcpfe/28528]
 Improvements to parameter pack deduction
 

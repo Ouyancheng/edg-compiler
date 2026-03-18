@@ -7182,6 +7182,10 @@ handle_pm_field_selection:
       /* A reference to a parameter is similar to a variable with automatic
          storage duration: Its address is not a constant. */
       break;
+    case enk_c11_generic:
+      /* Look to the selected underlying expression. */
+      expr = expr->variant.c11_generic.result;
+      goto start_underlying_expression;
     default:
       /* Other expression kinds cannot be folded. */
       break;
