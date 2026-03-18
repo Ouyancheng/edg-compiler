@@ -5,7 +5,7 @@ Address of C11 _Generic lvalue
 
 In some configurations, the front end was unable to "see through" a C11
 _Generic selection to identify a constant address.  That could result in
-spurious errors.  For example:
+spurious errors.  For example, in GNU C11 mode:
 
   struct S* arr[1];
   struct S** p = _Generic(arr, struct S**: arr);  // Previously an error in
