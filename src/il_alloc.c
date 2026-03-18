@@ -1163,6 +1163,7 @@ in the file scope memory region.
   ptp->type_involves_template_param = FALSE;
   ptp->is_parameter_pack = FALSE;
   ptp->is_pack_element = FALSE;
+  ptp->was_nontrailing_pack = FALSE;
   ptp->is_auto_param = FALSE;
   ptp->qualifiers = TQ_NONE;
 #if GNU_EXTENSIONS_ALLOWED

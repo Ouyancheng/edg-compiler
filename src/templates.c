@@ -3451,13 +3451,13 @@ entire_type is FALSE, and must be zero otherwise.
          the parameter was also a pack. */
       local_match1 = FALSE;
     } else {
-      local_match1 = matches_template_type(param_type1, param_type2,
-                                           templ_arg_list1, templ_param_list1,
-                                           is_pack1 ? MTT_IS_PACK
-                                                    : MTT_NO_FLAGS);
+      local_match1 = matches_template_type(
+                         param_type1, param_type2,
+                         templ_arg_list1, templ_param_list1,
+                         mtt_flags | (is_pack1 ? MTT_IS_PACK : MTT_NO_FLAGS));
     }  /* if */
   } else {
-    mtt_flags = MTT_TEMPL_TEMPL_MATCH;
+    mtt_flags |= MTT_TEMPL_TEMPL_MATCH;
   }  /* if */
   if ((microsoft_mode || gnu_mode) && is_pack2 && !is_pack1) {
     /* Prior to the resolution of Core issue 1395 (which GCC, Clang, and MSVC
@@ -3465,10 +3465,10 @@ entire_type is FALSE, and must be zero otherwise.
        parameter was also a pack. */
     local_match2 = FALSE;
   } else {
-    local_match2 = matches_template_type(param_type2, param_type1,
-                                         templ_arg_list2, templ_param_list2,
-                                         mtt_flags |(is_pack2 ? MTT_IS_PACK
-                                                              : MTT_NO_FLAGS));
+    local_match2 = matches_template_type(
+                        param_type2, param_type1,
+                        templ_arg_list2, templ_param_list2,
+                        mtt_flags | ( is_pack2 ? MTT_IS_PACK : MTT_NO_FLAGS));
   }  /* if */
   if (!local_match1 || !local_match2) {
     /* There was only a match in one direction.  Update the caller's flags
@@ -13639,7 +13639,8 @@ partial specialization.
                                     templ_arg_list,
                                     templ_param_list,
                                     (new_flags & (MTT_PARTIAL_SPEC |
-                                                  MTT_IS_PACK)) |
+                                                  MTT_IS_PACK |
+                                                  MTT_NO_PACK_DEDUCTION)) |
                                       MTT_NESTED_TYPE_MATCH);
     } else if (is_nontype_templ_arg(tap)) {
       /* A nontype template parameter. */
@@ -13987,6 +13988,53 @@ nonreal class template.
 }  /* is_instantiation_of_nonreal_member */
 
 
+static void place_deduced_pack_element(a_template_arg_ptr         new_tap,
+                                       a_template_param_list_pos  param_num,
+                                       a_template_arg_ptr         targs)
+/*
+Insert the given template argument (new_tap) as a pack element corresponding
+to the given parameter number (corresponding to a parameter pack) in the given
+list of template arguments (targs).  new_tap may already be in the list, in
+which case this function has no effect.  targs must already have a
+tak_start_of_pack_expansion placeholder for the pack expansion that the new
+pack element is part of.
+*/
+{
+  a_template_arg_ptr         tap = targs;
+  a_template_param_list_pos  pos = 1;
+
+  /* Search the list for the insertion point.  We know it will never be the
+     first element in the list because we expect at least one
+     tak_start_of_pack_expansion pseudo-argument. */
+  while (tap != NULL) {
+    if (tap == new_tap) {
+      /* The argument is already on the list. */
+      break;
+    } else if (tap->kind == tak_start_of_pack_expansion &&
+               pos == param_num) {
+      /* This is the pack expansion to add to.  Skip any elements already
+         in the expansion. */
+      while (tap->next != NULL && tap->next->is_pack_element) {
+        tap = tap->next;
+        /* If the new element is already in the expansion, nothing is left
+           to do. */
+        if (tap == new_tap) goto done;
+      }  /* while */
+      new_tap->is_pack_element = TRUE;
+      new_tap->next = tap->next;
+      tap->next = new_tap;
+      break;
+    } else {
+      if (!tap->is_pack_element) {
+        ++pos;
+      }  /* if */
+      tap = tap->next;
+    }  /* if */
+  }  /* while */
+done:;
+}  /* place_deduced_pack_element */
+
+
 a_boolean matches_template_type(a_type_ptr           type,
                                 a_type_ptr           templ_type,
                                 a_template_arg_ptr   *templ_arg_list,
@@ -14028,7 +14076,9 @@ points to the template parameter list.
   /* When this routine calls itself recursively, the recursive calls
      should not allow conversions or the special unknown this class
      type checks.  Use a mask of flags allowed to be passed down. */
-  new_flags = (flags & (MTT_TEMPL_TEMPL_MATCH | MTT_IS_PACK));
+  new_flags = (flags & (MTT_TEMPL_TEMPL_MATCH |
+                        MTT_IS_PACK |
+                        MTT_NO_PACK_DEDUCTION));
   templ_type = skip_typedefs_not_dependent_decltypes(templ_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_handle_ptr(templ_type) &&
@@ -14135,6 +14185,13 @@ points to the template parameter list.
                   is_auto_template_param_type(templ_type) ||
                   is_class_template_placeholder_type(templ_type) ||
                   identical_types(type, templ_type);
+        } else if (templ_type->variant.template_param.is_pack &&
+                   (flags & MTT_NO_PACK_DEDUCTION)) {
+          /* Pack deduction is disabled : Assume a match, but do not update
+             the template argument list.  GCC appears to treat this as a
+             deduction failure. */
+          match = !gpp_version_is(any_version);
+          goto done;
         } else {
           a_template_param_coordinate_ptr  coordinates;
           /* This is a template parameter from the original source program
@@ -14148,6 +14205,14 @@ points to the template parameter list.
                                 templ_param_list, templ_arg_list, coordinates,
                                 /*is_rescan=*/FALSE,
                                 /*ignore_packs=*/FALSE);
+          if (templ_type->variant.template_param.is_pack) {
+            /* When the deduced argument is a pack,
+               get_template_arg_by_list_pos sometimes creates a new argument
+               without inserting it in the *templ_arg_list.  Ensure the
+               insertion is done at this point. */
+            place_deduced_pack_element(tap, coordinates->position,
+                                       *templ_arg_list);
+          }  /* if */
           /* Now we have the nth template argument, which should correspond to
              the nth template parameter, whose type is templ_type. */
           if (tap->variant.type == NULL || tap->is_provisional_value) {
@@ -14786,7 +14851,6 @@ it is always NULL.
   /* Restore the previous template argument environment. */
   if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
   if (prp != NULL) {
-    free_template_arg_list(prp->prev_template_arg);
     prp->prev_template_arg = saved_prev_tap;
     prp->curr_argument.template_arg = saved_curr_tap;
   }  /* if */
@@ -16976,6 +17040,7 @@ parameters.
       new_ptp->name = ptp->name;
       new_ptp->param_num = ptp->param_num;
       new_ptp->is_explicit_this = ptp->is_explicit_this;
+      new_ptp->was_nontrailing_pack = ptp->was_nontrailing_pack;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* Copy the C++/CLI param array state to the deduced parameter. */
       new_ptp->is_cli_param_array = ptp->is_cli_param_array;
@@ -17004,6 +17069,8 @@ parameters.
                                                                ctws_state);
           }  /* if */
           new_ptp->pack_expansion_descr = pedp;
+        } else if (ptp->next != NULL) {
+          new_ptp->was_nontrailing_pack = TRUE;
         }  /* if */
       } else {
         new_ptp->is_pack_element = ptp->is_pack_element;

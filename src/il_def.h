@@ -6390,6 +6390,10 @@ typedef struct a_param_type {
 			   a variadic template for those parameters that are
 			   associated with a parameter pack of the original
 			   variadic template. */
+  a_bit_field	was_nontrailing_pack:1;
+			/* TRUE if this is a pack element produced from a
+			   nontrailing parameter pack (which can happen with
+			   explicit template arguments). */
   a_bit_field	is_auto_param:1;
 			/* TRUE if the parameter is declared with an "auto"
 			   type specifier. */

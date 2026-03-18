@@ -4438,7 +4438,8 @@ static a_boolean deduce_from_one_pair(a_type_ptr            param_type,
                                       a_type_ptr            qc_param_type,
                                       a_type_ptr            qc_arg_type,
                                       a_template_arg_ptr    *template_arg_list,
-                                      a_template_param_ptr  template_params)
+                                      a_template_param_ptr  template_params,
+                                      a_boolean             no_pack_deduction)
 /*
 This routine is used to implement template argument deduction: Trying to
 develop a list of template arguments that will produce an instance type
@@ -4452,10 +4453,13 @@ types (see adjust_deduction_pair).  qc_param_type and qc_arg_type are
 versions of the adjusted types (see also adjust_deduction_pair) that can
 be used to determine if deduction should succeed based on a qualification
 conversion.  template_params lists the template parameters (or the "auto"
-specifier) for which bindings are sought.
+specifier) for which bindings are sought.  If no_pack_deduction is TRUE, no
+arguments are deduced from packs.
 */
 {
-  a_boolean  deduction_okay = FALSE;
+  a_boolean        deduction_okay = FALSE;
+  an_mtt_flag_set  flags = no_pack_deduction ? MTT_NO_PACK_DEDUCTION
+                                             : MTT_NO_FLAGS;
 
   /* As the matching is attempted, template_arg_list is filled in with
      the bindings for the template arguments.  This is needed during the
@@ -4465,7 +4469,8 @@ specifier) for which bindings are sought.
      a conversion from Derived<T> to Base<T>, and to allow qualifiers to be
      added under an array type. */
   if (matches_template_type(arg_type, param_type, template_arg_list,
-                            template_params, MTT_ALLOW_INEXACT_DEDUCTION)) {
+                            template_params,
+                            flags | MTT_ALLOW_INEXACT_DEDUCTION)) {
     deduction_okay = TRUE;
   } else if ((is_pointer_type(qc_arg_type) ||
               is_ptr_to_member_type(qc_arg_type)) &&
@@ -4475,7 +4480,7 @@ specifier) for which bindings are sought.
        conversion can be used. */
     if (matches_template_type_with_qualification_conversion(
                             qc_arg_type, qc_param_type, template_arg_list,
-                            template_params, MTT_NO_FLAGS)) {
+                            template_params, flags)) {
       deduction_okay = TRUE;
     }  /* if */
   }  /* if */
@@ -4483,11 +4488,16 @@ specifier) for which bindings are sought.
 }  /* deduce_from_one_pair */
 
 
-static a_boolean is_instance_of_std_initializer_list(a_type_ptr type,
-                                                     a_type_ptr *elem_type)
+static a_boolean is_instance_of_std_initializer_list(
+                                                a_type_ptr  type,
+                                                a_type_ptr  *elem_type,
+                                                a_boolean   *elem_pack = NULL)
 /*
-Return TRUE if "type" is an instance of std::initializer_list<X>, and
-if so also return *elem_type set to the argument type X.
+Return TRUE if "type" is an instance of std::initializer_list<X>, and if so
+also return *elem_type set to the argument type X.  If elem_pack is non-NULL,
+set *elem_pack to TRUE if X is of the form "T..." and to FALSE otherwise.
+(A TRUE value disqualifies the type from the special treatment during
+deduction; see N5014 [temp.deduct.call]/1.)
 */
 {
   a_boolean          is_instance = FALSE;
@@ -4505,6 +4515,9 @@ if so also return *elem_type set to the argument type X.
                       is_type_templ_arg(templ_arg_list));
       is_instance = TRUE;
       *elem_type = templ_arg_list->variant.type;
+      if (elem_pack != NULL) {
+        *elem_pack = templ_arg_list->is_pack;
+      }  /* if */
     } else {
       unexpected_condition();
     }  /* if */
@@ -4546,6 +4559,7 @@ deduction was successful: some cases are treated as "nondeduced contexts").
     is_auto = TRUE;
     elem_type = dest_type;
   } else {
+    a_boolean  pack_param_elem;
     if (is_any_reference_type(dest_type)) {
       dest_type = type_pointed_to(dest_type);
     }  /* if */
@@ -4553,9 +4567,12 @@ deduction was successful: some cases are treated as "nondeduced contexts").
       is_array = TRUE;
       dest_type = skip_typerefs(dest_type);
       elem_type = dest_type->variant.array.element_type;
-    } else if (is_instance_of_std_initializer_list(dest_type, &elem_type)) {
+    } else if (is_instance_of_std_initializer_list(
+                                   dest_type, &elem_type, &pack_param_elem) &&
+               !pack_param_elem) {
       /* Attempt to match { ... } to std::initializer_list<X> where X is
-         the type represented by elem_type. */
+         the type represented by elem_type.  Note that
+         std::initializer_list<X...> is not deducible. */
     } else {
       /* Not a deducible context. */
       goto done;
@@ -4603,7 +4620,8 @@ deduction was successful: some cases are treated as "nondeduced contexts").
     if (is_template_dependent_type(elem_param_type)) {
       if (!deduce_from_one_pair(elem_param_type, elem_arg_type,
                                 qc_param_type, qc_arg_type,
-                                template_arg_list, templ_params)) {
+                                template_arg_list, templ_params,
+                                /*no_pack_deduction=*/FALSE)) {
         deduction_okay = FALSE;
         break;
       }  /* if */
@@ -4639,12 +4657,14 @@ done:
 }  /* deduce_from_braced_init_list */
 
 
-static a_boolean deduce_one_parameter(a_param_type_ptr      ptp,
-                                      a_type_ptr            param_type,
-                                      an_arg_list_elem_ptr  *p_arg,
-                                      a_type_ptr            arg_type,
-                                      a_symbol_ptr          template_sym,
-                                      a_template_arg_ptr    *template_arg_list)
+static a_boolean deduce_one_parameter(
+                              a_param_type_ptr      ptp,
+                              a_type_ptr            param_type,
+                              an_arg_list_elem_ptr  *p_arg,
+                              a_type_ptr            arg_type,
+                              a_symbol_ptr          template_sym,
+                              a_template_arg_ptr    *template_arg_list,
+                              a_boolean             no_pack_deduction = FALSE)
 /*
 Do template argument deduction on one parameter of a function
 template.  ptp identifies the parameter (which requires deduction).
@@ -4658,8 +4678,10 @@ parameter pack case won't get here because this routine gets called
 only when there's an argument to match to the parameter).
 template_sym is the symbol for the function_template (not a projection
 symbol).  *template_arg_list points to the template argument list so
-far; anything deduced is added to that.  Return TRUE if the deduction
-succeeds, FALSE if it fails.
+far; anything deduced is added to that.  If no_pack_deduction is TRUE,
+template arguments are not deduced for packs (this occurs during the
+deduction of nontrailing function parameter packs).  Return TRUE if the
+deduction succeeds, FALSE if it fails.
 */
 {
   a_boolean            deduction_okay = TRUE;
@@ -4765,7 +4787,7 @@ succeeds, FALSE if it fails.
     /* Do the deduction. */
     deduction_okay = deduce_from_one_pair(
                          param_type, arg_type, qc_param_type, qc_arg_type,
-                         template_arg_list, templ_params);
+                         template_arg_list, templ_params, no_pack_deduction);
     if (!deduction_okay) break;
 next_iteration:
     if (arg != NULL) arg = next_elem(arg);
@@ -4921,11 +4943,27 @@ deduction failed.
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (!deduce_one_parameter(ptp, (a_type_ptr)NULL, &alep,
-                                     (a_type_ptr)NULL,
-                                     template_sym, template_arg_list)) {
-      /* Deduction failed. */
-      goto done;
+    } else {
+      /* Perform deduction on one parameter.  If the parameter is the result
+         of the expansion of a nontrailing parameter pack (from explicit
+         template arguments), parameter packs should not be deduced.
+         For example:
+           template<typename, typename> struct P {};
+           template<typename ...T, typename ...U> void f1(P<T, U>..., int);
+           template<typename ...T, typename U>    void f2(P<T, U>..., int);
+           void g(P<short, long> p) {
+             f1<short>(p, 42);  // Fails: U... cannot be deduced.
+             f2<short>(p, 42);  // Okay: Deduced U = long.
+           }
+      */
+      a_boolean  no_pack_deduction = ptp->was_nontrailing_pack &&
+                                     ptp->type_involves_template_param;
+      if (!deduce_one_parameter(ptp, (a_type_ptr)NULL, &alep, (a_type_ptr)NULL,
+                                template_sym, template_arg_list,
+                                no_pack_deduction)) {
+        /* Deduction failed. */
+        goto done;
+      }  /* if */
     }  /* if */
     if (!suppress_param_advance) ptp = ptp->next;
   }  /* for */
@@ -30473,7 +30511,8 @@ TRUE and FALSE is returned.
         okay = FALSE;
       } else if (!deduce_from_one_pair(type, arg_type,
                                        qc_param_type, qc_arg_type,
-                                       &templ_arg, templ_param)) {
+                                       &templ_arg, templ_param,
+                                       /*no_pack_deduction=*/FALSE)) {
         /* Deduction failed. */
         okay = FALSE;
       }  /* if */

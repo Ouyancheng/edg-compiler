@@ -808,6 +808,8 @@ typedef unsigned int an_mtt_flag_set;
 			   argument list. */
 #define MTT_IS_PACK 0x800
 			/* TRUE when matching a type for a parameter pack. */
+#define MTT_NO_PACK_DEDUCTION 0x1000
+			/* TRUE when packs shouldn't be matched. */
 
 extern a_boolean matches_template_type_with_qualification_conversion(
 				a_type_ptr           type,

@@ -1659,6 +1659,9 @@ Display a_param_type entry.
   if (ptr->is_pack_element) {
     disp_boolean("is_pack_element", TRUE);
   }  /* if */
+  if (ptr->was_nontrailing_pack) {
+    disp_boolean("was_nontrailing_pack", TRUE);
+  }  /* if */
   if (ptr->is_auto_param) {
     disp_boolean("is_auto_param", TRUE);
   }  /* if */
