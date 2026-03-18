@@ -1,5 +1,37 @@
 Version 6.9
 
+3/18/26  [EDGcpfe/21155,EDGcpfe/28528]
+Improvements to parameter pack deduction
+
+Consider:
+
+  template<typename T, typename ...> struct X { using type = int; };
+  template<typename ...Ts>
+    int f(typename X<Ts ...>::type, Ts...);            // (1)
+  template<typename T, typename... Ts>
+    int f(typename X<T*, Ts ...>::type, T*, Ts...);    // (2)
+  int r = f(1, "");                                    // (3)
+
+Template (2) is "more specialized" that template (1), and should thus be
+selected in line (3).  However, a bug in parameter pack deduction previously
+prevented the front end from determining the partial order between the two
+to templates.  That is now fixed.
+
+A related problem occurred in the following example:
+
+  template<typename> struct E {};
+  template<typename> struct S {
+    template<typename ...Ts> using NA = E<Ts...>;
+  };
+  template<typename U, typename ...Vs>
+    using A = typename S<U>::template NA<Vs...>;
+  template<typename U, typename ...Ps> int f(A<U, Ps...>);
+  int r = f<int>(E<int>{});  // Previously failed deduction.  Now okay.
+
+Previously, deducing the pack Ps... through the alias template failed, causing
+the example to produce a spurious error.  That is now also fixed.
+
+
 3/17/26  [EDGcpfe/28736]
 Temporaries in short-circuiting fold-expressions
 
