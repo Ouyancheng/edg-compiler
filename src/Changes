@@ -12,10 +12,10 @@ Consider:
     int f(typename X<T*, Ts ...>::type, T*, Ts...);    // (2)
   int r = f(1, "");                                    // (3)
 
-Template (2) is "more specialized" that template (1), and should thus be
+Template (2) is "more specialized" than template (1), and should thus be
 selected in line (3).  However, a bug in parameter pack deduction previously
 prevented the front end from determining the partial order between the two
-to templates.  That is now fixed.
+templates.  That is now fixed.
 
 A related problem occurred in the following example:
 

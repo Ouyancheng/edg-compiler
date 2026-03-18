@@ -14187,9 +14187,9 @@ points to the template parameter list.
                   identical_types(type, templ_type);
         } else if (templ_type->variant.template_param.is_pack &&
                    (flags & MTT_NO_PACK_DEDUCTION)) {
-          /* Pack deduction is disabled : Assume a match, but do not update
-             the template argument list.  GCC appears to treat this as a
-             deduction failure. */
+          /* Pack deduction is disabled: Assume a match, but do not update the
+             template argument list.  GCC appears to treat this as a deduction
+             failure. */
           match = !gpp_version_is(any_version);
           goto done;
         } else {
@@ -14208,8 +14208,8 @@ points to the template parameter list.
           if (templ_type->variant.template_param.is_pack) {
             /* When the deduced argument is a pack,
                get_template_arg_by_list_pos sometimes creates a new argument
-               without inserting it in the *templ_arg_list.  Ensure the
-               insertion is done at this point. */
+               without inserting it in *templ_arg_list.  Ensure the insertion
+               is done at this point. */
             place_deduced_pack_element(tap, coordinates->position,
                                        *templ_arg_list);
           }  /* if */
