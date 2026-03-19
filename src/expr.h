@@ -586,6 +586,10 @@ extern a_boolean arg_matches_auto_template_param(
                                      a_template_param_ptr   param_list = NULL);
 
 extern
+void record_template_arg_operand(a_template_arg_ptr tap,
+                                 an_expr_node_ptr   expr);
+
+extern
 void transfer_arg_operand_for_template_arg(a_template_arg_ptr tap,
                                            a_template_arg_ptr orig_tap);
 

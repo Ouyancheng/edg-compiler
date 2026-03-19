@@ -9773,6 +9773,19 @@ list.
 }  /* symbol_for_template_param_unknown_entity_rescan */
 
 
+void record_template_arg_operand(a_template_arg_ptr tap,
+                                 an_expr_node_ptr   expr)
+/*
+Record the given expression as an argument operand for the given nontype
+template argument.  Clear any constant the template argument might point to.
+*/
+{
+  tap->variant.constant = NULL;
+  tap->arg_operand = alloc_arg_operand();
+  make_expression_operand(expr, &tap->arg_operand->operand);
+}  /* record_template_arg_operand */
+
+
 void transfer_arg_operand_for_template_arg(a_template_arg_ptr tap,
                                            a_template_arg_ptr orig_tap)
 /*
@@ -9831,7 +9844,7 @@ routines.
 {
   a_template_arg_ptr new_tap;
 
-  options |= CTWS_COPY_ARG_OPERAND_INFO;
+  options |= CTWS_COPY_ARG_OPERAND_INFO | CTWS_KEEP_TOP_TPCK_EXPRESSION;
   /* A partial argument list is okay for function templates and cases
      where we don't know the template.  It is not okay for non-function
      templates (e.g., classes, variables). */

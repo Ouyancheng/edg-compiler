@@ -1,5 +1,31 @@
 Version 6.9
 
+3/19/26  [EDGcpfe/28277,EDGcpfe/28746]
+Improvements to substitutions of constant template argument expressions
+
+In some cases, the front end successfully substituted constant template
+argument expressions but it considered the substitution failed because there
+was insufficient information at the point of substitution to produce a
+constant value.  For example:
+
+  template<typename, int> void f() {}
+  int main() {
+    []<typename T = int>(){
+      constexpr int N = 0;
+      static_assert(requires () {f<T, N>(); });  // Previously failed.
+    }();                                         // Now okay.
+  }
+
+Here, f in f<T, N> is at first assumed unknown (because it might be overloaded)
+and so the template argument list <T, N> is substituted without knowing whether
+the expression N will be a prvalue (which can be folded) or a glvalue (which
+would be invalid).  Previously, this inability to fold the expression N caused
+substitution to fail, and thus the requires expression to produce a false
+value.  Now, the unfolded expression is propagated for later processing and
+folded when it is bound to the template constant parameter: The requires-
+expression now produces true and the example is accepted.
+
+
 3/18/26  [EDGcpfe/28745]
 Address of C11 _Generic lvalue
 

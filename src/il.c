@@ -21883,7 +21883,11 @@ options.
            template parameters.  Substitute the values of the template
            arguments and fold any constant operations that result. */
         { a_constant_ptr  base_con;
-          a_boolean       explicit_cast;
+          a_boolean       explicit_cast, keep_tpck_expression = FALSE;
+          if (options & CTWS_KEEP_TOP_TPCK_EXPRESSION) {
+            keep_tpck_expression = TRUE;
+            options &= ~CTWS_KEEP_TOP_TPCK_EXPRESSION;
+          }  /* if */
           if (is_template_param_cast_constant(
                                             con, &base_con, &explicit_cast)) {
             /* Handle some eok_cast/eok_ref_cast nodes specially, because they
@@ -21923,14 +21927,18 @@ options.
               /* The expression folds to a constant. */
               /* con_copy and constant are already set correctly. */
             } else if ((!cpp11_sfinae_enabled && !expr_copy->is_lvalue) ||
-                       (options & CTWS_IN_PARENT_SUBSTITUTION) != 0) {
+                       (options & CTWS_IN_PARENT_SUBSTITUTION) != 0 ||
+                       keep_tpck_expression) {
               /* The expression remains an expression.  If the expression
                  changed, make a new tpck_expression constant for it.  With
                  C++11 SFINAE, tpck_expression constants are rescanned, and
                  this is usually not needed.  It is required, however, if
                  we're doing a parent substitution because subsequent
                  substitution of nested template parameters is about to
-                 follow. */
+                 follow.  We also sometimes wrap top-level expression that
+                 cannot be folded when we do not yet know the template
+                 parameter that the result will be bound to (indicated via
+                 the option CTWS_KEEP_TOP_TPCK_EXPRESSION). */
               if (expr != expr_copy) {
                 make_template_param_expr_constant(expr_copy, constant);
                 con_copy = NULL;
