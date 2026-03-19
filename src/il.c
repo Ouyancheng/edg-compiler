@@ -21935,7 +21935,7 @@ options.
                  this is usually not needed.  It is required, however, if
                  we're doing a parent substitution because subsequent
                  substitution of nested template parameters is about to
-                 follow.  We also sometimes wrap top-level expression that
+                 follow.  We also sometimes wrap a top-level expression that
                  cannot be folded when we do not yet know the template
                  parameter that the result will be bound to (indicated via
                  the option CTWS_KEEP_TOP_TPCK_EXPRESSION). */
