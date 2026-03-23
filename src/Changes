@@ -1,5 +1,19 @@
 Version 6.9
 
+3/23/26  [EDGcpfe/28665]
+Microsoft compatibility: __declspec on statement
+
+The processing of a __declspec construct on a statement had caused some
+irregularities during the parsing, resulting in some inconsistencies in the
+IL.  In the following example (with --microsoft), only one stmk_asm
+statement had been generated:
+
+  void f() {
+      [[]] asm("nop");          // generated an stmk_asm
+      __declspec() asm("nop");  // had generated no stmk_asm (now fixed)
+  }
+
+
 3/19/26  [EDGcpfe/28277,EDGcpfe/28746]
 Improvements to substitutions of constant template argument expressions
 

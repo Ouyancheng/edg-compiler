@@ -7750,7 +7750,8 @@ rescan_statement:
     struct_stmt_stack_top().p_start_pos = &start_pos;
   }  /* if */
   if (std_attribute_tokens_next() || curr_token == tok_alignas ||
-      curr_token == tok_attribute) {
+      curr_token == tok_attribute ||
+      (curr_token == tok_declspec && ms_declspec_attributes_enabled)) {
     /* Scan leading attributes. */
     struct_stmt_stack_top().prefix_attributes = scan_attributes(al_prefix);
   }  /* if */
