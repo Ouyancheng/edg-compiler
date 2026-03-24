@@ -1,5 +1,25 @@
 Version 6.9
 
+3/23/26  [EDGcpfe/28754,EDGcpfe/28755]
+C++-generating back end: failure to parenthesize top-level comma expression
+
+In certain contexts, a top-level comma is taken not as the operator in a
+comma expression but as a separator between expressions.  The C++23
+Standard introduced two contexts in which a top-level comma is not
+permitted and thus must be enclosed in parentheses: the operand of an
+"assume" attribute (see EDGcpfe/25517,EDGcpfe/25844) and the subscript
+expression in an array element access (see EDGcpfe/24785 et al.).  The
+C++-generating back end previously failed to generate the necessary
+parentheses in these cases.  This is now fixed.  For example, with --c++23:
+
+  void f();
+  void g(int &r, int *p, int i) {
+    int j = r;
+    [[assume((f(), j == r))]]; // Previously generated as "assume(f(), j==r)"
+    j = p[(j, r)];             // Previously generated as "p[j, r]"
+  }
+
+
 3/23/26  [EDGcpfe/28665]
 Microsoft compatibility: __declspec on statement
 

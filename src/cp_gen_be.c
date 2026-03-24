@@ -7427,7 +7427,10 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
         gen_type(aap->variant.type);
         break;
       case aak_expression:
-        gen_expression(expr_node_from_attribute_arg(aap));
+        { an_expr_node_ptr expr = expr_node_from_attribute_arg(aap);
+          gen_expr(expr, /*need_parens=*/expr_has_comma_operation(expr),
+                   /*obj_expr_of_mfunc_operator=*/FALSE);
+        }
         break;
       default_is_unexpected();
     }  /* switch */
@@ -14660,7 +14663,8 @@ Render the given expression surrounded by brackets.
 */
 {
   write_tok_ch('[');
-  gen_expression(expr);
+  gen_expr(expr, /*need_parens=*/expr_has_comma_operation(expr),
+           /*obj_expr_of_mfunc_operator=*/FALSE);
   write_tok_ch(']');
 }  /* gen_array_subscript */
 
