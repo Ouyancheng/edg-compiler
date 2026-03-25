@@ -1,5 +1,24 @@
 Version 6.9
 
+3/25/26  [EDGcpfe/28756]
+Floating-point rounding mode
+
+The C++ Standard does not specify how conversions to floating-point types
+should handle values that cannot be represented exactly in the target type,
+only requiring that the result be either the nearest representable value
+above or below the source value.  In configurations in which
+USE_HOST_FP_CONVERSION_ROUTINES is FALSE, the front end performed
+compile-time calculations using the IEEE rule that rounds to the nearest
+representable value, with ties (values that fall exactly between
+representable values) rounding away from zero.  The GNU and clang
+compilers, however, use the rule that rounds ties to the nearest even value
+(lowest bit of the mantissa being zero).  The front end has now been
+changed to do the same.  For example:
+
+  float f = (float)0x8000008;   // Previous result was 0x4D000001 (odd),
+                                // now 0x4D000000 (even)
+
+
 3/23/26  [EDGcpfe/28754,EDGcpfe/28755]
 C++-generating back end: failure to parenthesize top-level comma expression
 

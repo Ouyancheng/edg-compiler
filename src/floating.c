@@ -2465,7 +2465,10 @@ removed here.
   if (0 < tail_to_half ||
       (tail_to_half == 0 &&
        (!bigint_is_zero(err) ||
-        BIT_AT(bin->frac, bin->precision, scale) != 0))) {
+        BIT_AT(bin->frac, bin->precision, scale + overflow) != 0))) {
+    /* Inclusion of "overflow" in the BIT_AT calculation has the effect of
+       rounding ties to the nearest even value; omitting "overflow" would
+       result in the "ties away from zero" rounding mode. */
     if (bin->precision <= scale) {
       fp_frac_set_to_min(bin->frac, bin->precision);
       --scale;
