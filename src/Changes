@@ -9,7 +9,7 @@ only requiring that the result be either the nearest representable value
 above or below the source value.  In configurations in which
 USE_HOST_FP_CONVERSION_ROUTINES is FALSE, the front end performed
 compile-time calculations using the IEEE rule that rounds to the nearest
-representable value, with ties (values that fall exactly between
+representable value, with ties (values that fall exactly midway between
 representable values) rounding away from zero.  The GNU and clang
 compilers, however, use the rule that rounds ties to the nearest even value
 (lowest bit of the mantissa being zero).  The front end has now been
