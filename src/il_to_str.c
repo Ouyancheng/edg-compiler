@@ -6775,8 +6775,10 @@ precedence confusion.  Do the output in the way described by octl.
             !constant->is_compound_literal &&
             !is_for_c_gen_be(octl)) {
           /* This must have been a cast like T{}, so just put out the type
-             name here; the ck_aggregate output will provide the braces. */
-          form_type(orig_type, octl);
+             name (without any compiler-generated cv-qualifiers) here; the
+             ck_aggregate output will provide the braces. */
+          form_type(skip_typerefs_not_typedefs_or_type_operators(orig_type),
+                    octl);
         } else {
           /* Put out either a reintepret_cast or a C-style cast. */
           form_general_cast(orig_type, need_reinterpret_cast, octl);

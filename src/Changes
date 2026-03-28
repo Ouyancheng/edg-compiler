@@ -1,5 +1,26 @@
 Version 6.9
 
+3/27/26  [EDGcpfe/28762]
+C++-generating back end: explicit temporary in template argument
+
+In some cases, the C++-generating back end could put out an explicit
+temporary for an aggregate class type appearing as a non-type template
+argument in a syntactically incorrect form, adding a "const" qualifier
+before the aggregate class name.  This regression in version 6.8 was the
+result of the changes for EDGcpfe/26253,EDGcpfe/27917.  This is now fixed.
+For example, with --c++20 --gnu_version=130200:
+
+  struct S { int x; };
+  template<typename, S> void f() {}
+  void g() {
+    constexpr S s = S{1};
+    auto l = []<typename T>(T) {
+      f<T, s>();   // Previously generated as "f<T, const S{1}>()"
+    };
+    l(0);
+  }
+
+
 3/25/26  [EDGcpfe/28756]
 Floating-point rounding mode
 
