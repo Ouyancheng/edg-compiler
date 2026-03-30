@@ -19581,7 +19581,7 @@ promotion is for a nonstandard anonymous union.
   a_symbol_ptr  apo_sym = sym->variant.field.anonymous_parent_object;
   a_field_ptr   field = sym->variant.field.ptr;
  
-  if (is_nonstd && gpp_mode &&
+  if (is_nonstd && gpp_version_is(any_version) &&
       !check_valid_union_field(field->type, class_type,
                                /*anon_union_field=*/FALSE,
                                /*is_nonstd=*/TRUE,

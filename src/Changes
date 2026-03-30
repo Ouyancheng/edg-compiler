@@ -1,5 +1,25 @@
 Version 6.9
 
+3/30/26  [EDGcpfe/28750,EDGcpfe/28766]
+Clang compatibility: Nonstandard anonymous struct destruction
+
+Consider:
+
+  struct D { ~D() {} };
+  struct S {
+    struct {
+      D d;
+    };
+  };
+  S s;  // Previously an error.  Now accepted in Clang C++ modes.
+
+Class type S contains a nonstandard anonymous struct.  GCC imposes constraints
+similar to anonymous unions, which makes the example above an error because of
+the nontrivial destructor required to destroy the anonymous member.  Clang,
+however, accepts this case, and the front end now emulates that behavior in
+Clang C++ modes.
+
+
 3/27/26  [EDGcpfe/28762]
 C++-generating back end: explicit temporary in template argument
 
