@@ -52790,6 +52790,18 @@ TRUE if the operator is a unary operator, FALSE otherwise.
       operator_token = tok_builtin_convertvector;
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+    case bok_builtin_lt_synthesizes_from_spaceship:
+      operator_token = tok_builtin_lt_synthesizes_from_spaceship;
+      break;
+    case bok_builtin_gt_synthesizes_from_spaceship:
+      operator_token = tok_builtin_gt_synthesizes_from_spaceship;
+      break;
+    case bok_builtin_le_synthesizes_from_spaceship:
+      operator_token = tok_builtin_le_synthesizes_from_spaceship;
+      break;
+    case bok_builtin_ge_synthesizes_from_spaceship:
+      operator_token = tok_builtin_ge_synthesizes_from_spaceship;
+      break;
     default:
       operator_token = tok_has_assign;  /* Representing the generic case with a
                                            single type operand. */
@@ -53683,6 +53695,10 @@ a enclosing expression).
       case tok_reference_converts_from_temporary:
       case tok_is_layout_compatible:
       case tok_is_pointer_interconvertible_base_of:
+      case tok_builtin_lt_synthesizes_from_spaceship:
+      case tok_builtin_gt_synthesizes_from_spaceship:
+      case tok_builtin_le_synthesizes_from_spaceship:
+      case tok_builtin_ge_synthesizes_from_spaceship:
         scan_binary_type_trait_helper(rcblock, result);
         break;
       case tok_is_pointer_interconvertible_with_class:
