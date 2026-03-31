@@ -10658,11 +10658,11 @@ typedef struct a_type {
 		is_renamed_builtin:1;
 			/* Handling certain built-in alias templates requires
 			   renaming them.  For example, __builtin_common_type
-                           is renamed to __builtin_common_type_alias (and a
+			   is renamed to __builtin_common_type_alias (and a
 			   placeholder class template __builtin_common_type is
 			   created alongside of it).  This flag indicates that
 			   this is an instance of such an alias template, to
-			   help to C++-generating back end to render the
+			   help the C++-generating back end to render the
 			   original name. */
 #endif /* BACK_END_IS_CP_GEN_BE */
       a_bit_field

@@ -4157,7 +4157,7 @@ name recorded in the IL).
   if (strcmp(name, "__builtin_common_type_alias") == 0) {
     name = "__builtin_common_type";
   } else if (strcmp(name, "__type_pack_element_alias") == 0) {
-    name = "__type_pack_element_alias";
+    name = "__type_pack_element";
   } else if (strcmp(name, "__make_integer_seq_alias") == 0) {
     name = "__make_integer_seq";
   }  /* if */
