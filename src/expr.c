@@ -4422,6 +4422,18 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         if (is_error_dynamic_init(dip)) {
           /* Some error. */
           dip = NULL;
+        } else if (dyn_init_is(dip, dik_constant) &&
+                   (conv_context & CCO_INITIALIZING_VARIABLE) != 0) {
+          /* The constructor call was folded to a constant.  This may have
+             produced an enk_temp_init backing expression, but for the
+             variable initializer case it should be an enk_initializer
+             instead. */
+          an_expr_node  *node = dip->variant.constant.ptr->expr;
+          if (node != NULL && node_is(node, enk_temp_init)) {
+            a_dynamic_init  *orig_dip = node->variant.init.dynamic_init;
+            node->kind = enk_initializer;
+            node->variant.initializer.dyn_init = orig_dip;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (fill_in_dtor && dip != NULL) {

@@ -22999,10 +22999,14 @@ and the output of the type name.
           } else {
             /* A braced initializer. */
             an_expr_node_ptr arg_init;
+            if (dip->variant.constructor.value_initialization) {
+              /* Value-initialization is expressed with empty braces. */
+              args = NULL;
+            }  /* if */
             if (args != NULL &&
                 (args->next == NULL || args->next->generated_default_arg) &&
-                (arg_init = skip_implicit_steps(args))->kind ==
-                                            (an_expr_node_kind)enk_temp_init) {
+                node_is((arg_init = skip_implicit_steps(args)),
+                        enk_temp_init)) {
               /* A single argument that is a temporary.  Check to see if it
                  is a generated call to a std::initializer_list
                  constructor. */
@@ -23082,7 +23086,7 @@ Output the initializer, if any, for the indicated variable.
     a_boolean          braced_init = var->has_direct_braced_initializer;
     an_init_kind       init_kind;
     an_initializer_ptr initializer;
-    a_constant_ptr     con;
+    a_constant_ptr     con = NULL;
     an_expr_node_ptr   expr = NULL;
     a_dynamic_init_ptr dip;
     a_boolean          restore_init = FALSE;
@@ -23092,16 +23096,25 @@ Output the initializer, if any, for the indicated variable.
 
     get_variable_initializer(var, curr_name_context->assoc_scope,
                              &init_kind, &initializer);
-    if (init_kind == (an_init_kind)initk_static) {
-      an_expr_node_ptr  node = initializer->constant->expr;
-      if (node != NULL && node->kind == (an_expr_node_kind)enk_initializer) {
+    if (init_kind == initk_static) {
+      con = initializer->constant;
+    } else if (init_kind == initk_dynamic) {
+      dip = initializer->dynamic;
+      if (dyn_init_is(dip, dik_constant)) {
+        con = dip->variant.constant.ptr;
+      }  /* if */
+    }  /* if */
+    if (con != NULL) {
+      an_expr_node_ptr  node = con->expr;
+      if (node != NULL && node_is(node, enk_initializer)) {
         /* The constant is a folded dynamic initializer.  Render the
            initializer from the dynamic initializer entry, because we may
            not be able to render valid code from the constant representation
            (e.g., if it involves a class with a constexpr constructor). */
         folded_constant_to_restore = initializer->constant;
-        init_kind = (an_init_kind)initk_dynamic;
-        initializer->dynamic = node->variant.initializer.dyn_init;
+        init_kind = initk_dynamic;
+        dip = node->variant.initializer.dyn_init;
+        initializer->dynamic = dip;
       }  /* if */
     }  /* if */
     /* Push the name context for a class/namespace member. */
@@ -23117,8 +23130,7 @@ Output the initializer, if any, for the indicated variable.
       context_pop_required = TRUE;
     }  /* if */
     if (var->source_corresp.is_class_member &&
-        init_kind == (an_init_kind)initk_dynamic &&
-        initializer->dynamic->kind == (a_dynamic_init_kind)dik_constructor &&
+        init_kind == initk_dynamic && dyn_init_is(dip, dik_constructor) &&
         !msvc_is_generated_code_target) {
       /* cfront has a bug in initialization of static data members that are
          classes with constructors: it fails to activate the member names for
@@ -23135,7 +23147,6 @@ Output the initializer, if any, for the indicated variable.
     }  /* if */
     switch (init_kind) {
       case initk_static:
-        con = initializer->constant;
         if (constant_should_be_put_out_as_expr(con)) {
           expr = con->expr;
           if (!node_is(expr, enk_temp_init)) {
@@ -23213,7 +23224,6 @@ Output the initializer, if any, for the indicated variable.
         break;
       case initk_dynamic:
         { a_dynamic_init      saved_init;
-          dip = initializer->dynamic;
           if (var->is_struct_binding_container) {
             /* A special case can occur when initializing a structured binding
                container variable for an array: If the elements of the array
@@ -23230,7 +23240,7 @@ Output the initializer, if any, for the indicated variable.
                generating back end, however, we can just generate the
                expression.  We therefore temporarily replace *dip by a
                dik_expression entry pointing to the array expression. */
-            if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+            if (dyn_init_is(dip, dik_nonconstant_aggregate)) {
               con = dip->variant.constant.ptr->
                                              variant.aggregate.first_constant;
               if (con != NULL && constant_is(con, ck_init_repeat) &&
@@ -23238,11 +23248,11 @@ Output the initializer, if any, for the indicated variable.
                               ck_dynamic_init)) {
                 a_dynamic_init_ptr  subdip = con->variant.init_repeat.constant
                                                 ->variant.dynamic_init.ptr;
-                if (subdip->kind == (a_dynamic_init_kind)dik_constructor &&
+                if (dyn_init_is(subdip, dik_constructor) &&
                     subdip->variant.constructor.is_array_copy) {
                   expr = subdip->variant.constructor.args;
                   saved_init = *dip;
-                  dip->kind = (a_dynamic_init_kind)dik_expression;
+                  dip->kind = dik_expression;
                   dip->variant.expression = expr;
                   restore_init = TRUE;
                 }  /* if */
@@ -23269,7 +23279,7 @@ handle_dynamic_init:
             a_boolean need_parens = FALSE;
             write_tok_str(" = ");
             if (var->declared_with_decltype_auto &&
-                dip->kind == (a_dynamic_init_kind)dik_expression) {
+                dyn_init_is(dip, dik_expression)) {
               an_expr_node_ptr init_expr =
                                   skip_implicit_steps(dip->variant.expression);
               if (node_is(init_expr, enk_variable) ||
