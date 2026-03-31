@@ -1,5 +1,24 @@
 Version 6.9
 
+3/31/26  [EDGcpfe/28758]
+C++23: Constexpr constructor calling non-constexpr constructors
+
+In C++23 mode, the front end no longer diagnoses constexpr constructors that
+call non-constexpr constructors as part of subobject initialization (as long
+as that constexpr constructor is not invoked in a context that requires a
+constant).  For example:
+
+  struct S {
+    S(int);
+    constexpr S(): S(0) {}  // Previously an error.  Now okay.
+  };
+  S s1;            // Okay.
+  constexpr S s2;  // Still an error.
+
+This change in behavior is the result of the C++ standardization committee's
+paper P2448R2.
+
+
 3/30/26  [EDGcpfe/28750,EDGcpfe/28766]
 Clang compatibility: Nonstandard anonymous struct destruction
 

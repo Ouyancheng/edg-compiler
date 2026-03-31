@@ -7920,7 +7920,7 @@ constructor only issue an error if it represents a call to a non-constexpr
 constructor.
 */
 {
-  if (ctor->is_constexpr) {
+  if (!cpp23_mode && ctor->is_constexpr) {
     a_boolean  invalid_init;
     if (relaxed_constexpr_allowed()) {
       /* Check whether the initialization calls a non-constexpr
@@ -9792,7 +9792,7 @@ initialized.  These are addressed in the course of the processing.
           dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/FALSE,
                                         /*evaluated=*/TRUE,
                                         ctor_rout->is_consteval);
-          if (ctor_rout->is_constexpr && !rp->is_constexpr) {
+          if (!cpp23_mode && ctor_rout->is_constexpr && !rp->is_constexpr) {
             /* Check that a constexpr constructor doesn't call a non-
                constexpr constructor.  For compiler-generated constructors
                and for template instances failing this test isn't an error,
