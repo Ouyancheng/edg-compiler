@@ -2696,6 +2696,9 @@ Display the indicated type entry.
                           (a_name_linkage_kind)ptr->variant.typeref.
                                               surrounding_name_linkage_state);
       }  /* if */
+      if (ptr->variant.typeref.is_renamed_builtin) {
+        disp_boolean("is_renamed_builtin", TRUE);
+      }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
       if (ptr->variant.typeref.decltype_expr_not_parenthesized) {
         disp_boolean("decltype_expr_not_parenthesized", TRUE);

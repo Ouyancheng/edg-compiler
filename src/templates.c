@@ -10866,18 +10866,21 @@ error type is used.
        for the template. */
     type->variant.typeref.type =
                                instantiate_make_integer_seq(template_arg_list);
+    type->variant.typeref.is_renamed_builtin = TRUE;
   } else if (template_sym == symbol_for_type_pack_element_alias) {
     /* This is the builtin alias template __type_pack_element; the template
        is instantiated programatically rather than by scanning the cache
        for the template. */
     type->variant.typeref.type =
                               instantiate_type_pack_element(template_arg_list);
+    type->variant.typeref.is_renamed_builtin = TRUE;
   } else if (template_sym == symbol_for_builtin_common_type_alias) {
     /* This is the builtin alias template __builtin_common_type; the template
        is instantiated programmatically rather than by scanning the cache
        for the template. */
     type->variant.typeref.type =
                             instantiate_builtin_common_type(template_arg_list);
+    type->variant.typeref.is_renamed_builtin = TRUE;
   } else if (!any_dependent_args && template_sym->header->has_intrinsic_name &&
              process_intrinsic_alias_templ(template_sym, template_arg_list,
                                            &type->variant.typeref.type)) {

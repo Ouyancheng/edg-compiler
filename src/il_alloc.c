@@ -2158,6 +2158,7 @@ to default values.
 #if BACK_END_IS_CP_GEN_BE
       pte->variant.typeref.surrounding_name_linkage_state
                                        = (a_name_linkage_kind)nlk_none;
+      pte->variant.typeref.is_renamed_builtin = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
       pte->variant.typeref.decltype_expr_not_parenthesized = FALSE;
       pte->variant.typeref.is_dependent_type_operator = FALSE;

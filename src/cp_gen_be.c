@@ -4144,6 +4144,27 @@ unnamed.
 }  /* gen_param_name */
 
 
+static a_const_char* orig_name_for_renamed_builtin_typeref(a_type_ptr  tp)
+/*
+The given type is an instance of a built-in alias template that was renamed
+to avoid conflict with an associated class template used as a placeholder.
+Return the original name if the alias is recognized (otherwise, return the
+name recorded in the IL).
+*/
+{
+  a_const_char  *name = tp->source_corresp.name;
+
+  if (strcmp(name, "__builtin_common_type_alias") == 0) {
+    name = "__builtin_common_type";
+  } else if (strcmp(name, "__type_pack_element_alias") == 0) {
+    name = "__type_pack_element_alias";
+  } else if (strcmp(name, "__make_integer_seq_alias") == 0) {
+    name = "__make_integer_seq";
+  }  /* if */
+  return name;
+}  /* orig_name_for_renamed_builtin_typeref */
+
+
 static void gen_bare_name(a_source_correspondence *scp,
                           an_il_entry_kind        entry_kind)
 /*
@@ -4182,6 +4203,9 @@ a name.  Never generate a qualified name.
     } else if (is_lexical_typeref(tp)) {
       /* Use the name of the type to which the typeref refers. */
       name = unmangled_name_of(&skip_lexical_typerefs(tp)->source_corresp);
+    } else if (type_is(tp, tk_typeref) &&
+               tp->variant.typeref.is_renamed_builtin) {
+      name = orig_name_for_renamed_builtin_typeref(tp);
     }  /* if */
   }  /* if */
   if (name == NULL) {
