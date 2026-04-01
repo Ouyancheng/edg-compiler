@@ -8246,11 +8246,8 @@ and bound_function_selector are expected to be NULL in that case.
     if (bcap->is_invoke) {
       /* Special handling for __builtin_invoke. */
       an_operand_ptr  first_operand;
-
       if (arg_list == NULL) {
-        if (expr_error_should_be_issued()) {
-          expr_pos_error(ec_too_few_arguments, &closing_paren_position);
-        }  /* if */
+        expr_pos_error(ec_too_few_arguments, &closing_paren_position);
         make_error_operand(result);
         goto done;
       }  /* if */
@@ -8273,7 +8270,6 @@ and bound_function_selector are expected to be NULL in that case.
                                            type_of_unknown_templ_param_nontype;
       } else {
         an_arg_list_elem_ptr  first_arg = arg_list;
-
         routine_type = NULL;
         arg_list = arg_list->next;
         if (is_class_struct_union_type(first_operand->type)) {
@@ -8344,6 +8340,14 @@ and bound_function_selector are expected to be NULL in that case.
                 if (is_pointer_type(cls_type)) {
                   cls_type = type_pointed_to(cls_type);
                   conv_glvalue_to_prvalue(second_operand);
+                } else if (is_std_class(cls_type, "reference_wrapper")) {
+                  /* If we are applying the pointer-to-member to a
+                     std::reference_wrapper operand, "unwrap" the operand by
+                     calling its "get()" member function. */
+                  call_named_member_function(second_operand, "get",
+                                             (a_template_arg*)NULL,
+                                             (an_arg_list_elem_ptr)NULL,
+                                             second_operand, second_operand);
                 }  /* if */
                 if (!is_class_struct_union_type(cls_type)) {
                   if (expr_error_should_be_issued()) {

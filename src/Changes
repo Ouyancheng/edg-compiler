@@ -1,5 +1,24 @@
 Version 6.9
 
+4/1/26   [EDGcpfe/28768]
+__builtin_invoke and std::reference_wrapper
+
+Consider, in Clang 21 C++20 mode:
+
+  #include <functional>
+  struct E {};
+  struct F { int& operator()(E&&) &; };
+  int& g(F obj, E arg) {
+    std::reference_wrapper<F> w(obj);
+    auto pmf = &F::operator();
+    return __builtin_invoke(pmf, w, static_cast<E&&>(arg));
+  }
+
+This previously elicited a spurious error because the front end failed to
+"unwrap" the std::reference_wrapper obj prior to applying the pointer-to-
+member-function on it.  That is now fixed.
+
+
 3/31/26  [EDGcpfe/28319]
 C++-generating back end: initialization with empty std::initializer_list
 
