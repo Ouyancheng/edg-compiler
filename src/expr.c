@@ -4433,6 +4433,10 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
             a_dynamic_init  *orig_dip = node->variant.init.dynamic_init;
             node->kind = enk_initializer;
             node->variant.initializer.dyn_init = orig_dip;
+            if (init_list_ctor_arg_list != NULL &&
+                is_braced_init_component(init_list_ctor_arg_list)) {
+              orig_dip->is_braced_initializer = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */

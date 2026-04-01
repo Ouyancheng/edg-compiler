@@ -19162,6 +19162,12 @@ sizeof_cases:
                        /*avoid_top_level_comma=*/FALSE,
                        /*obj_expr_of_mfunc_operator=*/FALSE);
       break;
+    case enk_initializer:
+      /* The original initializer in a folded initializer constant. */
+      gen_dynamic_init(expr->variant.initializer.dyn_init, expr->type, expr,
+                       /*avoid_top_level_comma=*/TRUE,
+                       /*obj_expr_of_mfunc_operator=*/FALSE);
+      break;
     case enk_temp_init:
       /* Temporary creation/initialization. */
       dip = expr->variant.init.dynamic_init;
@@ -19323,8 +19329,6 @@ sizeof_cases:
     case enk_token_sequence:
       gen_token_sequence(expr);
       break;
-
-    case enk_initializer:
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
