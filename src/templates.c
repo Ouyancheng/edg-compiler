@@ -36513,7 +36513,7 @@ of the "auto" parameters.
     /* The entity being declared is a template. */
 #if BACK_END_IS_CP_GEN_BE
     a_template_param_ptr tpp;
-    uint32_t             min_template_args = 0;
+    int32_t              min_template_args = 0;
     a_template_ptr       tp = decl_state->il_template_entry;
     /* Record the number of template parameters without default arguments,
        i.e., the number that must be supplied when naming an instance of
@@ -39080,20 +39080,20 @@ required flag is to be set.  If the flag is already set, it is not cleared
 unless the SIR_CLEAR_VALUE flag is set in "options".
 */
 {
-  a_symbol_ptr			   sym;
+  a_symbol_ptr                     sym;
   a_template_symbol_supplement_ptr tssp;
-  a_boolean			   add_to_list = TRUE;
-  a_boolean			   added_to_list = FALSE;
+  a_boolean                        add_to_list = TRUE;
+  LOCAL_UNUSED a_boolean           added_to_list = FALSE;
                                    /* Only used in certain configurations. */
                                    /*lint -esym(550,added_to_list)*/
-  a_master_instance_ptr		   mip = NULL;
-  a_boolean			   defer_inline;
-  a_boolean			   defer_instantiation = FALSE;
+  a_master_instance_ptr            mip = NULL;
+  a_boolean                        defer_inline;
+  LOCAL_UNUSED a_boolean           defer_instantiation = FALSE;
                                    /* Not used in certain configurations. */
                                    /*lint -esym(550,defer_instantiation)*/
-  a_boolean			   use_master_instance;
-  a_boolean	                   rout_is_constexpr = FALSE;
-  a_boolean	                   constexpr_in_constant_context = FALSE;
+  a_boolean                        use_master_instance;
+  a_boolean                        rout_is_constexpr = FALSE;
+  a_boolean                        constexpr_in_constant_context = FALSE;
 
   db_enter(5, "update_instantiation_required_flag");
   defer_inline = (options & SIR_DEFER_INLINE) != 0;

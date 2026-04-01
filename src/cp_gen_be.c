@@ -3503,14 +3503,17 @@ still in the source sequence entry stream, possibly preceded by
 preprocessing directives: Skip these now.
 */
 {
-  a_src_seq_end_of_construct_ptr ssecp;
-
   advance_past_preprocessing_directives();
-  check_assertion(ss_entry_kind(curr_source_sequence_entry) ==
+#if CHECKING
+  { a_src_seq_end_of_construct_ptr ssecp;
+
+    check_assertion(ss_entry_kind(curr_source_sequence_entry) ==
                               (an_il_entry_kind)iek_src_seq_end_of_construct);
-  ssecp = ss_entry_ptr(curr_source_sequence_entry,
-                       a_src_seq_end_of_construct_ptr);
-  check_assertion(ss_entry_ptr(ssecp, char*) == entry);
+    ssecp = ss_entry_ptr(curr_source_sequence_entry,
+                         a_src_seq_end_of_construct_ptr);
+    check_assertion(ss_entry_ptr(ssecp, char*) == entry);
+  }
+#endif /* CHECKING */
   adv_curr_source_sequence_entry();
 }  /* skip_end_of_embedded_constructs */
 
@@ -22965,7 +22968,9 @@ and the output of the type name.
                  specially, using the brace form if we're in C++11 mode, to
                  avoid incorrectly generating "T x()". */
               a_boolean use_braces = il_header.std_version >= 201103;
+#if CHECKING
               a_boolean wrote_type_name = FALSE;
+#endif /* CHECKING */
               if (!use_braces) {
                 /* The C++03 form requires extra parentheses for
                    disambiguation. */
@@ -22980,7 +22985,9 @@ and the output of the type name.
                 if (class_type != NULL &&
                                         has_name_before_mangling(class_type)) {
                   gen_type_reference(class_type);
+#if CHECKING
                   wrote_type_name = TRUE;
+#endif /* CHECKING */
                 }  /* if */
               }  /* if */
               if (use_braces) {
@@ -24441,11 +24448,14 @@ managed C++/CLI class.
 */
 {
   an_il_entity_list_entry_ptr ep;
-  a_type_ptr                  parent_class = parent_class_of(rout);
+#if CHECKING
+  { a_type_ptr                parent_class = parent_class_of(rout);
 
-  check_assertion(rout->overridden_functions != NULL &&
-                  parent_class != NULL &&
-                  is_immediate_managed_class_type(parent_class));
+    check_assertion(rout->overridden_functions != NULL &&
+                    parent_class != NULL &&
+                    is_immediate_managed_class_type(parent_class));
+  }
+#endif /* CHECKING */
   write_tok_str(" =");
   for (ep = rout->overridden_functions; ep != NULL; ep = ep->next) {
     if (ep != rout->overridden_functions) {
@@ -25934,22 +25944,20 @@ static void init_cp_gen_be(void)
 Initialize for the C++/C-generating back end.
 */
 {
-  sizeof_t     num_generated_prec_table_elems = 
+  constexpr sizeof_t num_generated_prec_table_elems =
                 sizeof(generated_precedence) / sizeof(generated_precedence[0]);
-  sizeof_t     num_overloadable_operator_prec_table_elems =
+  constexpr sizeof_t num_overloadable_operator_prec_table_elems =
                                    sizeof(overloadable_operator_precedence) /
                                    sizeof(overloadable_operator_precedence[0]);
-#if !NULL_POINTER_IS_ZERO
-  a_hash_value bucket;
-#endif /* !NULL_POINTER_IS_ZERO */
-
-  check_assertion_str(num_generated_prec_table_elems ==
-                                                      ((sizeof_t)eok_last + 1),
+  static_assert(num_generated_prec_table_elems == ((sizeof_t)eok_last + 1),
           "init_cp_gen_be: size of generated_precedence table is not correct");
-  check_assertion_str(num_overloadable_operator_prec_table_elems ==
+  static_assert(num_overloadable_operator_prec_table_elems ==
                                                       ((sizeof_t)onk_last + 1),
               "init_cp_gen_be: size of overloadable_operator_precedence table "
                                                              "is not correct");
+#if !NULL_POINTER_IS_ZERO
+  a_hash_value bucket;
+#endif /* !NULL_POINTER_IS_ZERO */
   il_to_str_back_end_file_init();
   line_wrapping_disabled = 0;
   disable_line_wrapping_until_column = 0;
@@ -26059,7 +26067,7 @@ Initialize for the C++/C-generating back end.
      they are only recorded for constexpr local variables defined in scopes
      in which local expr ref nodes exist, so start out with a small table
      size. */
-  var_init_map = new_general<a_var_initializer_map>(/*mask_width=*/6);
+  var_init_map = new_general<a_var_initializer_map>(/*mask_width=*/6u);
 }  /* init_cp_gen_be */
 
 #if STANDALONE_CP_GEN_BE

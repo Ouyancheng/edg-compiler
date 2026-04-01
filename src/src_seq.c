@@ -830,11 +830,12 @@ which is either the file scope or a function scope; if the latter, new_ssep
 will go on a sublist if it was allocated in the file-scope memory region.
 */
 {
-  a_scope_stack_entry_ptr  scope_stack_ptr;
-
   db_enter(4, "add_source_sequence_entry_to_list");
-  scope_stack_ptr = &scope_stack[depth_scope_stack];
+
+#if CHECKING || DEBUG || TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_scope_stack_entry *scope_stack_ptr = &scope_stack[depth_scope_stack];
   check_assertion(scope_stack_ptr->module_load_context_count == 0);
+#endif /* CHECKING || DEBUG || TEMPLATE_INSTANTIATIONS_IN_SOURCE_... */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
     a_scope_depth  depth_ss_list_scope =

@@ -8636,9 +8636,9 @@ being done later than at pop_scope time for the function, and therefore
 the scope stack is no longer available.
 */
 {
-  a_routine_ptr routine = scope->variant.routine.ptr;
+  LOCAL_UNUSED a_routine_ptr routine = scope->variant.routine.ptr;
 #if MAINTAIN_NEEDED_FLAGS
-  a_boolean     lowering_done = FALSE;
+  a_boolean                  lowering_done = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
   db_enter(1, "finish_function_body_processing");

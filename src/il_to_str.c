@@ -2057,20 +2057,25 @@ correspondence entry.
     if (template_param_map == NULL) {
       template_param_map_max_level = (coord->depth > 5) ? 2*coord->depth : 10;
       template_param_map = (a_template_param_map_level_ptr)
-         alloc_resizable_buffer(
-              sizeof(a_template_param_map_level)*template_param_map_max_level);
+         alloc_resizable_buffer(sizeof(a_template_param_map_level) *
+                                size_t_arg(template_param_map_max_level));
       memzero(template_param_map,
-              sizeof(a_template_param_map_level)*template_param_map_max_level);
+              (sizeof(a_template_param_map_level) *
+               size_t_arg(template_param_map_max_level)));
     } else if (coord->depth > template_param_map_max_level) {
       a_template_nesting_depth new_max_level = 2*coord->depth;
       template_param_map =
           (a_template_param_map_level_ptr)realloc_buffer(
-               (char*)template_param_map,
-               sizeof(a_template_param_map_level)*template_param_map_max_level,
-               sizeof(a_template_param_map_level)*new_max_level);
+                                    (char*)template_param_map,
+                                    (sizeof(a_template_param_map_level) *
+                                     size_t_arg(template_param_map_max_level)),
+                                    (sizeof(a_template_param_map_level) *
+                                     size_t_arg(new_max_level)));
       memzero(&template_param_map[template_param_map_max_level],
-              sizeof(a_template_param_map_level)*new_max_level -
-              sizeof(a_template_param_map_level)*template_param_map_max_level);
+              (sizeof(a_template_param_map_level) *
+               size_t_arg(new_max_level)) -
+              (sizeof(a_template_param_map_level) *
+               size_t_arg(template_param_map_max_level)));
       template_param_map_max_level = new_max_level;
     }  /* if */
     level = &template_param_map[coord->depth-1];
@@ -5085,14 +5090,15 @@ parentheses are not needed.
             octl->output_str("]", octl);
           }  /* if */
           type = array_element_type(type);
-          *offset -= path->variant.ptr_offset * size_of_type(type);
+          *offset -= (path->variant.ptr_offset *
+                      (a_targ_ptrdiff_t)size_of_type(type));
         } else {
           /* Can only handle array subscripting operations. */
           break;
         }  /* if */
       } else if (path->is_base_class) {
         type = path->variant.base_class->type;
-        *offset -= path->variant.base_class->offset;
+        *offset -= (a_targ_ptrdiff_t)path->variant.base_class->offset;
       } else {
         field = path->variant.field;
         if (gen_output) {
@@ -5100,7 +5106,7 @@ parentheses are not needed.
           form_unqualified_name(&field->source_corresp, iek_field, octl);
         }  /* if */
         type = field->type;
-        *offset -= field->offset;
+        *offset -= (a_targ_ptrdiff_t)field->offset;
       }  /* if */
       path = path->next;
     }  /* while */

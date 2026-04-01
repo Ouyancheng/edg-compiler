@@ -1177,7 +1177,7 @@ EXTERN_THREAD a_boolean
 			/* TRUE if code is being generated for the Microsoft
 			   MSVC++ compiler. */
 
-EXTERN_THREAD int
+EXTERN_THREAD unsigned long
 		msvc_target_version_number;
 			/* The version number (i.e., 1300 for 7.0) of the
 			   Microsoft MSVC compiler being targeted. */
