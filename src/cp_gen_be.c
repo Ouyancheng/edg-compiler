@@ -23088,7 +23088,7 @@ Output the initializer, if any, for the indicated variable.
     an_initializer_ptr initializer;
     a_constant_ptr     con = NULL;
     an_expr_node_ptr   expr = NULL;
-    a_dynamic_init_ptr dip;
+    a_dynamic_init_ptr dip = NULL;
     a_boolean          restore_init = FALSE;
     a_boolean          context_pop_required = FALSE;
     a_constant_ptr     folded_constant_to_restore = NULL;
