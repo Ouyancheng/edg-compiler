@@ -19,6 +19,21 @@ example, with --gnu_version=140100:
   }
 
 
+3/31/26  [EDGcpfe/28760]
+C++-generating back end and built-in alias templates
+
+Consider:
+
+  template<typename T> struct X { using type = T; };
+  int main() {
+    using Z = __builtin_common_type<X, X, int, double>::type;
+  }
+
+Previously, __builtin_common_type was erroneously rendered as
+__builtin_common_type_alias by the C++-generating back end because of the way
+builtin-in alias templates are handled by the front end.  That is now fixed.
+
+
 3/31/26  [EDGcpfe/28758]
 C++23: Constexpr constructor calling non-constexpr constructors
 
