@@ -1,5 +1,18 @@
 Version 6.9
 
+4/1/26   [EDGcpfe/28769]
+C mode remarks on declaration with multiple non-prototype function declarators
+
+Consider, in C mode with remarks enabled:
+
+  extern void f1(), f2(), f3();
+
+This elicits remarks because the function declarators are non-prototype (e.g.,
+"f1()" instead of "f1(void)"), but previously that remark was repeated on each
+declarator for each declarator that preceded it.  So, there were two identical
+remarks for f2(), and three identical remarks for f3().  That is now fixed.
+
+
 4/1/26   [EDGcpfe/28768]
 __builtin_invoke and std::reference_wrapper
 

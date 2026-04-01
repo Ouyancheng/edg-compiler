@@ -4357,7 +4357,7 @@ an error if a default argument expression is encountered.
       pos_remark(ec_use_of_non_prototype_func_declarator, &start_pos);
     } else {
       add_end_of_parse_action(diag_unprototyped_func_declarator, state,
-                              /*secondary_decls=*/TRUE);
+                              /*secondary_decls=*/FALSE);
     }  /* if */
     if (any_params) {
       /* Old-style list of identifiers. */
