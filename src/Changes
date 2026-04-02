@@ -1,5 +1,26 @@
 Version 6.9
 
+4/2/26   [EDGcpfe/28749]
+Evaluation of captured constexpr variable in a constant-evaluated context
+
+Consider:
+
+  struct C {
+    int val;
+    constexpr int &operator[](int) const { return (int&)val; }
+  };
+  int main() {
+    constexpr C c{1};
+    [c]() {
+      if constexpr (c[1]) {}
+    }();
+  }
+
+Previously, the constant-evaluation interpreter could not look through the
+capture of c to determine the value of c[1]: A spurious error about an attempt
+at accessing run-time error ensued.  That is now fixed.
+
+
 4/2/26   [EDGcpfe/28763]
 C23: Old-style function declarators and function definitions
 

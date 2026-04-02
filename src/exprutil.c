@@ -5988,6 +5988,7 @@ selection.
                           is_xvalue = node->is_xvalue;
     a_scope_depth         depth_lambda = get_curr_lambda_depth();
     a_lambda_ptr          lambda = get_lambda_for_scope_depth(depth_lambda);
+    a_variable_ptr        vp;
     opnd->pending_capture = FALSE;
     while (!is_variable_node(vnode)) {
       check_assertion(vnode->compiler_generated &&
@@ -6000,7 +6001,26 @@ selection.
       }  /* if */
       vnode = vnode->variant.operation.operands;
     }  /* if */
-    lcp = find_lambda_capture(lambda, node_variable(vnode), (a_field*)NULL);
+    vp = node_variable(vnode);
+    if ((vp->is_constexpr || vp->constant_valued) &&
+        expr_stack->consteval_call_need_not_fold) {
+      /* If we are in a context that will never be evaluated at run time,
+         we need not rewrite the captured variable.  This simplifies
+         constant evaluation of c in the example below:
+           struct C {
+             int val;
+             constexpr int &operator[](int) const { return (int&)val; }
+           };
+           int main() {
+             constexpr C c{1};
+             [c]() {
+               if constexpr (c[1]) {}
+             }();
+           }
+      */
+      goto done;
+    }  /* if */
+    lcp = find_lambda_capture(lambda, vp, (a_field*)NULL);
     closure_field = field_for_lambda_capture(lambda, lcp);
     sel_expr = make_selection_for_captured_variable(lcp, depth_lambda,
                                                     /*is_lvalue=*/TRUE);
