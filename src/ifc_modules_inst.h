@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -69,6 +69,12 @@ INST_PARTITION_ALL(an_ifc_edg_complex_token_index)
 Explicit instantiations of functions for EdgConstantIndex.
 */
 INST_PARTITION_ALL(an_ifc_edg_constant_index)
+
+
+/*
+Explicit instantiations of functions for EdgExprIndex.
+*/
+INST_PARTITION_ALL(an_ifc_edg_expr_index)
 
 
 /*
@@ -361,6 +367,13 @@ INST_NODE_DECL(an_ifc_decl_partial_specialization_storage)
 Explicit instantiations of functions for DeclPartialSpecialization.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_decl_partial_specialization, an_ifc_decl_index)
+INST_NODE_DECL(an_ifc_decl_prolongation_storage)
+
+
+/*
+Explicit instantiations of functions for DeclProlongation.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_decl_prolongation, an_ifc_decl_index)
 INST_NODE_DECL(an_ifc_decl_property_storage)
 
 
@@ -496,6 +509,22 @@ Explicit instantiations of functions for EdgConstantIntegerWord.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_edg_constant_integer_word,
                         an_ifc_edg_constant_integer_word_offset)
+INST_NODE_DECL(an_ifc_edg_expr_template_argument_storage)
+
+
+/*
+Explicit instantiations of functions for EdgExprTemplateArgument.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_edg_expr_template_argument,
+                        an_ifc_edg_expr_index)
+INST_NODE_DECL(an_ifc_edg_extension_expr_storage)
+
+
+/*
+Explicit instantiations of functions for EdgExtensionExpr.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_edg_extension_expr,
+                        an_ifc_edg_extension_expr_offset)
 INST_NODE_DECL(an_ifc_edg_extension_type_storage)
 
 
@@ -520,6 +549,7 @@ Explicit instantiations of functions for EdgHeapTemplateArgument.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_edg_heap_template_argument,
                         an_ifc_edg_heap_template_argument_offset)
+INST_NODE_DECL(an_ifc_edg_template_argument_constant_storage)
 INST_NODE_DECL(an_ifc_edg_template_argument_non_type_storage)
 
 
@@ -557,6 +587,7 @@ INST_NODE_DECL(an_ifc_edg_token_cache_storage)
 /*
 Explicit instantiations of functions for EdgTokenCache.
 */
+INST_CONSTRUCT_NODE_ALL(an_ifc_edg_token_cache, an_ifc_edg_expr_index)
 INST_CONSTRUCT_NODE_ALL(an_ifc_edg_token_cache, an_ifc_edg_token_cache_offset)
 INST_NODE_DECL(an_ifc_edg_token_constant_storage)
 
@@ -1119,6 +1150,7 @@ INST_NODE_DECL(an_ifc_heap_expr_storage)
 INST_NODE_DECL(an_ifc_heap_form_storage)
 INST_NODE_DECL(an_ifc_heap_pp_form_storage)
 INST_NODE_DECL(an_ifc_heap_stmt_storage)
+INST_NODE_DECL(an_ifc_heap_string_storage)
 INST_NODE_DECL(an_ifc_heap_syntax_storage)
 INST_NODE_DECL(an_ifc_heap_type_storage)
 INST_NODE_DECL(an_ifc_macro_function_like_storage)
@@ -1135,6 +1167,8 @@ INST_NODE_DECL(an_ifc_macro_object_like_storage)
 Explicit instantiations of functions for MacroObjectLike.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_macro_object_like, an_ifc_macro_index)
+INST_NODE_DECL(an_ifc_meta_tool_invocation_storage)
+INST_NODE_DECL(an_ifc_meta_tool_maker_storage)
 INST_NODE_DECL(an_ifc_module_export_reference_storage)
 INST_NODE_DECL(an_ifc_module_import_reference_storage)
 INST_NODE_DECL(an_ifc_name_conversion_storage)
@@ -2324,6 +2358,12 @@ INST_PARTITION_ALL(an_ifc_edg_constant_integer_word_offset)
 
 
 /*
+Explicit instantiations of functions for EdgExtensionExprOffset.
+*/
+INST_PARTITION_ALL(an_ifc_edg_extension_expr_offset)
+
+
+/*
 Explicit instantiations of functions for EdgExtensionTypeOffset.
 */
 INST_PARTITION_ALL(an_ifc_edg_extension_type_offset)
@@ -2389,6 +2429,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

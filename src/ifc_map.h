@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -890,6 +890,51 @@ struct an_ifc_encoded_edg_constant_token_sort : Implicit_numeric_entry<
   using base_type = Implicit_numeric_entry<storage_type>;
   using base_type::Implicit_numeric_entry;
 };  /* an_ifc_encoded_edg_constant_token_sort */
+
+
+enum an_ifc_encoded_edg_expr_index_0_43 : uint32_t;
+using an_ifc_encoded_edg_expr_index_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgExprIndex.
+*/
+struct an_ifc_encoded_edg_expr_index : Implicit_numeric_entry<
+                                       an_ifc_encoded_edg_expr_index_storage> {
+  using storage_type = an_ifc_encoded_edg_expr_index_storage;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
+};  /* an_ifc_encoded_edg_expr_index */
+
+
+enum an_ifc_encoded_edg_expr_sort_0_43 : uint32_t;
+using an_ifc_encoded_edg_expr_sort_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgExprSort.
+*/
+struct an_ifc_encoded_edg_expr_sort : Implicit_numeric_entry<
+                                        an_ifc_encoded_edg_expr_sort_storage> {
+  using storage_type = an_ifc_encoded_edg_expr_sort_storage;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
+};  /* an_ifc_encoded_edg_expr_sort */
+
+
+enum an_ifc_encoded_edg_extension_expr_offset_0_43 : uint32_t;
+using an_ifc_encoded_edg_extension_expr_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedEdgExtensionExprOffset.
+*/
+struct an_ifc_encoded_edg_extension_expr_offset : Implicit_numeric_entry<
+                            an_ifc_encoded_edg_extension_expr_offset_storage> {
+  using storage_type = an_ifc_encoded_edg_extension_expr_offset_storage;
+  using base_type = Implicit_numeric_entry<storage_type>;
+  using base_type::Implicit_numeric_entry;
+};  /* an_ifc_encoded_edg_extension_expr_offset */
 
 
 enum an_ifc_encoded_edg_extension_type_offset_0_43 : uint32_t;
@@ -2323,6 +2368,42 @@ enum an_ifc_decl_sort_0_43 : uint32_t {
 };  /* an_ifc_decl_sort_0_43 */
 
 
+enum an_ifc_decl_sort_0_44 : uint32_t {
+  ifc_0_44_ds_decl_vendor_extension       = 0,
+  ifc_0_44_ds_decl_enumerator             = 1,
+  ifc_0_44_ds_decl_variable               = 2,
+  ifc_0_44_ds_decl_parameter              = 3,
+  ifc_0_44_ds_decl_field                  = 4,
+  ifc_0_44_ds_decl_bitfield               = 5,
+  ifc_0_44_ds_decl_scope                  = 6,
+  ifc_0_44_ds_decl_enumeration            = 7,
+  ifc_0_44_ds_decl_alias                  = 8,
+  ifc_0_44_ds_decl_temploid               = 9,
+  ifc_0_44_ds_decl_template               = 10,
+  ifc_0_44_ds_decl_partial_specialization = 11,
+  ifc_0_44_ds_decl_specialization         = 12,
+  ifc_0_44_ds_decl_default_argument       = 13,
+  ifc_0_44_ds_decl_concept                = 14,
+  ifc_0_44_ds_decl_function               = 15,
+  ifc_0_44_ds_decl_method                 = 16,
+  ifc_0_44_ds_decl_constructor            = 17,
+  ifc_0_44_ds_decl_inherited_constructor  = 18,
+  ifc_0_44_ds_decl_destructor             = 19,
+  ifc_0_44_ds_decl_reference              = 20,
+  ifc_0_44_ds_decl_using_declaration      = 21,
+  ifc_0_44_ds_decl_prolongation           = 22,
+  ifc_0_44_ds_decl_friend                 = 23,
+  ifc_0_44_ds_decl_expansion              = 24,
+  ifc_0_44_ds_decl_deduction_guide        = 25,
+  ifc_0_44_ds_decl_barren                 = 26,
+  ifc_0_44_ds_decl_tuple                  = 27,
+  ifc_0_44_ds_decl_syntax_tree            = 28,
+  ifc_0_44_ds_decl_intrinsic              = 29,
+  ifc_0_44_ds_decl_property               = 30,
+  ifc_0_44_ds_decl_output_segment         = 31
+};  /* an_ifc_decl_sort_0_44 */
+
+
 enum an_ifc_decl_sort : uint32_t {
   ifc_ds_decl_alias,
   ifc_ds_decl_barren,
@@ -2346,6 +2427,7 @@ enum an_ifc_decl_sort : uint32_t {
   ifc_ds_decl_output_segment,
   ifc_ds_decl_parameter,
   ifc_ds_decl_partial_specialization,
+  ifc_ds_decl_prolongation,
   ifc_ds_decl_property,
   ifc_ds_decl_reference,
   ifc_ds_decl_scope,
@@ -2588,11 +2670,109 @@ enum an_ifc_dyadic_operator_sort_0_43 : uint16_t {
 };  /* an_ifc_dyadic_operator_sort_0_43 */
 
 
+enum an_ifc_dyadic_operator_sort_0_44 : uint16_t {
+  ifc_0_44_dos_unknown                                             = 0,
+  ifc_0_44_dos_plus                                                = 1,
+  ifc_0_44_dos_minus                                               = 2,
+  ifc_0_44_dos_mult                                                = 3,
+  ifc_0_44_dos_slash                                               = 4,
+  ifc_0_44_dos_modulo                                              = 5,
+  ifc_0_44_dos_remainder                                           = 6,
+  ifc_0_44_dos_bitand                                              = 7,
+  ifc_0_44_dos_bitor                                               = 8,
+  ifc_0_44_dos_bitxor                                              = 9,
+  ifc_0_44_dos_lshift                                              = 10,
+  ifc_0_44_dos_rshift                                              = 11,
+  ifc_0_44_dos_equal                                               = 12,
+  ifc_0_44_dos_not_equal                                           = 13,
+  ifc_0_44_dos_less                                                = 14,
+  ifc_0_44_dos_less_equal                                          = 15,
+  ifc_0_44_dos_greater                                             = 16,
+  ifc_0_44_dos_greater_equal                                       = 17,
+  ifc_0_44_dos_compare                                             = 18,
+  ifc_0_44_dos_logic_and                                           = 19,
+  ifc_0_44_dos_logic_or                                            = 20,
+  ifc_0_44_dos_assign                                              = 21,
+  ifc_0_44_dos_plus_assign                                         = 22,
+  ifc_0_44_dos_minus_assign                                        = 23,
+  ifc_0_44_dos_mult_assign                                         = 24,
+  ifc_0_44_dos_slash_assign                                        = 25,
+  ifc_0_44_dos_modulo_assign                                       = 26,
+  ifc_0_44_dos_bitand_assign                                       = 27,
+  ifc_0_44_dos_bitor_assign                                        = 28,
+  ifc_0_44_dos_bitxor_assign                                       = 29,
+  ifc_0_44_dos_lshift_assign                                       = 30,
+  ifc_0_44_dos_rshift_assign                                       = 31,
+  ifc_0_44_dos_comma                                               = 32,
+  ifc_0_44_dos_dot                                                 = 33,
+  ifc_0_44_dos_arrow                                               = 34,
+  ifc_0_44_dos_dot_star                                            = 35,
+  ifc_0_44_dos_arrow_star                                          = 36,
+  ifc_0_44_dos_curry                                               = 37,
+  ifc_0_44_dos_apply                                               = 38,
+  ifc_0_44_dos_index                                               = 39,
+  ifc_0_44_dos_default_at                                          = 40,
+  ifc_0_44_dos_new                                                 = 41,
+  ifc_0_44_dos_new_array                                           = 42,
+  ifc_0_44_dos_destruct                                            = 43,
+  ifc_0_44_dos_destruct_at                                         = 44,
+  ifc_0_44_dos_cleanup                                             = 45,
+  ifc_0_44_dos_qualification                                       = 46,
+  ifc_0_44_dos_promote                                             = 47,
+  ifc_0_44_dos_demote                                              = 48,
+  ifc_0_44_dos_coerce                                              = 49,
+  ifc_0_44_dos_rewrite                                             = 50,
+  ifc_0_44_dos_bless                                               = 51,
+  ifc_0_44_dos_cast                                                = 52,
+  ifc_0_44_dos_explicit_conversion                                 = 53,
+  ifc_0_44_dos_reinterpret_cast                                    = 54,
+  ifc_0_44_dos_static_cast                                         = 55,
+  ifc_0_44_dos_const_cast                                          = 56,
+  ifc_0_44_dos_dynamic_cast                                        = 57,
+  ifc_0_44_dos_narrow                                              = 58,
+  ifc_0_44_dos_widen                                               = 59,
+  ifc_0_44_dos_pretend                                             = 60,
+  ifc_0_44_dos_closure                                             = 61,
+  ifc_0_44_dos_zero_initialize                                     = 62,
+  ifc_0_44_dos_clear_storage                                       = 63,
+  ifc_0_44_dos_select                                              = 64,
+  ifc_0_44_dos_address                                             = 65,
+  ifc_0_44_dos_bind_temporary_to_reference                         = 66,
+  ifc_0_44_dos_convert_temporary_to_reference                      = 67,
+  ifc_0_44_dos_msvc                                                = 1024,
+  ifc_0_44_dos_msvc_try_cast                                       = 1025,
+  ifc_0_44_dos_msvc_curry                                          = 1026,
+  ifc_0_44_dos_msvc_virtual_curry                                  = 1027,
+  ifc_0_44_dos_msvc_align                                          = 1028,
+  ifc_0_44_dos_msvc_bit_span                                       = 1029,
+  ifc_0_44_dos_msvc_bitfield_access                                = 1030,
+  ifc_0_44_dos_msvc_obscure_bitfield_access                        = 1031,
+  ifc_0_44_dos_msvc_initialize                                     = 1032,
+  ifc_0_44_dos_msvc_builtin_offset_of                              = 1033,
+  ifc_0_44_dos_msvc_is_base_of                                     = 1034,
+  ifc_0_44_dos_msvc_is_convertible_to                              = 1035,
+  ifc_0_44_dos_msvc_is_trivially_assignable                        = 1036,
+  ifc_0_44_dos_msvc_is_nothrow_assignable                          = 1037,
+  ifc_0_44_dos_msvc_is_assignable                                  = 1038,
+  ifc_0_44_dos_msvc_is_assignable_nocheck                          = 1039,
+  ifc_0_44_dos_msvc_builtin_bit_cast                               = 1040,
+  ifc_0_44_dos_msvc_builtin_is_layout_compatible                   = 1041,
+  ifc_0_44_dos_msvc_builtin_is_pointer_interconvertible_base_of    = 1042,
+  ifc_0_44_dos_msvc_builtin_is_pointer_interconvertible_with_class = 1043,
+  ifc_0_44_dos_msvc_builtin_is_corresponding_member                = 1044,
+  ifc_0_44_dos_msvc_intrinsic                                      = 1045,
+  ifc_0_44_dos_msvc_saturated_arithmetic                           = 1046,
+  ifc_0_44_dos_msvc_builtin_allocation_annotation                  = 1047
+};  /* an_ifc_dyadic_operator_sort_0_44 */
+
+
 enum an_ifc_dyadic_operator_sort : uint32_t {
+  ifc_dos_address,
   ifc_dos_apply,
   ifc_dos_arrow,
   ifc_dos_arrow_star,
   ifc_dos_assign,
+  ifc_dos_bind_temporary_to_reference,
   ifc_dos_bitand,
   ifc_dos_bitand_assign,
   ifc_dos_bitor,
@@ -2608,6 +2788,7 @@ enum an_ifc_dyadic_operator_sort : uint32_t {
   ifc_dos_comma,
   ifc_dos_compare,
   ifc_dos_const_cast,
+  ifc_dos_convert_temporary_to_reference,
   ifc_dos_curry,
   ifc_dos_default_at,
   ifc_dos_demote,
@@ -3049,6 +3230,18 @@ enum an_ifc_edg_constant_token_sort : uint32_t {
   ifc_ects_int_constant,
   ifc_ects_string_literal
 };  /* an_ifc_edg_constant_token_sort */
+
+
+enum an_ifc_edg_expr_sort_0_43 : uint32_t {
+  ifc_0_43_ees_edg_token_cache            = 0,
+  ifc_0_43_ees_edg_expr_template_argument = 1
+};  /* an_ifc_edg_expr_sort_0_43 */
+
+
+enum an_ifc_edg_expr_sort : uint32_t {
+  ifc_ees_edg_expr_template_argument,
+  ifc_ees_edg_token_cache
+};  /* an_ifc_edg_expr_sort */
 
 
 enum an_ifc_edg_template_argument_sort_0_43 : uint32_t {
@@ -3597,6 +3790,97 @@ enum an_ifc_monadic_operator_sort_0_43 : uint16_t {
 };  /* an_ifc_monadic_operator_sort_0_43 */
 
 
+enum an_ifc_monadic_operator_sort_0_44 : uint16_t {
+  ifc_0_44_mos_unknown                                = 0,
+  ifc_0_44_mos_plus                                   = 1,
+  ifc_0_44_mos_negate                                 = 2,
+  ifc_0_44_mos_deref                                  = 3,
+  ifc_0_44_mos_address                                = 4,
+  ifc_0_44_mos_complement                             = 5,
+  ifc_0_44_mos_not                                    = 6,
+  ifc_0_44_mos_pre_increment                          = 7,
+  ifc_0_44_mos_pre_decrement                          = 8,
+  ifc_0_44_mos_post_increment                         = 9,
+  ifc_0_44_mos_post_decrement                         = 10,
+  ifc_0_44_mos_truncate                               = 11,
+  ifc_0_44_mos_ceil                                   = 12,
+  ifc_0_44_mos_floor                                  = 13,
+  ifc_0_44_mos_paren                                  = 14,
+  ifc_0_44_mos_brace                                  = 15,
+  ifc_0_44_mos_alignas                                = 16,
+  ifc_0_44_mos_alignof                                = 17,
+  ifc_0_44_mos_sizeof                                 = 18,
+  ifc_0_44_mos_cardinality                            = 19,
+  ifc_0_44_mos_typeid                                 = 20,
+  ifc_0_44_mos_noexcept                               = 21,
+  ifc_0_44_mos_requires                               = 22,
+  ifc_0_44_mos_co_return                              = 23,
+  ifc_0_44_mos_await                                  = 24,
+  ifc_0_44_mos_yield                                  = 25,
+  ifc_0_44_mos_throw                                  = 26,
+  ifc_0_44_mos_new                                    = 27,
+  ifc_0_44_mos_delete                                 = 28,
+  ifc_0_44_mos_delete_array                           = 29,
+  ifc_0_44_mos_expand                                 = 30,
+  ifc_0_44_mos_read                                   = 31,
+  ifc_0_44_mos_materialize                            = 32,
+  ifc_0_44_mos_pseudo_dtor_call                       = 33,
+  ifc_0_44_mos_lookup_globally                        = 34,
+  ifc_0_44_mos_msvc                                   = 1024,
+  ifc_0_44_mos_msvc_assume                            = 1025,
+  ifc_0_44_mos_msvc_alignof                           = 1026,
+  ifc_0_44_mos_msvc_uuidof                            = 1027,
+  ifc_0_44_mos_msvc_is_class                          = 1028,
+  ifc_0_44_mos_msvc_is_union                          = 1029,
+  ifc_0_44_mos_msvc_is_enum                           = 1030,
+  ifc_0_44_mos_msvc_is_polymorphic                    = 1031,
+  ifc_0_44_mos_msvc_is_empty                          = 1032,
+  ifc_0_44_mos_msvc_is_trivially_copy_constructible   = 1033,
+  ifc_0_44_mos_msvc_is_trivially_copy_assignable      = 1034,
+  ifc_0_44_mos_msvc_is_trivially_destructible         = 1035,
+  ifc_0_44_mos_msvc_has_virtual_destructor            = 1036,
+  ifc_0_44_mos_msvc_is_nothrow_copy_constructible     = 1037,
+  ifc_0_44_mos_msvc_is_nothrow_copy_assignable        = 1038,
+  ifc_0_44_mos_msvc_is_pod                            = 1039,
+  ifc_0_44_mos_msvc_is_abstract                       = 1040,
+  ifc_0_44_mos_msvc_is_trivial                        = 1041,
+  ifc_0_44_mos_msvc_is_trivially_copyable             = 1042,
+  ifc_0_44_mos_msvc_is_standard_layout                = 1043,
+  ifc_0_44_mos_msvc_is_literal_type                   = 1044,
+  ifc_0_44_mos_msvc_is_trivially_move_constructible   = 1045,
+  ifc_0_44_mos_msvc_has_trivial_move_assign           = 1046,
+  ifc_0_44_mos_msvc_is_trivially_move_assignable      = 1047,
+  ifc_0_44_mos_msvc_is_nothrow_move_assignable        = 1048,
+  ifc_0_44_mos_msvc_underlying_type                   = 1049,
+  ifc_0_44_mos_msvc_is_destructible                   = 1050,
+  ifc_0_44_mos_msvc_is_nothrow_destructible           = 1051,
+  ifc_0_44_mos_msvc_has_unique_object_representations = 1052,
+  ifc_0_44_mos_msvc_is_aggregate                      = 1053,
+  ifc_0_44_mos_msvc_builtin_address_of                = 1054,
+  ifc_0_44_mos_msvc_is_ref_class                      = 1055,
+  ifc_0_44_mos_msvc_is_value_class                    = 1056,
+  ifc_0_44_mos_msvc_is_simple_value_class             = 1057,
+  ifc_0_44_mos_msvc_is_interface_class                = 1058,
+  ifc_0_44_mos_msvc_is_delegate                       = 1059,
+  ifc_0_44_mos_msvc_is_final                          = 1060,
+  ifc_0_44_mos_msvc_is_sealed                         = 1061,
+  ifc_0_44_mos_msvc_has_finalizer                     = 1062,
+  ifc_0_44_mos_msvc_has_copy                          = 1063,
+  ifc_0_44_mos_msvc_has_assign                        = 1064,
+  ifc_0_44_mos_msvc_has_user_destructor               = 1065,
+  ifc_0_44_mos_msvc_is_implicit_lifetime              = 1066,
+  ifc_0_44_mos_msvc_confusion                         = 4064,
+  ifc_0_44_mos_msvc_confused_expand                   = 4065,
+  ifc_0_44_mos_msvc_confused_dependent_sizeof         = 4066,
+  ifc_0_44_mos_msvc_confused_pop_state                = 4067,
+  ifc_0_44_mos_msvc_confused_dtor_action              = 4068,
+  ifc_0_44_mos_msvc_confused_vtor_displacement        = 4069,
+  ifc_0_44_mos_msvc_confused_dependent_expression     = 4070,
+  ifc_0_44_mos_msvc_confused_substitution             = 4071,
+  ifc_0_44_mos_msvc_confused_aggregate_return         = 4072
+};  /* an_ifc_monadic_operator_sort_0_44 */
+
+
 enum an_ifc_monadic_operator_sort : uint32_t {
   ifc_mos_address,
   ifc_mos_alignas,
@@ -3642,6 +3926,7 @@ enum an_ifc_monadic_operator_sort : uint32_t {
   ifc_mos_msvc_is_empty,
   ifc_mos_msvc_is_enum,
   ifc_mos_msvc_is_final,
+  ifc_mos_msvc_is_implicit_lifetime,
   ifc_mos_msvc_is_interface_class,
   ifc_mos_msvc_is_literal_type,
   ifc_mos_msvc_is_nothrow_copy_assignable,
@@ -4186,11 +4471,206 @@ enum an_ifc_source_keyword_sort_0_33 : uint16_t {
 };  /* an_ifc_source_keyword_sort_0_33 */
 
 
+enum an_ifc_source_keyword_sort_0_44 : uint16_t {
+  ifc_0_44_sks_unknown                                             = 0,
+  ifc_0_44_sks_alignas                                             = 1,
+  ifc_0_44_sks_alignof                                             = 2,
+  ifc_0_44_sks_asm                                                 = 3,
+  ifc_0_44_sks_auto                                                = 4,
+  ifc_0_44_sks_bool                                                = 5,
+  ifc_0_44_sks_break                                               = 6,
+  ifc_0_44_sks_case                                                = 7,
+  ifc_0_44_sks_catch                                               = 8,
+  ifc_0_44_sks_char                                                = 9,
+  ifc_0_44_sks_char8_t                                             = 10,
+  ifc_0_44_sks_char16_t                                            = 11,
+  ifc_0_44_sks_char32_t                                            = 12,
+  ifc_0_44_sks_class                                               = 13,
+  ifc_0_44_sks_concept                                             = 14,
+  ifc_0_44_sks_const                                               = 15,
+  ifc_0_44_sks_consteval                                           = 16,
+  ifc_0_44_sks_constexpr                                           = 17,
+  ifc_0_44_sks_constinit                                           = 18,
+  ifc_0_44_sks_const_cast                                          = 19,
+  ifc_0_44_sks_continue                                            = 20,
+  ifc_0_44_sks_co_await                                            = 21,
+  ifc_0_44_sks_co_return                                           = 22,
+  ifc_0_44_sks_co_yield                                            = 23,
+  ifc_0_44_sks_decltype                                            = 24,
+  ifc_0_44_sks_default                                             = 25,
+  ifc_0_44_sks_delete                                              = 26,
+  ifc_0_44_sks_do                                                  = 27,
+  ifc_0_44_sks_double                                              = 28,
+  ifc_0_44_sks_dynamic_cast                                        = 29,
+  ifc_0_44_sks_else                                                = 30,
+  ifc_0_44_sks_enum                                                = 31,
+  ifc_0_44_sks_explicit                                            = 32,
+  ifc_0_44_sks_export                                              = 33,
+  ifc_0_44_sks_extern                                              = 34,
+  ifc_0_44_sks_false                                               = 35,
+  ifc_0_44_sks_float                                               = 36,
+  ifc_0_44_sks_for                                                 = 37,
+  ifc_0_44_sks_friend                                              = 38,
+  ifc_0_44_sks_generic                                             = 39,
+  ifc_0_44_sks_goto                                                = 40,
+  ifc_0_44_sks_if                                                  = 41,
+  ifc_0_44_sks_inline                                              = 42,
+  ifc_0_44_sks_int                                                 = 43,
+  ifc_0_44_sks_long                                                = 44,
+  ifc_0_44_sks_mutable                                             = 45,
+  ifc_0_44_sks_namespace                                           = 46,
+  ifc_0_44_sks_new                                                 = 47,
+  ifc_0_44_sks_noexcept                                            = 48,
+  ifc_0_44_sks_nullptr                                             = 49,
+  ifc_0_44_sks_operator                                            = 50,
+  ifc_0_44_sks_pragma                                              = 51,
+  ifc_0_44_sks_private                                             = 52,
+  ifc_0_44_sks_protected                                           = 53,
+  ifc_0_44_sks_public                                              = 54,
+  ifc_0_44_sks_register                                            = 55,
+  ifc_0_44_sks_reinterpret_cast                                    = 56,
+  ifc_0_44_sks_requires                                            = 57,
+  ifc_0_44_sks_restrict                                            = 58,
+  ifc_0_44_sks_return                                              = 59,
+  ifc_0_44_sks_short                                               = 60,
+  ifc_0_44_sks_signed                                              = 61,
+  ifc_0_44_sks_sizeof                                              = 62,
+  ifc_0_44_sks_static                                              = 63,
+  ifc_0_44_sks_static_assert                                       = 64,
+  ifc_0_44_sks_static_cast                                         = 65,
+  ifc_0_44_sks_struct                                              = 66,
+  ifc_0_44_sks_switch                                              = 67,
+  ifc_0_44_sks_template                                            = 68,
+  ifc_0_44_sks_this                                                = 69,
+  ifc_0_44_sks_thread_local                                        = 70,
+  ifc_0_44_sks_throw                                               = 71,
+  ifc_0_44_sks_true                                                = 72,
+  ifc_0_44_sks_try                                                 = 73,
+  ifc_0_44_sks_typedef                                             = 74,
+  ifc_0_44_sks_typeid                                              = 75,
+  ifc_0_44_sks_typename                                            = 76,
+  ifc_0_44_sks_union                                               = 77,
+  ifc_0_44_sks_unsigned                                            = 78,
+  ifc_0_44_sks_using                                               = 79,
+  ifc_0_44_sks_virtual                                             = 80,
+  ifc_0_44_sks_void                                                = 81,
+  ifc_0_44_sks_volatile                                            = 82,
+  ifc_0_44_sks_wchar_t                                             = 83,
+  ifc_0_44_sks_while                                               = 84,
+  ifc_0_44_sks_bind_temporary_to_reference                         = 85,
+  ifc_0_44_sks_convert_temporary_to_reference                      = 86,
+  ifc_0_44_sks_msvc                                                = 8191,
+  ifc_0_44_sks_msvc_asm                                            = 8192,
+  ifc_0_44_sks_msvc_assume                                         = 8193,
+  ifc_0_44_sks_msvc_alignof                                        = 8194,
+  ifc_0_44_sks_msvc_based                                          = 8195,
+  ifc_0_44_sks_msvc_cdecl                                          = 8196,
+  ifc_0_44_sks_msvc_clrcall                                        = 8197,
+  ifc_0_44_sks_msvc_declspec                                       = 8198,
+  ifc_0_44_sks_msvc_eabi                                           = 8199,
+  ifc_0_44_sks_msvc_event                                          = 8200,
+  ifc_0_44_sks_msvc_seh_except                                     = 8201,
+  ifc_0_44_sks_msvc_fastcall                                       = 8202,
+  ifc_0_44_sks_msvc_seh_finally                                    = 8203,
+  ifc_0_44_sks_msvc_forceinline                                    = 8204,
+  ifc_0_44_sks_msvc_hook                                           = 8205,
+  ifc_0_44_sks_msvc_identifier                                     = 8206,
+  ifc_0_44_sks_msvc_if_exists                                      = 8207,
+  ifc_0_44_sks_msvc_if_not_exists                                  = 8208,
+  ifc_0_44_sks_msvc_int8                                           = 8209,
+  ifc_0_44_sks_msvc_int16                                          = 8210,
+  ifc_0_44_sks_msvc_int32                                          = 8211,
+  ifc_0_44_sks_msvc_int64                                          = 8212,
+  ifc_0_44_sks_msvc_int128                                         = 8213,
+  ifc_0_44_sks_msvc_interface                                      = 8214,
+  ifc_0_44_sks_msvc_leave                                          = 8215,
+  ifc_0_44_sks_msvc_multiple_inheritance                           = 8216,
+  ifc_0_44_sks_msvc_nullptr                                        = 8217,
+  ifc_0_44_sks_msvc_novtordisp                                     = 8218,
+  ifc_0_44_sks_msvc_pragma                                         = 8219,
+  ifc_0_44_sks_msvc_ptr32                                          = 8220,
+  ifc_0_44_sks_msvc_ptr64                                          = 8221,
+  ifc_0_44_sks_msvc_restrict                                       = 8222,
+  ifc_0_44_sks_msvc_single_inheritance                             = 8223,
+  ifc_0_44_sks_msvc_sptr                                           = 8224,
+  ifc_0_44_sks_msvc_stdcall                                        = 8225,
+  ifc_0_44_sks_msvc_super                                          = 8226,
+  ifc_0_44_sks_msvc_thiscall                                       = 8227,
+  ifc_0_44_sks_msvc_seh_try                                        = 8228,
+  ifc_0_44_sks_msvc_uptr                                           = 8229,
+  ifc_0_44_sks_msvc_uuidof                                         = 8230,
+  ifc_0_44_sks_msvc_unaligned                                      = 8231,
+  ifc_0_44_sks_msvc_unhook                                         = 8232,
+  ifc_0_44_sks_msvc_vectorcall                                     = 8233,
+  ifc_0_44_sks_msvc_virtual_inheritance                            = 8234,
+  ifc_0_44_sks_msvc_w64                                            = 8235,
+  ifc_0_44_sks_msvc_is_class                                       = 8236,
+  ifc_0_44_sks_msvc_is_union                                       = 8237,
+  ifc_0_44_sks_msvc_is_enum                                        = 8238,
+  ifc_0_44_sks_msvc_is_polymorphic                                 = 8239,
+  ifc_0_44_sks_msvc_is_empty                                       = 8240,
+  ifc_0_44_sks_msvc_has_trivial_constructor                        = 8241,
+  ifc_0_44_sks_msvc_is_trivially_constructible                     = 8242,
+  ifc_0_44_sks_msvc_is_trivially_copy_constructible                = 8243,
+  ifc_0_44_sks_msvc_is_trivially_copy_assignable                   = 8244,
+  ifc_0_44_sks_msvc_is_trivially_destructible                      = 8245,
+  ifc_0_44_sks_msvc_has_virtual_destructor                         = 8246,
+  ifc_0_44_sks_msvc_is_nothrow_constructible                       = 8247,
+  ifc_0_44_sks_msvc_is_nothrow_copy_constructible                  = 8248,
+  ifc_0_44_sks_msvc_is_nothrow_copy_assignable                     = 8249,
+  ifc_0_44_sks_msvc_is_pod                                         = 8250,
+  ifc_0_44_sks_msvc_is_abstract                                    = 8251,
+  ifc_0_44_sks_msvc_is_base_of                                     = 8252,
+  ifc_0_44_sks_msvc_is_convertibleto                               = 8253,
+  ifc_0_44_sks_msvc_is_trivial                                     = 8254,
+  ifc_0_44_sks_msvc_is_trivially_copyable                          = 8255,
+  ifc_0_44_sks_msvc_is_standard_layout                             = 8256,
+  ifc_0_44_sks_msvc_is_literal_type                                = 8257,
+  ifc_0_44_sks_msvc_is_trivially_move_constructible                = 8258,
+  ifc_0_44_sks_msvc_has_trivial_move_assign                        = 8259,
+  ifc_0_44_sks_msvc_is_trivially_move_assignable                   = 8260,
+  ifc_0_44_sks_msvc_is_nothrow_move_assignable                     = 8261,
+  ifc_0_44_sks_msvc_is_constructible                               = 8262,
+  ifc_0_44_sks_msvc_underlying_type                                = 8263,
+  ifc_0_44_sks_msvc_is_trivially_assignable                        = 8264,
+  ifc_0_44_sks_msvc_is_nothrow_assignable                          = 8265,
+  ifc_0_44_sks_msvc_is_destructible                                = 8266,
+  ifc_0_44_sks_msvc_is_nothrow_destructible                        = 8267,
+  ifc_0_44_sks_msvc_is_assignable                                  = 8268,
+  ifc_0_44_sks_msvc_is_assignable_no_check                         = 8269,
+  ifc_0_44_sks_msvc_has_unique_object_representations              = 8270,
+  ifc_0_44_sks_msvc_is_aggregate                                   = 8271,
+  ifc_0_44_sks_msvc_builtin_address_of                             = 8272,
+  ifc_0_44_sks_msvc_builtin_offset_of                              = 8273,
+  ifc_0_44_sks_msvc_builtin_bit_cast                               = 8274,
+  ifc_0_44_sks_msvc_builtin_is_layout_compatible                   = 8275,
+  ifc_0_44_sks_msvc_builtin_is_pointer_interconvertible_base_of    = 8276,
+  ifc_0_44_sks_msvc_builtin_is_pointer_interconvertible_with_class = 8277,
+  ifc_0_44_sks_msvc_builtin_is_corresponding_member                = 8278,
+  ifc_0_44_sks_msvc_is_ref_class                                   = 8279,
+  ifc_0_44_sks_msvc_is_value_class                                 = 8280,
+  ifc_0_44_sks_msvc_is_simple_value_class                          = 8281,
+  ifc_0_44_sks_msvc_is_interface_class                             = 8282,
+  ifc_0_44_sks_msvc_is_delegate                                    = 8283,
+  ifc_0_44_sks_msvc_is_final                                       = 8284,
+  ifc_0_44_sks_msvc_is_sealed                                      = 8285,
+  ifc_0_44_sks_msvc_has_finalizer                                  = 8286,
+  ifc_0_44_sks_msvc_has_copy                                       = 8287,
+  ifc_0_44_sks_msvc_has_assign                                     = 8288,
+  ifc_0_44_sks_msvc_has_user_destructor                            = 8289,
+  ifc_0_44_sks_msvc_pack_cardinality                               = 8290,
+  ifc_0_44_sks_msvc_confused_sizeof                                = 8291,
+  ifc_0_44_sks_msvc_confused_alignas                               = 8292,
+  ifc_0_44_sks_msvc_implicit_lifetime                              = 8293
+};  /* an_ifc_source_keyword_sort_0_44 */
+
+
 enum an_ifc_source_keyword_sort : uint32_t {
   ifc_sks_alignas,
   ifc_sks_alignof,
   ifc_sks_asm,
   ifc_sks_auto,
+  ifc_sks_bind_temporary_to_reference,
   ifc_sks_bool,
   ifc_sks_break,
   ifc_sks_case,
@@ -4210,6 +4690,7 @@ enum an_ifc_source_keyword_sort : uint32_t {
   ifc_sks_constexpr,
   ifc_sks_constinit,
   ifc_sks_continue,
+  ifc_sks_convert_temporary_to_reference,
   ifc_sks_decltype,
   ifc_sks_default,
   ifc_sks_delete,
@@ -4264,6 +4745,7 @@ enum an_ifc_source_keyword_sort : uint32_t {
   ifc_sks_msvc_identifier,
   ifc_sks_msvc_if_exists,
   ifc_sks_msvc_if_not_exists,
+  ifc_sks_msvc_implicit_lifetime,
   ifc_sks_msvc_int128,
   ifc_sks_msvc_int16,
   ifc_sks_msvc_int32,
@@ -5082,7 +5564,18 @@ enum an_ifc_unit_sort_0_33 : uint32_t {
 };  /* an_ifc_unit_sort_0_33 */
 
 
+enum an_ifc_unit_sort_0_44 : uint32_t {
+  ifc_0_44_us_source      = 0,
+  ifc_0_44_us_primary     = 1,
+  ifc_0_44_us_partition   = 2,
+  ifc_0_44_us_header      = 3,
+  ifc_0_44_us_exported_tu = 4,
+  ifc_0_44_us_archive     = 5
+};  /* an_ifc_unit_sort_0_44 */
+
+
 enum an_ifc_unit_sort : uint32_t {
+  ifc_us_archive,
   ifc_us_exported_tu,
   ifc_us_header,
   ifc_us_partition,
@@ -5234,6 +5727,7 @@ are equivalent, return FALSE; otherwise return TRUE.
 enum an_ifc_decl_index_0_33 : uint32_t {};
 enum an_ifc_decl_index_0_41 : uint32_t {};
 enum an_ifc_decl_index_0_43 : uint32_t {};
+enum an_ifc_decl_index_0_44 : uint32_t {};
 
 
 /*
@@ -5417,6 +5911,53 @@ inline a_boolean operator!=(const an_ifc_edg_constant_index &lhs,
 /*
 Compare two instances of this EdgConstantIndex (lhs and rhs).  If the two
 instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_edg_expr_index_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgExprIndex.
+*/
+struct an_ifc_edg_expr_index : Index_entry<an_ifc_edg_expr_sort, uint32_t> {
+  using sort_type = an_ifc_edg_expr_sort;
+  using native_size_type = uint32_t;
+  using base_type = Index_entry<sort_type, native_size_type>;
+  using base_type::Index_entry;
+};  /* an_ifc_edg_expr_index */
+
+
+inline a_boolean operator==(const an_ifc_edg_expr_index &lhs,
+                            const an_ifc_edg_expr_index &rhs)
+/*
+Compare two instances of this EdgExprIndex (lhs and rhs).  If the two instances
+are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.sort != rhs.sort) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_edg_expr_index &lhs,
+                            const an_ifc_edg_expr_index &rhs)
+/*
+Compare two instances of this EdgExprIndex (lhs and rhs).  If the two instances
+are equivalent, return FALSE; otherwise return TRUE.
 */
 {
   return !(lhs == rhs);
@@ -5991,6 +6532,7 @@ are equivalent, return FALSE; otherwise return TRUE.
 
 
 enum an_ifc_unit_index_0_33 : uint32_t {};
+enum an_ifc_unit_index_0_44 : uint32_t {};
 
 
 /*
@@ -6436,6 +6978,7 @@ enum an_ifc_scope_traits_bitfield_query : uint32_t {
 enum an_ifc_operator_category_0_33 : uint16_t {};
 enum an_ifc_operator_category_0_42 : uint16_t {};
 enum an_ifc_operator_category_0_43 : uint16_t {};
+enum an_ifc_operator_category_0_44 : uint16_t {};
 
 
 /*
@@ -6615,6 +7158,7 @@ struct an_ifc_source_literal_category {
 
 enum an_ifc_word_category_0_33 : uint64_t {};
 enum an_ifc_word_category_0_42 : uint64_t {};
+enum an_ifc_word_category_0_44 : uint64_t {};
 
 
 /*
@@ -6773,6 +7317,16 @@ struct an_ifc_nestable_word : Byte_buffer_entry<an_ifc_nestable_word_storage> {
   | sort        | NoexceptSort  | 0.33    | 1    |
   | __padding__ | uint8_t[3]    |         | 3    |
   |-------------|---------------|---------|------|
+
+  |---------------------------------------------|
+  |   NoexceptSpecification - 0.44 (8 bytes)    |
+  |-------------|--------------|---------|------|
+  | Name        | Type         | Version | Size |
+  |-------------|--------------|---------|------|
+  | expr        | ExprIndex    | 0.42    | 4    |
+  | sort        | NoexceptSort | 0.33    | 1    |
+  | __padding__ | uint8_t[3]   |         | 3    |
+  |-------------|--------------|---------|------|
 */
 enum an_ifc_noexcept_specification_part : uint8_t {};
 using an_ifc_noexcept_specification_storage =
@@ -6827,6 +7381,17 @@ struct an_ifc_noexcept_specification :
   | Name       | Type          | Version | Size |
   |------------|---------------|---------|------|
   | decl       | DeclIndex     | 0.43    | 4    |
+  | head       | SentenceIndex | 0.33    | 4    |
+  | body       | SentenceIndex | 0.33    | 4    |
+  | attributes | SentenceIndex | 0.33    | 4    |
+  |------------|---------------|---------|------|
+
+  |---------------------------------------------|
+  |    ParameterizedEntity - 0.44 (16 bytes)    |
+  |------------|---------------|---------|------|
+  | Name       | Type          | Version | Size |
+  |------------|---------------|---------|------|
+  | decl       | DeclIndex     | 0.44    | 4    |
   | head       | SentenceIndex | 0.33    | 4    |
   | body       | SentenceIndex | 0.33    | 4    |
   | attributes | SentenceIndex | 0.33    | 4    |
@@ -6965,6 +7530,27 @@ struct an_ifc_type_placeholder_basis_wrapper :
   | string_table_bytes | ByteOffset       | 0.33    | 4    |
   | string_table_size  | Cardinality      | 0.33    | 4    |
   | unit               | UnitIndex        | 0.33    | 4    |
+  | src_path           | TextOffset       | 0.33    | 4    |
+  | global_scope       | ScopeOffset      | 0.33    | 4    |
+  | toc                | ByteOffset       | 0.33    | 4    |
+  | partition_count    | Cardinality      | 0.33    | 4    |
+  | internal           | bool             | 0.33    | 1    |
+  |--------------------|------------------|---------|------|
+
+  |--------------------------------------------------------|
+  |              FileHeader - 0.44 (69 bytes)              |
+  |--------------------|------------------|---------|------|
+  | Name               | Type             | Version | Size |
+  |--------------------|------------------|---------|------|
+  | checksum           | SHA256           | 0.33    | 32   |
+  | major_version      | Version          | 0.33    | 1    |
+  | minor_version      | Version          | 0.33    | 1    |
+  | abi                | Abi              | 0.33    | 1    |
+  | arch               | ArchitectureSort | 0.33    | 1    |
+  | dialect            | LanguageVersion  | 0.33    | 4    |
+  | string_table_bytes | ByteOffset       | 0.33    | 4    |
+  | string_table_size  | Cardinality      | 0.33    | 4    |
+  | unit               | UnitIndex        | 0.44    | 4    |
   | src_path           | TextOffset       | 0.33    | 4    |
   | global_scope       | ScopeOffset      | 0.33    | 4    |
   | toc                | ByteOffset       | 0.33    | 4    |
@@ -7482,6 +8068,23 @@ struct an_ifc_const_str : Byte_buffer_entry<an_ifc_const_str_storage> {
   |-------------|-------------------------|---------|------|
   | home_scope  | DeclIndex               | 0.43    | TF   |
   |-------------|-------------------------|---------|------|
+
+  |--------------------------------------------------------|
+  |              DeclAlias - 0.44 (28 bytes)               |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | type        | TypeIndex               | 0.33    | 4    |
+  | home_scope  | DeclIndex               | 0.44    | 4    |
+  | aliasee     | TypeIndex               | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access      | AccessSort              | 0.33    | 1    |
+  | __padding__ | uint8_t[2]              |         | 2    |
+  |-------------|-------------------------|---------|------|
+  | home_scope  | DeclIndex               | 0.44    | TF   |
+  |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_alias_part : uint8_t {};
 using an_ifc_decl_alias_storage = an_ifc_decl_alias_part[28];
@@ -7609,6 +8212,25 @@ struct an_ifc_decl_barren : Byte_buffer_entry<an_ifc_decl_barren_storage> {
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.43    | TF   |
   |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |               DeclBitfield - 0.44 (32 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | TextOffset                  | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.44    | 4    |
+  | width       | ExprIndex                   | 0.42    | 4    |
+  | initializer | ExprIndex                   | 0.42    | 4    |
+  | traits      | ObjectTraitsBitfield        | 0.33    | 1    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.44    | TF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_bitfield_part : uint8_t {};
 using an_ifc_decl_bitfield_storage = an_ifc_decl_bitfield_part[32];
@@ -7708,6 +8330,26 @@ struct an_ifc_decl_bitfield : Byte_buffer_entry<an_ifc_decl_bitfield_storage> {
   |------------|-------------------------|---------|------|
   | home_scope | DeclIndex               | 0.43    | TF   |
   |------------|-------------------------|---------|------|
+
+  |-------------------------------------------------------|
+  |             DeclConcept - 0.44 (40 bytes)             |
+  |------------|-------------------------|---------|------|
+  | Name       | Type                    | Version | Size |
+  |------------|-------------------------|---------|------|
+  | name       | TextOffset              | 0.33    | 4    |
+  | locus      | SourceLocation          | 0.33    | 8    |
+  | home_scope | DeclIndex               | 0.44    | 4    |
+  | type       | TypeIndex               | 0.33    | 4    |
+  | chart      | ChartIndex              | 0.33    | 4    |
+  | constraint | ExprIndex               | 0.42    | 4    |
+  | specifiers | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access     | AccessSort              | 0.33    | 1    |
+  | unknown    | u16                     | 0.33    | 2    |
+  | head       | SentenceIndex           | 0.33    | 4    |
+  | body       | SentenceIndex           | 0.33    | 4    |
+  |------------|-------------------------|---------|------|
+  | home_scope | DeclIndex               | 0.44    | TF   |
+  |------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_concept_part : uint8_t {};
 using an_ifc_decl_concept_storage = an_ifc_decl_concept_part[40];
@@ -7786,6 +8428,26 @@ struct an_ifc_decl_concept : Byte_buffer_entry<an_ifc_decl_concept_storage> {
   | __padding__ | uint8_t[3]                  |         | 3    |
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.43    | TF   |
+  | name        | NameIndex                   | ANY     | TF   |
+  |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |             DeclConstructor - 0.44 (32 bytes)              |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | TextOffset                  | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.44    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.44    | TF   |
   | name        | NameIndex                   | ANY     | TF   |
   |-------------|-----------------------------|---------|------|
 */
@@ -7876,6 +8538,23 @@ struct an_ifc_decl_constructor :
   |-------------|-------------------------|---------|------|
   | home_scope  | DeclIndex               | 0.43    | TF   |
   |-------------|-------------------------|---------|------|
+
+  |--------------------------------------------------------|
+  |          DeclDeductionGuide - 0.44 (28 bytes)          |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | home_scope  | DeclIndex               | 0.44    | 4    |
+  | source      | ChartIndex              | 0.33    | 4    |
+  | target      | ExprIndex               | 0.42    | 4    |
+  | traits      | GuideTraitsBitfield     | 0.33    | 1    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]              |         | 2    |
+  |-------------|-------------------------|---------|------|
+  | home_scope  | DeclIndex               | 0.44    | TF   |
+  |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_deduction_guide_part : uint8_t {};
 using an_ifc_decl_deduction_guide_storage =
@@ -7916,6 +8595,23 @@ struct an_ifc_decl_deduction_guide :
   | __padding__ | uint8_t[1]                  |         | 1    |
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.43    | TF   |
+  |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |           DeclDefaultArgument - 0.44 (24 bytes)            |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.44    | 4    |
+  | initializer | ExprIndex                   | 0.42    | 4    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[1]                  |         | 1    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.44    | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_default_argument_part : uint8_t {};
@@ -7999,6 +8695,26 @@ struct an_ifc_decl_default_argument :
   | __padding__ | uint8_t[2]                  |         | 2    |
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.43    | TF   |
+  | name        | NameIndex                   | ANY     | TF   |
+  |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |              DeclDestructor - 0.44 (32 bytes)              |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | TextOffset                  | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | home_scope  | DeclIndex                   | 0.44    | 4    |
+  | eh_spec     | NoexceptSpecification       | 0.44    | 8    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | convention  | CallingConventionSort       | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                  |         | 2    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.44    | TF   |
   | name        | NameIndex                   | ANY     | TF   |
   |-------------|-----------------------------|---------|------|
 */
@@ -8101,6 +8817,26 @@ struct an_ifc_decl_destructor :
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.43    | TF   |
   |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |             DeclEnumeration - 0.44 (40 bytes)              |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | TextOffset                  | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | base        | TypeIndex                   | 0.33    | 4    |
+  | initializer | Sequence                    | 0.33    | 8    |
+  | home_scope  | DeclIndex                   | 0.44    | 4    |
+  | alignment   | ExprIndex                   | 0.42    | 4    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[1]                  |         | 1    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.44    | TF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_enumeration_part : uint8_t {};
 using an_ifc_decl_enumeration_storage = an_ifc_decl_enumeration_part[40];
@@ -8202,6 +8938,15 @@ struct an_ifc_decl_enumerator :
   | Name    | Type           | Version | Size |
   |---------|----------------|---------|------|
   | operand | DeclIndex      | 0.43    | 4    |
+  | locus   | SourceLocation | 0.33    | 8    |
+  |---------|----------------|---------|------|
+
+  |-------------------------------------------|
+  |      DeclExpansion - 0.44 (12 bytes)      |
+  |---------|----------------|---------|------|
+  | Name    | Type           | Version | Size |
+  |---------|----------------|---------|------|
+  | operand | DeclIndex      | 0.44    | 4    |
   | locus   | SourceLocation | 0.33    | 8    |
   |---------|----------------|---------|------|
 */
@@ -8368,6 +9113,25 @@ struct an_ifc_decl_explicit_specialization :
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.43    | TF   |
   |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |                DeclField - 0.44 (32 bytes)                 |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | TextOffset                  | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.44    | 4    |
+  | initializer | ExprIndex                   | 0.42    | 4    |
+  | alignment   | ExprIndex                   | 0.42    | 4    |
+  | traits      | ObjectTraitsBitfield        | 0.33    | 1    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.44    | TF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_field_part : uint8_t {};
 using an_ifc_decl_field_storage = an_ifc_decl_field_part[32];
@@ -8481,6 +9245,25 @@ struct an_ifc_decl_friend : Byte_buffer_entry<an_ifc_decl_friend_storage> {
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.43    | TF   |
   |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |               DeclFunction - 0.44 (32 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.44    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.44    | TF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_function_part : uint8_t {};
 using an_ifc_decl_function_storage = an_ifc_decl_function_part[32];
@@ -8554,6 +9337,24 @@ struct an_ifc_decl_function : Byte_buffer_entry<an_ifc_decl_function_storage> {
   |------------|-------------------------|---------|------|
   | home_scope | DeclIndex               | 0.43    | TF   |
   |------------|-------------------------|---------|------|
+
+  |-------------------------------------------------------|
+  |      DeclInheritedConstructor - 0.44 (32 bytes)       |
+  |------------|-------------------------|---------|------|
+  | Name       | Type                    | Version | Size |
+  |------------|-------------------------|---------|------|
+  | name       | TextOffset              | 0.33    | 4    |
+  | locus      | SourceLocation          | 0.33    | 8    |
+  | type       | TypeIndex               | 0.33    | 4    |
+  | home_scope | DeclIndex               | 0.44    | 4    |
+  | chart      | ChartIndex              | 0.33    | 4    |
+  | traits     | FunctionTraitsBitfield  | 0.33    | 2    |
+  | specifiers | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access     | AccessSort              | 0.33    | 1    |
+  | base_ctor  | DeclIndex               | 0.44    | 4    |
+  |------------|-------------------------|---------|------|
+  | home_scope | DeclIndex               | 0.44    | TF   |
+  |------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_inherited_constructor_part : uint8_t {};
 using an_ifc_decl_inherited_constructor_storage =
@@ -8624,6 +9425,22 @@ struct an_ifc_decl_inherited_constructor :
   | __padding__ | uint8_t[2]              |         | 2    |
   |-------------|-------------------------|---------|------|
   | home_scope  | DeclIndex               | 0.43    | TF   |
+  |-------------|-------------------------|---------|------|
+
+  |--------------------------------------------------------|
+  |            DeclIntrinsic - 0.44 (24 bytes)             |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | type        | TypeIndex               | 0.33    | 4    |
+  | home_scope  | DeclIndex               | 0.44    | 4    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access      | AccessSort              | 0.33    | 1    |
+  | __padding__ | uint8_t[2]              |         | 2    |
+  |-------------|-------------------------|---------|------|
+  | home_scope  | DeclIndex               | 0.44    | TF   |
   |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_intrinsic_part : uint8_t {};
@@ -8701,6 +9518,25 @@ struct an_ifc_decl_intrinsic :
   | __padding__ | uint8_t[3]                  |         | 3    |
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.43    | TF   |
+  |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |                DeclMethod - 0.44 (32 bytes)                |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.44    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.44    | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_method_part : uint8_t {};
@@ -8911,6 +9747,27 @@ struct an_ifc_decl_parameter :
   | name             | NameIndex                   | ANY     | TF   |
   | primary_template | DeclIndex                   | 0.43    | TF   |
   |------------------|-----------------------------|---------|------|
+
+  |-----------------------------------------------------------------|
+  |           DeclPartialSpecialization - 0.44 (44 bytes)           |
+  |------------------|-----------------------------|---------|------|
+  | Name             | Type                        | Version | Size |
+  |------------------|-----------------------------|---------|------|
+  | name             | NameIndex                   | 0.33    | 4    |
+  | locus            | SourceLocation              | 0.33    | 8    |
+  | home_scope       | DeclIndex                   | 0.44    | 4    |
+  | chart            | ChartIndex                  | 0.33    | 4    |
+  | entity           | ParameterizedEntity         | 0.44    | 16   |
+  | form             | FormSpecOffset              | 0.33    | 4    |
+  | specifiers       | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access           | AccessSort                  | 0.33    | 1    |
+  | properties       | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__      | uint8_t[1]                  |         | 1    |
+  |------------------|-----------------------------|---------|------|
+  | home_scope       | DeclIndex                   | ANY     | TF   |
+  | name             | NameIndex                   | ANY     | TF   |
+  | primary_template | DeclIndex                   | 0.44    | TF   |
+  |------------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_partial_specialization_part : uint8_t {};
 using an_ifc_decl_partial_specialization_storage =
@@ -8934,6 +9791,42 @@ struct an_ifc_decl_partial_specialization :
   using base_type = Byte_buffer_entry<storage_type>;
   using base_type::Byte_buffer_entry;
 };  /* an_ifc_decl_partial_specialization */
+
+
+/*
+  |---------------------------------------------------|
+  |        DeclProlongation - 0.44 (24 bytes)         |
+  |-----------------|----------------|---------|------|
+  | Name            | Type           | Version | Size |
+  |-----------------|----------------|---------|------|
+  | name            | NameIndex      | 0.33    | 4    |
+  | locus           | SourceLocation | 0.33    | 8    |
+  | enclosing_scope | DeclIndex      | 0.44    | 4    |
+  | home_scope      | DeclIndex      | 0.44    | 4    |
+  | original_decl   | DeclIndex      | 0.44    | 4    |
+  |-----------------|----------------|---------|------|
+  | home_scope      | DeclIndex      | 0.44    | TF   |
+  |-----------------|----------------|---------|------|
+*/
+enum an_ifc_decl_prolongation_part : uint8_t {};
+using an_ifc_decl_prolongation_storage = an_ifc_decl_prolongation_part[24];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_decl_prolongation_bytes = const an_ifc_decl_prolongation_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_decl_prolongation_bytes = an_ifc_decl_prolongation_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC DeclProlongation node.
+
+The representation is declared as a derived struct of Byte_buffer_entry rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_prolongation :
+                          Byte_buffer_entry<an_ifc_decl_prolongation_storage> {
+  using storage_type = an_ifc_decl_prolongation_storage;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
+};  /* an_ifc_decl_prolongation */
 
 
 /*
@@ -8971,6 +9864,18 @@ struct an_ifc_decl_partial_specialization :
   | setter     | TextOffset | 0.33    | 4    |
   |------------|------------|---------|------|
   | home_scope | DeclIndex  | 0.43    | TF   |
+  |------------|------------|---------|------|
+
+  |------------------------------------------|
+  |      DeclProperty - 0.44 (12 bytes)      |
+  |------------|------------|---------|------|
+  | Name       | Type       | Version | Size |
+  |------------|------------|---------|------|
+  | member     | DeclIndex  | 0.44    | 4    |
+  | getter     | TextOffset | 0.33    | 4    |
+  | setter     | TextOffset | 0.33    | 4    |
+  |------------|------------|---------|------|
+  | home_scope | DeclIndex  | 0.44    | TF   |
   |------------|------------|---------|------|
 */
 enum an_ifc_decl_property_part : uint8_t {};
@@ -9112,6 +10017,28 @@ struct an_ifc_decl_reference :
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.43    | TF   |
   |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |                DeclScope - 0.44 (40 bytes)                 |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | base        | TypeIndex                   | 0.33    | 4    |
+  | initializer | ScopeOffset                 | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.44    | 4    |
+  | alignment   | ExprIndex                   | 0.42    | 4    |
+  | pack_size   | PackSize                    | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | traits      | ScopeTraitsBitfield         | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                  |         | 2    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.44    | TF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_scope_part : uint8_t {};
 using an_ifc_decl_scope_storage = an_ifc_decl_scope_part[40];
@@ -9164,6 +10091,22 @@ struct an_ifc_decl_scope : Byte_buffer_entry<an_ifc_decl_scope_storage> {
   | locus            | SourceLocation     | ANY     | TF   |
   | name             | NameIndex          | ANY     | TF   |
   | primary_template | DeclIndex          | 0.43    | TF   |
+  |------------------|--------------------|---------|------|
+
+  |--------------------------------------------------------|
+  |          DeclSpecialization - 0.44 (12 bytes)          |
+  |------------------|--------------------|---------|------|
+  | Name             | Type               | Version | Size |
+  |------------------|--------------------|---------|------|
+  | form             | FormSpecOffset     | 0.33    | 4    |
+  | decl             | DeclIndex          | 0.44    | 4    |
+  | sort             | SpecializationSort | 0.41    | 1    |
+  | __padding__      | uint8_t[3]         |         | 3    |
+  |------------------|--------------------|---------|------|
+  | home_scope       | DeclIndex          | ANY     | TF   |
+  | locus            | SourceLocation     | ANY     | TF   |
+  | name             | NameIndex          | ANY     | TF   |
+  | primary_template | DeclIndex          | 0.44    | TF   |
   |------------------|--------------------|---------|------|
 */
 enum an_ifc_decl_specialization_part : uint8_t {};
@@ -9277,6 +10220,26 @@ struct an_ifc_decl_syntax_tree :
   | home_scope  | DeclIndex                   | 0.43    | TF   |
   | name        | NameIndex                   | ANY     | TF   |
   |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |               DeclTemplate - 0.44 (44 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | home_scope  | DeclIndex                   | 0.44    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | entity      | ParameterizedEntity         | 0.44    | 16   |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[1]                  |         | 1    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.44    | TF   |
+  | name        | NameIndex                   | ANY     | TF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_template_part : uint8_t {};
 using an_ifc_decl_template_storage = an_ifc_decl_template_part[44];
@@ -9327,6 +10290,17 @@ struct an_ifc_decl_template : Byte_buffer_entry<an_ifc_decl_template_storage> {
   | Name        | Type                        | Version | Size |
   |-------------|-----------------------------|---------|------|
   | entity      | ParameterizedEntity         | 0.43    | 16   |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |               DeclTemploid - 0.44 (24 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | entity      | ParameterizedEntity         | 0.44    | 16   |
   | chart       | ChartIndex                  | 0.33    | 4    |
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[3]                  |         | 3    |
@@ -9456,6 +10430,25 @@ struct an_ifc_decl_tuple : Byte_buffer_entry<an_ifc_decl_tuple_storage> {
   |-------------|-------------------------|---------|------|
   | home_scope  | DeclIndex               | 0.43    | TF   |
   |-------------|-------------------------|---------|------|
+
+  |--------------------------------------------------------|
+  |         DeclUsingDeclaration - 0.44 (32 bytes)         |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | home_scope  | DeclIndex               | 0.44    | 4    |
+  | resolution  | DeclIndex               | 0.44    | 4    |
+  | parent      | ExprIndex               | 0.42    | 4    |
+  | name2       | TextOffset              | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access      | AccessSort              | 0.33    | 1    |
+  | hidden      | bool                    | 0.33    | 1    |
+  | __padding__ | uint8_t[1]              |         | 1    |
+  |-------------|-------------------------|---------|------|
+  | home_scope  | DeclIndex               | 0.44    | TF   |
+  |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_using_declaration_part : uint8_t {};
 using an_ifc_decl_using_declaration_storage =
@@ -9555,6 +10548,25 @@ struct an_ifc_decl_using_declaration :
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.43    | TF   |
   |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |               DeclVariable - 0.44 (32 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.44    | 4    |
+  | initializer | ExprIndex                   | 0.42    | 4    |
+  | alignment   | ExprIndex                   | 0.42    | 4    |
+  | traits      | ObjectTraitsBitfield        | 0.33    | 1    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.44    | TF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_variable_part : uint8_t {};
 using an_ifc_decl_variable_storage = an_ifc_decl_variable_part[32];
@@ -9615,6 +10627,16 @@ struct an_ifc_dir_attribute : Byte_buffer_entry<an_ifc_dir_attribute_storage> {
   | locus  | SourceLocation | 0.33    | 8    |
   | path   | ExprIndex      | 0.42    | 4    |
   | result | DeclIndex      | 0.43    | 4    |
+  |--------|----------------|---------|------|
+
+  |------------------------------------------|
+  |       DirDeclUse - 0.44 (16 bytes)       |
+  |--------|----------------|---------|------|
+  | Name   | Type           | Version | Size |
+  |--------|----------------|---------|------|
+  | locus  | SourceLocation | 0.33    | 8    |
+  | path   | ExprIndex      | 0.42    | 4    |
+  | result | DeclIndex      | 0.44    | 4    |
   |--------|----------------|---------|------|
 */
 enum an_ifc_dir_decl_use_part : uint8_t {};
@@ -9767,6 +10789,16 @@ struct an_ifc_dir_tuple : Byte_buffer_entry<an_ifc_dir_tuple_storage> {
   | nominated  | ExprIndex      | 0.42    | 4    |
   | resolution | DeclIndex      | 0.43    | 4    |
   |------------|----------------|---------|------|
+
+  |----------------------------------------------|
+  |          DirUsing - 0.44 (16 bytes)          |
+  |------------|----------------|---------|------|
+  | Name       | Type           | Version | Size |
+  |------------|----------------|---------|------|
+  | locus      | SourceLocation | 0.33    | 8    |
+  | nominated  | ExprIndex      | 0.42    | 4    |
+  | resolution | DeclIndex      | 0.44    | 4    |
+  |------------|----------------|---------|------|
 */
 enum an_ifc_dir_using_part : uint8_t {};
 using an_ifc_dir_using_storage = an_ifc_dir_using_part[16];
@@ -9853,6 +10885,70 @@ struct an_ifc_edg_constant_integer_word :
   using base_type = Byte_buffer_entry<storage_type>;
   using base_type::Byte_buffer_entry;
 };  /* an_ifc_edg_constant_integer_word */
+
+
+/*
+  |---------------------------------------------------|
+  |     EdgExprTemplateArgument - 0.43 (4 bytes)      |
+  |-------|--------------------------|---------|------|
+  | Name  | Type                     | Version | Size |
+  |-------|--------------------------|---------|------|
+  | index | EdgTemplateArgumentIndex | 0.43    | 4    |
+  |-------|--------------------------|---------|------|
+*/
+enum an_ifc_edg_expr_template_argument_part : uint8_t {};
+using an_ifc_edg_expr_template_argument_storage =
+                                     an_ifc_edg_expr_template_argument_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_expr_template_argument_bytes =
+                              const an_ifc_edg_expr_template_argument_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_expr_template_argument_bytes =
+                                     an_ifc_edg_expr_template_argument_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgExprTemplateArgument node.
+
+The representation is declared as a derived struct of Byte_buffer_entry rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_expr_template_argument :
+                 Byte_buffer_entry<an_ifc_edg_expr_template_argument_storage> {
+  using storage_type = an_ifc_edg_expr_template_argument_storage;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
+};  /* an_ifc_edg_expr_template_argument */
+
+
+/*
+  |---------------------------------------|
+  |   EdgExtensionExpr - 0.43 (4 bytes)   |
+  |-------|--------------|---------|------|
+  | Name  | Type         | Version | Size |
+  |-------|--------------|---------|------|
+  | value | EdgExprIndex | 0.43    | 4    |
+  |-------|--------------|---------|------|
+*/
+enum an_ifc_edg_extension_expr_part : uint8_t {};
+using an_ifc_edg_extension_expr_storage = an_ifc_edg_extension_expr_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_extension_expr_bytes =
+                                      const an_ifc_edg_extension_expr_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_extension_expr_bytes = an_ifc_edg_extension_expr_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgExtensionExpr node.
+
+The representation is declared as a derived struct of Byte_buffer_entry rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_extension_expr :
+                         Byte_buffer_entry<an_ifc_edg_extension_expr_storage> {
+  using storage_type = an_ifc_edg_extension_expr_storage;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
+};  /* an_ifc_edg_extension_expr */
 
 
 /*
@@ -9953,6 +11049,39 @@ struct an_ifc_edg_heap_template_argument :
 
 
 /*
+  |----------------------------------------------|
+  | EdgTemplateArgumentConstant - 0.43 (4 bytes) |
+  |----------|------------------|---------|------|
+  | Name     | Type             | Version | Size |
+  |----------|------------------|---------|------|
+  | value    | EdgConstantIndex | 0.43    | 4    |
+  |----------|------------------|---------|------|
+*/
+enum an_ifc_edg_template_argument_constant_part : uint8_t {};
+using an_ifc_edg_template_argument_constant_storage =
+                                 an_ifc_edg_template_argument_constant_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_edg_template_argument_constant_bytes =
+                          const an_ifc_edg_template_argument_constant_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_edg_template_argument_constant_bytes =
+                                 an_ifc_edg_template_argument_constant_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC EdgTemplateArgumentConstant node.
+
+The representation is declared as a derived struct of Byte_buffer_entry rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_edg_template_argument_constant :
+             Byte_buffer_entry<an_ifc_edg_template_argument_constant_storage> {
+  using storage_type = an_ifc_edg_template_argument_constant_storage;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
+};  /* an_ifc_edg_template_argument_constant */
+
+
+/*
   |---------------------------------------------|
   | EdgTemplateArgumentNonType - 0.43 (4 bytes) |
   |----------|-------------|-----------|--------|
@@ -9992,6 +11121,14 @@ struct an_ifc_edg_template_argument_non_type :
   | Name      | Type        | Version   | Size   |
   |-----------|-------------|-----------|--------|
   | value     | DeclIndex   | 0.43      | 4      |
+  |-----------|-------------|-----------|--------|
+
+  |----------------------------------------------|
+  | EdgTemplateArgumentTemplate - 0.44 (4 bytes) |
+  |-----------|-------------|-----------|--------|
+  | Name      | Type        | Version   | Size   |
+  |-----------|-------------|-----------|--------|
+  | value     | DeclIndex   | 0.44      | 4      |
   |-----------|-------------|-----------|--------|
 */
 enum an_ifc_edg_template_argument_template_part : uint8_t {};
@@ -10219,6 +11356,17 @@ struct an_ifc_edg_token_textual :
   |--------------|---------------------|---------|------|
   | encoded_decl | EncodedDeclIndex    | 0.33    | TF   |
   |--------------|---------------------|---------|------|
+
+  |-----------------------------------------------------|
+  |  EdgTraitClassTemplateDefinition - 0.44 (8 bytes)   |
+  |--------------|---------------------|---------|------|
+  | Name         | Type                | Version | Size |
+  |--------------|---------------------|---------|------|
+  | decl         | DeclIndex           | 0.44    | 4    |
+  | initializer  | EdgTokenCacheOffset | 0.43    | 4    |
+  |--------------|---------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex    | 0.33    | TF   |
+  |--------------|---------------------|---------|------|
 */
 enum an_ifc_edg_trait_class_template_definition_part : uint8_t {};
 using an_ifc_edg_trait_class_template_definition_storage =
@@ -10255,6 +11403,17 @@ struct an_ifc_edg_trait_class_template_definition :
   |--------------|---------------------|---------|------|
   | encoded_decl | EncodedDeclIndex    | 0.33    | TF   |
   |--------------|---------------------|---------|------|
+
+  |-----------------------------------------------------|
+  |     EdgTraitFunctionDefinition - 0.44 (8 bytes)     |
+  |--------------|---------------------|---------|------|
+  | Name         | Type                | Version | Size |
+  |--------------|---------------------|---------|------|
+  | decl         | DeclIndex           | 0.44    | 4    |
+  | initializer  | EdgTokenCacheOffset | 0.43    | 4    |
+  |--------------|---------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex    | 0.33    | TF   |
+  |--------------|---------------------|---------|------|
 */
 enum an_ifc_edg_trait_function_definition_part : uint8_t {};
 using an_ifc_edg_trait_function_definition_storage =
@@ -10287,6 +11446,16 @@ struct an_ifc_edg_trait_function_definition :
   | Name          | Type                          | Version | Size |
   |---------------|-------------------------------|---------|------|
   | subject       | DeclIndex                     | 0.43    | 4    |
+  | arguments     | EdgHeapTemplateArgumentOffset | 0.43    | 4    |
+  | num_arguments | Cardinality                   | 0.33    | 4    |
+  |---------------|-------------------------------|---------|------|
+
+  |----------------------------------------------------------------|
+  |              EdgTypeSubstituted - 0.44 (12 bytes)              |
+  |---------------|-------------------------------|---------|------|
+  | Name          | Type                          | Version | Size |
+  |---------------|-------------------------------|---------|------|
+  | subject       | DeclIndex                     | 0.44    | 4    |
   | arguments     | EdgHeapTemplateArgumentOffset | 0.43    | 4    |
   | num_arguments | Cardinality                   | 0.33    | 4    |
   |---------------|-------------------------------|---------|------|
@@ -10471,6 +11640,19 @@ struct an_ifc_expr_assign_initializer :
   | operation     | DyadicOperatorSort | 0.43    | 2    |
   | associativity | Associativity      | 0.33    | 1    |
   |---------------|--------------------|---------|------|
+
+  |-----------------------------------------------------|
+  |          ExprBinaryFold - 0.44 (23 bytes)           |
+  |---------------|--------------------|---------|------|
+  | Name          | Type               | Version | Size |
+  |---------------|--------------------|---------|------|
+  | locus         | SourceLocation     | 0.33    | 8    |
+  | type          | TypeIndex          | 0.33    | 4    |
+  | left          | ExprIndex          | 0.42    | 4    |
+  | right         | ExprIndex          | 0.42    | 4    |
+  | operation     | DyadicOperatorSort | 0.44    | 2    |
+  | associativity | Associativity      | 0.33    | 1    |
+  |---------------|--------------------|---------|------|
 */
 enum an_ifc_expr_binary_fold_part : uint8_t {};
 using an_ifc_expr_binary_fold_storage = an_ifc_expr_binary_fold_part[23];
@@ -10573,6 +11755,19 @@ struct an_ifc_expr_call : Byte_buffer_entry<an_ifc_expr_call_storage> {
   | source      | ExprIndex          | 0.42    | 4    |
   | target      | TypeIndex          | 0.33    | 4    |
   | op          | DyadicOperatorSort | 0.43    | 2    |
+  | __padding__ | uint8_t[2]         |         | 2    |
+  |-------------|--------------------|---------|------|
+
+  |---------------------------------------------------|
+  |            ExprCast - 0.44 (24 bytes)             |
+  |-------------|--------------------|---------|------|
+  | Name        | Type               | Version | Size |
+  |-------------|--------------------|---------|------|
+  | locus       | SourceLocation     | 0.33    | 8    |
+  | type        | TypeIndex          | 0.33    | 4    |
+  | source      | ExprIndex          | 0.42    | 4    |
+  | target      | TypeIndex          | 0.33    | 4    |
+  | op          | DyadicOperatorSort | 0.44    | 2    |
   | __padding__ | uint8_t[2]         |         | 2    |
   |-------------|--------------------|---------|------|
 */
@@ -10833,6 +12028,20 @@ struct an_ifc_expr_destructor_call :
   | argument_0  | ExprIndex          | 0.42    | 4    |
   | argument_1  | ExprIndex          | 0.42    | 4    |
   | assoc       | DyadicOperatorSort | 0.43    | 2    |
+  | __padding__ | uint8_t[2]         |         | 2    |
+  |-------------|--------------------|---------|------|
+
+  |---------------------------------------------------|
+  |            ExprDyad - 0.44 (28 bytes)             |
+  |-------------|--------------------|---------|------|
+  | Name        | Type               | Version | Size |
+  |-------------|--------------------|---------|------|
+  | locus       | SourceLocation     | 0.33    | 8    |
+  | type        | TypeIndex          | 0.33    | 4    |
+  | impl        | DeclIndex          | 0.44    | 4    |
+  | argument_0  | ExprIndex          | 0.42    | 4    |
+  | argument_1  | ExprIndex          | 0.42    | 4    |
+  | assoc       | DyadicOperatorSort | 0.44    | 2    |
   | __padding__ | uint8_t[2]         |         | 2    |
   |-------------|--------------------|---------|------|
 */
@@ -11098,6 +12307,21 @@ struct an_ifc_expr_function_string :
   | inheritance | ExprIndex          | 0.42    | 4    |
   | override    | ExprIndex          | 0.42    | 4    |
   | op          | DyadicOperatorSort | 0.43    | 2    |
+  | __padding__ | uint8_t[2]         |         | 2    |
+  |-------------|--------------------|---------|------|
+
+  |---------------------------------------------------|
+  |     ExprHierarchyConversion - 0.44 (32 bytes)     |
+  |-------------|--------------------|---------|------|
+  | Name        | Type               | Version | Size |
+  |-------------|--------------------|---------|------|
+  | locus       | SourceLocation     | 0.33    | 8    |
+  | type        | TypeIndex          | 0.33    | 4    |
+  | source      | ExprIndex          | 0.42    | 4    |
+  | target      | TypeIndex          | 0.33    | 4    |
+  | inheritance | ExprIndex          | 0.42    | 4    |
+  | override    | ExprIndex          | 0.42    | 4    |
+  | op          | DyadicOperatorSort | 0.44    | 2    |
   | __padding__ | uint8_t[2]         |         | 2    |
   |-------------|--------------------|---------|------|
 */
@@ -11449,6 +12673,18 @@ struct an_ifc_expr_member_access :
   | base        | TypeIndex      | 0.33    | 4    |
   | initializer | ExprIndex      | 0.42    | 4    |
   |-------------|----------------|---------|------|
+
+  |-----------------------------------------------|
+  |    ExprMemberInitializer - 0.44 (24 bytes)    |
+  |-------------|----------------|---------|------|
+  | Name        | Type           | Version | Size |
+  |-------------|----------------|---------|------|
+  | locus       | SourceLocation | 0.33    | 8    |
+  | type        | TypeIndex      | 0.33    | 4    |
+  | member      | DeclIndex      | 0.44    | 4    |
+  | base        | TypeIndex      | 0.33    | 4    |
+  | initializer | ExprIndex      | 0.42    | 4    |
+  |-------------|----------------|---------|------|
 */
 enum an_ifc_expr_member_initializer_part : uint8_t {};
 using an_ifc_expr_member_initializer_storage =
@@ -11526,6 +12762,19 @@ struct an_ifc_expr_member_initializer :
   | assoc       | MonadicOperatorSort | 0.43    | 2    |
   | __padding__ | uint8_t[2]          |         | 2    |
   |-------------|---------------------|---------|------|
+
+  |----------------------------------------------------|
+  |            ExprMonad - 0.44 (24 bytes)             |
+  |-------------|---------------------|---------|------|
+  | Name        | Type                | Version | Size |
+  |-------------|---------------------|---------|------|
+  | locus       | SourceLocation      | 0.33    | 8    |
+  | type        | TypeIndex           | 0.33    | 4    |
+  | impl        | DeclIndex           | 0.44    | 4    |
+  | argument    | ExprIndex           | 0.42    | 4    |
+  | assoc       | MonadicOperatorSort | 0.44    | 2    |
+  | __padding__ | uint8_t[2]          |         | 2    |
+  |-------------|---------------------|---------|------|
 */
 enum an_ifc_expr_monad_part : uint8_t {};
 using an_ifc_expr_monad_storage = an_ifc_expr_monad_part[24];
@@ -11576,6 +12825,16 @@ struct an_ifc_expr_monad : Byte_buffer_entry<an_ifc_expr_monad_storage> {
   | locus      | SourceLocation | 0.33    | 8    |
   | type       | TypeIndex      | 0.33    | 4    |
   | resolution | DeclIndex      | 0.43    | 4    |
+  |------------|----------------|---------|------|
+
+  |----------------------------------------------|
+  |       ExprNamedDecl - 0.44 (16 bytes)        |
+  |------------|----------------|---------|------|
+  | Name       | Type           | Version | Size |
+  |------------|----------------|---------|------|
+  | locus      | SourceLocation | 0.33    | 8    |
+  | type       | TypeIndex      | 0.33    | 4    |
+  | resolution | DeclIndex      | 0.44    | 4    |
   |------------|----------------|---------|------|
 */
 enum an_ifc_expr_named_decl_part : uint8_t {};
@@ -12212,6 +13471,18 @@ struct an_ifc_expr_subobject_value :
   | discriminant | ActiveMember   | 0.33    | 4    |
   | value        | ExprIndex      | 0.42    | 4    |
   |--------------|----------------|---------|------|
+
+  |------------------------------------------------|
+  |       ExprSumTypeValue - 0.44 (24 bytes)       |
+  |--------------|----------------|---------|------|
+  | Name         | Type           | Version | Size |
+  |--------------|----------------|---------|------|
+  | locus        | SourceLocation | 0.33    | 8    |
+  | type         | TypeIndex      | 0.33    | 4    |
+  | variant      | DeclIndex      | 0.44    | 4    |
+  | discriminant | ActiveMember   | 0.33    | 4    |
+  | value        | ExprIndex      | 0.42    | 4    |
+  |--------------|----------------|---------|------|
 */
 enum an_ifc_expr_sum_type_value_part : uint8_t {};
 using an_ifc_expr_sum_type_value_storage = an_ifc_expr_sum_type_value_part[24];
@@ -12344,6 +13615,19 @@ struct an_ifc_expr_template_id :
   | locus       | SourceLocation | 0.33    | 8    |
   | type        | TypeIndex      | 0.33    | 4    |
   | member      | DeclIndex      | 0.43    | 4    |
+  | member_name | NameIndex      | 0.33    | 4    |
+  | scope       | TypeIndex      | 0.33    | 4    |
+  | arguments   | ExprIndex      | 0.42    | 4    |
+  |-------------|----------------|---------|------|
+
+  |-----------------------------------------------|
+  |    ExprTemplateReference - 0.44 (28 bytes)    |
+  |-------------|----------------|---------|------|
+  | Name        | Type           | Version | Size |
+  |-------------|----------------|---------|------|
+  | locus       | SourceLocation | 0.33    | 8    |
+  | type        | TypeIndex      | 0.33    | 4    |
+  | member      | DeclIndex      | 0.44    | 4    |
   | member_name | NameIndex      | 0.33    | 4    |
   | scope       | TypeIndex      | 0.33    | 4    |
   | arguments   | ExprIndex      | 0.42    | 4    |
@@ -12526,6 +13810,21 @@ struct an_ifc_expr_tokens : Byte_buffer_entry<an_ifc_expr_tokens_storage> {
   | assoc       | TriadicOperatorSort | 0.42    | 2    |
   | __padding__ | uint8_t[2]          |         | 2    |
   |-------------|---------------------|---------|------|
+
+  |----------------------------------------------------|
+  |            ExprTriad - 0.44 (32 bytes)             |
+  |-------------|---------------------|---------|------|
+  | Name        | Type                | Version | Size |
+  |-------------|---------------------|---------|------|
+  | locus       | SourceLocation      | 0.33    | 8    |
+  | type        | TypeIndex           | 0.33    | 4    |
+  | impl        | DeclIndex           | 0.44    | 4    |
+  | argument_0  | ExprIndex           | 0.42    | 4    |
+  | argument_1  | ExprIndex           | 0.42    | 4    |
+  | argument_2  | ExprIndex           | 0.42    | 4    |
+  | assoc       | TriadicOperatorSort | 0.42    | 2    |
+  | __padding__ | uint8_t[2]          |         | 2    |
+  |-------------|---------------------|---------|------|
 */
 enum an_ifc_expr_triad_part : uint8_t {};
 using an_ifc_expr_triad_storage = an_ifc_expr_triad_part[32];
@@ -12646,6 +13945,18 @@ struct an_ifc_expr_type : Byte_buffer_entry<an_ifc_expr_type_storage> {
   | intrinsic   | OperatorCategory | 0.43    | 2    |
   | __padding__ | uint8_t[2]       |         | 2    |
   |-------------|------------------|---------|------|
+
+  |-------------------------------------------------|
+  |    ExprTypeTraitIntrinsic - 0.44 (20 bytes)     |
+  |-------------|------------------|---------|------|
+  | Name        | Type             | Version | Size |
+  |-------------|------------------|---------|------|
+  | locus       | SourceLocation   | 0.33    | 8    |
+  | type        | TypeIndex        | 0.33    | 4    |
+  | arguments   | TypeIndex        | 0.33    | 4    |
+  | intrinsic   | OperatorCategory | 0.44    | 2    |
+  | __padding__ | uint8_t[2]       |         | 2    |
+  |-------------|------------------|---------|------|
 */
 enum an_ifc_expr_type_trait_intrinsic_part : uint8_t {};
 using an_ifc_expr_type_trait_intrinsic_storage =
@@ -12738,6 +14049,19 @@ struct an_ifc_expr_typeid : Byte_buffer_entry<an_ifc_expr_typeid_storage> {
   | type          | TypeIndex          | 0.33    | 4    |
   | expr          | ExprIndex          | 0.42    | 4    |
   | operation     | DyadicOperatorSort | 0.43    | 2    |
+  | associativity | Associativity      | 0.33    | 1    |
+  | __padding__   | uint8_t[1]         |         | 1    |
+  |---------------|--------------------|---------|------|
+
+  |-----------------------------------------------------|
+  |           ExprUnaryFold - 0.44 (20 bytes)           |
+  |---------------|--------------------|---------|------|
+  | Name          | Type               | Version | Size |
+  |---------------|--------------------|---------|------|
+  | locus         | SourceLocation     | 0.33    | 8    |
+  | type          | TypeIndex          | 0.33    | 4    |
+  | expr          | ExprIndex          | 0.42    | 4    |
+  | operation     | DyadicOperatorSort | 0.44    | 2    |
   | associativity | Associativity      | 0.33    | 1    |
   | __padding__   | uint8_t[1]         |         | 1    |
   |---------------|--------------------|---------|------|
@@ -12872,6 +14196,16 @@ struct an_ifc_expr_unresolved_id :
   | locus      | SourceLocation  | 0.33     | 8     |
   | type       | TypeIndex       | 0.33     | 4     |
   | function   | DeclIndex       | 0.43     | 4     |
+  |------------|-----------------|----------|-------|
+
+  |-------------------------------------------------|
+  | ExprVirtualFunctionConversion - 0.44 (16 bytes) |
+  |------------|-----------------|----------|-------|
+  | Name       | Type            | Version  | Size  |
+  |------------|-----------------|----------|-------|
+  | locus      | SourceLocation  | 0.33     | 8     |
+  | type       | TypeIndex       | 0.33     | 4     |
+  | function   | DeclIndex       | 0.44     | 4     |
   |------------|-----------------|----------|-------|
 */
 enum an_ifc_expr_virtual_function_conversion_part : uint8_t {};
@@ -13272,6 +14606,15 @@ struct an_ifc_form_pragma : Byte_buffer_entry<an_ifc_form_pragma_storage> {
   | primary_template | DeclIndex | 0.43    | 4    |
   | arguments        | ExprIndex | 0.42    | 4    |
   |------------------|-----------|---------|------|
+
+  |-----------------------------------------------|
+  |           FormSpec - 0.44 (8 bytes)           |
+  |------------------|-----------|---------|------|
+  | Name             | Type      | Version | Size |
+  |------------------|-----------|---------|------|
+  | primary_template | DeclIndex | 0.44    | 4    |
+  | arguments        | ExprIndex | 0.42    | 4    |
+  |------------------|-----------|---------|------|
 */
 enum an_ifc_form_spec_part : uint8_t {};
 using an_ifc_form_spec_storage = an_ifc_form_spec_part[8];
@@ -13496,6 +14839,14 @@ struct an_ifc_heap_chart : Byte_buffer_entry<an_ifc_heap_chart_storage> {
   |-------|-----------|---------|------|
   | value | DeclIndex | 0.43    | 4    |
   |-------|-----------|---------|------|
+
+  |------------------------------------|
+  |     HeapDecl - 0.44 (4 bytes)      |
+  |-------|-----------|---------|------|
+  | Name  | Type      | Version | Size |
+  |-------|-----------|---------|------|
+  | value | DeclIndex | 0.44    | 4    |
+  |-------|-----------|---------|------|
 */
 enum an_ifc_heap_decl_part : uint8_t {};
 using an_ifc_heap_decl_storage = an_ifc_heap_decl_part[4];
@@ -13650,6 +15001,35 @@ struct an_ifc_heap_stmt : Byte_buffer_entry<an_ifc_heap_stmt_storage> {
 
 
 /*
+  |-------------------------------------|
+  |     HeapString - 0.44 (4 bytes)     |
+  |-------|------------|---------|------|
+  | Name  | Type       | Version | Size |
+  |-------|------------|---------|------|
+  | value | TextOffset | 0.33    | 4    |
+  |-------|------------|---------|------|
+*/
+enum an_ifc_heap_string_part : uint8_t {};
+using an_ifc_heap_string_storage = an_ifc_heap_string_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_heap_string_bytes = const an_ifc_heap_string_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_heap_string_bytes = an_ifc_heap_string_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC HeapString node.
+
+The representation is declared as a derived struct of Byte_buffer_entry rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_heap_string : Byte_buffer_entry<an_ifc_heap_string_storage> {
+  using storage_type = an_ifc_heap_string_storage;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
+};  /* an_ifc_heap_string */
+
+
+/*
   |--------------------------------------|
   |     HeapSyntax - 0.33 (4 bytes)      |
   |-------|-------------|---------|------|
@@ -13775,6 +15155,69 @@ struct an_ifc_macro_object_like :
 
 
 /*
+  |--------------------------------------|
+  | MetaToolInvocation - 0.44 (12 bytes) |
+  |--------|------------|---------|------|
+  | Name   | Type       | Version | Size |
+  |--------|------------|---------|------|
+  | cmd    | TextOffset | 0.33    | 4    |
+  | args   | Sequence   | 0.33    | 8    |
+  |--------|------------|---------|------|
+*/
+enum an_ifc_meta_tool_invocation_part : uint8_t {};
+using an_ifc_meta_tool_invocation_storage =
+                                          an_ifc_meta_tool_invocation_part[12];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_meta_tool_invocation_bytes =
+                                    const an_ifc_meta_tool_invocation_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_meta_tool_invocation_bytes = an_ifc_meta_tool_invocation_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC MetaToolInvocation node.
+
+The representation is declared as a derived struct of Byte_buffer_entry rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_meta_tool_invocation :
+                       Byte_buffer_entry<an_ifc_meta_tool_invocation_storage> {
+  using storage_type = an_ifc_meta_tool_invocation_storage;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
+};  /* an_ifc_meta_tool_invocation */
+
+
+/*
+  |-------------------------------------|
+  |   MetaToolMaker - 0.43 (4 bytes)    |
+  |-------|------------|---------|------|
+  | Name  | Type       | Version | Size |
+  |-------|------------|---------|------|
+  | value | TextOffset | 0.33    | 4    |
+  |-------|------------|---------|------|
+*/
+enum an_ifc_meta_tool_maker_part : uint8_t {};
+using an_ifc_meta_tool_maker_storage = an_ifc_meta_tool_maker_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_meta_tool_maker_bytes = const an_ifc_meta_tool_maker_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_meta_tool_maker_bytes = an_ifc_meta_tool_maker_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC MetaToolMaker node.
+
+The representation is declared as a derived struct of Byte_buffer_entry rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_meta_tool_maker :
+                            Byte_buffer_entry<an_ifc_meta_tool_maker_storage> {
+  using storage_type = an_ifc_meta_tool_maker_storage;
+  using base_type = Byte_buffer_entry<storage_type>;
+  using base_type::Byte_buffer_entry;
+};  /* an_ifc_meta_tool_maker */
+
+
+/*
   |----------------------------------------------|
   |    ModuleExportReference - 0.33 (8 bytes)    |
   |-----------|-----------------|---------|------|
@@ -13895,6 +15338,14 @@ struct an_ifc_name_conversion :
   |------------------|-----------|---------|------|
   | primary_template | DeclIndex | 0.43    | 4    |
   |------------------|-----------|---------|------|
+
+  |-----------------------------------------------|
+  |          NameGuide - 0.44 (4 bytes)           |
+  |------------------|-----------|---------|------|
+  | Name             | Type      | Version | Size |
+  |------------------|-----------|---------|------|
+  | primary_template | DeclIndex | 0.44    | 4    |
+  |------------------|-----------|---------|------|
 */
 enum an_ifc_name_guide_part : uint8_t {};
 using an_ifc_name_guide_storage = an_ifc_name_guide_part[4];
@@ -13973,6 +15424,16 @@ struct an_ifc_name_literal : Byte_buffer_entry<an_ifc_name_literal_storage> {
   |-------------|------------------|---------|------|
   | encoded     | TextOffset       | 0.33    | 4    |
   | operator    | OperatorCategory | 0.43    | 2    |
+  | __padding__ | uint8_t[2]       |         | 2    |
+  |-------------|------------------|---------|------|
+
+  |-------------------------------------------------|
+  |          NameOperator - 0.44 (8 bytes)          |
+  |-------------|------------------|---------|------|
+  | Name        | Type             | Version | Size |
+  |-------------|------------------|---------|------|
+  | encoded     | TextOffset       | 0.33    | 4    |
+  | operator    | OperatorCategory | 0.44    | 2    |
   | __padding__ | uint8_t[2]       |         | 2    |
   |-------------|------------------|---------|------|
 */
@@ -14151,6 +15612,14 @@ struct an_ifc_scope_descriptor :
   | Name  | Type      | Version | Size |
   |-------|-----------|---------|------|
   | index | DeclIndex | 0.43    | 4    |
+  |-------|-----------|---------|------|
+
+  |------------------------------------|
+  |    ScopeMember - 0.44 (4 bytes)    |
+  |-------|-----------|---------|------|
+  | Name  | Type      | Version | Size |
+  |-------|-----------|---------|------|
+  | index | DeclIndex | 0.44    | 4    |
   |-------|-----------|---------|------|
 */
 enum an_ifc_scope_member_part : uint8_t {};
@@ -14424,6 +15893,15 @@ struct an_ifc_stmt_continue : Byte_buffer_entry<an_ifc_stmt_continue_storage> {
   |-------|----------------|---------|------|
   | locus | SourceLocation | 0.33    | 8    |
   | decl  | DeclIndex      | 0.43    | 4    |
+  |-------|----------------|---------|------|
+
+  |-----------------------------------------|
+  |       StmtDecl - 0.44 (12 bytes)        |
+  |-------|----------------|---------|------|
+  | Name  | Type           | Version | Size |
+  |-------|----------------|---------|------|
+  | locus | SourceLocation | 0.33    | 8    |
+  | decl  | DeclIndex      | 0.44    | 4    |
   |-------|----------------|---------|------|
 */
 enum an_ifc_stmt_decl_part : uint8_t {};
@@ -14717,6 +16195,16 @@ struct an_ifc_stmt_goto : Byte_buffer_entry<an_ifc_stmt_goto_storage> {
   |-----------|----------------|---------|------|
   | locus     | SourceLocation | 0.33    | 8    |
   | exception | DeclIndex      | 0.43    | 4    |
+  | body      | StmtIndex      | 0.42    | 4    |
+  |-----------|----------------|---------|------|
+
+  |---------------------------------------------|
+  |        StmtHandler - 0.44 (16 bytes)        |
+  |-----------|----------------|---------|------|
+  | Name      | Type           | Version | Size |
+  |-----------|----------------|---------|------|
+  | locus     | SourceLocation | 0.33    | 8    |
+  | exception | DeclIndex      | 0.44    | 4    |
   | body      | StmtIndex      | 0.42    | 4    |
   |-----------|----------------|---------|------|
 */
@@ -15707,6 +17195,23 @@ struct an_ifc_syntax_base_specifier_list :
   | operand_1    | ExprIndex          | 0.42    | 4    |
   | operand_2    | ExprIndex          | 0.42    | 4    |
   | dyad         | DyadicOperatorSort | 0.43    | 2    |
+  | locus        | SourceLocation     | 0.33    | 8    |
+  | ellipsis     | SourceLocation     | 0.33    | 8    |
+  | glyph_loci_1 | SourceLocation     | 0.33    | 8    |
+  | glyph_loci_2 | SourceLocation     | 0.33    | 8    |
+  | right_paren  | SourceLocation     | 0.33    | 8    |
+  | __padding__  | uint8_t[2]         |         | 2    |
+  |--------------|--------------------|---------|------|
+
+  |----------------------------------------------------|
+  |    SyntaxBinaryFoldExpression - 0.44 (56 bytes)    |
+  |--------------|--------------------|---------|------|
+  | Name         | Type               | Version | Size |
+  |--------------|--------------------|---------|------|
+  | direction    | FoldDirectionSort  | 0.33    | 4    |
+  | operand_1    | ExprIndex          | 0.42    | 4    |
+  | operand_2    | ExprIndex          | 0.42    | 4    |
+  | dyad         | DyadicOperatorSort | 0.44    | 2    |
   | locus        | SourceLocation     | 0.33    | 8    |
   | ellipsis     | SourceLocation     | 0.33    | 8    |
   | glyph_loci_1 | SourceLocation     | 0.33    | 8    |
@@ -19148,6 +20653,17 @@ struct an_ifc_syntax_type_template_parameter :
   | intrinsic   | OperatorCategory | 0.43    | 2    |
   | __padding__ | uint8_t[2]       |         | 2    |
   |-------------|------------------|---------|------|
+
+  |-------------------------------------------------|
+  |   SyntaxTypeTraitIntrinsic - 0.44 (16 bytes)    |
+  |-------------|------------------|---------|------|
+  | Name        | Type             | Version | Size |
+  |-------------|------------------|---------|------|
+  | arguments   | SyntaxIndex      | 0.33    | 4    |
+  | locus       | SourceLocation   | 0.33    | 8    |
+  | intrinsic   | OperatorCategory | 0.44    | 2    |
+  | __padding__ | uint8_t[2]       |         | 2    |
+  |-------------|------------------|---------|------|
 */
 enum an_ifc_syntax_type_trait_intrinsic_part : uint8_t {};
 using an_ifc_syntax_type_trait_intrinsic_storage =
@@ -19212,6 +20728,21 @@ struct an_ifc_syntax_type_trait_intrinsic :
   | direction   | FoldDirectionSort  | 0.33    | 4    |
   | operand     | ExprIndex          | 0.42    | 4    |
   | dyad        | DyadicOperatorSort | 0.43    | 2    |
+  | locus       | SourceLocation     | 0.33    | 8    |
+  | ellipsis    | SourceLocation     | 0.33    | 8    |
+  | glyph_locus | SourceLocation     | 0.33    | 8    |
+  | right_paren | SourceLocation     | 0.33    | 8    |
+  | __padding__ | uint8_t[2]         |         | 2    |
+  |-------------|--------------------|---------|------|
+
+  |---------------------------------------------------|
+  |    SyntaxUnaryFoldExpression - 0.44 (44 bytes)    |
+  |-------------|--------------------|---------|------|
+  | Name        | Type               | Version | Size |
+  |-------------|--------------------|---------|------|
+  | direction   | FoldDirectionSort  | 0.33    | 4    |
+  | operand     | ExprIndex          | 0.42    | 4    |
+  | dyad        | DyadicOperatorSort | 0.44    | 2    |
   | locus       | SourceLocation     | 0.33    | 8    |
   | ellipsis    | SourceLocation     | 0.33    | 8    |
   | glyph_locus | SourceLocation     | 0.33    | 8    |
@@ -19535,6 +21066,17 @@ struct an_ifc_syntax_while_statement :
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
+
+  |--------------------------------------------------|
+  |       TraitAliasTemplate - 0.44 (8 bytes)        |
+  |--------------|------------------|---------|------|
+  | Name         | Type             | Version | Size |
+  |--------------|------------------|---------|------|
+  | decl         | DeclIndex        | 0.44    | 4    |
+  | trait        | SyntaxIndex      | 0.33    | 4    |
+  |--------------|------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
+  |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_alias_template_part : uint8_t {};
 using an_ifc_trait_alias_template_storage =
@@ -19592,6 +21134,17 @@ struct an_ifc_trait_alias_template :
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
+
+  |--------------------------------------------------|
+  |         TraitAttribute - 0.44 (8 bytes)          |
+  |--------------|------------------|---------|------|
+  | Name         | Type             | Version | Size |
+  |--------------|------------------|---------|------|
+  | decl         | DeclIndex        | 0.44    | 4    |
+  | trait        | AttrIndex        | 0.33    | 4    |
+  |--------------|------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
+  |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_attribute_part : uint8_t {};
 using an_ifc_trait_attribute_storage = an_ifc_trait_attribute_part[8];
@@ -19644,6 +21197,17 @@ struct an_ifc_trait_attribute :
   |--------------|------------------|---------|------|
   | decl         | DeclIndex        | 0.43    | 4    |
   | trait        | DeclIndex        | 0.43    | 4    |
+  |--------------|------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
+  |--------------|------------------|---------|------|
+
+  |--------------------------------------------------|
+  |       TraitDeductionGuide - 0.44 (8 bytes)       |
+  |--------------|------------------|---------|------|
+  | Name         | Type             | Version | Size |
+  |--------------|------------------|---------|------|
+  | decl         | DeclIndex        | 0.44    | 4    |
+  | trait        | DeclIndex        | 0.44    | 4    |
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
@@ -19705,6 +21269,17 @@ struct an_ifc_trait_deduction_guide :
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
+
+  |--------------------------------------------------|
+  |         TraitDeprecated - 0.44 (8 bytes)         |
+  |--------------|------------------|---------|------|
+  | Name         | Type             | Version | Size |
+  |--------------|------------------|---------|------|
+  | decl         | DeclIndex        | 0.44    | 4    |
+  | trait        | TextOffset       | 0.33    | 4    |
+  |--------------|------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
+  |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_deprecated_part : uint8_t {};
 using an_ifc_trait_deprecated_storage = an_ifc_trait_deprecated_part[8];
@@ -19756,6 +21331,17 @@ struct an_ifc_trait_deprecated :
   | Name         | Type             | Version | Size |
   |--------------|------------------|---------|------|
   | decl         | DeclIndex        | 0.43    | 4    |
+  | trait        | Sequence         | 0.33    | 8    |
+  |--------------|------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
+  |--------------|------------------|---------|------|
+
+  |--------------------------------------------------|
+  |          TraitFriend - 0.44 (12 bytes)           |
+  |--------------|------------------|---------|------|
+  | Name         | Type             | Version | Size |
+  |--------------|------------------|---------|------|
+  | decl         | DeclIndex        | 0.44    | 4    |
   | trait        | Sequence         | 0.33    | 8    |
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
@@ -19833,6 +21419,19 @@ struct an_ifc_trait_friend : Byte_buffer_entry<an_ifc_trait_friend_storage> {
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
+
+  |--------------------------------------------------|
+  |    TraitFunctionDefinition - 0.44 (16 bytes)     |
+  |--------------|------------------|---------|------|
+  | Name         | Type             | Version | Size |
+  |--------------|------------------|---------|------|
+  | decl         | DeclIndex        | 0.44    | 4    |
+  | parameters   | ChartIndex       | 0.33    | 4    |
+  | initializers | ExprIndex        | 0.42    | 4    |
+  | body         | StmtIndex        | 0.42    | 4    |
+  |--------------|------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
+  |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_function_definition_part : uint8_t {};
 using an_ifc_trait_function_definition_storage =
@@ -19891,6 +21490,17 @@ struct an_ifc_trait_function_definition :
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
+
+  |--------------------------------------------------|
+  |       TraitMsvcDeclAttrs - 0.44 (8 bytes)        |
+  |--------------|------------------|---------|------|
+  | Name         | Type             | Version | Size |
+  |--------------|------------------|---------|------|
+  | decl         | DeclIndex        | 0.44    | 4    |
+  | trait        | AttrIndex        | 0.33    | 4    |
+  |--------------|------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
+  |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_msvc_decl_attrs_part : uint8_t {};
 using an_ifc_trait_msvc_decl_attrs_storage =
@@ -19945,6 +21555,17 @@ struct an_ifc_trait_msvc_decl_attrs :
   | Name         | Type             | Version | Size |
   |--------------|------------------|---------|------|
   | decl         | DeclIndex        | 0.43    | 4    |
+  | params       | ChartIndex       | 0.33    | 4    |
+  |--------------|------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
+  |--------------|------------------|---------|------|
+
+  |--------------------------------------------------|
+  |       TraitMsvcFuncParams - 0.44 (8 bytes)       |
+  |--------------|------------------|---------|------|
+  | Name         | Type             | Version | Size |
+  |--------------|------------------|---------|------|
+  | decl         | DeclIndex        | 0.44    | 4    |
   | params       | ChartIndex       | 0.33    | 4    |
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
@@ -20010,6 +21631,18 @@ struct an_ifc_trait_msvc_func_params :
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
+
+  |--------------------------------------------------|
+  |          TraitMsvcUuid - 0.44 (8 bytes)          |
+  |--------------|------------------|---------|------|
+  | Name         | Type             | Version | Size |
+  |--------------|------------------|---------|------|
+  | decl         | DeclIndex        | 0.44    | 4    |
+  | uuid         | Uuid             | 0.33    | 2    |
+  | __padding__  | uint8_t[2]       |         | 2    |
+  |--------------|------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
+  |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_msvc_uuid_part : uint8_t {};
 using an_ifc_trait_msvc_uuid_storage = an_ifc_trait_msvc_uuid_part[8];
@@ -20061,6 +21694,17 @@ struct an_ifc_trait_msvc_uuid :
   | Name         | Type               | Version | Size |
   |--------------|--------------------|---------|------|
   | decl         | DeclIndex          | 0.43    | 4    |
+  | trait        | MsvcTraitsBitfield | 0.33    | 4    |
+  |--------------|--------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex   | 0.33    | TF   |
+  |--------------|--------------------|---------|------|
+
+  |----------------------------------------------------|
+  |       TraitMsvcVendorTrait - 0.44 (8 bytes)        |
+  |--------------|--------------------|---------|------|
+  | Name         | Type               | Version | Size |
+  |--------------|--------------------|---------|------|
+  | decl         | DeclIndex          | 0.44    | 4    |
   | trait        | MsvcTraitsBitfield | 0.33    | 4    |
   |--------------|--------------------|---------|------|
   | encoded_decl | EncodedDeclIndex   | 0.33    | TF   |
@@ -20123,6 +21767,17 @@ struct an_ifc_trait_msvc_vendor_trait :
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
+
+  |--------------------------------------------------|
+  |          TraitRequires - 0.44 (8 bytes)          |
+  |--------------|------------------|---------|------|
+  | Name         | Type             | Version | Size |
+  |--------------|------------------|---------|------|
+  | decl         | DeclIndex        | 0.44    | 4    |
+  | trait        | SyntaxIndex      | 0.33    | 4    |
+  |--------------|------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
+  |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_requires_part : uint8_t {};
 using an_ifc_trait_requires_storage = an_ifc_trait_requires_part[8];
@@ -20174,6 +21829,17 @@ struct an_ifc_trait_requires :
   | Name         | Type             | Version | Size |
   |--------------|------------------|---------|------|
   | decl         | DeclIndex        | 0.43    | 4    |
+  | trait        | Sequence         | 0.33    | 8    |
+  |--------------|------------------|---------|------|
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
+  |--------------|------------------|---------|------|
+
+  |--------------------------------------------------|
+  |      TraitSpecialization - 0.44 (12 bytes)       |
+  |--------------|------------------|---------|------|
+  | Name         | Type             | Version | Size |
+  |--------------|------------------|---------|------|
+  | decl         | DeclIndex        | 0.44    | 4    |
   | trait        | Sequence         | 0.33    | 8    |
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
@@ -20327,6 +21993,14 @@ struct an_ifc_type_decltype : Byte_buffer_entry<an_ifc_type_decltype_storage> {
   |------|-----------|---------|------|
   | decl | DeclIndex | 0.43    | 4    |
   |------|-----------|---------|------|
+
+  |-----------------------------------|
+  |  TypeDesignated - 0.44 (4 bytes)  |
+  |------|-----------|---------|------|
+  | Name | Type      | Version | Size |
+  |------|-----------|---------|------|
+  | decl | DeclIndex | 0.44    | 4    |
+  |------|-----------|---------|------|
 */
 enum an_ifc_type_designated_part : uint8_t {};
 using an_ifc_type_designated_storage = an_ifc_type_designated_part[4];
@@ -20420,6 +22094,19 @@ struct an_ifc_type_forall : Byte_buffer_entry<an_ifc_type_forall_storage> {
   | target      | TypeIndex                  | 0.33    | 4    |
   | source      | TypeIndex                  | 0.33    | 4    |
   | eh_spec     | NoexceptSpecification      | 0.33    | 8    |
+  | convention  | CallingConventionSort      | 0.33    | 1    |
+  | traits      | FunctionTypeTraitsBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                 |         | 2    |
+  |-------------|----------------------------|---------|------|
+
+  |-----------------------------------------------------------|
+  |              TypeFunction - 0.44 (20 bytes)               |
+  |-------------|----------------------------|---------|------|
+  | Name        | Type                       | Version | Size |
+  |-------------|----------------------------|---------|------|
+  | target      | TypeIndex                  | 0.33    | 4    |
+  | source      | TypeIndex                  | 0.33    | 4    |
+  | eh_spec     | NoexceptSpecification      | 0.44    | 8    |
   | convention  | CallingConventionSort      | 0.33    | 1    |
   | traits      | FunctionTypeTraitsBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[2]                 |         | 2    |
@@ -20521,6 +22208,20 @@ struct an_ifc_type_lvalue_reference :
   | source      | TypeIndex                  | 0.33    | 4    |
   | scope       | TypeIndex                  | 0.33    | 4    |
   | eh_spec     | NoexceptSpecification      | 0.33    | 8    |
+  | convention  | CallingConventionSort      | 0.33    | 1    |
+  | traits      | FunctionTypeTraitsBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                 |         | 2    |
+  |-------------|----------------------------|---------|------|
+
+  |-----------------------------------------------------------|
+  |               TypeMethod - 0.44 (24 bytes)                |
+  |-------------|----------------------------|---------|------|
+  | Name        | Type                       | Version | Size |
+  |-------------|----------------------------|---------|------|
+  | target      | TypeIndex                  | 0.33    | 4    |
+  | source      | TypeIndex                  | 0.33    | 4    |
+  | scope       | TypeIndex                  | 0.33    | 4    |
+  | eh_spec     | NoexceptSpecification      | 0.44    | 8    |
   | convention  | CallingConventionSort      | 0.33    | 1    |
   | traits      | FunctionTypeTraitsBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[2]                 |         | 2    |
@@ -20799,6 +22500,17 @@ struct an_ifc_type_syntax_tree :
   | convention  | CallingConventionSort | 0.33    | 1    |
   | __padding__ | uint8_t[3]            |         | 3    |
   |-------------|-----------------------|---------|------|
+
+  |------------------------------------------------------|
+  |              TypeTor - 0.44 (16 bytes)               |
+  |-------------|-----------------------|---------|------|
+  | Name        | Type                  | Version | Size |
+  |-------------|-----------------------|---------|------|
+  | source      | TypeIndex             | 0.33    | 4    |
+  | eh_spec     | NoexceptSpecification | 0.44    | 8    |
+  | convention  | CallingConventionSort | 0.33    | 1    |
+  | __padding__ | uint8_t[3]            |         | 3    |
+  |-------------|-----------------------|---------|------|
 */
 enum an_ifc_type_tor_part : uint8_t {};
 using an_ifc_type_tor_storage = an_ifc_type_tor_part[16];
@@ -20958,6 +22670,53 @@ inline a_boolean operator!=(const an_ifc_edg_constant_integer_word_offset &lhs,
 /*
 Compare two instances of this EdgConstantIntegerWordOffset (lhs and rhs).  If
 the two instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_edg_extension_expr_offset_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC EdgExtensionExprOffset.
+*/
+struct an_ifc_edg_extension_expr_offset : Offset_entry<
+                                         an_ifc_edg_extension_expr, uint32_t> {
+  using node_type = an_ifc_edg_extension_expr;
+
+  using native_size_type = uint32_t;
+  using base_type = Offset_entry<node_type, native_size_type>;
+  using base_type::Offset_entry;
+};  /* an_ifc_edg_extension_expr_offset */
+
+
+inline a_boolean operator==(const an_ifc_edg_extension_expr_offset &lhs,
+                            const an_ifc_edg_extension_expr_offset &rhs)
+/*
+Compare two instances of this EdgExtensionExprOffset (lhs and rhs).  If the two
+instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_edg_extension_expr_offset &lhs,
+                            const an_ifc_edg_extension_expr_offset &rhs)
+/*
+Compare two instances of this EdgExtensionExprOffset (lhs and rhs).  If the two
+instances are equivalent, return FALSE; otherwise return TRUE.
 */
 {
   return !(lhs == rhs);
@@ -21390,9 +23149,12 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_pk_none,
   ifc_pk_edg_constant_integer,
   ifc_pk_edg_constant_integer_word,
+  ifc_pk_edg_expr_template_argument,
+  ifc_pk_edg_extension_expr,
   ifc_pk_edg_extension_type,
   ifc_pk_edg_heap_complex_token,
   ifc_pk_edg_heap_template_argument,
+  ifc_pk_edg_template_argument_constant,
   ifc_pk_edg_template_argument_non_type,
   ifc_pk_edg_template_argument_template,
   ifc_pk_edg_template_argument_type,
@@ -21442,6 +23204,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_pk_decl_method,
   ifc_pk_decl_parameter,
   ifc_pk_decl_partial_specialization,
+  ifc_pk_decl_prolongation,
   ifc_pk_decl_property,
   ifc_pk_decl_reference,
   ifc_pk_decl_scope,
@@ -21526,10 +23289,13 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_pk_heap_form,
   ifc_pk_heap_pp,
   ifc_pk_heap_stmt,
+  ifc_pk_heap_string,
   ifc_pk_heap_syn,
   ifc_pk_heap_type,
   ifc_pk_macro_function_like,
   ifc_pk_macro_object_like,
+  ifc_pk_meta_tool_invocation,
+  ifc_pk_meta_tool_maker,
   ifc_pk_module_exported,
   ifc_pk_module_imported,
   ifc_pk_name_conversion,
@@ -21721,7 +23487,7 @@ enum an_ifc_partition_kind : uint32_t {
 };  /* an_ifc_partition_kind */
 
 
-#define IFC_PARTITION_COUNT 330
+#define IFC_PARTITION_COUNT 337
 
 /*
 A method for mapping partition names to an_ifc_partition_kind values.  Used
@@ -21741,9 +23507,12 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
 = {
   { ".edg.constant.integer", ifc_pk_edg_constant_integer },
   { ".edg.constant.integer-word", ifc_pk_edg_constant_integer_word },
+  { ".edg.expr.template-argument", ifc_pk_edg_expr_template_argument },
+  { ".edg.extension.expr", ifc_pk_edg_extension_expr },
   { ".edg.extension.type", ifc_pk_edg_extension_type },
   { ".edg.heap.complex-token", ifc_pk_edg_heap_complex_token },
   { ".edg.heap.template-argument", ifc_pk_edg_heap_template_argument },
+  { ".edg.template-argument.constant", ifc_pk_edg_template_argument_constant },
   { ".edg.template-argument.non-type", ifc_pk_edg_template_argument_non_type },
   { ".edg.template-argument.template", ifc_pk_edg_template_argument_template },
   { ".edg.template-argument.type", ifc_pk_edg_template_argument_type },
@@ -21795,6 +23564,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
   { "decl.method", ifc_pk_decl_method },
   { "decl.parameter", ifc_pk_decl_parameter },
   { "decl.partial-specialization", ifc_pk_decl_partial_specialization },
+  { "decl.prolongation", ifc_pk_decl_prolongation },
   { "decl.property", ifc_pk_decl_property },
   { "decl.reference", ifc_pk_decl_reference },
   { "decl.scope", ifc_pk_decl_scope },
@@ -21880,10 +23650,13 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
   { "heap.form", ifc_pk_heap_form },
   { "heap.pp", ifc_pk_heap_pp },
   { "heap.stmt", ifc_pk_heap_stmt },
+  { "heap.string", ifc_pk_heap_string },
   { "heap.syn", ifc_pk_heap_syn },
   { "heap.type", ifc_pk_heap_type },
   { "macro.function-like", ifc_pk_macro_function_like },
   { "macro.object-like", ifc_pk_macro_object_like },
+  { "meta.tool.invocation", ifc_pk_meta_tool_invocation },
+  { "meta.tool.maker", ifc_pk_meta_tool_maker },
   { "module.exported", ifc_pk_module_exported },
   { "module.imported", ifc_pk_module_imported },
   { "name.conversion", ifc_pk_name_conversion },
@@ -22100,6 +23873,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

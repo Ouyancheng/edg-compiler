@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -34,6 +34,13 @@ Explicit specializations of functions for EdgConstantIntegerWordOffset.
 */
 SPEC_OFFSET_PARTITION_KIND(an_ifc_edg_constant_integer_word_offset)
 SPEC_OFFSET_PARTITION_INDEX(an_ifc_edg_constant_integer_word_offset)
+
+
+/*
+Explicit specializations of functions for EdgExtensionExprOffset.
+*/
+SPEC_OFFSET_PARTITION_KIND(an_ifc_edg_extension_expr_offset)
+SPEC_OFFSET_PARTITION_INDEX(an_ifc_edg_extension_expr_offset)
 
 
 /*
@@ -111,6 +118,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

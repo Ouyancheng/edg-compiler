@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -469,6 +469,21 @@ Given the universal representation of NoexceptSpecification, print a diagnostic
 textual representation with the given indent.
 */
 {
+  if (has_ifc_expr(universal)) {
+    an_ifc_expr_index field = get_ifc_expr(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "expr:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
   if (has_ifc_sort(universal)) {
     an_ifc_noexcept_sort field = get_ifc_sort(universal);
 
@@ -4386,6 +4401,95 @@ diagnostic textual representation.
 }  /* db_node */
 
 
+void db_node(const an_ifc_decl_prolongation &universal, unsigned indent)
+/*
+Given the universal representation of DeclProlongation, print a diagnostic
+textual representation with the given indent.
+*/
+{
+  if (has_ifc_enclosing_scope(universal)) {
+    an_ifc_decl_index field = get_ifc_enclosing_scope(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "enclosing_scope:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_home_scope(universal)) {
+    an_ifc_decl_index field = get_ifc_home_scope(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "home_scope:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location field = get_ifc_locus(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "locus:\n");
+    db_node(field, indent + 1);
+  }  /* if */
+  if (has_ifc_name(universal)) {
+    an_ifc_name_index field = get_ifc_name(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "name:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_original_decl(universal)) {
+    an_ifc_decl_index field = get_ifc_original_decl(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "original_decl:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_decl_prolongation &universal)
+/*
+Given the universal representation of DeclProlongation, print a diagnostic
+textual representation.
+*/
+{
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "DeclProlongation ");
+  fprintf(f_debug, "===============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
 void db_node(const an_ifc_decl_property &universal, unsigned indent)
 /*
 Given the universal representation of DeclProperty, print a diagnostic textual
@@ -5943,6 +6047,81 @@ diagnostic textual representation.
 }  /* db_node */
 
 
+void db_node(const an_ifc_edg_expr_template_argument &universal,
+             unsigned                                indent)
+/*
+Given the universal representation of EdgExprTemplateArgument, print a
+diagnostic textual representation with the given indent.
+*/
+{
+  if (has_ifc_index(universal)) {
+    an_ifc_edg_template_argument_index field = get_ifc_index(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "index:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_expr_template_argument &universal)
+/*
+Given the universal representation of EdgExprTemplateArgument, print a
+diagnostic textual representation.
+*/
+{
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "EdgExprTemplateArgument ");
+  fprintf(f_debug, "============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_extension_expr &universal, unsigned indent)
+/*
+Given the universal representation of EdgExtensionExpr, print a diagnostic
+textual representation with the given indent.
+*/
+{
+  if (has_ifc_value(universal)) {
+    an_ifc_edg_expr_index field = get_ifc_value(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "value:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_extension_expr &universal)
+/*
+Given the universal representation of EdgExtensionExpr, print a diagnostic
+textual representation.
+*/
+{
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "EdgExtensionExpr ");
+  fprintf(f_debug, "===============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
 void db_node(const an_ifc_edg_extension_type &universal, unsigned indent)
 /*
 Given the universal representation of EdgExtensionType, print a diagnostic
@@ -6051,6 +6230,44 @@ diagnostic textual representation.
   fprintf(f_debug, "=========================== ");
   fprintf(f_debug, "EdgHeapTemplateArgument ");
   fprintf(f_debug, "============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_template_argument_constant &universal,
+             unsigned                                    indent)
+/*
+Given the universal representation of EdgTemplateArgumentConstant, print a
+diagnostic textual representation with the given indent.
+*/
+{
+  if (has_ifc_value(universal)) {
+    an_ifc_edg_constant_index field = get_ifc_value(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "value:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_edg_template_argument_constant &universal)
+/*
+Given the universal representation of EdgTemplateArgumentConstant, print a
+diagnostic textual representation.
+*/
+{
+  fprintf(f_debug, "========================= ");
+  fprintf(f_debug, "EdgTemplateArgumentConstant ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11272,6 +11489,34 @@ representation.
 }  /* db_node */
 
 
+void db_node(const an_ifc_heap_string &universal, unsigned indent)
+/*
+Given the universal representation of HeapString, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_value(universal)) {
+    an_ifc_text_offset field = get_ifc_value(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "value: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_heap_string &universal)
+/*
+Given the universal representation of HeapString, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "HeapString ");
+  fprintf(f_debug, "==================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
 void db_node(const an_ifc_heap_syntax &universal, unsigned indent)
 /*
 Given the universal representation of HeapSyntax, print a diagnostic textual
@@ -11461,6 +11706,69 @@ textual representation.
   fprintf(f_debug, "=============================== ");
   fprintf(f_debug, "MacroObjectLike ");
   fprintf(f_debug, "================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_meta_tool_invocation &universal, unsigned indent)
+/*
+Given the universal representation of MetaToolInvocation, print a diagnostic
+textual representation with the given indent.
+*/
+{
+  if (has_ifc_args(universal)) {
+    an_ifc_sequence field = get_ifc_args(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "args:\n");
+    db_node(field, indent + 1);
+  }  /* if */
+  if (has_ifc_cmd(universal)) {
+    an_ifc_text_offset field = get_ifc_cmd(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "cmd: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_meta_tool_invocation &universal)
+/*
+Given the universal representation of MetaToolInvocation, print a diagnostic
+textual representation.
+*/
+{
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "MetaToolInvocation ");
+  fprintf(f_debug, "==============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_meta_tool_maker &universal, unsigned indent)
+/*
+Given the universal representation of MetaToolMaker, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_value(universal)) {
+    an_ifc_text_offset field = get_ifc_value(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "value: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_meta_tool_maker &universal)
+/*
+Given the universal representation of MetaToolMaker, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "MetaToolMaker ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -22478,6 +22786,13 @@ associated node.
           db_node(universal);
         }
         break;
+      case ifc_ds_decl_prolongation:
+        { an_ifc_decl_prolongation universal;
+
+          construct_node_prechecked(&universal, idx);
+          db_node(universal);
+        }
+        break;
       case ifc_ds_decl_property:
         { an_ifc_decl_property universal;
 
@@ -22702,6 +23017,55 @@ representation of the associated node.
     db_node(universal);
   } else {
     fputs("Invalid EdgConstantIntegerWord node.\n", f_debug);
+  }  /* if */
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_edg_expr_index idx)
+/*
+Given the EdgExprIndex, print a diagnostic textual representation of the
+associated node.
+*/
+{
+  if (validate(idx)) {
+    switch (idx.sort) {
+      case ifc_ees_edg_expr_template_argument:
+        { an_ifc_edg_expr_template_argument universal;
+
+          construct_node_prechecked(&universal, idx);
+          db_node(universal);
+        }
+        break;
+      case ifc_ees_edg_token_cache:
+        { an_ifc_edg_token_cache universal;
+
+          construct_node_prechecked(&universal, idx);
+          db_node(universal);
+        }
+        break;
+      default:
+        fprintf(f_debug, "Node not found.");
+        break;
+    }  /* switch */
+  } else {
+    fprintf(f_debug, "Invalid %s node.\n", str_for(idx.sort));
+  }  /* if */
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_edg_extension_expr_offset idx)
+/*
+Given the EdgExtensionExprOffset, print a diagnostic textual representation of
+the associated node.
+*/
+{
+  if (validate(idx)) {
+    an_ifc_edg_extension_expr universal;
+
+    construct_node_prechecked(&universal, idx);
+    db_node(universal);
+  } else {
+    fputs("Invalid EdgExtensionExpr node.\n", f_debug);
   }  /* if */
 }  /* db_node_at_idx */
 
@@ -24696,6 +25060,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

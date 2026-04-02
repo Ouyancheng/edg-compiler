@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -242,6 +242,29 @@ Functions for writing data to IFC NoexceptSpecification nodes.
 
 
 template<>
+void set_ifc_expr(an_ifc_noexcept_specification *universal,
+                  const an_ifc_expr_index       &value)
+/*
+Given the universal representation of NoexceptSpecification update the value of
+the field "expr" to the given ExprIndex value.
+*/
+{
+  /* Ensure the expr field exists in the current module version. */
+  check_assertion(has_ifc_expr(*universal));
+  an_ifc_encoded_expr_index stage_0;
+  an_ifc_expr_index_0_42    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_expr_index_0_42)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (NoexceptSpecification::expr - ExprIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_expr */
+
+
+template<>
 void set_ifc_sort(an_ifc_noexcept_specification *universal,
                   const an_ifc_noexcept_sort    &value)
 /*
@@ -342,7 +365,18 @@ the field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (ParameterizedEntity::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -814,16 +848,29 @@ Given the universal representation of FileHeader update the value of the field
 {
   /* Ensure the unit field exists in the current module version. */
   check_assertion(has_ifc_unit(*universal));
-  an_ifc_encoded_unit_index stage_0;
-  an_ifc_unit_index_0_33    stage_1;
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_unit_index stage_0;
+    an_ifc_unit_index_0_44    stage_1;
 
-  stage_0 = to_encoded(universal->get_file(), value);
-  stage_1 = (an_ifc_unit_index_0_33)stage_0.value;
-  /* Copy from version-specific storage into the field (FileHeader::unit -
-     UnitIndex). */
-  static_assert(sizeof(stage_1) == 4,
-                "stage_1 is not properly sized storage!");
-  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/48);
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_unit_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (FileHeader::unit -
+       UnitIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/48);
+  } else {
+    an_ifc_encoded_unit_index stage_0;
+    an_ifc_unit_index_0_33    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_unit_index_0_33)stage_0.value;
+    /* Copy from version-specific storage into the field (FileHeader::unit -
+       UnitIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/48);
+  }  /* if */
 }  /* set_ifc_unit */
 
 
@@ -1555,7 +1602,18 @@ Given the universal representation of DeclAlias update the value of the field
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (DeclAlias::home_scope
+       - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -1786,7 +1844,18 @@ field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclBitfield::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -2161,7 +2230,18 @@ Given the universal representation of DeclConcept update the value of the field
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclConcept::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -2364,7 +2444,18 @@ field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclConstructor::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -2543,7 +2634,18 @@ the field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclDeductionGuide::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -2760,16 +2862,29 @@ the field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  an_ifc_encoded_decl_index stage_0;
-  an_ifc_decl_index_0_43    stage_1;
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
 
-  stage_0 = to_encoded(universal->get_file(), value);
-  stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
-  /* Copy from version-specific storage into the field
-     (DeclDefaultArgument::home_scope - DeclIndex). */
-  static_assert(sizeof(stage_1) == 4,
-                "stage_1 is not properly sized storage!");
-  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclDefaultArgument::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_43    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclDefaultArgument::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  }  /* if */
 }  /* set_ifc_home_scope */
 
 
@@ -2962,7 +3077,18 @@ field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclDestructor::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -3200,7 +3326,18 @@ field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclEnumeration::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/28);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -3561,7 +3698,18 @@ field "operand" to the given DeclIndex value.
 {
   /* Ensure the operand field exists in the current module version. */
   check_assertion(has_ifc_operand(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclExpansion::operand - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -3774,7 +3922,18 @@ Given the universal representation of DeclField update the value of the field
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (DeclField::home_scope
+       - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -4075,7 +4234,18 @@ field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclFunction::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -4279,7 +4449,18 @@ of the field "base_ctor" to the given DeclIndex value.
 {
   /* Ensure the base_ctor field exists in the current module version. */
   check_assertion(has_ifc_base_ctor(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclInheritedConstructor::base_ctor - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/28);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -4349,7 +4530,18 @@ of the field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclInheritedConstructor::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -4530,7 +4722,18 @@ field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclIntrinsic::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -4713,7 +4916,18 @@ Given the universal representation of DeclMethod update the value of the field
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclMethod::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -5342,7 +5556,18 @@ value of the field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclPartialSpecialization::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -5479,6 +5704,123 @@ value of the field "specifiers" to the given BasicSpecifiersBitfield value.
 
 
 /*
+Functions for writing data to IFC DeclProlongation nodes.
+*/
+
+
+template<>
+void set_ifc_enclosing_scope(an_ifc_decl_prolongation *universal,
+                             const an_ifc_decl_index  &value)
+/*
+Given the universal representation of DeclProlongation update the value of the
+field "enclosing_scope" to the given DeclIndex value.
+*/
+{
+  /* Ensure the enclosing_scope field exists in the current module version. */
+  check_assertion(has_ifc_enclosing_scope(*universal));
+  an_ifc_encoded_decl_index stage_0;
+  an_ifc_decl_index_0_44    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (DeclProlongation::enclosing_scope - DeclIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+}  /* set_ifc_enclosing_scope */
+
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_prolongation *universal,
+                        const an_ifc_decl_index  &value)
+/*
+Given the universal representation of DeclProlongation update the value of the
+field "home_scope" to the given DeclIndex value.
+*/
+{
+  /* Ensure the home_scope field exists in the current module version. */
+  check_assertion(has_ifc_home_scope(*universal));
+  an_ifc_encoded_decl_index stage_0;
+  an_ifc_decl_index_0_44    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (DeclProlongation::home_scope - DeclIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+}  /* set_ifc_home_scope */
+
+
+template<>
+void set_ifc_locus(an_ifc_decl_prolongation     *universal,
+                   const an_ifc_source_location &value)
+/*
+Given the universal representation of DeclProlongation update the value of the
+field "locus" to the given SourceLocation value.
+*/
+{
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(*universal));
+  an_ifc_source_location_storage *stage_0;
+
+  stage_0 = (an_ifc_source_location_storage*)(value.get_storage());
+  /* Copy from universal storage into the field (DeclProlongation::locus -
+     SourceLocation). */
+  copy_to_node_field(stage_0, universal->get_storage(), /*offset=*/4,
+                     /*size=*/8);
+}  /* set_ifc_locus */
+
+
+template<>
+void set_ifc_name(an_ifc_decl_prolongation *universal,
+                  const an_ifc_name_index  &value)
+/*
+Given the universal representation of DeclProlongation update the value of the
+field "name" to the given NameIndex value.
+*/
+{
+  /* Ensure the name field exists in the current module version. */
+  check_assertion(has_ifc_name(*universal));
+  an_ifc_encoded_name_index stage_0;
+  an_ifc_name_index_0_33    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_name_index_0_33)stage_0.value;
+  /* Copy from version-specific storage into the field (DeclProlongation::name
+     - NameIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_name */
+
+
+template<>
+void set_ifc_original_decl(an_ifc_decl_prolongation *universal,
+                           const an_ifc_decl_index  &value)
+/*
+Given the universal representation of DeclProlongation update the value of the
+field "original_decl" to the given DeclIndex value.
+*/
+{
+  /* Ensure the original_decl field exists in the current module version. */
+  check_assertion(has_ifc_original_decl(*universal));
+  an_ifc_encoded_decl_index stage_0;
+  an_ifc_decl_index_0_44    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (DeclProlongation::original_decl - DeclIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/20);
+}  /* set_ifc_original_decl */
+
+
+/*
 Functions for writing data to IFC DeclProperty nodes.
 */
 
@@ -5528,7 +5870,18 @@ field "member" to the given DeclIndex value.
 {
   /* Ensure the member field exists in the current module version. */
   check_assertion(has_ifc_member(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (DeclProperty::member
+       - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -5742,7 +6095,18 @@ Given the universal representation of DeclScope update the value of the field
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (DeclScope::home_scope
+       - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/24);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -5965,7 +6329,18 @@ the field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclSpecialization::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/4);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -6202,7 +6577,18 @@ field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclTemplate::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -6521,7 +6907,18 @@ the field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclUsingDeclaration::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -6666,7 +7063,18 @@ the field "resolution" to the given DeclIndex value.
 {
   /* Ensure the resolution field exists in the current module version. */
   check_assertion(has_ifc_resolution(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclUsingDeclaration::resolution - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -6798,7 +7206,18 @@ field "home_scope" to the given DeclIndex value.
 {
   /* Ensure the home_scope field exists in the current module version. */
   check_assertion(has_ifc_home_scope(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (DeclVariable::home_scope - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -7106,16 +7525,29 @@ Given the universal representation of DirDeclUse update the value of the field
 {
   /* Ensure the result field exists in the current module version. */
   check_assertion(has_ifc_result(*universal));
-  an_ifc_encoded_decl_index stage_0;
-  an_ifc_decl_index_0_43    stage_1;
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
 
-  stage_0 = to_encoded(universal->get_file(), value);
-  stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
-  /* Copy from version-specific storage into the field (DirDeclUse::result -
-     DeclIndex). */
-  static_assert(sizeof(stage_1) == 4,
-                "stage_1 is not properly sized storage!");
-  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (DirDeclUse::result -
+       DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_43    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
+    /* Copy from version-specific storage into the field (DirDeclUse::result -
+       DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  }  /* if */
 }  /* set_ifc_result */
 
 
@@ -7362,16 +7794,29 @@ Given the universal representation of DirUsing update the value of the field
 {
   /* Ensure the resolution field exists in the current module version. */
   check_assertion(has_ifc_resolution(*universal));
-  an_ifc_encoded_decl_index stage_0;
-  an_ifc_decl_index_0_43    stage_1;
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
 
-  stage_0 = to_encoded(universal->get_file(), value);
-  stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
-  /* Copy from version-specific storage into the field (DirUsing::resolution -
-     DeclIndex). */
-  static_assert(sizeof(stage_1) == 4,
-                "stage_1 is not properly sized storage!");
-  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (DirUsing::resolution
+       - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_43    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
+    /* Copy from version-specific storage into the field (DirUsing::resolution
+       - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  }  /* if */
 }  /* set_ifc_resolution */
 
 
@@ -7473,6 +7918,62 @@ of the field "bytes" to the given EdgConstantWord value.
 
 
 /*
+Functions for writing data to IFC EdgExprTemplateArgument nodes.
+*/
+
+
+template<>
+void set_ifc_index(an_ifc_edg_expr_template_argument        *universal,
+                   const an_ifc_edg_template_argument_index &value)
+/*
+Given the universal representation of EdgExprTemplateArgument update the value
+of the field "index" to the given EdgTemplateArgumentIndex value.
+*/
+{
+  /* Ensure the index field exists in the current module version. */
+  check_assertion(has_ifc_index(*universal));
+  an_ifc_encoded_edg_template_argument_index stage_0;
+  an_ifc_edg_template_argument_index_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_edg_template_argument_index_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (EdgExprTemplateArgument::index - EdgTemplateArgumentIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_index */
+
+
+/*
+Functions for writing data to IFC EdgExtensionExpr nodes.
+*/
+
+
+template<>
+void set_ifc_value(an_ifc_edg_extension_expr   *universal,
+                   const an_ifc_edg_expr_index &value)
+/*
+Given the universal representation of EdgExtensionExpr update the value of the
+field "value" to the given EdgExprIndex value.
+*/
+{
+  /* Ensure the value field exists in the current module version. */
+  check_assertion(has_ifc_value(*universal));
+  an_ifc_encoded_edg_expr_index stage_0;
+  an_ifc_edg_expr_index_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_edg_expr_index_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field (EdgExtensionExpr::value
+     - EdgExprIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_value */
+
+
+/*
 Functions for writing data to IFC EdgExtensionType nodes.
 */
 
@@ -7557,6 +8058,34 @@ of the field "index" to the given EdgTemplateArgumentIndex value.
 
 
 /*
+Functions for writing data to IFC EdgTemplateArgumentConstant nodes.
+*/
+
+
+template<>
+void set_ifc_value(an_ifc_edg_template_argument_constant *universal,
+                   const an_ifc_edg_constant_index       &value)
+/*
+Given the universal representation of EdgTemplateArgumentConstant update the
+value of the field "value" to the given EdgConstantIndex value.
+*/
+{
+  /* Ensure the value field exists in the current module version. */
+  check_assertion(has_ifc_value(*universal));
+  an_ifc_encoded_edg_constant_index stage_0;
+  an_ifc_edg_constant_index_0_43    stage_1;
+
+  stage_0 = to_encoded(universal->get_file(), value);
+  stage_1 = (an_ifc_edg_constant_index_0_43)stage_0.value;
+  /* Copy from version-specific storage into the field
+     (EdgTemplateArgumentConstant::value - EdgConstantIndex). */
+  static_assert(sizeof(stage_1) == 4,
+                "stage_1 is not properly sized storage!");
+  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_value */
+
+
+/*
 Functions for writing data to IFC EdgTemplateArgumentNonType nodes.
 */
 
@@ -7599,16 +8128,29 @@ value of the field "value" to the given DeclIndex value.
 {
   /* Ensure the value field exists in the current module version. */
   check_assertion(has_ifc_value(*universal));
-  an_ifc_encoded_decl_index stage_0;
-  an_ifc_decl_index_0_43    stage_1;
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
 
-  stage_0 = to_encoded(universal->get_file(), value);
-  stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
-  /* Copy from version-specific storage into the field
-     (EdgTemplateArgumentTemplate::value - DeclIndex). */
-  static_assert(sizeof(stage_1) == 4,
-                "stage_1 is not properly sized storage!");
-  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (EdgTemplateArgumentTemplate::value - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_43    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (EdgTemplateArgumentTemplate::value - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  }  /* if */
 }  /* set_ifc_value */
 
 
@@ -7881,16 +8423,29 @@ the value of the field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  an_ifc_encoded_decl_index stage_0;
-  an_ifc_decl_index_0_43    stage_1;
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
 
-  stage_0 = to_encoded(universal->get_file(), value);
-  stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
-  /* Copy from version-specific storage into the field
-     (EdgTraitClassTemplateDefinition::decl - DeclIndex). */
-  static_assert(sizeof(stage_1) == 4,
-                "stage_1 is not properly sized storage!");
-  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (EdgTraitClassTemplateDefinition::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_43    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (EdgTraitClassTemplateDefinition::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  }  /* if */
 }  /* set_ifc_decl */
 
 
@@ -7947,16 +8502,29 @@ value of the field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  an_ifc_encoded_decl_index stage_0;
-  an_ifc_decl_index_0_43    stage_1;
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
 
-  stage_0 = to_encoded(universal->get_file(), value);
-  stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
-  /* Copy from version-specific storage into the field
-     (EdgTraitFunctionDefinition::decl - DeclIndex). */
-  static_assert(sizeof(stage_1) == 4,
-                "stage_1 is not properly sized storage!");
-  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (EdgTraitFunctionDefinition::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_43    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (EdgTraitFunctionDefinition::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  }  /* if */
 }  /* set_ifc_decl */
 
 
@@ -8057,16 +8625,29 @@ the field "subject" to the given DeclIndex value.
 {
   /* Ensure the subject field exists in the current module version. */
   check_assertion(has_ifc_subject(*universal));
-  an_ifc_encoded_decl_index stage_0;
-  an_ifc_decl_index_0_43    stage_1;
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
 
-  stage_0 = to_encoded(universal->get_file(), value);
-  stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
-  /* Copy from version-specific storage into the field
-     (EdgTypeSubstituted::subject - DeclIndex). */
-  static_assert(sizeof(stage_1) == 4,
-                "stage_1 is not properly sized storage!");
-  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (EdgTypeSubstituted::subject - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_43    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (EdgTypeSubstituted::subject - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  }  /* if */
 }  /* set_ifc_subject */
 
 
@@ -8401,7 +8982,18 @@ field "operation" to the given DyadicOperatorSort value.
 {
   /* Ensure the operation field exists in the current module version. */
   check_assertion(has_ifc_operation(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_dyadic_operator_sort stage_0;
+    an_ifc_dyadic_operator_sort_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_dyadic_operator_sort_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (ExprBinaryFold::operation - DyadicOperatorSort). */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/20);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_dyadic_operator_sort stage_0;
     an_ifc_dyadic_operator_sort_0_43    stage_1;
 
@@ -8640,7 +9232,18 @@ Given the universal representation of ExprCast update the value of the field
 {
   /* Ensure the op field exists in the current module version. */
   check_assertion(has_ifc_op(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_dyadic_operator_sort stage_0;
+    an_ifc_dyadic_operator_sort_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_dyadic_operator_sort_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (ExprCast::op -
+       DyadicOperatorSort). */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/20);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_dyadic_operator_sort stage_0;
     an_ifc_dyadic_operator_sort_0_43    stage_1;
 
@@ -9257,7 +9860,18 @@ Given the universal representation of ExprDyad update the value of the field
 {
   /* Ensure the assoc field exists in the current module version. */
   check_assertion(has_ifc_assoc(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_dyadic_operator_sort stage_0;
+    an_ifc_dyadic_operator_sort_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_dyadic_operator_sort_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (ExprDyad::assoc -
+       DyadicOperatorSort). */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/24);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_dyadic_operator_sort stage_0;
     an_ifc_dyadic_operator_sort_0_43    stage_1;
 
@@ -9292,7 +9906,18 @@ Given the universal representation of ExprDyad update the value of the field
 {
   /* Ensure the impl field exists in the current module version. */
   check_assertion(has_ifc_impl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (ExprDyad::impl -
+       DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -9830,7 +10455,18 @@ of the field "op" to the given DyadicOperatorSort value.
 {
   /* Ensure the op field exists in the current module version. */
   check_assertion(has_ifc_op(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_dyadic_operator_sort stage_0;
+    an_ifc_dyadic_operator_sort_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_dyadic_operator_sort_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (ExprHierarchyConversion::op - DyadicOperatorSort). */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/28);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_dyadic_operator_sort stage_0;
     an_ifc_dyadic_operator_sort_0_43    stage_1;
 
@@ -10733,7 +11369,18 @@ the field "member" to the given DeclIndex value.
 {
   /* Ensure the member field exists in the current module version. */
   check_assertion(has_ifc_member(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (ExprMemberInitializer::member - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -10844,7 +11491,18 @@ Given the universal representation of ExprMonad update the value of the field
 {
   /* Ensure the assoc field exists in the current module version. */
   check_assertion(has_ifc_assoc(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_monadic_operator_sort stage_0;
+    an_ifc_monadic_operator_sort_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_monadic_operator_sort_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (ExprMonad::assoc -
+       MonadicOperatorSort). */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/20);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_monadic_operator_sort stage_0;
     an_ifc_monadic_operator_sort_0_43    stage_1;
 
@@ -10879,7 +11537,18 @@ Given the universal representation of ExprMonad update the value of the field
 {
   /* Ensure the impl field exists in the current module version. */
   check_assertion(has_ifc_impl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (ExprMonad::impl -
+       DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -10993,7 +11662,18 @@ field "resolution" to the given DeclIndex value.
 {
   /* Ensure the resolution field exists in the current module version. */
   check_assertion(has_ifc_resolution(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (ExprNamedDecl::resolution - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -12391,7 +13071,18 @@ field "variant" to the given DeclIndex value.
 {
   /* Ensure the variant field exists in the current module version. */
   check_assertion(has_ifc_variant(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (ExprSumTypeValue::variant - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -12647,16 +13338,29 @@ the field "member" to the given DeclIndex value.
 {
   /* Ensure the member field exists in the current module version. */
   check_assertion(has_ifc_member(*universal));
-  an_ifc_encoded_decl_index stage_0;
-  an_ifc_decl_index_0_43    stage_1;
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
 
-  stage_0 = to_encoded(universal->get_file(), value);
-  stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
-  /* Copy from version-specific storage into the field
-     (ExprTemplateReference::member - DeclIndex). */
-  static_assert(sizeof(stage_1) == 4,
-                "stage_1 is not properly sized storage!");
-  copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (ExprTemplateReference::member - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_43    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_43)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (ExprTemplateReference::member - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  }  /* if */
 }  /* set_ifc_member */
 
 
@@ -13092,7 +13796,18 @@ Given the universal representation of ExprTriad update the value of the field
 {
   /* Ensure the impl field exists in the current module version. */
   check_assertion(has_ifc_impl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (ExprTriad::impl -
+       DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -13367,7 +14082,18 @@ of the field "intrinsic" to the given OperatorCategory value.
 {
   /* Ensure the intrinsic field exists in the current module version. */
   check_assertion(has_ifc_intrinsic(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_operator_category_0_44 stage_0;
+
+    if (TRUE) {
+      unexpected_condition_str("Not yet supported for writing.");
+    }  /* if */
+    /* Copy from version-specific storage into the field
+       (ExprTypeTraitIntrinsic::intrinsic - OperatorCategory). */
+    static_assert(sizeof(stage_0) == 2,
+                  "stage_0 is not properly sized storage!");
+    copy_to_node_field(&stage_0, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_operator_category_0_43 stage_0;
 
     if (TRUE) {
@@ -13610,7 +14336,18 @@ field "operation" to the given DyadicOperatorSort value.
 {
   /* Ensure the operation field exists in the current module version. */
   check_assertion(has_ifc_operation(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_dyadic_operator_sort stage_0;
+    an_ifc_dyadic_operator_sort_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_dyadic_operator_sort_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (ExprUnaryFold::operation - DyadicOperatorSort). */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/16);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_dyadic_operator_sort stage_0;
     an_ifc_dyadic_operator_sort_0_43    stage_1;
 
@@ -13872,7 +14609,18 @@ value of the field "function" to the given DeclIndex value.
 {
   /* Ensure the function field exists in the current module version. */
   check_assertion(has_ifc_function(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (ExprVirtualFunctionConversion::function - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -14559,7 +15307,18 @@ Given the universal representation of FormSpec update the value of the field
 {
   /* Ensure the primary_template field exists in the current module version. */
   check_assertion(has_ifc_primary_template(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (FormSpec::primary_template - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -14830,7 +15589,18 @@ Given the universal representation of HeapDecl update the value of the field
 {
   /* Ensure the value field exists in the current module version. */
   check_assertion(has_ifc_value(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (HeapDecl::value -
+       DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -14999,6 +15769,32 @@ Given the universal representation of HeapStmt update the value of the field
                   "stage_1 is not properly sized storage!");
     copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
   }  /* if */
+}  /* set_ifc_value */
+
+
+/*
+Functions for writing data to IFC HeapString nodes.
+*/
+
+
+template<>
+void set_ifc_value(an_ifc_heap_string       *universal,
+                   const an_ifc_text_offset &value)
+/*
+Given the universal representation of HeapString update the value of the field
+"value" to the given TextOffset value.
+*/
+{
+  /* Ensure the value field exists in the current module version. */
+  check_assertion(has_ifc_value(*universal));
+  an_ifc_text_offset_0_33 stage_0;
+
+  stage_0 = (an_ifc_text_offset_0_33)value.value;
+  /* Copy from version-specific storage into the field (HeapString::value -
+     TextOffset). */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_to_node_field(&stage_0, universal->get_storage(), /*offset=*/0);
 }  /* set_ifc_value */
 
 
@@ -15239,6 +16035,78 @@ field "name" to the given TextOffset value.
 
 
 /*
+Functions for writing data to IFC MetaToolInvocation nodes.
+*/
+
+
+template<>
+void set_ifc_args(an_ifc_meta_tool_invocation *universal,
+                  const an_ifc_sequence       &value)
+/*
+Given the universal representation of MetaToolInvocation update the value of
+the field "args" to the given Sequence value.
+*/
+{
+  /* Ensure the args field exists in the current module version. */
+  check_assertion(has_ifc_args(*universal));
+  an_ifc_sequence_storage *stage_0;
+
+  stage_0 = (an_ifc_sequence_storage*)(value.get_storage());
+  /* Copy from universal storage into the field (MetaToolInvocation::args -
+     Sequence). */
+  copy_to_node_field(stage_0, universal->get_storage(), /*offset=*/4,
+                     /*size=*/8);
+}  /* set_ifc_args */
+
+
+template<>
+void set_ifc_cmd(an_ifc_meta_tool_invocation *universal,
+                 const an_ifc_text_offset    &value)
+/*
+Given the universal representation of MetaToolInvocation update the value of
+the field "cmd" to the given TextOffset value.
+*/
+{
+  /* Ensure the cmd field exists in the current module version. */
+  check_assertion(has_ifc_cmd(*universal));
+  an_ifc_text_offset_0_33 stage_0;
+
+  stage_0 = (an_ifc_text_offset_0_33)value.value;
+  /* Copy from version-specific storage into the field (MetaToolInvocation::cmd
+     - TextOffset). */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_to_node_field(&stage_0, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_cmd */
+
+
+/*
+Functions for writing data to IFC MetaToolMaker nodes.
+*/
+
+
+template<>
+void set_ifc_value(an_ifc_meta_tool_maker   *universal,
+                   const an_ifc_text_offset &value)
+/*
+Given the universal representation of MetaToolMaker update the value of the
+field "value" to the given TextOffset value.
+*/
+{
+  /* Ensure the value field exists in the current module version. */
+  check_assertion(has_ifc_value(*universal));
+  an_ifc_text_offset_0_33 stage_0;
+
+  stage_0 = (an_ifc_text_offset_0_33)value.value;
+  /* Copy from version-specific storage into the field (MetaToolMaker::value -
+     TextOffset). */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_to_node_field(&stage_0, universal->get_storage(), /*offset=*/0);
+}  /* set_ifc_value */
+
+
+/*
 Functions for writing data to IFC ModuleExportReference nodes.
 */
 
@@ -15352,7 +16220,18 @@ Given the universal representation of NameGuide update the value of the field
 {
   /* Ensure the primary_template field exists in the current module version. */
   check_assertion(has_ifc_primary_template(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (NameGuide::primary_template - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -15451,7 +16330,18 @@ field "operator" to the given OperatorCategory value.
 {
   /* Ensure the operator field exists in the current module version. */
   check_assertion(has_ifc_operator(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_operator_category_0_44 stage_0;
+
+    if (TRUE) {
+      unexpected_condition_str("Not yet supported for writing.");
+    }  /* if */
+    /* Copy from version-specific storage into the field
+       (NameOperator::operator - OperatorCategory). */
+    static_assert(sizeof(stage_0) == 2,
+                  "stage_0 is not properly sized storage!");
+    copy_to_node_field(&stage_0, universal->get_storage(), /*offset=*/4);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_operator_category_0_43 stage_0;
 
     if (TRUE) {
@@ -15689,7 +16579,18 @@ Given the universal representation of ScopeMember update the value of the field
 {
   /* Ensure the index field exists in the current module version. */
   check_assertion(has_ifc_index(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (ScopeMember::index -
+       DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -16133,7 +17034,18 @@ Given the universal representation of StmtDecl update the value of the field
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (StmtDecl::decl -
+       DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/8);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -16702,7 +17614,18 @@ Given the universal representation of StmtHandler update the value of the field
 {
   /* Ensure the exception field exists in the current module version. */
   check_assertion(has_ifc_exception(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (StmtHandler::exception - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/8);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -18915,7 +19838,18 @@ value of the field "dyad" to the given DyadicOperatorSort value.
 {
   /* Ensure the dyad field exists in the current module version. */
   check_assertion(has_ifc_dyad(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_dyadic_operator_sort stage_0;
+    an_ifc_dyadic_operator_sort_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_dyadic_operator_sort_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (SyntaxBinaryFoldExpression::dyad - DyadicOperatorSort). */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_dyadic_operator_sort stage_0;
     an_ifc_dyadic_operator_sort_0_43    stage_1;
 
@@ -27364,7 +28298,18 @@ of the field "intrinsic" to the given OperatorCategory value.
 {
   /* Ensure the intrinsic field exists in the current module version. */
   check_assertion(has_ifc_intrinsic(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_operator_category_0_44 stage_0;
+
+    if (TRUE) {
+      unexpected_condition_str("Not yet supported for writing.");
+    }  /* if */
+    /* Copy from version-specific storage into the field
+       (SyntaxTypeTraitIntrinsic::intrinsic - OperatorCategory). */
+    static_assert(sizeof(stage_0) == 2,
+                  "stage_0 is not properly sized storage!");
+    copy_to_node_field(&stage_0, universal->get_storage(), /*offset=*/12);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_operator_category_0_43 stage_0;
 
     if (TRUE) {
@@ -27459,7 +28404,18 @@ value of the field "dyad" to the given DyadicOperatorSort value.
 {
   /* Ensure the dyad field exists in the current module version. */
   check_assertion(has_ifc_dyad(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_dyadic_operator_sort stage_0;
+    an_ifc_dyadic_operator_sort_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_dyadic_operator_sort_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (SyntaxUnaryFoldExpression::dyad - DyadicOperatorSort). */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/8);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_dyadic_operator_sort stage_0;
     an_ifc_dyadic_operator_sort_0_43    stage_1;
 
@@ -28178,7 +29134,18 @@ the field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (TraitAliasTemplate::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -28267,7 +29234,18 @@ field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (TraitAttribute::decl
+       - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -28356,7 +29334,18 @@ the field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (TraitDeductionGuide::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -28417,7 +29406,18 @@ the field "trait" to the given DeclIndex value.
 {
   /* Ensure the trait field exists in the current module version. */
   check_assertion(has_ifc_trait(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (TraitDeductionGuide::trait - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/4);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -28469,7 +29469,18 @@ field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (TraitDeprecated::decl
+       - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -28556,7 +29567,18 @@ Given the universal representation of TraitFriend update the value of the field
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (TraitFriend::decl -
+       DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -28678,7 +29700,18 @@ of the field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (TraitFunctionDefinition::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -28803,7 +29836,18 @@ the field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (TraitMsvcDeclAttrs::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -28892,7 +29936,18 @@ the field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (TraitMsvcFuncParams::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -28981,7 +30036,18 @@ field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (TraitMsvcUuid::decl -
+       DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -29066,7 +30132,18 @@ the field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (TraitMsvcVendorTrait::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -29153,7 +30230,18 @@ field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (TraitRequires::decl -
+       DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -29242,7 +30330,18 @@ the field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field
+       (TraitSpecialization::decl - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -29511,7 +30610,18 @@ field "decl" to the given DeclIndex value.
 {
   /* Ensure the decl field exists in the current module version. */
   check_assertion(has_ifc_decl(*universal));
-  if (is_at_least(universal->get_file(), 0, 43)) {
+  if (is_at_least(universal->get_file(), 0, 44)) {
+    an_ifc_encoded_decl_index stage_0;
+    an_ifc_decl_index_0_44    stage_1;
+
+    stage_0 = to_encoded(universal->get_file(), value);
+    stage_1 = (an_ifc_decl_index_0_44)stage_0.value;
+    /* Copy from version-specific storage into the field (TypeDesignated::decl
+       - DeclIndex). */
+    static_assert(sizeof(stage_1) == 4,
+                  "stage_1 is not properly sized storage!");
+    copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
+  } else if (is_at_least(universal->get_file(), 0, 43)) {
     an_ifc_encoded_decl_index stage_0;
     an_ifc_decl_index_0_43    stage_1;
 
@@ -30514,6 +31624,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

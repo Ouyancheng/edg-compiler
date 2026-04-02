@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -191,6 +191,14 @@ extern a_boolean validate_sort(an_ifc_module_file            *file,
 
 extern an_ifc_decl_sort to_universal_sort(an_ifc_decl_sort_0_43 versioned);
 
+extern a_boolean is_known_sort(an_ifc_decl_sort_0_44 versioned);
+
+extern a_boolean validate_sort(an_ifc_module_file            *file,
+                               an_ifc_decl_sort_0_44         versioned,
+                               const an_ifc_validation_trace *parent);
+
+extern an_ifc_decl_sort to_universal_sort(an_ifc_decl_sort_0_44 versioned);
+
 /*
 Functions for interacting with IFC DelimiterSort sorts.
 */
@@ -254,6 +262,15 @@ extern a_boolean validate_sort(an_ifc_module_file               *file,
 
 extern an_ifc_dyadic_operator_sort to_universal_sort(
                                    an_ifc_dyadic_operator_sort_0_43 versioned);
+
+extern a_boolean is_known_sort(an_ifc_dyadic_operator_sort_0_44 versioned);
+
+extern a_boolean validate_sort(an_ifc_module_file               *file,
+                               an_ifc_dyadic_operator_sort_0_44 versioned,
+                               const an_ifc_validation_trace    *parent);
+
+extern an_ifc_dyadic_operator_sort to_universal_sort(
+                                   an_ifc_dyadic_operator_sort_0_44 versioned);
 
 /*
 Functions for interacting with IFC EdgBasicTokenSort sorts.
@@ -330,6 +347,24 @@ extern a_boolean validate_sort(an_ifc_module_file                  *file,
 
 extern an_ifc_edg_constant_token_sort to_universal_sort(
                                 an_ifc_edg_constant_token_sort_0_43 versioned);
+
+/*
+Functions for interacting with IFC EdgExprSort sorts.
+*/
+
+extern a_const_char* str_for(an_ifc_edg_expr_sort universal);
+
+extern an_ifc_encoded_edg_expr_sort to_encoded(an_ifc_module_file   *file,
+                                               an_ifc_edg_expr_sort universal);
+
+extern a_boolean is_known_sort(an_ifc_edg_expr_sort_0_43 versioned);
+
+extern a_boolean validate_sort(an_ifc_module_file            *file,
+                               an_ifc_edg_expr_sort_0_43     versioned,
+                               const an_ifc_validation_trace *parent);
+
+extern an_ifc_edg_expr_sort to_universal_sort(
+                                          an_ifc_edg_expr_sort_0_43 versioned);
 
 /*
 Functions for interacting with IFC EdgTemplateArgumentSort sorts.
@@ -566,6 +601,15 @@ extern a_boolean validate_sort(an_ifc_module_file                *file,
 extern an_ifc_monadic_operator_sort to_universal_sort(
                                   an_ifc_monadic_operator_sort_0_43 versioned);
 
+extern a_boolean is_known_sort(an_ifc_monadic_operator_sort_0_44 versioned);
+
+extern a_boolean validate_sort(an_ifc_module_file                *file,
+                               an_ifc_monadic_operator_sort_0_44 versioned,
+                               const an_ifc_validation_trace     *parent);
+
+extern an_ifc_monadic_operator_sort to_universal_sort(
+                                  an_ifc_monadic_operator_sort_0_44 versioned);
+
 /*
 Functions for interacting with IFC NameSort sorts.
 */
@@ -785,6 +829,15 @@ extern a_boolean validate_sort(an_ifc_module_file              *file,
 
 extern an_ifc_source_keyword_sort to_universal_sort(
                                     an_ifc_source_keyword_sort_0_33 versioned);
+
+extern a_boolean is_known_sort(an_ifc_source_keyword_sort_0_44 versioned);
+
+extern a_boolean validate_sort(an_ifc_module_file              *file,
+                               an_ifc_source_keyword_sort_0_44 versioned,
+                               const an_ifc_validation_trace   *parent);
+
+extern an_ifc_source_keyword_sort to_universal_sort(
+                                    an_ifc_source_keyword_sort_0_44 versioned);
 
 /*
 Functions for interacting with IFC SourceLiteralSort sorts.
@@ -1062,6 +1115,14 @@ extern a_boolean validate_sort(an_ifc_module_file            *file,
 
 extern an_ifc_unit_sort to_universal_sort(an_ifc_unit_sort_0_33 versioned);
 
+extern a_boolean is_known_sort(an_ifc_unit_sort_0_44 versioned);
+
+extern a_boolean validate_sort(an_ifc_module_file            *file,
+                               an_ifc_unit_sort_0_44         versioned,
+                               const an_ifc_validation_trace *parent);
+
+extern an_ifc_unit_sort to_universal_sort(an_ifc_unit_sort_0_44 versioned);
+
 /*
 Functions for interacting with IFC VariadicOperatorSort sorts.
 */
@@ -1176,6 +1237,17 @@ extern a_boolean validate_index(an_ifc_module_file            *file,
 extern an_ifc_decl_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_decl_index_0_43 versioned);
 
+extern an_ifc_decl_sort_0_44 decl_sort(an_ifc_decl_index_0_44 versioned);
+
+extern uint32_t decl_value(an_ifc_decl_index_0_44 versioned);
+
+extern a_boolean validate_index(an_ifc_module_file            *file,
+                                an_ifc_decl_index_0_44        versioned,
+                                const an_ifc_validation_trace *parent);
+
+extern an_ifc_decl_index to_universal_index(an_ifc_module_file     *file,
+                                            an_ifc_decl_index_0_44 versioned);
+
 extern an_ifc_encoded_decl_index to_encoded(an_ifc_module_file *file,
                                             an_ifc_decl_index  universal);
 
@@ -1247,6 +1319,29 @@ extern an_ifc_encoded_edg_constant_index to_encoded(
                                           an_ifc_edg_constant_index universal);
 
 extern a_boolean is_null_index(an_ifc_edg_constant_index universal);
+
+/*
+Functions for interacting with IFC EdgExprIndex indexes.
+*/
+
+extern an_ifc_edg_expr_sort_0_43 edg_expr_sort(
+                                         an_ifc_edg_expr_index_0_43 versioned);
+
+extern uint32_t edg_expr_value(an_ifc_edg_expr_index_0_43 versioned);
+
+extern a_boolean validate_index(an_ifc_module_file            *file,
+                                an_ifc_edg_expr_index_0_43    versioned,
+                                const an_ifc_validation_trace *parent);
+
+extern an_ifc_edg_expr_index to_universal_index(
+                                         an_ifc_module_file         *file,
+                                         an_ifc_edg_expr_index_0_43 versioned);
+
+extern an_ifc_encoded_edg_expr_index to_encoded(
+                                              an_ifc_module_file    *file,
+                                              an_ifc_edg_expr_index universal);
+
+extern a_boolean is_null_index(an_ifc_edg_expr_index universal);
 
 /*
 Functions for interacting with IFC EdgTemplateArgumentIndex indexes.
@@ -1536,6 +1631,17 @@ extern a_boolean validate_index(an_ifc_module_file            *file,
 
 extern an_ifc_unit_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_unit_index_0_33 versioned);
+
+extern an_ifc_unit_sort_0_44 unit_sort(an_ifc_unit_index_0_44 versioned);
+
+extern uint32_t unit_value(an_ifc_unit_index_0_44 versioned);
+
+extern a_boolean validate_index(an_ifc_module_file            *file,
+                                an_ifc_unit_index_0_44        versioned,
+                                const an_ifc_validation_trace *parent);
+
+extern an_ifc_unit_index to_universal_index(an_ifc_module_file     *file,
+                                            an_ifc_unit_index_0_44 versioned);
 
 extern an_ifc_encoded_unit_index to_encoded(an_ifc_module_file *file,
                                             an_ifc_unit_index  universal);
@@ -1967,6 +2073,19 @@ extern an_ifc_operator_category to_universal_category(
                                       an_ifc_module_file            *file,
                                       an_ifc_operator_category_0_43 versioned);
 
+extern an_ifc_operator_sort_0_33 operator_sort(
+                                      an_ifc_operator_category_0_44 versioned);
+
+extern uint16_t operator_value(an_ifc_operator_category_0_44 versioned);
+
+extern a_boolean validate_category(an_ifc_module_file            *file,
+                                   an_ifc_operator_category_0_44 versioned,
+                                   const an_ifc_validation_trace *parent);
+
+extern an_ifc_operator_category to_universal_category(
+                                      an_ifc_module_file            *file,
+                                      an_ifc_operator_category_0_44 versioned);
+
 /*
 Functions for interacting with IFC SourceIdentifierCategory indexes.
 */
@@ -2047,6 +2166,18 @@ extern a_boolean validate_category(an_ifc_module_file            *file,
 extern an_ifc_word_category to_universal_category(
                                           an_ifc_module_file        *file,
                                           an_ifc_word_category_0_42 versioned);
+
+extern an_ifc_word_sort_0_33 word_sort(an_ifc_word_category_0_44 versioned);
+
+extern uint64_t word_value(an_ifc_word_category_0_44 versioned);
+
+extern a_boolean validate_category(an_ifc_module_file            *file,
+                                   an_ifc_word_category_0_44     versioned,
+                                   const an_ifc_validation_trace *parent);
+
+extern an_ifc_word_category to_universal_category(
+                                          an_ifc_module_file        *file,
+                                          an_ifc_word_category_0_44 versioned);
 
 
 template<typename a_Desired_type, typename an_ifc_Node_type>
@@ -3863,6 +3994,16 @@ struct an_ifc_expr_metadata<an_ifc_expr_unary_fold> {
 
 /*
 The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for NoexceptSpecification nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_noexcept_specification> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for StmtCase nodes.
 */
 template<>
@@ -4054,6 +4195,16 @@ that allows resolution of the return type for DeclReference nodes.
 template<>
 struct an_ifc_index_metadata<an_ifc_decl_reference> {
   using return_type = an_ifc_decl_index;
+};  /* an_ifc_index_metadata */
+
+
+/*
+The IFC index field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for EdgExprTemplateArgument nodes.
+*/
+template<>
+struct an_ifc_index_metadata<an_ifc_edg_expr_template_argument> {
+  using return_type = an_ifc_edg_template_argument_index;
 };  /* an_ifc_index_metadata */
 
 
@@ -4933,6 +5084,16 @@ that allows resolution of the return type for DeclPartialSpecialization nodes.
 */
 template<>
 struct an_ifc_locus_metadata<an_ifc_decl_partial_specialization> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclProlongation nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_prolongation> {
   using return_type = an_ifc_source_location;
 };  /* an_ifc_locus_metadata */
 
@@ -6726,6 +6887,16 @@ that allows resolution of the return type for DeclPartialSpecialization nodes.
 */
 template<>
 struct an_ifc_name_metadata<an_ifc_decl_partial_specialization> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclProlongation nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_prolongation> {
   using return_type = an_ifc_name_index;
 };  /* an_ifc_name_metadata */
 
@@ -9746,11 +9917,32 @@ struct an_ifc_value_metadata<an_ifc_const_i64> {
 
 /*
 The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for EdgExtensionExpr nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_edg_extension_expr> {
+  using return_type = an_ifc_edg_expr_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for EdgExtensionType nodes.
 */
 template<>
 struct an_ifc_value_metadata<an_ifc_edg_extension_type> {
   using return_type = an_ifc_edg_type_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for EdgTemplateArgumentConstant
+nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_edg_template_argument_constant> {
+  using return_type = an_ifc_edg_constant_index;
 };  /* an_ifc_value_metadata */
 
 
@@ -9887,6 +10079,16 @@ struct an_ifc_value_metadata<an_ifc_heap_stmt> {
 
 /*
 The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for HeapString nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_heap_string> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for HeapSyntax nodes.
 */
 template<>
@@ -9912,6 +10114,16 @@ that allows resolution of the return type for KeywordSyntax nodes.
 template<>
 struct an_ifc_value_metadata<an_ifc_keyword_syntax> {
   using return_type = an_ifc_keyword_sort;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for MetaToolMaker nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_meta_tool_maker> {
+  using return_type = an_ifc_text_offset;
 };  /* an_ifc_value_metadata */
 
 
@@ -10039,6 +10251,15 @@ extern a_boolean has_ifc_arch(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 template<typename an_ifc_Node_type>
 extern an_ifc_architecture_sort get_ifc_arch(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_args(const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_sequence get_ifc_args(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
@@ -10446,6 +10667,15 @@ extern a_boolean has_ifc_cleanup(
 
 template<typename an_ifc_Node_type>
 extern an_ifc_destructor_sort get_ifc_cleanup(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_cmd(const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_cmd(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
@@ -10892,6 +11122,16 @@ extern a_boolean has_ifc_enclosing(
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_enclosing(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_enclosing_scope(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_decl_index get_ifc_enclosing_scope(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
@@ -11835,6 +12075,16 @@ extern a_boolean has_ifc_operator(
 
 template<typename an_ifc_Node_type>
 extern an_ifc_operator_category get_ifc_operator(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_original_decl(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_decl_index get_ifc_original_decl(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
@@ -12959,6 +13209,11 @@ extern void set_ifc_arch(an_ifc_Node_type        *universal,
 
 
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_args(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
 extern void set_ifc_argument(an_ifc_Node_type        *universal,
                              const an_ifc_Value_type &value) DELETED_FN_DEF
 
@@ -13178,6 +13433,11 @@ extern void set_ifc_clause(an_ifc_Node_type        *universal,
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
 extern void set_ifc_cleanup(an_ifc_Node_type        *universal,
                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_cmd(an_ifc_Node_type        *universal,
+                        const an_ifc_Value_type &value) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
@@ -13429,6 +13689,12 @@ extern void set_ifc_else(an_ifc_Node_type        *universal,
 
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
 extern void set_ifc_enclosing(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_enclosing_scope(
                              an_ifc_Node_type        *universal,
                              const an_ifc_Value_type &value) DELETED_FN_DEF
 
@@ -13954,6 +14220,12 @@ extern void set_ifc_operation(
 
 template<typename an_ifc_Node_type, typename an_ifc_Value_type>
 extern void set_ifc_operator(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_original_decl(
+                             an_ifc_Node_type        *universal,
                              const an_ifc_Value_type &value) DELETED_FN_DEF
 
 
@@ -14705,6 +14977,12 @@ Functions for interacting with IFC NoexceptSpecification nodes.
 */
 
 template<>
+a_boolean has_ifc_expr(const an_ifc_noexcept_specification &universal);
+
+template<>
+an_ifc_expr_index get_ifc_expr(const an_ifc_noexcept_specification &universal);
+
+template<>
 a_boolean has_ifc_sort(const an_ifc_noexcept_specification &universal);
 
 template<>
@@ -14717,6 +14995,10 @@ a_boolean has_ifc_words(const an_ifc_noexcept_specification &universal);
 template<>
 an_ifc_sentence_index get_ifc_words(
                                const an_ifc_noexcept_specification &universal);
+
+template<>
+void set_ifc_expr(an_ifc_noexcept_specification *universal,
+                  const an_ifc_expr_index       &value);
 
 template<>
 void set_ifc_sort(an_ifc_noexcept_specification *universal,
@@ -18024,6 +18306,90 @@ get_ifc_partition_kind<an_ifc_decl_partial_specialization>();
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_prolongation_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC DeclProlongation nodes.
+*/
+
+template<>
+a_boolean has_ifc_enclosing_scope(const an_ifc_decl_prolongation &universal);
+
+template<>
+an_ifc_decl_index get_ifc_enclosing_scope(
+                                    const an_ifc_decl_prolongation &universal);
+
+template<>
+a_boolean has_ifc_home_scope(const an_ifc_decl_prolongation &universal);
+
+template<>
+an_ifc_decl_index get_ifc_home_scope(
+                                    const an_ifc_decl_prolongation &universal);
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_decl_prolongation &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(
+                                    const an_ifc_decl_prolongation &universal);
+
+template<>
+a_boolean has_ifc_name(const an_ifc_decl_prolongation &universal);
+
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_decl_prolongation &universal);
+
+template<>
+a_boolean has_ifc_original_decl(const an_ifc_decl_prolongation &universal);
+
+template<>
+an_ifc_decl_index get_ifc_original_decl(
+                                    const an_ifc_decl_prolongation &universal);
+
+template<>
+void set_ifc_enclosing_scope(an_ifc_decl_prolongation *universal,
+                             const an_ifc_decl_index  &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_prolongation *universal,
+                        const an_ifc_decl_index  &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_prolongation     *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_prolongation *universal,
+                  const an_ifc_name_index  &value);
+
+template<>
+void set_ifc_original_decl(an_ifc_decl_prolongation *universal,
+                           const an_ifc_decl_index  &value);
+
+template<>
+a_boolean validate(const an_ifc_decl_prolongation &universal,
+                   const an_ifc_validation_trace  *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_decl_prolongation &universal,
+                    unsigned                       indent);
+
+extern void db_node(const an_ifc_decl_prolongation &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_decl_prolongation_storage* get<an_ifc_decl_prolongation_storage>(
+                                an_ifc_module_file               *file,
+                                an_ifc_decl_prolongation_storage *storage,
+                                a_boolean                        fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_prolongation>();
+
+
+
+template<>
 size_t get_ifc_buffer_size<an_ifc_decl_property_storage>(
                                                      an_ifc_module_file *file);
 
@@ -19404,6 +19770,90 @@ get_ifc_partition_kind<an_ifc_edg_constant_integer_word>();
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_edg_expr_template_argument_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC EdgExprTemplateArgument nodes.
+*/
+
+template<>
+a_boolean has_ifc_index(const an_ifc_edg_expr_template_argument &universal);
+
+template<>
+an_ifc_edg_template_argument_index get_ifc_index(
+                           const an_ifc_edg_expr_template_argument &universal);
+
+template<>
+void set_ifc_index(an_ifc_edg_expr_template_argument        *universal,
+                   const an_ifc_edg_template_argument_index &value);
+
+template<>
+a_boolean validate(const an_ifc_edg_expr_template_argument &universal,
+                   const an_ifc_validation_trace           *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_edg_expr_template_argument &universal,
+                    unsigned                                indent);
+
+extern void db_node(const an_ifc_edg_expr_template_argument &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_edg_expr_template_argument_storage*
+get<an_ifc_edg_expr_template_argument_storage>(
+                       an_ifc_module_file                        *file,
+                       an_ifc_edg_expr_template_argument_storage *storage,
+                       a_boolean                                 fill_storage);
+
+template<>
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_edg_expr_template_argument>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_extension_expr_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC EdgExtensionExpr nodes.
+*/
+
+template<>
+a_boolean has_ifc_value(const an_ifc_edg_extension_expr &universal);
+
+template<>
+an_ifc_edg_expr_index get_ifc_value(
+                                   const an_ifc_edg_extension_expr &universal);
+
+template<>
+void set_ifc_value(an_ifc_edg_extension_expr   *universal,
+                   const an_ifc_edg_expr_index &value);
+
+template<>
+a_boolean validate(const an_ifc_edg_extension_expr &universal,
+                   const an_ifc_validation_trace   *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_edg_extension_expr &universal,
+                    unsigned                        indent);
+
+extern void db_node(const an_ifc_edg_extension_expr &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_edg_extension_expr_storage* get<an_ifc_edg_extension_expr_storage>(
+                               an_ifc_module_file                *file,
+                               an_ifc_edg_extension_expr_storage *storage,
+                               a_boolean                         fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_edg_extension_expr>();
+
+
+
+template<>
 size_t get_ifc_buffer_size<an_ifc_edg_extension_type_storage>(
                                                      an_ifc_module_file *file);
 
@@ -19526,6 +19976,50 @@ get<an_ifc_edg_heap_template_argument_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_edg_heap_template_argument>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_edg_template_argument_constant_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC EdgTemplateArgumentConstant nodes.
+*/
+
+template<>
+a_boolean has_ifc_value(
+                       const an_ifc_edg_template_argument_constant &universal);
+
+template<>
+an_ifc_edg_constant_index get_ifc_value(
+                       const an_ifc_edg_template_argument_constant &universal);
+
+template<>
+void set_ifc_value(an_ifc_edg_template_argument_constant *universal,
+                   const an_ifc_edg_constant_index       &value);
+
+template<>
+a_boolean validate(const an_ifc_edg_template_argument_constant &universal,
+                   const an_ifc_validation_trace               *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_edg_template_argument_constant &universal,
+                    unsigned                                    indent);
+
+extern void db_node(const an_ifc_edg_template_argument_constant &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_edg_template_argument_constant_storage*
+get<an_ifc_edg_template_argument_constant_storage>(
+                   an_ifc_module_file                            *file,
+                   an_ifc_edg_template_argument_constant_storage *storage,
+                   a_boolean                                     fill_storage);
+
+template<>
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_edg_template_argument_constant>();
 
 
 
@@ -25126,6 +25620,45 @@ an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_stmt>();
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_heap_string_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC HeapString nodes.
+*/
+
+template<>
+a_boolean has_ifc_value(const an_ifc_heap_string &universal);
+
+template<>
+an_ifc_text_offset get_ifc_value(const an_ifc_heap_string &universal);
+
+template<>
+void set_ifc_value(an_ifc_heap_string       *universal,
+                   const an_ifc_text_offset &value);
+
+template<>
+a_boolean validate(const an_ifc_heap_string      &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_heap_string &universal, unsigned indent);
+
+extern void db_node(const an_ifc_heap_string &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_heap_string_storage* get<an_ifc_heap_string_storage>(
+                                      an_ifc_module_file         *file,
+                                      an_ifc_heap_string_storage *storage,
+                                      a_boolean                  fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_string>();
+
+
+
+template<>
 size_t get_ifc_buffer_size<an_ifc_heap_syntax_storage>(
                                                      an_ifc_module_file *file);
 
@@ -25343,6 +25876,95 @@ an_ifc_macro_object_like_storage* get<an_ifc_macro_object_like_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_macro_object_like>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_meta_tool_invocation_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC MetaToolInvocation nodes.
+*/
+
+template<>
+a_boolean has_ifc_args(const an_ifc_meta_tool_invocation &universal);
+
+template<>
+an_ifc_sequence get_ifc_args(const an_ifc_meta_tool_invocation &universal);
+
+template<>
+a_boolean has_ifc_cmd(const an_ifc_meta_tool_invocation &universal);
+
+template<>
+an_ifc_text_offset get_ifc_cmd(const an_ifc_meta_tool_invocation &universal);
+
+template<>
+void set_ifc_args(an_ifc_meta_tool_invocation *universal,
+                  const an_ifc_sequence       &value);
+
+template<>
+void set_ifc_cmd(an_ifc_meta_tool_invocation *universal,
+                 const an_ifc_text_offset    &value);
+
+template<>
+a_boolean validate(const an_ifc_meta_tool_invocation &universal,
+                   const an_ifc_validation_trace     *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_meta_tool_invocation &universal,
+                    unsigned                          indent);
+
+extern void db_node(const an_ifc_meta_tool_invocation &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_meta_tool_invocation_storage* get<an_ifc_meta_tool_invocation_storage>(
+                             an_ifc_module_file                  *file,
+                             an_ifc_meta_tool_invocation_storage *storage,
+                             a_boolean                           fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_meta_tool_invocation>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_meta_tool_maker_storage>(
+                                                     an_ifc_module_file *file);
+
+/*
+Functions for interacting with IFC MetaToolMaker nodes.
+*/
+
+template<>
+a_boolean has_ifc_value(const an_ifc_meta_tool_maker &universal);
+
+template<>
+an_ifc_text_offset get_ifc_value(const an_ifc_meta_tool_maker &universal);
+
+template<>
+void set_ifc_value(an_ifc_meta_tool_maker   *universal,
+                   const an_ifc_text_offset &value);
+
+template<>
+a_boolean validate(const an_ifc_meta_tool_maker  &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_meta_tool_maker &universal, unsigned indent);
+
+extern void db_node(const an_ifc_meta_tool_maker &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_meta_tool_maker_storage* get<an_ifc_meta_tool_maker_storage>(
+                                  an_ifc_module_file             *file,
+                                  an_ifc_meta_tool_maker_storage *storage,
+                                  a_boolean                      fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_meta_tool_maker>();
 
 
 
@@ -37381,6 +38003,29 @@ extern an_ifc_edg_constant_integer_word_offset to_universal_offset(
                        an_ifc_edg_constant_integer_word_offset_0_43 versioned);
 
 /*
+Functions for interacting with IFC EdgExtensionExprOffset offsets.
+*/
+
+extern an_ifc_encoded_edg_extension_expr_offset to_encoded(
+                                   an_ifc_module_file               *file,
+                                   an_ifc_edg_extension_expr_offset universal);
+
+extern a_boolean is_null_index(an_ifc_edg_extension_expr_offset universal);
+
+template<>
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_edg_extension_expr_offset>();
+
+extern a_boolean validate_offset(
+                              an_ifc_module_file                    *file,
+                              an_ifc_edg_extension_expr_offset_0_43 versioned,
+                              const an_ifc_validation_trace         *parent);
+
+extern an_ifc_edg_extension_expr_offset to_universal_offset(
+                              an_ifc_module_file                    *file,
+                              an_ifc_edg_extension_expr_offset_0_43 versioned);
+
+/*
 Functions for interacting with IFC EdgExtensionTypeOffset offsets.
 */
 
@@ -37608,6 +38253,10 @@ extern a_boolean is_edg_constant_sort(an_ifc_partition_kind kind);
 extern an_ifc_edg_constant_sort to_edg_constant_sort(
                                                    an_ifc_partition_kind kind);
 
+extern a_boolean is_edg_expr_sort(an_ifc_partition_kind kind);
+
+extern an_ifc_edg_expr_sort to_edg_expr_sort(an_ifc_partition_kind kind);
+
 extern a_boolean is_edg_template_argument_sort(an_ifc_partition_kind kind);
 
 extern an_ifc_edg_template_argument_sort to_edg_template_argument_sort(
@@ -37674,6 +38323,10 @@ extern a_boolean has_partition_kind(an_ifc_edg_constant_sort sort);
 
 extern an_ifc_partition_kind to_partition_kind(an_ifc_edg_constant_sort sort);
 
+extern a_boolean has_partition_kind(an_ifc_edg_expr_sort sort);
+
+extern an_ifc_partition_kind to_partition_kind(an_ifc_edg_expr_sort sort);
+
 extern a_boolean has_partition_kind(an_ifc_edg_template_argument_sort sort);
 
 extern an_ifc_partition_kind to_partition_kind(
@@ -37728,6 +38381,10 @@ extern a_boolean validate(an_ifc_edg_complex_token_index idx);
 extern a_boolean validate(an_ifc_edg_constant_index idx);
 
 extern a_boolean validate(an_ifc_edg_constant_integer_word_offset idx);
+
+extern a_boolean validate(an_ifc_edg_expr_index idx);
+
+extern a_boolean validate(an_ifc_edg_extension_expr_offset idx);
 
 extern a_boolean validate(an_ifc_edg_extension_type_offset idx);
 
@@ -37865,6 +38522,10 @@ extern void db_node_at_idx(an_ifc_edg_constant_index idx);
 
 extern void db_node_at_idx(an_ifc_edg_constant_integer_word_offset idx);
 
+extern void db_node_at_idx(an_ifc_edg_expr_index idx);
+
+extern void db_node_at_idx(an_ifc_edg_extension_expr_offset idx);
+
 extern void db_node_at_idx(an_ifc_edg_extension_type_offset idx);
 
 extern void db_node_at_idx(an_ifc_edg_heap_complex_token_offset idx);
@@ -37914,6 +38575,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2022-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2022-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
