@@ -1,5 +1,31 @@
 Version 6.9
 
+4/2/26   [EDGcpfe/28763]
+C23: Old-style function declarators and function definitions
+
+C23 removes support for non-prototype function declarators and for old-style
+parameter lists in function definitions.  The front end now implements those
+changes in its C23 mode by default.  For example:
+
+  void f();
+
+Prior to C23, this was a non-prototype function declaration; i.e., the number
+and the types of the parameters accepted by this function were not a priori
+known.  In C23, this declaration is treated equivalently to
+
+  void f(void);
+
+(just as in C++; the function takes no parameters).  The previous behavior can
+be restored with the command-line option --no_require_func_prototypes.
+Another example:
+
+  void g(i) int i; {}
+
+This now elicits a discretionary error in C23 mode (a warning in GNU C23 modes)
+because old-style definitions are no longer valid in C23.  These changes
+implement the C committee's papers N2432 and N2841.
+
+
 4/1/26   [EDGcpfe/28769]
 C mode remarks on declaration with multiple non-prototype function declarators
 

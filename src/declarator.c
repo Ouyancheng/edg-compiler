@@ -3204,8 +3204,9 @@ an error if a default argument expression is encountered.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_rparen) {
-    if (C_dialect == C_dialect_cplusplus) {
-      /* In C++ f() is equivalent to f(void).  Leave param_type_list empty. */
+    if (require_func_prototypes) {
+      /* In C++ f() is equivalent to f(void).  Leave param_type_list empty.
+         C23 (and later) behaves the same way by default. */
       extra_info->prototyped = TRUE;
     } else {
       /* In C, f() is an old-style empty parameter list. */
@@ -4400,6 +4401,13 @@ an error if a default argument expression is encountered.
             /* Enter the parameter anyway, for best error recovery. */
           }  /* if */
           /* Add the identifier to the parameter id list. */
+          if (c23_mode && last_param_id == NULL) {
+            /* C23 no longer permits old-style parameter lists. */
+            an_error_severity  sev = gnu_version_is(any_version) ?
+                                          es_warning : es_discretionary_error;
+            pos_diagnostic(sev, ec_c23_old_style_param_id,
+                           &locator_for_curr_id.source_position);
+          }  /* if */
           add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
                                (a_source_position*)NULL,
                                (a_storage_class)sc_unspecified, 

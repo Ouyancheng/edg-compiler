@@ -330,6 +330,7 @@ enum an_option_kind {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_cpp03_mode,
   optk_func_prototype_tags,
+  optk_require_func_prototypes,
   optk_implicit_noexcept,
 #if USE_FIXED_ADDRESS_FOR_MMAP
   optk_fixed_address_for_mmap,
@@ -2089,6 +2090,12 @@ EXTERN_THREAD a_boolean
 			   scope.  This is standard behavior in C that can be
 			   overridden (e.g., when emulating Microsoft).  In C++
 			   mode, this is always FALSE. */
+
+EXTERN_THREAD a_boolean
+		require_func_prototypes;
+			/* TRUE if something like "int f()" is a prototyped
+			   function declarator.  TRUE in C++ modes and, by
+			   default, in C23 mode. */
 
 EXTERN_THREAD a_boolean
                 allow_nonconst_ref_anachronism;

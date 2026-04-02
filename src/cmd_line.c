@@ -1592,6 +1592,14 @@ Initialize the option information table.
   add_option_description(optk_func_prototype_tags, "no_func_prototype_tags",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_require_func_prototypes,
+                         "require_func_prototypes", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_require_func_prototypes,
+                         "no_require_func_prototypes", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_implicit_noexcept, "implicit_noexcept", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -2547,6 +2555,11 @@ option values if they were not already set by a command line option.
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_c23]) {
       ms_c23 = ms_c17 = ms_c11 = TRUE;
+    }  /* if */
+    if (ms_c23 && !option_kind_used[(int)optk_require_func_prototypes]) {
+      /* MSVC does not currently require function prototypes in its C23
+         mode. */
+      require_func_prototypes = FALSE;
     }  /* if */
     if (ms_c11 && microsoft_version >= 1928 &&
         !option_kind_used[(int)optk_ms_std_preproc]) {
@@ -3749,6 +3762,9 @@ process.
     func_prototype_tags_enabled = TRUE;
   }  /* if */
   relaxed_abstract_checking = FALSE;
+  if (!option_kind_used[(int)optk_require_func_prototypes]) {
+    require_func_prototypes = c23_mode;
+  }  /* if */
 }  /* set_c_mode_flags */
 
 
@@ -4481,6 +4497,14 @@ setting is used, and to set various unmentioned settings as needed.
     }  /* if */
     func_prototype_tags_enabled = FALSE;
   }  /* if */
+  if (!require_func_prototypes) {
+    /* In C++, non-prototype function declarations do not exist.  Diagnose an
+       explicit option attempting to make it otherwise. */
+    if (option_kind_used[(int)optk_require_func_prototypes]) {
+      command_line_error(ec_cl_require_func_prototypes_option_only_in_C);
+    }  /* if */
+    require_func_prototypes = TRUE;
+  }  /* if */
   if (!option_kind_used[(int)optk_relaxed_abstract_checking]) {
     relaxed_abstract_checking = TRUE;
   }  /* if */
@@ -4489,6 +4513,7 @@ setting is used, and to set various unmentioned settings as needed.
        in C++11 mode. */
     old_specializations_allowed = !cpp11_mode;
   }  /* if */
+  func_prototype_tags_enabled = FALSE;
 }  /* check_and_set_cplusplus_mode_options */
 
 
@@ -11899,6 +11924,9 @@ enable_microsoft_mode:
       case optk_func_prototype_tags:
         func_prototype_tags_enabled = opt_value;
         break;
+      case optk_require_func_prototypes:
+        require_func_prototypes = opt_value;
+        break;
       case optk_implicit_noexcept:
         implicit_noexcept_enabled = opt_value;
         break;
@@ -13272,6 +13300,7 @@ variables declared in cmd_line.h.
   allow_ellipsis_only_param_in_C_mode =
                                    DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE;
   func_prototype_tags_enabled = FALSE;
+  require_func_prototypes = TRUE;
   allow_nonconst_ref_anachronism = DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM;
   building_runtime = FALSE;
   remove_unneeded_entities = DEFAULT_REMOVE_UNNEEDED_ENTITIES;
