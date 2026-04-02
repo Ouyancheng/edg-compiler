@@ -2571,6 +2571,7 @@ name can be determined, return an empty optional.
     an_ifc_unit_index  unit_idx = get_ifc_unit(header);
 
     switch (unit_idx.sort) {
+      case ifc_us_archive:
       case ifc_us_source:
       case ifc_us_header:
         break;
@@ -3548,6 +3549,7 @@ Map an IFC MonadicOperator to an_opname_kind.
     case ifc_mos_msvc_confused_substitution:
     case ifc_mos_msvc_confused_vtor_displacement:
     case ifc_mos_msvc_confusion:
+    case ifc_mos_msvc_is_implicit_lifetime:
     case ifc_mos_unknown:
       pos_diagnostic(es_discretionary_error,
                      ec_ifc_no_corresponding_operator, &error_position,
@@ -3651,6 +3653,9 @@ Map an IFC DyadicOperator to an_opname_kind.
   an_opname_kind op;
 
   switch (dyadic_op) {
+    case ifc_dos_address:
+    case ifc_dos_bind_temporary_to_reference:
+    case ifc_dos_convert_temporary_to_reference:
     case ifc_dos_msvc:
     case ifc_dos_msvc_builtin_allocation_annotation:
     case ifc_dos_msvc_saturated_arithmetic:
@@ -3945,6 +3950,7 @@ Return the kind of operator described by op in the context of the given module.
     case ifc_mos_msvc_confused_pop_state:
     case ifc_mos_msvc_confused_vtor_displacement:
     case ifc_mos_msvc_confusion:
+    case ifc_mos_msvc_is_implicit_lifetime:
     case ifc_mos_unknown:
       { a_string err_msg(str_for(op), " is not a supported MonadicOperator");
 
@@ -4057,6 +4063,9 @@ Return the kind of operator described by op in the context of the given module.
   an_operator_kind kind = opkind_error;
 
   switch (op) {
+    case ifc_dos_address:
+    case ifc_dos_bind_temporary_to_reference:
+    case ifc_dos_convert_temporary_to_reference:
     case ifc_dos_msvc:
     case ifc_dos_msvc_builtin_allocation_annotation:
     case ifc_dos_msvc_saturated_arithmetic:
@@ -13253,6 +13262,7 @@ strongly preferred over calling this function directly.
     case ifc_ds_decl_explicit_specialization:
     case ifc_ds_decl_friend:
     case ifc_ds_decl_output_segment:
+    case ifc_ds_decl_prolongation:
     case ifc_ds_decl_syntax_tree:
     case ifc_ds_decl_temploid:
     case ifc_ds_decl_using_directive:
@@ -15400,6 +15410,7 @@ to this function.
     case ifc_ds_decl_explicit_specialization:
     case ifc_ds_decl_friend:
     case ifc_ds_decl_output_segment:
+    case ifc_ds_decl_prolongation:
     case ifc_ds_decl_syntax_tree:
     case ifc_ds_decl_temploid:
     case ifc_ds_decl_tuple:
@@ -18628,6 +18639,7 @@ anonymous), or an empty optional if the name was present but invalid.
     case ifc_ds_decl_explicit_instantiation:
     case ifc_ds_decl_explicit_specialization:
     case ifc_ds_decl_friend:
+    case ifc_ds_decl_prolongation:
     case ifc_ds_decl_syntax_tree:
     case ifc_ds_decl_using_directive:
     case ifc_ds_decl_vendor_extension:
@@ -20150,8 +20162,11 @@ cache.
         ifc_unexpected(mod, err_msg);
       }
       goto invalid;
+    case ifc_sks_bind_temporary_to_reference:
+    case ifc_sks_convert_temporary_to_reference:
     case ifc_sks_msvc_eabi:
     case ifc_sks_msvc_hook:
+    case ifc_sks_msvc_implicit_lifetime:
     case ifc_sks_msvc_is_nothrow_copy_assignable:
     case ifc_sks_msvc_is_nothrow_copy_constructible:
     case ifc_sks_msvc_is_nothrow_move_assignable:
@@ -21977,7 +21992,12 @@ Cache the noexcept-specifier for the given noexcept specification.
         cache_bool_literal(cache, true);
         break;
       case ifc_ns_expression:
-        { an_ifc_sentence_index word_idx = get_ifc_words(eh_spec);
+        if (has_ifc_expr(eh_spec)) {
+          an_ifc_expr_index expr_idx = get_ifc_expr(eh_spec);
+
+          cache_expr(cache, expr_idx, /*cinfo=*/{});
+        } else {
+          an_ifc_sentence_index word_idx = get_ifc_words(eh_spec);
 
           (void)cache_sentence(cache, word_idx);
         }
@@ -23669,6 +23689,12 @@ context to help inform decisions about what to cache.
 
       ifc_unexpected(module_of(cinfo.parameterizing_entity),
                      err_msg.as_temp_characters());
+#if DEBUG
+      if (db_flag_is_set("ifc_def")) {
+        db_tokens(templ_cache.as_canonical());
+        fprintf(f_debug, "\n---------------------\n");
+      }  /* if */
+#endif /* DEBUG */
       goto invalid;
     }  /* if */
     /* Copy over the parameter-declaration-clause. */
@@ -25234,6 +25260,7 @@ module to cache.
     case ifc_mos_msvc_confused_substitution:
     case ifc_mos_msvc_confused_vtor_displacement:
     case ifc_mos_msvc_confusion:
+    case ifc_mos_msvc_is_implicit_lifetime:
     case ifc_mos_unknown:
       { a_string err_msg("Unexpected ", str_for(op));
 
@@ -25676,7 +25703,10 @@ to cache.
     case ifc_dos_msvc_builtin_bit_cast:
       goto invalid;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case ifc_dos_address:
     case ifc_dos_apply:
+    case ifc_dos_bind_temporary_to_reference:
+    case ifc_dos_convert_temporary_to_reference:
     case ifc_dos_bless:
     case ifc_dos_cast:
     case ifc_dos_cleanup:
@@ -26954,6 +26984,7 @@ about what to cache.
     case ifc_ds_decl_explicit_specialization:
     case ifc_ds_decl_intrinsic:
     case ifc_ds_decl_output_segment:
+    case ifc_ds_decl_prolongation:
     case ifc_ds_decl_reference:
     case ifc_ds_decl_syntax_tree:
     case ifc_ds_decl_temploid:

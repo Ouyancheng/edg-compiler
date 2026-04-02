@@ -6207,7 +6207,7 @@ returned.
 
   an_ifc_module_file result(mfk_edg_ifc, /*for_read=*/FALSE);
   result.version_major = 0;
-  result.version_minor = 43;
+  result.version_minor = 44;
   result.f_module = f_handle;
 
   an_ifc_module_file_write_state &write_state = result.get_write_state();
