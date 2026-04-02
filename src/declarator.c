@@ -3209,7 +3209,7 @@ an error if a default argument expression is encountered.
          C23 (and later) behaves the same way by default. */
       extra_info->prototyped = TRUE;
     } else {
-      /* In C, f() is an old-style empty parameter list. */
+      /* In earlier versions of C, f() is an old-style empty parameter list. */
       extra_info->prototyped = FALSE;
     }  /* if */
     any_params = FALSE;
