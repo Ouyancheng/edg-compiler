@@ -25596,7 +25596,7 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_sym_type = type_symbol_type(qualifier_sym);
           qualifier_type = skip_typerefs(qualifier_sym_type);
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-          if (orig_arg_list != NULL) {
+          if (record_form_of_name_reference && orig_arg_list != NULL) {
             qualifier_lexical_type = make_typeref_with_template_args(
                                                             qualifier_sym_type,
                                                             orig_arg_list);
@@ -25633,7 +25633,7 @@ selection operator, in which case it points to the type of the left operand.
                type to the type pointed to. */
             qualifier_type = type_symbol_type(qualifier_sym);
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-            if (orig_arg_list != NULL) {
+            if (record_form_of_name_reference && orig_arg_list != NULL) {
               qualifier_lexical_type = make_typeref_with_template_args(
                                                                 qualifier_type,
                                                                 orig_arg_list);

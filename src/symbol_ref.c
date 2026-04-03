@@ -1569,7 +1569,8 @@ indicated scope.
     }  /* if */
   }  /* if */
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-  if (for_using_directive && is_tag_symbol(sym_ptr)) {
+  if (record_form_of_name_reference && for_using_directive &&
+      is_tag_symbol(sym_ptr)) {
     /* Check for the case where a non-tag name in the namespace of the
        using-directive hides the name of a tag type in the target
        namespace, e.g.,

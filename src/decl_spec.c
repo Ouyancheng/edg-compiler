@@ -4944,7 +4944,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   } else {
     *type_ptr = class_type;
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-    *type_ptr = make_typeref_with_lexical_information(*type_ptr, &locator);
+    if (record_form_of_name_reference) {
+      *type_ptr = make_typeref_with_lexical_information(*type_ptr, &locator);
+    }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
@@ -7233,7 +7235,9 @@ or NULL in other contexts such as using-declarations.
         mark_referenced(orig_fund_sym, &locator_for_curr_id.source_position);
         tp = type_symbol_type(fund_sym);
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-        tp = make_typeref_with_lexical_information(tp, &locator_for_curr_id);
+        if (record_form_of_name_reference) {
+          tp = make_typeref_with_lexical_information(tp, &locator_for_curr_id);
+        }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
         *type_sym = sym;
       }  /* if */

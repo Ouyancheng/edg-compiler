@@ -10620,9 +10620,11 @@ normal_base_class_processing:
         }  /* if */
         orig_base_class_type = skip_proxy_class(orig_base_class_type);
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-        orig_base_class_type = make_typeref_with_lexical_information(
+        if (record_form_of_name_reference) {
+          orig_base_class_type = make_typeref_with_lexical_information(
                                                          orig_base_class_type,
                                                          &locator_for_curr_id);
+        }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ms_extensions) {
@@ -26666,7 +26668,7 @@ entity if applicable.
         }  /* if */
       }  /* if */
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-      if (nqp != NULL &&
+      if (record_form_of_name_reference && nqp != NULL &&
           (locator_for_curr_id.is_global_qualified_name ||
            nqp->previous_qualifier != NULL)) {
         qualifier_class = make_typeref_with_name_qualifier(

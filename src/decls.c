@@ -8096,7 +8096,8 @@ type entry if appropriate, otherwise using the indicated declared_type.
        use of the type just parsed to correctly record that information. */
     use_routine_type = FALSE;
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-  } else if (skip_typerefs(rout_type)->variant.routine.return_type !=
+  } else if (record_form_of_name_reference &&
+             skip_typerefs(rout_type)->variant.routine.return_type !=
                    skip_typerefs(declared_type)->variant.routine.return_type) {
     /* When recording the form of name references, the return types need to be
        identical. */

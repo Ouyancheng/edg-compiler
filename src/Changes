@@ -1,5 +1,20 @@
 Version 6.9
 
+4/3/26   [EDGcpfe/28772]
+Compile-time control of name reference creation
+
+The changes in version 6.8 for EDGcpfe/26294 for tracking the form of
+template arguments and name qualifiers were enabled by the configuration
+macro DEFAULT_RECORD_FORM_OF_NAME_REFERENCE.  Setting that macro to TRUE
+resulted in significant IL changes that required corresponding changes to
+back ends.  There is a global variable, record_form_of_name_reference, that
+controlled some, but not all, of these IL changes.  The effect of this
+variable has now been extended to cover all the IL changes associated with
+EDGcpfe/26294, so setting it to FALSE at the beginning of a compilation
+will result in the same IL as configuring
+DEFAULT_RECORD_FORM_OF_NAME_REFERENCE to FALSE.
+
+
 4/2/26   [EDGcpfe/28749]
 Evaluation of captured constexpr variable in a constant-evaluated context
 

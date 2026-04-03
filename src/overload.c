@@ -212,12 +212,16 @@ has a corresponding earlier entry.
   if (!substitution_stack->substitution_hash_computed) {
     a_template_arg_ptr  subst_args = templ_args;
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-    subst_args = copy_template_arg_list(subst_args);
+    if (record_form_of_name_reference) {
+      subst_args = copy_template_arg_list(subst_args);
+    }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
     substitution_stack->substitution_hash = hash_substitution(sym, subst_args);
     substitution_stack->substitution_hash_computed = TRUE;
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-    free_template_arg_list(subst_args);
+    if (record_form_of_name_reference) {
+      free_template_arg_list(subst_args);
+    }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   }  /* if */
   for (ssep = ssep->prev; ssep != NULL; ssep = ssep->prev) {
@@ -225,12 +229,16 @@ has a corresponding earlier entry.
       if (!ssep->substitution_hash_computed) {
         a_template_arg_ptr  subst_args = ssep->templ_args;
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-        subst_args = copy_template_arg_list(subst_args);
+        if (record_form_of_name_reference) {
+          subst_args = copy_template_arg_list(subst_args);
+        }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
         ssep->substitution_hash = hash_substitution(ssep->sym, subst_args);
         ssep->substitution_hash_computed = TRUE;
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-        free_template_arg_list(subst_args);
+        if (record_form_of_name_reference) {
+          free_template_arg_list(subst_args);
+        }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
       }  /* if */
       if (ssep->substitution_hash == substitution_stack->substitution_hash) {
