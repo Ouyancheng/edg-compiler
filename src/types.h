@@ -67,8 +67,10 @@ FALSE otherwise.
   if (type_is(tp, tk_typeref) &&
       (is_typeref_kind(tp, trk_template_arg_list) ||
        is_typeref_kind(tp, trk_name_qualifier))) {
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
     /* These should only be created when recording name references. */
     check_assertion(record_form_of_name_reference);
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
     result = TRUE;
   }  /* if */
   return result;
