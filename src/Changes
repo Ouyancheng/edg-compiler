@@ -18,7 +18,7 @@ Consider:
 
 Previously, the constant-evaluation interpreter could not look through the
 capture of c to determine the value of c[1]: A spurious error about an attempt
-at accessing run-time error ensued.  That is now fixed.
+at accessing run-time storage ensued.  That is now fixed.
 
 
 4/2/26   [EDGcpfe/28763]
