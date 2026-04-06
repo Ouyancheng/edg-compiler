@@ -252,10 +252,12 @@ by sym.
 static a_boolean symbols_are_equivalent(a_symbol_ptr  sym1,
                                         a_symbol_ptr  sym2)
 /*
-Return TRUE if sym1 and sym2 point to the same IL entries.
+Return TRUE if sym1 and sym2 point to the same IL entries or to type entries
+that are equivalent via identically-named typedef(s).
 */
 {
-  an_il_entry_kind  kind;
+  an_il_entry_kind  kind1;
+  an_il_entry_kind  kind2;
   a_boolean         equiv = (sym1 == sym2);
 
   if (!equiv) {
@@ -263,10 +265,33 @@ Return TRUE if sym1 and sym2 point to the same IL entries.
     sym2 = fundamental_symbol_of(sym2);
     equiv = sym1 == sym2;
     if (!equiv) {
+      char *entry1 = il_entry_for_symbol_null_okay(sym1, &kind1);
+      char *entry2 = il_entry_for_symbol_null_okay(sym2, &kind2);
       if (sym1->kind == sym2->kind) {
-        char *entry1 = il_entry_for_symbol_null_okay(sym1, &kind);
-        char *entry2 = il_entry_for_symbol_null_okay(sym2, &kind);
         if (entry1 == entry2 && entry1 != NULL) equiv = TRUE;
+      } else if (kind1 == iek_type && kind2 == iek_type) {
+        a_type_ptr tp1 = (a_type_ptr)entry1;
+        a_type_ptr tp2 = (a_type_ptr)entry2;
+        if (tp1->source_corresp.name == tp2->source_corresp.name) {
+          a_type_ptr under_type1;
+          a_type_ptr under_type2;
+          if (type_is(tp1, tk_typeref) && typeref_is_typedef(tp1)) {
+            under_type1 = skip_lexical_typerefs(tp1->variant.typeref.type);
+          } else {
+            under_type1 = NULL;
+          }  /* if */
+          if (type_is(tp2, tk_typeref) && typeref_is_typedef(tp2)) {
+            under_type2 = skip_lexical_typerefs(tp2->variant.typeref.type);
+          } else {
+            under_type2 = NULL;
+          }  /* if */
+          if (under_type1 == tp2 || under_type2 == tp1 ||
+              (under_type1 == under_type2 && under_type1 != NULL)) {
+            /* One symbol is a typedef for the other or both are typedefs for
+               the same type. */
+            equiv = TRUE;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

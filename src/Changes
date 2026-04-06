@@ -1,5 +1,23 @@
 Version 6.9
 
+4/6/26   [EDGcpfe/28780]
+C++-generating back end, Microsoft compatibility: elaborated type specifiers
+and scoped enumerations
+
+MSVC has a bug that causes it to report a spurious error in some cases when
+a scoped enumeration is named using an elaborated type specifier.  The
+C++-generating back end could sometimes use such an elaborated type
+specifier in the generated code when it is actually not needed.  This is
+now fixed.  For example, with --microsoft --c++11:
+
+  namespace N {
+    enum class E { e };
+  }
+  using namespace N;
+  using E = N::E;   // Previously generated as "enum N::E", triggering the
+                    // MSVC bug
+
+
 4/6/26   [EDGcpfe/28775]
 Internal error in discard_constant_expr_object_lifetime
 
