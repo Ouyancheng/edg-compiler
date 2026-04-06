@@ -1,5 +1,30 @@
 Version 6.9
 
+4/6/26   [EDGcpfe/28775]
+Internal error in discard_constant_expr_object_lifetime
+
+Consider, in C++23 mode:
+
+  struct S {
+    int i;
+    constexpr ~S() {}
+  };
+  constexpr S g(bool b) {
+    if consteval {
+      return b ? S() : S();
+    }
+    return S();
+  }
+  int main() {
+    int arr[g(true).i];
+  }
+
+Previously, this aborted in discard_constant_expr_object_lifetime (exprutil.c,
+with an internal error) because it was assumed that object lifetime entries in
+constant context could only appear during error recovery.  That erroneous
+assumption has now been dropped.
+
+
 4/3/26   [EDGcpfe/28772]
 Compile-time control of name reference creation
 
