@@ -21,7 +21,7 @@ Consider, in C++23 mode:
 
 Previously, this aborted in discard_constant_expr_object_lifetime (exprutil.c,
 with an internal error) because it was assumed that object lifetime entries in
-constant context could only appear during error recovery.  That erroneous
+a constant context could only appear during error recovery.  That erroneous
 assumption has now been dropped.
 
 
