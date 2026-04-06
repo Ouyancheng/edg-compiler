@@ -27151,24 +27151,20 @@ not (or, in some anachronism cases, convert it to an lvalue).
     expr_pos_error(ec_bad_cast, type_position);
     conv_to_error_operand(operand);
     *processed = TRUE;
-  } else if (is_function_type(operand->type) &&
-             is_a_function_designator(operand) &&
-             is_pointer_type(underlying_type_cast_to)) {
-    /* Due to an IL limitation, we can't distinguish
-         p = (void (&)())f;
-         p = (void (*&)())f;
-       The implicit lvalue-to-rvalue decay hides the destination type
-       of the cast.  Avoid this problem by outlawing conversion from
-       function to reference-to-pointer (that would have to be
-       a reinterpret_cast to be valid); that's allowable under
-       conditionally-supported behavior. */
-    expr_pos_error(ec_bad_cast, type_position);
-    conv_to_error_operand(operand);
-    *processed = TRUE;
   } else {
-    if (is_an_lvalue(operand) ||
-        is_a_function_designator(operand)) {
+    if (is_an_lvalue(operand)) {
       /* Okay, the operand is already an lvalue. */
+    } else if (is_a_function_designator(operand)) {
+      /* Function designators are lvalues also.  However, if we're casting
+         to an "rvalue reference to pointer to function", apply decay to the
+         operand. */
+      if (allow_xvalue && is_rvalue_reference_type(type_cast_to) &&
+          is_pointer_type(type_pointed_to(type_cast_to))) {
+        do_operand_transformations(operand, TOPT_NO_OPTIONS);
+        *adj_type_cast_to = type_pointed_to(type_cast_to);
+        *adj_operand_type = operand->type;
+        goto done;
+      }  /* if */
     } else if (is_an_xvalue(operand)) {
       if (allow_xvalue) {
         /* An xvalue operand is okay as is. */
@@ -27204,6 +27200,7 @@ not (or, in some anachronism cases, convert it to an lvalue).
       *adj_operand_type = make_pointer_type(operand->type);
     }  /* if */
   }  /* if */
+done:;
 }  /* set_up_cast_to_reference */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

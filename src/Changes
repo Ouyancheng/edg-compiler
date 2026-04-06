@@ -1,5 +1,18 @@
 Version 6.9
 
+4/6/26   [EDGcpfe/26656,EDGcpfe/27450]
+Spurious error on casting a function to a reference-to-pointer
+
+Consider:
+
+  void g() noexcept;
+  using PF = void (*)();
+  PF const &rrpf = static_cast<PF const&&>(g);
+
+Previously, this was spuriously diagnosed as a conversion error.  That is now
+fixed.
+
+
 4/6/26   [EDGcpfe/28780]
 C++-generating back end, Microsoft compatibility: elaborated type specifiers
 and scoped enumerations
