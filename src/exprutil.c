@@ -3418,13 +3418,11 @@ void discard_constant_expr_object_lifetime(void)
 /*
 The current expression has turned out to be constant.  If the object
 lifetime being maintained for it has destructions in it, discard them.
-This should only happen when there are errors.
 */
 {
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
 
   if (lifetime != NULL && lifetime->destructions != NULL) {
-    check_assertion(is_at_least_one_error());
     discard_curr_expr_object_lifetime();
   }  /* if */
 }  /* discard_constant_expr_object_lifetime */
