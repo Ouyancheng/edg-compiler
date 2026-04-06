@@ -1219,13 +1219,6 @@ EXTERN_THREAD a_boolean
 			/* TRUE if processing a Microsoft IFC in-class
 			   instantiation. */
 
-EXTERN_THREAD a_boolean
-		record_form_of_name_reference;
-			/* TRUE if the form of all name references should be
-			   recorded in the IL.  When this is FALSE, some
-			   name references may still be recorded (e.g.,
-			   if needed for ABI purposes). */
-
 enum a_template_instantiation_mode {
   /* Defines the methods of handling template instantiation.  Used to
      determine which template functions and member functions of

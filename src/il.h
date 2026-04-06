@@ -4457,6 +4457,13 @@ When called a second time it restores the list to its original state.
     (list) = reverse_simple_list((list));                                     \
   }  /* if */
 
+EXTERN_THREAD a_boolean
+		record_form_of_name_reference;
+			/* TRUE if the form of all name references should be
+			   recorded in the IL.  When this is FALSE, some
+			   name references may still be recorded (e.g.,
+			   if needed for ABI purposes). */
+
 namespace detail {
 
 /*

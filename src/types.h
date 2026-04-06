@@ -27,11 +27,6 @@ types.h -- Declarations related to types.c (having to do with types).
 #ifndef EXPR_H
 #include "expr.h"
 #endif /* ifndef EXPR_H */
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-#ifndef CMD_LINE_H
-#include "cmd_line.h"
-#endif /* ifndef CMD_LINE_H */
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
