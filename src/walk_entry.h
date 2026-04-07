@@ -3555,12 +3555,16 @@ handle_class_type_supplement_for_class:
                     iek_template_arg);
         }  /* if */
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-        if (record_form_of_name_reference) {
-          walk_list(eptr->name_qualifier, a_name_qualifier_ptr,
-                    iek_name_qualifier);
-        } else {
-          check_assertion(eptr->name_qualifier == NULL);
+        walk_list(eptr->name_qualifier, a_name_qualifier_ptr,
+                  iek_name_qualifier);
+#if !STANDALONE_UTILITY_PROGRAM
+        if (eptr->name_qualifier != NULL) {
+          /* These should not be created if not recording name references.
+             However, the record_form_of_name_reference flag is not
+             reliable in standalone utility programs. */
+          check_assertion(record_form_of_name_reference);
         }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
         remap_ptr(eptr->assoc_template, a_template_ptr, iek_template);
         walk_ptr(eptr->expr, an_expr_node_ptr, iek_expr_node);
