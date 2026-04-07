@@ -1,5 +1,12 @@
 Version 6.9
 
+4/7/26   [EDGcpfe/28785]
+Slight change with builtins *_is_pointer_interconvertible_with_class
+
+Code was rearranged to avoid loading a potentially undefined value (though
+that value was never dereferenced).  There is no observable change in behavior.
+
+
 4/6/26   [EDGcpfe/26656,EDGcpfe/27450]
 Spurious error on casting a function to a reference-to-pointer
 

@@ -10212,7 +10212,7 @@ additional error checking is performed here.
       err = FALSE;
       a_type_ptr class_type =
                           type2->variant.ptr_to_member.class_of_which_a_member;
-      a_constant_ptr pmcon = node_constant(pm_arg);
+      a_constant_ptr pmcon = NULL;
       if (!is_constant_node(pm_arg) ||
           !constant_is(node_constant(pm_arg), ck_ptr_to_member)) {
         /* Can't fold if the argument isn't constant. */
@@ -10221,13 +10221,14 @@ additional error checking is performed here.
       } else if (find_base_class_of(type1, class_type) != NULL) {
         /* Types are not related. */
         result = FALSE;
-      } else if (pmcon->variant.ptr_to_member.is_function_ptr ||
-                 pmcon->variant.ptr_to_member.variant.field == NULL ||
-                 pmcon->variant.ptr_to_member.variant.field->offset != 0 ||
-                 (!is_union_type(class_type) &&
-                  (!class_symbol_supp(symbol_for(class_type))->
+      } else if ((pmcon = node_constant(pm_arg),
+                  pmcon->variant.ptr_to_member.is_function_ptr ||
+                  pmcon->variant.ptr_to_member.variant.field == NULL ||
+                  pmcon->variant.ptr_to_member.variant.field->offset != 0 ||
+                  (!is_union_type(class_type) &&
+                   (!class_symbol_supp(symbol_for(class_type))->
                                                              standard_layout ||
-                   !class_symbol_supp(symbol_for(type1))->standard_layout))) {
+                   !class_symbol_supp(symbol_for(type1))->standard_layout)))) {
         /* Non-standard-layout classes and pointer-to-member functions
            elicit a "false" result.  If a field is designated but its
            offset is not zero, its address is not "interconvertible"
