@@ -12369,7 +12369,10 @@ declaration following this one is such a continuation.
                                    &octl);
     } else {
       /* Normal typedef or alias. */
-      a_boolean	include_name = TRUE;
+      a_boolean  include_name = TRUE;
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+      a_type_ptr ets_type = NULL;
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
       if (is_alias) {
         /* An alias of the form "using name = type" (the "using" was output
            above). */
@@ -12378,6 +12381,24 @@ declaration following this one is such a continuation.
         include_name = FALSE;
         write_tok_str(" = ");
       }  /* if */
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+      if (is_alias && msvc_is_generated_code_target &&
+          type_is(under_type, tk_typeref) &&
+          is_typeref_kind(under_type, trk_name_qualifier) &&
+          under_type->variant.typeref.type->elaborated_type_specifier_needed) {
+        ets_type = under_type->variant.typeref.type;
+        if (type_is(ets_type, tk_integer) &&
+            integer_type_is_scoped_enum(ets_type)) {
+          /* MSVC has a bug that causes it to report spurious errors if an
+             elaborated-type-specifier is used as the type in an alias
+             declaration for a scoped enumeration.  Suppress the elaborated
+             type specifier. */
+          ets_type->elaborated_type_specifier_needed = FALSE;
+        } else {
+          ets_type = NULL;
+        }  /* if */
+      }  /* if */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 #if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
       /* A typedef for an 80-/128-bit complex type needs to be modified before
          it is emitted.  The original float_kind will be restored later. */
@@ -12394,6 +12415,11 @@ declaration following this one is such a continuation.
                                          suppress_specifiers,
                                          GDO_NO_OPTIONS,
                                          (a_name_reference_ptr)NULL);
+#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+      if (ets_type != NULL) {
+        ets_type->elaborated_type_specifier_needed = TRUE;
+      }  /* if */
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 #if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
       if (complex_type != NULL) {
         complex_type->variant.float_kind = orig_float_kind;

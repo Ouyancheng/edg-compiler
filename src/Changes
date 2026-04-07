@@ -13,15 +13,15 @@ Previously, this was spuriously diagnosed as a conversion error.  That is now
 fixed.
 
 
-4/6/26   [EDGcpfe/28780]
+4/6/26   [EDGcpfe/28780,EDGcpfe/28783]
 C++-generating back end, Microsoft compatibility: elaborated type specifiers
 and scoped enumerations
 
-MSVC has a bug that causes it to report a spurious error in some cases when
-a scoped enumeration is named using an elaborated type specifier.  The
-C++-generating back end sometimes used such an elaborated type specifier in
-the generated code when it is actually not needed.  This is now fixed.  For
-example, with --microsoft --c++11:
+MSVC has a bug that causes it to report a spurious error when a scoped
+enumeration is used as the type in an alias declaration and is named using
+an elaborated type specifier.  In some cases, the C++-generating back end
+gratuitously generated such elaborated type specifiers, triggering the MSVC
+bug.  This is now fixed.  For example, with --microsoft --c++11:
 
   namespace N {
     enum class E { e };
