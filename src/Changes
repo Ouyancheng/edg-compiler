@@ -19,9 +19,9 @@ and scoped enumerations
 
 MSVC has a bug that causes it to report a spurious error in some cases when
 a scoped enumeration is named using an elaborated type specifier.  The
-C++-generating back end could sometimes use such an elaborated type
-specifier in the generated code when it is actually not needed.  This is
-now fixed.  For example, with --microsoft --c++11:
+C++-generating back end sometimes used such an elaborated type specifier in
+the generated code when it is actually not needed.  This is now fixed.  For
+example, with --microsoft --c++11:
 
   namespace N {
     enum class E { e };
