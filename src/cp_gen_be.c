@@ -3955,9 +3955,21 @@ member initializer list.
 {
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   if (is_lexical_typeref(tp)) {
+    a_type_ptr targ_type = skip_lexical_typerefs(tp);
+    if (is_managed_class_type(targ_type) &&
+        targ_type->elaborated_type_specifier_needed) {
+      /* Elaborated type specifiers are not needed nor permitted in C++/CLI
+         base class lists. */
+      targ_type->elaborated_type_specifier_needed = FALSE;
+    } else {
+      targ_type = NULL;
+    }  /* if */
     /* Use the special processing in gen_type_reference to handle these
        typerefs. */
     gen_type_reference(tp, /*suppress_typename_kwd=*/TRUE);
+    if (targ_type != NULL) {
+      targ_type->elaborated_type_specifier_needed = TRUE;
+    }  /* if */
   } else
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   /* Do not insert code here. */
