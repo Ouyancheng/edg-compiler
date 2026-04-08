@@ -1,5 +1,28 @@
 Version 6.9
 
+4/7/26   [EDGcpfe/28781]
+C++-generating back end: using directives and elaborated type specifiers
+
+As a result of the changes for EDGcpfe/26294 in version 6.8, the
+C++-generating back end sometimes failed to use an elaborated type
+specifier when it is needed to disambiguate between names made visible by
+using directives.  This is now fixed.  For example, with --c++11:
+
+  namespace A {
+      int z;
+  }
+  namespace B {
+     struct z {};
+  }
+  namespace C {
+     using namespace A;
+     using namespace B;
+  }
+  void () {
+    struct C::z oz;   // Previously omitted the "struct" keyword
+  }
+
+
 4/7/26   [EDGcpfe/28785]
 Slight change with builtins *_is_pointer_interconvertible_with_class
 

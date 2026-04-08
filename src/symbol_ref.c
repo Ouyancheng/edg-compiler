@@ -1523,13 +1523,15 @@ resolve ambiguities caused by a using-directive.  For example:
 }  /* resolve_using_directive_ambiguity */
 
 
-static void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr,
-                                             a_scope_ptr   sp,
-                                             a_boolean     for_using_directive)
+static void check_for_defeatable_name_hiding(
+                                 a_symbol_ptr                  sym_ptr,
+                                 a_scope_ptr                   sp,
+                                 an_active_using_directive_ptr using_directive)
 /*
 Check whether any declarations are hidden by the declaration associated
 with sym_ptr, and if appropriate enter hidden_name_table entries in the
-indicated scope.
+indicated scope.  If using_directive is non-NULL, sym_ptr is visible in the
+specified scope via the specified using_directive.
 */
 {
 #if DEBUG
@@ -1559,7 +1561,7 @@ indicated scope.
          file scope or a namespace scope.  If so, the hidden name may be
          rendered visible by qualification.  Conversely, a few situations may
          "unhide" such a name. */
-      if (!for_using_directive) {
+      if (using_directive == NULL) {
         /* Names can be "unhidden" for injected class names and for block
            extern declarations.  Neither of these applies when the hiding
            symbol is the result of a using-directive. */
@@ -1569,7 +1571,7 @@ indicated scope.
     }  /* if */
   }  /* if */
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-  if (record_form_of_name_reference && for_using_directive &&
+  if (record_form_of_name_reference && using_directive != NULL &&
       is_tag_symbol(sym_ptr)) {
     /* Check for the case where a non-tag name in the namespace of the
        using-directive hides the name of a tag type in the target
@@ -1585,8 +1587,35 @@ indicated scope.
        required.) */
     for (a_symbol_ptr old_sym_ptr = sym_ptr->header->inactive_symbols;
          old_sym_ptr != NULL; old_sym_ptr = old_sym_ptr->next) {
-      if (old_sym_ptr->decl_scope == sp->number &&
-          !is_tag_symbol(old_sym_ptr)) {
+      a_boolean use_elab_type_spec = FALSE;
+      if (!is_tag_symbol(old_sym_ptr)) {
+        if (old_sym_ptr->decl_scope == sp->number) {
+          /* The non-tag entity is declared in the same scope as the tag
+             entity. */
+          use_elab_type_spec = TRUE;
+        } else {
+          /* Check if both the tag and the non-tag are made visible by
+             parallel using-directives. */
+          for (an_active_using_directive_ptr audp =
+                        scope_stack[depth_scope_stack].active_using_directives;
+               !use_elab_type_spec && audp != NULL; audp = audp->next) {
+            if (audp != using_directive &&
+                audp->scope_depth_at_which_using_directive_applies ==
+                  using_directive->
+                                scope_depth_at_which_using_directive_applies) {
+              for (a_symbol_ptr member_sym = audp->namespace_supplement->
+                                                        pointers_block.symbols;
+                   !use_elab_type_spec && member_sym != NULL;
+                   member_sym = member_sym->next_in_scope) {
+                if (member_sym == old_sym_ptr) {
+                  use_elab_type_spec = TRUE;
+                }  /* if */
+              }  /* for */
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* if */
+      if (use_elab_type_spec) {
         /* The hiding can be defeated using an elaborated-type-specifier. */
         record_defeatable_name_hiding(
                                     sym_ptr, /*tag_hidden_by_nontag=*/TRUE,
@@ -1652,7 +1681,7 @@ name table.
                  strncmp(param_sym->header->identifier, "<auto-", 6) == 0);
     } else {
       check_for_defeatable_name_hiding(param_sym, sp,
-                                       /*for_using_directive=*/FALSE);
+                                       /*using_directive=*/NULL);
     }  /* if */
   }  /* for */
 }  /* check_name_hiding_by_template_parameters */
@@ -1773,8 +1802,7 @@ scopes and for the file scope.
         for (sym = audp->namespace_supplement->pointers_block.symbols;
              sym != NULL; sym = sym->next_in_scope) {
           if (symbol_is_candidate_for_hiding(sym)) {
-            check_for_defeatable_name_hiding(sym, sp,
-                                             /*for_using_directive=*/TRUE);
+            check_for_defeatable_name_hiding(sym, sp, audp);
           }  /* if */
         }  /* for */
         /* Next, process the symbols in the namespace at which the
@@ -1844,8 +1872,7 @@ scopes and for the file scope.
     /* Traverse the symbols declared in the current scope. */
     for (sym = sym_list; sym != NULL; sym = sym->next_in_scope) {
       if (symbol_is_candidate_for_hiding(sym)) {
-        check_for_defeatable_name_hiding(sym, sp,
-                                         /*for_using_directive=*/FALSE);
+        check_for_defeatable_name_hiding(sym, sp, /*using_directive=*/NULL);
       }  /* if */
     }  /* for */
   }  /* if */
