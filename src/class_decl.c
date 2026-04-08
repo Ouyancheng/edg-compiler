@@ -33780,12 +33780,17 @@ classes.
                                                   curr_token_sequence_number);
             if (auto_params != NULL) {
               a_decl_parse_state  mem_dps;
-              a_token_kind        final_token;
+              a_token_kind        final_token = tok_semicolon;
               init_decl_parse_state(&mem_dps);
               mem_dps.start_tsn = curr_token_sequence_number;
               mem_dps.reuse_auto_params_descr = TRUE;
               mem_dps.variant.auto_params = auto_params;
               reparse_abbr_func_template(&mem_dps, &final_token);
+              if (final_token == tok_rbrace) {
+                /* The caller has not consumed a closing brace if there was
+                   one.  Skip it now. */
+                (void)get_token();
+              }  /* if */
               goto next_declaration;
             }  /* if */
           }  /* if */
