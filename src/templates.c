@@ -5256,6 +5256,9 @@ be completed here.
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     cssp->instantiation_in_progress = TRUE;
+    /* Defer instantiations of non-class templates when possible, to avoid
+       triggering unneeded "incomplete class type" errors. */
+    ++defer_instantiations;
     if (is_literal_token(curr_token)) {
       saved_const_for_curr_token = const_for_curr_token;
       if (curr_token == tok_ud_literal) {
@@ -5650,6 +5653,10 @@ be completed here.
     }  /* if */
     /* If the translation unit stack was pushed above, pop it now. */
     if (trans_unit_pushed) pop_translation_unit_stack();
+    --defer_instantiations;
+    if (defer_instantiations == 0) {
+      process_deferred_instantiation_requests();
+    }  /* if */
     cssp->instantiation_in_progress = FALSE;
     if (is_literal_token(curr_token)) {
       const_for_curr_token = saved_const_for_curr_token;

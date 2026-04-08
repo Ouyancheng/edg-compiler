@@ -1,5 +1,15 @@
 Version 6.9
 
+4/8/26   [EDGcpfe/28770]
+Spurious incomplete type error on class template being instantiated
+
+In some fairly complex situations, the front end sometimes instantiated a
+function template a little too early as a consequence of instantiating a class
+template.  If the function template instantiation required the completeness of
+the class template instantiation, this resulted in a spurious "incomplete type"
+error.  That is now fixed.
+
+
 4/7/26   [EDGcpfe/28781]
 C++-generating back end: using directives and elaborated type specifiers
 
