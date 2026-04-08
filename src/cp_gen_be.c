@@ -3955,6 +3955,7 @@ member initializer list.
 {
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
   if (is_lexical_typeref(tp)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
     a_type_ptr targ_type = skip_lexical_typerefs(tp);
     if (is_managed_class_type(targ_type) &&
         targ_type->elaborated_type_specifier_needed) {
@@ -3964,12 +3965,15 @@ member initializer list.
     } else {
       targ_type = NULL;
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Use the special processing in gen_type_reference to handle these
        typerefs. */
     gen_type_reference(tp, /*suppress_typename_kwd=*/TRUE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (targ_type != NULL) {
       targ_type->elaborated_type_specifier_needed = TRUE;
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   /* Do not insert code here. */
