@@ -1,5 +1,23 @@
 Version 6.9
 
+4/9/26   [EDGcpfe/28673]
+Spurious error on use of result from __builtin_add_overflow, etc.
+
+Consider, in Clang C++ mode:
+
+  constexpr int f() {
+    int r;
+    bool ovfl = __builtin_mul_overflow(2, 2, &r);
+    return r;
+  }
+  constexpr int x = f();
+
+The constant-evaluation interpreter previously failed to mark the variable r
+as "initialized" by the call to __builtin_mul_overflow.  That in turn resulted
+in a spurious error about the initializer for x not being constant.  That is
+now fixed.
+
+
 4/9/26   [EDGcpfe/28792]
 Rendering of address constants as template arguments
 

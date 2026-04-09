@@ -10289,7 +10289,12 @@ the parameters.
           and_integer_values(val, p_max);
         }  /* if */
         *int_value_at(cap) = *val;
-        mark_subobject_initialized(cap->address, cap->complete_object);
+        if (cap->address == cap->complete_object &&
+            !is_array_element(cap)) {
+          mark_complete_object_initialized(cap->complete_object);
+        } else {
+          mark_subobject_initialized(cap->address, cap->complete_object);
+        }  /* if */
       }  /* if */
     }  /* if */
     interpreted = TRUE;
