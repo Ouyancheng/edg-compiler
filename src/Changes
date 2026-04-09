@@ -1,5 +1,23 @@
 Version 6.9
 
+4/9/26   [EDGcpfe/28792]
+Rendering of address constants as template arguments
+
+In some GNU modes, the front end accepts certain address constant expressions
+as template arguments that are not valid C++.  For example:
+
+  int *gv;
+  template<typename T, T *const Val> T *const v = Val;
+  auto s = v<int*, v<int*, &gv>>;
+
+The template argument "v<int*, &gv>" is nonstandard and triggers an error with
+most target compilers.  The front end accepts it in GNU C++ modes, however,
+and prior to version 6.8, the C++-generating back end rendered it as "&gv",
+which is valid C++ (unlike the original) form.  Version 6.8, however, more
+faithfully rendered the input, thereby triggering errors in target compilers.
+Now, the rendering matches that of version 6.7 again.
+
+
 4/8/26   [EDGcpfe/28782]
 C++-generating back end, clang compatibility: user-defined literal operator
 names
