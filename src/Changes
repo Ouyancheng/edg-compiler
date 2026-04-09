@@ -1,5 +1,26 @@
 Version 6.9
 
+4/8/26   [EDGcpfe/28782]
+C++-generating back end, clang compatibility: user-defined literal operator
+names
+
+The canonical form of user-defined literal operator names places the suffix
+immediately adjacent to the double quotes with no intervening white space
+(e.g., operator ""_xyz).  Early versions of clang required a space,
+however, so the C++-generating back end originally always used the form
+with the space when clang_is_generated_code_target was TRUE.  After
+observing that recent versions of clang issue a deprecation warning for the
+form with a space, the C++-generating back end was changed in version 6.8
+(see EDGcpfe/28526) to use the non-space form for clang output whenever
+clang_target_version_number was at least 60000.
+
+However, the actual rule followed by clang is more complex: it only accepts
+the non-space form when the suffix begins with an underscore, requiring the
+space when the suffix does not begin with an underscore.  The C++-generating
+back end has now been changed to produce the required forms in both cases
+when clang_is_generated_code_target is TRUE.
+
+
 4/8/26   [EDGcpfe/26534,EDGcpfe/28787]
 Abbreviated friend template definitions in class templates
 

@@ -4276,18 +4276,34 @@ a name.  Never generate a qualified name.
         ((a_routine_ptr)scp)->special_kind ==
                                    (a_special_function_kind)sfk_udl_operator) {
       a_const_char *suffix = ud_suffix_from_literal_operator_id(name);
-      if ((clang_is_generated_code_target &&
-           clang_target_version_number < 60000 &&
-           strcmp(suffix, "if") != 0) ||
-          (gcc_is_generated_code_target &&
-           gnu_target_version_number < 40900)) {
-        /* The canonical form of literal-operator-id has no space between
-           the "" and the ud-suffix, to prevent something like ""if, which
-           is well-formed, from becoming "" if, which is ill-formed.
-           However, clang versions earlier than 6.0 (except for the one
-           special case of "if" as a ud-suffix) and g++ versions earlier
-           than 4.9 do not accept the form without the space, so we have to
-           add it here. */
+      a_boolean    need_space;
+      if (strcmp(suffix, "if") == 0) {
+        /* Both clang and g++ treat "if" as a special case because it is a
+           keyword and require that there be no space preceding it. */
+        need_space = FALSE;
+      } else if (clang_is_generated_code_target) {
+        if (clang_target_version_number < 60000 ||
+            *suffix != '_') {
+          /* Versions of clang before 6.0 required a space before the
+             suffix, and current versions of clang continue to do so unless
+             the suffix begins with '_'. */
+          need_space = TRUE;
+        } else {
+          /* Current versions of clang issue a deprecation warning for
+             suffixes beginning with '_' and preceded by a space. */
+          need_space = FALSE;
+        }  /* if */
+      } else if (gcc_is_generated_code_target &&
+                 gnu_target_version_number < 40900) {
+        /* Versions of g++ before 4.9 required a space before the
+           suffix. */
+        need_space = TRUE;
+      } else {
+        /* The canonical form of literal-operator-id has no space and is
+           accepted by MSVC and current versions of g++. */
+        need_space = FALSE;
+      }  /* if */
+      if (need_space) {
         m_write_tok_str(CANONICAL_LITERAL_OPERATOR_INTRO);
         m_write_space();
         m_write_tok_str(suffix);
