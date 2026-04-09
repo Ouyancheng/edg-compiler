@@ -13,11 +13,10 @@ Consider, in C++20 mode:
     S<int> s{ 0 };  // Previously an error about too many initializers.
   }                 // Now okay.
 
-Previously, end during the instantiation of S<int>, the front end ignored all
-the members following the abbreviated friend template definition.  In this
-case, that means that it treated S<int> as having no member v, and thus
-issuing an error message about s having too many initializer values.  That is 
-now fixed.
+Previously, during the instantiation of S<int>, the front end ignored all the
+members following the abbreviated friend template definition.  In this case,
+that means that it treated S<int> as having no member v, and thus issuing an
+error message about s having too many initializer values.  That is now fixed.
 
 
 4/8/26   [EDGcpfe/28770]
