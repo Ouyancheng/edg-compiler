@@ -13147,6 +13147,17 @@ strongly preferred over calling this function directly.
       { an_ifc_decl_specialization ids;
 
         construct_node_prechecked(&ids, decl_idx);
+        /* FIXME: The front end should conceivably note that an implicit
+           specialization is present in the module (and thus unneeded outside
+           of constexpr-related cases, since one will be found at link time)
+           but be ready to make one available. */
+        if (get_ifc_sort(ids) == ifc_ss_implicit) {
+          a_string err_msg("Implicit specialization ", index_to_str(decl_idx),
+                           " is not yet supported");
+
+          ifc_unexpected(module_of(ids), err_msg);
+          goto invalid;
+        }  /* if */
 
         a_symbol_locator loc;
         if (!init_decl_locator(ids, &loc)) {
