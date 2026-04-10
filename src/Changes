@@ -1,7 +1,7 @@
 Version 6.9
 
 4/9/26   [EDGcpfe/28791]
-Assertion failure in gen_enum_qualifier with unscoped enum
+C++-generating back end: Assertion failure in gen_enum_qualifier
 
 Consider:
 
@@ -12,10 +12,10 @@ Consider:
   }
 
 This example could lead to an internal error in the C++-generating back end
-(in gen_enum_qualifier) because of an incorrect access to a variant member of
-a_type during the rendering of the template argument S::Color::red.  The abort
-did not occur in all configurations or even consistently for a specific
-configuration.  That is now fixed.
+(in gen_enum_qualifier) as the consequence of an earlier incorrect access to a
+variant member of a_type during the rendering of the template argument
+S::Color::red.  The abort did not occur in all configurations or even
+consistently for a specific configuration.  That is now fixed.
 
 
 4/9/26   [EDGcpfe/28673]
