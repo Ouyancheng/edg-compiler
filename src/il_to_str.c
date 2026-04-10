@@ -568,17 +568,23 @@ Output the indicated template argument in the way described by octl.
           }  /* if */
           saved_expr = con->expr;
           saved_local_expr_ref = con->local_expr_ref;
-          if (octl->suppress_expr_in_nontype_arg
+          expr = expr_node_from_constant(con);
+          /* Check for some cases where the backing expression should be
+             ignored. */
+          if (constant_is(con, ck_template_param)) {
+            /* Never ignore the backing expression of a dependent argument. */
+          } else if (octl->suppress_expr_in_nontype_arg
 #if BACK_END_IS_CP_GEN_BE
-              || (con->expr != NULL && !con->expr->needed_in_cp_gen_be)
+                     || (expr != NULL && !expr->needed_in_cp_gen_be)
 #endif /* BACK_END_IS_CP_GEN_BE */
-                                                             ) {
+                                                                    ) {
             /* We should just put out the constant value, not the backing
                expression. */
+            expr = NULL;
             con->expr = NULL;
             con->local_expr_ref = FALSE;
 #if BACK_END_IS_CP_GEN_BE
-          } else if (con->expr != NULL && is_for_cp_gen_be(octl) &&
+          } else if (expr != NULL && is_for_cp_gen_be(octl) &&
                      !(constant_is(con, ck_address) && con->implicit_cast)) {
             /* In most cases, we ensure the backing expression is
                suppressed in subsequent references to avoid the overhead of
@@ -588,10 +594,19 @@ Output the indicated template argument in the way described by octl.
                are often not valid constant expressions, so we must
                continue to put out the backing expression for an address
                constant with a cast. */
-            con->expr->needed_in_cp_gen_be = FALSE;
+            expr->needed_in_cp_gen_be = FALSE;
+            if (constant_is(con, ck_address) &&
+                address_base_is(con, abk_variable)) {
+              a_variable  *vp = con->variant.address.variant.variable;
+              if (!vp->source_corresp.is_class_member ||
+                  vp->source_corresp.access == as_public) {
+                expr = NULL;
+                con->expr = NULL;
+                con->local_expr_ref = FALSE;
+              }  /*if */
+            }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
           }  /* if */
-          expr = expr_node_from_constant(con);
           while (expr != NULL && is_constant_node(expr) &&
                  constant_should_be_put_out_as_expr(node_constant(expr))) {
             expr = node_constant(expr)->expr;
