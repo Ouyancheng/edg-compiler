@@ -24982,18 +24982,20 @@ that identifies an object or a prvalue that is a pointer to an object.
       a_variable_ptr var = node_variable(expr);
       if (!var_has_static_or_thread_storage_duration(var)) {
         /* An lvalue for a nonstatic local variable or a parameter. */
-        tblock->result = TRUE;
-        tblock->is_temp = FALSE;
-        tblock->terminate = TRUE;
+        if (var->source_corresp.enclosing_routine == curr_routine_or_null()) {
+          tblock->result = TRUE;
+          tblock->is_temp = FALSE;
+          tblock->terminate = TRUE;
+        }  /* if */
       }  /* if */
-    } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
+    } else if (node_is(expr, enk_param_ref)) {
       /* An lvalue for a parameter outside an associated function
          definition.  An enk_param_ref for "this" won't get here because
          it's not an lvalue, but the answer would be right even if it did. */
       tblock->result = TRUE;
       tblock->is_temp = FALSE;
       tblock->terminate = TRUE;
-    } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    } else if (node_is(expr, enk_temp_init)) {
       if (!expr->variant.init.dynamic_init->static_temp) {
         /* An lvalue for a nonstatic temporary. */
         tblock->result = TRUE;
