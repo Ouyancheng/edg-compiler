@@ -2860,7 +2860,9 @@ addressed (with non-array objects treated as arrays of one element).  Set
       case abk_label:
       default:
         length = 0;
-        unexpected_condition();
+        do_constexpr_fail(*p_result);
+        info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                      constant_pos(con_addr, ips), ips);
     }  /* switch */
     if (use_subobject_path) {
       a_subobject_path_ptr  spp = con_addr->variant.address.subobject_path;

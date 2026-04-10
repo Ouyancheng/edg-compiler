@@ -1,5 +1,20 @@
 Version 6.9
 
+4/10/26  [EDGcpfe/25556]
+Abort on arithmetic on GNU-mode label address
+
+Consider, in GNU C++ mode:
+
+  void g(void*);
+  int main() {
+  label:
+    g(&&label + 42);
+  }
+
+This previously elicited an internal error in the constant-evaluation
+interpreter.  That is now fixed.
+
+
 4/10/26  [EDGcpfe/26030]
 Microsoft compatibility: Default initialization of const objects
 
