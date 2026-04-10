@@ -31,7 +31,7 @@ as template arguments that are not valid C++.  For example:
 The template argument "v<int*, &gv>" is nonstandard and triggers an error with
 most target compilers.  The front end accepts it in GNU C++ modes, however,
 and prior to version 6.8, the C++-generating back end rendered it as "&gv",
-which is valid C++ (unlike the original) form.  Version 6.8, however, more
+which is valid C++ (unlike the original form).  Version 6.8, however, more
 faithfully rendered the input, thereby triggering errors in target compilers.
 Now, the rendering matches that of version 6.7 again.
 
