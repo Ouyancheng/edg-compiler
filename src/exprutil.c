@@ -24981,7 +24981,10 @@ that identifies an object or a prvalue that is a pointer to an object.
     if (is_variable_node(expr)) {
       a_variable_ptr var = node_variable(expr);
       if (!var_has_static_or_thread_storage_duration(var)) {
-        /* An lvalue for a nonstatic local variable or a parameter. */
+        /* An lvalue for a nonstatic local variable or a parameter.  If the
+           variable is not in the current function (i.e., it is a variable
+           from a scope enclosing a lambda), do not consider it local in this
+           context. */
         if (var->source_corresp.enclosing_routine == curr_routine_or_null()) {
           tblock->result = TRUE;
           tblock->is_temp = FALSE;
