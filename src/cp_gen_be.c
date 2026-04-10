@@ -5394,9 +5394,8 @@ the meaning of need_closing_paren.
     if (!invalid_qual_in_curr_context(enum_type)) {
       /* Put out the indicated qualifier(s) before the enumeration type
          itself. */
-      gen_name_qualifier_list(
-                         enum_type->variant.typeref.extra_info->name_qualifier,
-                         /*from_name_qual_typeref=*/TRUE);
+      gen_name_qualifier_list(typeref_supp(enum_type)->name_qualifier,
+                              /*from_name_qual_typeref=*/TRUE);
       if (enum_type->source_corresp.parent_scope != NULL) {
         /* Push the enum's parent scope to prevent gen_name from putting
            out a qualifier of its own. */
@@ -5409,8 +5408,7 @@ the meaning of need_closing_paren.
     enum_type = enum_type->variant.typeref.type;
   }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
-  check_assertion(is_immediate_enum_type(enum_type) &&
-                  integer_type_is_scoped_enum(enum_type));
+  check_assertion(is_immediate_enum_type(enum_type));
   if (has_name_before_mangling(enum_type)) {
     gen_name(&enum_type->source_corresp, iek_type, options | GN_QUALIFIER,
              need_closing_paren);
@@ -6512,9 +6510,11 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
          feature may have made the enumerator visible in the class
          scope. */
       a_constant_ptr  con = (a_constant_ptr)scp;
-      if (is_enum_constant(con) && integer_type_is_scoped_enum(con->type)) {
+      a_type_ptr      enum_type = skip_lexical_typerefs(con->type);
+      if (is_enum_constant(con) && type_is(enum_type, tk_integer) &&
+          integer_type_is_scoped_enum(enum_type)) {
         if (curr_name_context->assoc_scope !=
-                            con->type->variant.integer.enum_info.assoc_scope &&
+                            enum_type->variant.integer.enum_info.assoc_scope &&
             !(curr_name_context->field_selection_context &&
               curr_scope_has_using_enum_for(con))) {
           gen_enum_qualifier(con->type,

@@ -1,5 +1,23 @@
 Version 6.9
 
+4/9/26   [EDGcpfe/28791]
+Assertion failure in gen_enum_qualifier with unscoped enum
+
+Consider:
+
+  template<typename T, T t> void f() {}
+  void g() {
+    struct S { enum Color { red, green, blue }; };
+    auto p = &g<S::Color, S::Color::red>;
+  }
+
+This example could lead to an internal error in the C++-generating back end
+(in gen_enum_qualifier) because of an incorrect access to a variant member of
+a_type during the rendering of the template argument S::Color::red.  The abort
+did not occur in all configurations or even consistently for a specific
+configuration.  That is now fixed.
+
+
 4/9/26   [EDGcpfe/28673]
 Spurious error on use of result from __builtin_add_overflow, etc.
 
