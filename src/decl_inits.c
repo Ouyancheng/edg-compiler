@@ -10655,14 +10655,14 @@ declaration that has internal linkage because of the explicit presence of a
     } else {
       /* Uninitialized const new-object. */
       if (is_const_default_constructible(type) ||
-          any_cfront_mode() || microsoft_mode) {
+          any_cfront_mode() || ms_version_is(<1928)) {
           /* The resolution of Core issue 253 (via paper P0490R0) defined
              const-default-constructible types, which do not require an
              initializer in these cases.  Although originally described as
              a defect against C++14, it is universal practice to apply the
              revised rules in all modes. */
-          /* Microsoft and Cfront do not diagnose these cases even if the
-             type is not const-default-constructible. */
+          /* Cfront and some earlier versions of MSVC do not diagnose these
+             cases even if the type is not const-default-constructible. */
       } else {
         /* Issue a discretionary error. */
         if (is_class_struct_union_type(type)) {
