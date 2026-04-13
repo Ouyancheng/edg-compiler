@@ -22791,12 +22791,15 @@ of dllexported class types).
 }  /* mark_special_member_suppressed */
 
 
-static a_boolean type_is_constexpr_default_constructible(a_type_ptr  type,
-                                                         a_type_ptr  context)
+static a_boolean type_is_constexpr_default_constructible(
+                                                       a_type_ptr  type,
+                                                       a_type_ptr  context,
+                                                       a_boolean   *p_trivial)
 /*
 Return TRUE if "type" is a class type with an accessible, unambiguous constexpr
 default constructor, or an array thereof.  In C++20 mode, also return TRUE for
-non-class types and for class types that have a trivial default constructor.
+non-class types and for class types that have a trivial default constructor,
+and set *p_trivial to TRUE in that case (otherwise, set *p_trivial to FALSE).
 If type is the type of a subobject, context is the type of its parent object.
 */
 {
@@ -22834,10 +22837,11 @@ If type is the type of a subobject, context is the type of its parent object.
                (type->variant.class_struct_union.is_empty_class ||
                 (cpp20_mode && !type_is(context, tk_union)));
     }  /* if */
-  } else if (cpp20_mode && !type_is(context, tk_union)) {
+  } else if (cpp20_mode) {
     /* In C++20, non-class types are constexpr-default-constructible (see the
        committee's paper P1331R2). */
     result = TRUE;
+    *p_trivial = TRUE;
   }  /* if */
   return result;
 }  /* type_is_constexpr_default_constructible */
@@ -22919,16 +22923,16 @@ this routine to return FALSE unless limited_check is TRUE.
 */
 {
   a_boolean    okay = TRUE, initializer_seen = FALSE;
-  a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
+  a_field_ptr  fp = fields_of(class_type);
 
   if (!is_unspecialized_template_class(class_type)) {
     ensure_all_field_initializers_scanned(class_type);
   }  /* if */
   fp = next_proper_initializable_field(fp);
   if (fp != NULL) {
-    a_boolean  is_union = class_type->kind == (a_type_kind)tk_union;
+    a_boolean  is_union = type_is(class_type, tk_union);
     for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
-      a_boolean  member_initialized;
+      a_boolean  member_initialized, trivial = FALSE;
       if (fp->has_nonconstant_initializer && !limited_check) {
         /* A nonconstant initializer is never okay. */
         okay = FALSE;
@@ -22946,20 +22950,23 @@ this routine to return FALSE unless limited_check is TRUE.
         } else {
           continue;
         }  /* if */
+      } else if (fp->has_initializer) {
+        member_initialized = TRUE;
       } else {
         /* In C++20 mode, type_is_constexpr_default_constructible also returns
            TRUE when fp->type is a non-class type or a class type with a
-           trivial default constructor. */
-        member_initialized = fp->has_initializer ||
-                             type_is_constexpr_default_constructible(
-                                                        fp->type, class_type);
+           trivial default constructor, but trivial will be set to TRUE in
+           that case. */
+        member_initialized = type_is_constexpr_default_constructible(
+                                              fp->type, class_type, &trivial);
       }  /* if */
       if (is_union) {
         /* Unions must have exactly one initialized member. */
-        if (member_initialized) {
+        if (member_initialized && !trivial) {
+          /* (In C++20 modes, the "trivial" case doesn't really correspond to
+             an initializer.) */
           if (initializer_seen) {
-            /* A second initializer: Not valid for a constexpr
-               constructor. */
+            /* A second initializer: Not valid for a constexpr constructor. */
             okay = FALSE;
           } else {
             initializer_seen = TRUE;
@@ -22973,7 +22980,7 @@ this routine to return FALSE unless limited_check is TRUE.
         }  /* if */
       }  /* if */
     }  /* for */
-    if (is_union && !initializer_seen) okay = FALSE;
+    if (is_union && !initializer_seen && !cpp20_mode) okay = FALSE;
   }  /* if */
   return okay;
 }  /* fields_initialized_for_constexpr_constructor */
@@ -23035,7 +23042,9 @@ class type is constexpr (and unambiguous).
   for (bcp = direct_base_classes_of(class_type);
        bcp != NULL;
        bcp = bcp->next_direct) {
-    if (!type_is_constexpr_default_constructible(bcp->type, class_type)) {
+    a_boolean  trivial;
+    if (!type_is_constexpr_default_constructible(bcp->type, class_type,
+                                                 &trivial)) {
       result = FALSE;
       break;
     }  /* if */
@@ -23160,14 +23169,13 @@ issue an error if it is not actually constexpr.
       }  /* if */
     } else if (ctor_rp->is_defaulted && ctor_rp->is_constexpr) {
       /* A defaulted constructor cannot be constexpr if it wouldn't have been
-         constexpr by default.  For template instantiations, the constexpr is
-         silently dropped.  Other cases are errors. */
+         constexpr by default, unless it is a template instantiation. */
       if ((!ctor_rp->is_template_function || ctor_rp->is_specialized) &&
           (ctor_rp->is_declared_constexpr | ctor_rp->is_consteval)) {
         pos_error(ec_defaulted_default_ctor_cannot_be_constexpr,
                   &ctor->decl_position);
+        ctor_rp->is_constexpr = FALSE;
       }  /* if */
-      ctor_rp->is_constexpr = FALSE;
     }  /* if */
   }  /* if */
   return is_constexpr;
@@ -32510,14 +32518,16 @@ flag is set in the class symbol supplement of the given type.
          conceivably apply without considering constexpr, but if we get here
          we'll treat the class type as a non-literal type. */
       cssp->known_not_to_be_a_literal_type = TRUE;
-    } else if ((gpp_version_is(any_version) || ms_version_is(any_version)) &&
+    } else if ((gpp_version_is(any_version) || ms_version_is(any_version) ||
+                cpp20_mode) &&
                !cssp->has_user_declared_default_constructor &&
                has_no_user_ctor(cssp)) {
       /* MSVC and GCC appear to treat a class like:
            class C { int i = 0, j; };
          as a literal type, even though it is not an aggregate class and its
          (generated) default constructor does not initialize j (and thus it
-         is not constexpr). */
+         is not constexpr).  In C++20, initialization of all members is no
+         longer required. */
       cssp->known_to_be_a_literal_type = TRUE;
     } else {
       /* Check if the type has a constexpr constructor or constructor template
