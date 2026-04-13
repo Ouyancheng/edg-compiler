@@ -19170,6 +19170,13 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
   object = arg1->next;
   dst_type = skip_typerefs(arg1->variant.type_operand.type);
   src_type = skip_typerefs(object->type);
+  if (type_is(dst_type, tk_template_param) ||
+      type_is(src_type, tk_template_param)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &expr->position, ips);
+    goto done;
+  }  /* if */
   type_size = size_of_type(src_type);
   check_assertion(type_size == size_of_type(dst_type));
   n_bytes = expr_result_size(ips, object, src_type, &result);
