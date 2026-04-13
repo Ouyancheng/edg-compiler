@@ -1,5 +1,24 @@
 Version 6.9
 
+4/13/26  [EDGcpfe/26766]
+Microsoft C++ compatibility: typeid of array of const elements
+
+The typeid operator normally ignores the top-level qualification of its
+type operand.  In C++, array types have the top-level qualification of their
+element types.  For example, the program:
+
+  #include <typeinfo>
+  int main() {
+    return &typeid(int const[2]) != &typeid(int[2]);
+  }
+
+should return zero (i.e., "false") because the two types are equivalent for
+the typeid operator.  However, it appears the Microsoft compiler does not
+implement this correctly for array of const types, and thus the above returns
+one (i.e., "true") when compiled with MSVC.  The front end now emulates the
+MSVC behavior in its Microsoft bugs mode.
+
+
 4/13/26  [EDGcpfe/22050,EDGcpfe/24177,EDGcpfe/28705]
 Defaulted constexpr constructor in a union
 

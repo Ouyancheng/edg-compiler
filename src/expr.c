@@ -20380,7 +20380,7 @@ reparse:
         is_instantiation_dependent_type(typeid_type)) {
       typeid_type = skip_typerefs_not_dependent_decltypes(typeid_type);
     } else {
-      if (is_array_type(typeid_type)) {
+      if (!microsoft_bugs && is_array_type(typeid_type)) {
         /* Remove cv-qualifiers on an array element type. */
         typeid_type = make_unqualified_type(typeid_type);
       }  /* if */
