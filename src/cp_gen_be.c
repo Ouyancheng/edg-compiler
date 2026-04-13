@@ -1705,11 +1705,11 @@ in an example like
     };
 
 If X is a non-public type, an attempt to substitute S<X>::type for an
-occurrence of X in the generated code will result in an infinite recursion
-on the template argument, so this case must be detected and not added to
-the list of accessible typedefs.  Similarly, an instance of an alias
-template where the target type is a template argument would also cause an
-infinite recursion.
+occurrence of X in the generated code will result in an unbounded recursion
+on the template argument, so this case must be detected in order to avoid
+considering S<X>::type as an acceptable substitute.  Similarly, an instance
+of an alias template where the target type is a template argument would
+also cause an infinite recursion.
 */
 {
   a_boolean                      has_circularity = FALSE;
@@ -1766,6 +1766,20 @@ typedef struct a_typedef_hash_entry {
 			   typeref was substituted for its underlying
 			   type, if any.  See find_typedef_in for an
 			   explanation of its use. */
+  a_byte_boolean
+		circularity_checked;
+			/* TRUE if type has been checked for circularity.
+			   Initially FALSE and set to TRUE the first time
+			   type is found to be a potential match for a
+			   given underlying type.  This deferral of
+			   circularity checking reduces the performance
+			   cost of the check, assuming there are many more
+			   typedefs registered than will actually be used,
+			   at the cost of increasing the number of hash
+			   table entries with unusable typedefs. */
+  a_byte_boolean
+		is_circular;
+			/* TRUE if type has been found to be circular. */
 } a_typedef_hash_entry;
 
 /*
@@ -1829,6 +1843,8 @@ Add type (which must be a typedef) to hash_table.
   hash_table[bucket].type = type;
   hash_table[bucket].fcn_scope = innermost_function_scope;
   hash_table[bucket].template_arg = NULL;
+  hash_table[bucket].circularity_checked = FALSE;
+  hash_table[bucket].is_circular = FALSE;
 }  /* add_typedef_to */
 
 
@@ -1864,8 +1880,13 @@ otherwise, return NULL.
         matches = TRUE;
       }  /* if */
     }  /* if */
-    if (matches) {
-      /* The typedef matches.  Check whether it can be used. */
+    if (matches && !entry->circularity_checked) {
+      entry->circularity_checked = TRUE;
+      entry->is_circular = target_type_has_circularity(entry->type);
+    }  /* if */
+    if (matches && !entry->is_circular) {
+      /* This entry is a potential candidate.  Check whether it can
+         actually be used. */
       a_type_ptr parent_class = parent_class_or_null(entry->type);
       if (is_typeref_kind(entry->type, trk_is_template_alias) &&
           skip_typerefs(type)->kind != (a_type_kind)tk_template_param) {
@@ -2049,8 +2070,7 @@ templ, add the corresponding instance typedef to the table as well.
       if (tp->kind == (a_type_kind)tk_typeref &&
           is_typeref_kind(tp, trk_is_template_alias) &&
           !tp->variant.typeref.is_prototype_instantiation &&
-          tp->variant.typeref.extra_info->assoc_template == templ &&
-          !target_type_has_circularity(tp)) {
+          tp->variant.typeref.extra_info->assoc_template == templ) {
         typedef_to_add = tp;
         under_type = skip_typerefs(typedef_to_add->variant.typeref.type);
       }  /* if */
@@ -2079,10 +2099,8 @@ templ, add the corresponding instance typedef to the table as well.
                                                             mbr_typedef_name) {
             check_assertion(nested_type->kind == (a_type_kind)tk_typeref &&
                             typeref_is_typedef(nested_type));
-            if (!target_type_has_circularity(nested_type)) {
-              typedef_to_add = nested_type;
-              under_type = skip_typerefs(typedef_to_add->variant.typeref.type);
-            }  /* if */
+            typedef_to_add = nested_type;
+            under_type = skip_typerefs(typedef_to_add->variant.typeref.type);
             break;
           }  /* if */
         }  /* for */
@@ -2117,9 +2135,7 @@ templ, add the corresponding instance typedef to the table as well.
             /* Temporarily make the typeref type the base class pointer and
                add it to the hash table. */
             typedef_to_add->variant.typeref.type = bcp->type;
-            if (!target_type_has_circularity(typedef_to_add)) {
-              add_typedef_to(accessible_typedef_hash_table, typedef_to_add);
-            }  /* if */
+            add_typedef_to(accessible_typedef_hash_table, typedef_to_add);
           }  /* if */
         }  /* for */
         /* Restore the original underlying type. */
@@ -2166,11 +2182,10 @@ template, add its instances as well in case they may be needed.
                                 &type_for_all_scopes) &&
       has_name_before_mangling(targ_type)) {
     a_boolean typedef_added = FALSE;
-    a_boolean circular = target_type_has_circularity(type);
-    if (!circular && (type->variant.typeref.is_prototype_instantiation ||
-                      !entity_name_is_accessible(
-                             &targ_type->source_corresp, iek_type,
-                             /*ignore_context=*/TRUE, &targ_for_all_scopes))) {
+    if ((type->variant.typeref.is_prototype_instantiation ||
+         !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
+                                    /*ignore_context=*/TRUE,
+                                    &targ_for_all_scopes))) {
       /* This typedef can be substituted for the target type when that type
          is inaccessible or if it is the prototype instantiation of an
          alias template, which might be used in a later template
@@ -2181,8 +2196,7 @@ template, add its instances as well in case they may be needed.
     /* If we didn't add this typedef because its target is an accessible
        typedef, check the target of that typedef; we want to add this one
        if that target is inaccessible. */
-    while (!base_is_unknown && !circular && !typedef_added &&
-           type_is_typedef(targ_type)) {
+    while (!base_is_unknown && !typedef_added && type_is_typedef(targ_type)) {
       targ_type = targ_type->variant.typeref.type;
       if (has_name_before_mangling(targ_type) &&
           !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
