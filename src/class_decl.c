@@ -22806,6 +22806,7 @@ If type is the type of a subobject, context is the type of its parent object.
   a_boolean      result = FALSE, error_detected, err;
   a_routine_ptr  default_ctor;
 
+  *p_trivial = FALSE;
   if (is_array_type(type)) {
     type = underlying_array_element_type(type);
   }  /* if */
