@@ -2097,8 +2097,7 @@ templ, add the corresponding instance typedef to the table as well.
              nested_type != NULL; nested_type = nested_type->next) {
           if (unmangled_name_of(&nested_type->source_corresp) ==
                                                             mbr_typedef_name) {
-            check_assertion(nested_type->kind == (a_type_kind)tk_typeref &&
-                            typeref_is_typedef(nested_type));
+            check_assertion(type_is_typedef(nested_type));
             typedef_to_add = nested_type;
             under_type = skip_typerefs(typedef_to_add->variant.typeref.type);
             break;
@@ -2182,10 +2181,10 @@ template, add its instances as well in case they may be needed.
                                 &type_for_all_scopes) &&
       has_name_before_mangling(targ_type)) {
     a_boolean typedef_added = FALSE;
-    if ((type->variant.typeref.is_prototype_instantiation ||
-         !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
-                                    /*ignore_context=*/TRUE,
-                                    &targ_for_all_scopes))) {
+    if (type->variant.typeref.is_prototype_instantiation ||
+        !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
+                                   /*ignore_context=*/TRUE,
+                                   &targ_for_all_scopes)) {
       /* This typedef can be substituted for the target type when that type
          is inaccessible or if it is the prototype instantiation of an
          alias template, which might be used in a later template
