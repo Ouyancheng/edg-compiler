@@ -8002,7 +8002,7 @@ expr_statement:
           pos_error(ec_dependent_stmt_is_declaration, &error_position);
         }  /* if */
         if (sssep->prefix_attributes != NULL) {
-          /* Make previously scanned attributes available to declaration
+          /* Make previously-scanned attributes available to declaration
              processing. */
           unscan_attributes(sssep->prefix_attributes);
           sssep->prefix_attributes = NULL;
@@ -8039,7 +8039,7 @@ expr_statement:
         a_struct_stmt_stack_entry_ptr
                    sssep = &struct_stmt_stack[depth_stmt_stack];
         if (sssep->prefix_attributes != NULL) {
-          /* Make previously scanned attributes available to declaration
+          /* Make previously-scanned attributes available to declaration
              processing. */
           unscan_attributes(sssep->prefix_attributes);
           sssep->prefix_attributes = NULL;
