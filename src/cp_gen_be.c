@@ -12427,7 +12427,10 @@ declaration following this one is such a continuation.
         write_tok_str(" = ");
       }  /* if */
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-      if (is_alias && msvc_is_generated_code_target &&
+      if (is_alias && 
+          (msvc_is_generated_code_target ||
+           (gcc_is_generated_code_target &&
+            gnu_target_version_number < 110000)) &&
           type_is(under_type, tk_typeref) &&
           is_typeref_kind(under_type, trk_name_qualifier) &&
           under_type->variant.typeref.type->elaborated_type_specifier_needed) {
@@ -12437,7 +12440,8 @@ declaration following this one is such a continuation.
           /* MSVC has a bug that causes it to report spurious errors if an
              elaborated-type-specifier is used as the type in an alias
              declaration for a scoped enumeration.  Suppress the elaborated
-             type specifier. */
+             type specifier.  GCC versions prior to GCC 11 had a similar
+             bug, but they issued a warning instead. */
           ets_type->elaborated_type_specifier_needed = FALSE;
         } else {
           ets_type = NULL;

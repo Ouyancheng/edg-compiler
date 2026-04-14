@@ -304,14 +304,16 @@ fixed.
 
 
 4/6/26   [EDGcpfe/28780,EDGcpfe/28783]
-C++-generating back end, Microsoft compatibility: elaborated type specifiers
-and scoped enumerations
+C++-generating back end, Microsoft/GCC compatibility: elaborated type
+specifiers and scoped enumerations
 
 MSVC has a bug that causes it to report a spurious error when a scoped
-enumeration is used as the type in an alias declaration and is named using
-an elaborated type specifier.  In some cases, the C++-generating back end
-gratuitously generated such elaborated type specifiers, triggering the MSVC
-bug.  This is now fixed.  For example, with --microsoft --c++11:
+enumeration is used as the type in an alias declaration and is named using an
+elaborated type specifier.  GCC versions prior to GCC 11 had a similar bug,
+except a warning was issued instead of an error.  In some cases, the C++-
+generating back end gratuitously generated such elaborated type specifiers,
+triggering the spurious MSVC or GCC diagnostic.  This is now fixed.  For
+example, with --microsoft --c++11:
 
   namespace N {
     enum class E { e };
