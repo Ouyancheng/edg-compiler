@@ -1,5 +1,20 @@
 Version 6.9
 
+4/14/26  [EDGcpfe/28640]
+Attributes on declaration in C mode had caused assertion failure
+
+The presence of attributes on a declaration appearing after a label in C modes
+that allow that construct had caused an assertion failure (in
+add_statement_list) and is now fixed.  For example, with --c23:
+
+  void f(char c) {
+    switch (c) {
+      default:
+        [[maybe_unused]] int i;
+    }
+  }
+
+
 4/13/26  [EDGcpfe/26766]
 Microsoft C++ compatibility: typeid of array of const elements
 

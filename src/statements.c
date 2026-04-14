@@ -1757,13 +1757,10 @@ should be set to TRUE.
   }  /* while */
   temp_stmt->parent = ssp;
   sssep->last_dep_statement = temp_stmt;
-  if (sssep->prefix_attributes != NULL &&
-      sp->kind != (a_statement_kind)stmk_label) {
+  if (sssep->prefix_attributes != NULL && sp->kind != stmk_label) {
     /* Attach any attributes.  Label definitions are handled elsewhere (and
        implicit label definitions should not pick up the attributes of the
        statements that generate them). */
-    check_assertion(sp->kind != (a_statement_kind)stmk_label &&
-                    sp->kind != (a_statement_kind)stmk_decl);
     attach_attributes(sssep->prefix_attributes, (char*)sp, iek_statement);
     sssep->prefix_attributes = NULL;
   }  /* if */
@@ -8039,6 +8036,14 @@ expr_statement:
           /* A labeled declaration in pre-C99 C. */
           pos_error(ec_labeled_declaration, &error_position);
         }  /* if */
+        a_struct_stmt_stack_entry_ptr
+                   sssep = &struct_stmt_stack[depth_stmt_stack];
+        if (sssep->prefix_attributes != NULL) {
+          /* Make previously scanned attributes available to declaration
+             processing. */
+          unscan_attributes(sssep->prefix_attributes);
+          sssep->prefix_attributes = NULL;
+        }  /* if */
         decl_statement(marked_as_gnu_extension,
                        /*p_okay_in_constexpr_body=*/NULL);
       } else {
@@ -8081,7 +8086,7 @@ expr_statement:
   if (get_another_statement) {
     marked_as_gnu_extension = FALSE;
     goto rescan_statement;
-  }  /* switch */
+  }  /* if */
 
   db_exit();
 }  /* statement */
