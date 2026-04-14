@@ -72,10 +72,11 @@ C++-generating back end: performance with deeply-nested template instantiations
 As described in the entry for EDGcpfe/11015, the C++-generating back end
 maintains a table of accessible typedefs that can be substituted for uses
 of inaccessible types in the generated code.  (The changes for
-EDGcpfe/26294 significantly reduced the number of contexts in which such
-substitutions are needed, but some cases remain.)  Some accessible typedefs
-are not candidates for substitution because naming the typedef would cause
-an unbounded recursion, for example,
+EDGcpfe/26294 tracking the actual template arguments used in each given
+reference significantly reduced, but did not completely eliminate, the
+contexts in which such substitutions are needed.)  Some accessible typedefs
+are not candidates for these substitutions because naming the typedef would
+cause an unbounded recursion, for example,
 
   template<typename T> struct S {
     typedef T type;   // public typedef
@@ -84,15 +85,16 @@ an unbounded recursion, for example,
 If X is a private type, S<X>::type cannot be used to replace a use of X
 because the substitution of the typedef for X would apply to the template
 argument in S<X>, which would also be replaced by S<X>::type, etc.: X =>
-S<X>::type => S<S<X>::type>::type, ... ad infinitum.  As a result, the
+S<X>::type => S<S<X>::type>::type, etc., ad infinitum.  As a result, the
 C++-generating back end checked for this kind of circularity and avoided
-adding such typedefs to the typedef table.  With deeply-nested template
-instantiations, however, this check can be very expensive and have a
-significant performance impact.  As a result, typedefs of this sort are now
-unconditionally added to the table and the circularity check is performed
-when considering whether the typedef is a potential candidate for a given
-use of an inaccessible type.  This change greatly improves the performance
-with such examples, especially after the changes for EDGcpfe/26294.
+adding such typedefs to the typedef table.  With complex deeply-nested
+template instantiations, however, this check can be very expensive and have
+a significant performance impact.  As a result, typedefs of this sort are
+now added to the table without regard to any possible circularity and then
+the circularity check is performed when considering whether the typedef is
+a potential candidate for replacing a given use of an inaccessible type.
+This change greatly improves the performance with complex examples,
+especially after the changes for EDGcpfe/26294.
 
 
 4/10/26  [EDGcpfe/25556]
