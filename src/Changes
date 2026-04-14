@@ -1,6 +1,6 @@
 Version 6.9
 
-4/14/26  [EDGcpfe/28640]
+4/14/26  [EDGcpfe/26143,EDGcpfe/28640]
 Attributes on declaration in C mode had caused assertion failure
 
 The presence of attributes on a declaration appearing after a label in C modes
