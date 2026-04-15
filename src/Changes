@@ -1,5 +1,25 @@
 Version 6.9
 
+4/15/26  [EDGcpfe/28793]
+Name lookup in instantiated alias template declaration
+
+Previously, the front end failed to exclude using directives declared after an
+alias template when looking up names during an alias template instantiation.
+For example, with --c++11:
+
+  namespace ns1 { template<typename T> using A = T; }
+  namespace ns2 { template<typename T> using A = void; }
+  namespace ns {
+    using namespace ns1;
+    template<typename> struct C {
+      template<typename T> using type = A<T>;  // Previously ambiguous, now
+                                               // okay.
+    };
+  }
+  using namespace ns2;
+  ns::C<int>::type<int> i = 1;
+
+
 4/14/26  [EDGcpfe/26143,EDGcpfe/28640]
 Attributes on declaration in C mode had caused assertion failure
 

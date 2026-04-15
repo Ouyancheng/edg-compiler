@@ -32763,9 +32763,14 @@ alias
       /* Find the alias declaration from the prototype instantiation
         (if any). */
       find_alias_member(sym, sym_parent_class(sym), tsn_for_alias);
-      /* The cache from the prototype template will be used, so we don't
-         need to keep the one from this declaration. */
-      if (tssp->prototype_template != NULL) keep_token_cache = FALSE;
+      if (tssp->prototype_template != NULL) {
+        /* The cache from the prototype template will be used, so we don't need
+           to keep the one from this declaration. */
+        keep_token_cache = FALSE;
+        /* Set the declaration sequence number based on the value from the
+           prototype template. */
+        tdip->decl_seq = cache_for_template(tssp)->decl_info->decl_seq;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Cache the type-id from the alias. */
