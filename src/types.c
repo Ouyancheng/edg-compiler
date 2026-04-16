@@ -16308,19 +16308,20 @@ static a_boolean traverse_template_args(
 /*
 This routine is called by traverse_type_tree to traverse the template argument
 list specified by template_args.  template_params is the list of template
-parameters of the template being instantiated; it is used only when looking
-for any deduced template parameter (i.e., when specific_template_param_type
-and specific_template_param_constant are both NULL and flags includes the flag
-TTT_DEDUCED_CONTEXTS_ONLY) to find nontype parameters declared with a
-placeholder ("auto" or "decltype(auto)") type.  If template_params is NULL,
-all nontype arguments are assumed to appear in deduced contexts.  See
-traverse_type_tree for func, flags, and the meaning of the return value.
+parameters of the associated template; it is used only when looking for any
+deduced template parameter (i.e., when the file-scope variables
+specific_template_param_type and specific_template_param_constant are both
+NULL and flags includes the flag TTT_DEDUCED_CONTEXTS_ONLY) to find constant
+(i.e., "nontype") parameters declared with a placeholder ("auto" or
+"decltype(auto)") type.  If template_params is NULL, all nontype arguments are
+assumed to appear in deduced contexts.  See traverse_type_tree_full for func,
+pofunc, flags, and the meaning of the return value.
 */
 {
-  a_template_arg_ptr	    tap;
+  a_template_arg_ptr        tap;
   a_template_parameter_ptr  tpp = template_params;
-  a_boolean		    status = FALSE;
-  a_type_ptr		    tp;
+  a_boolean                 status = FALSE;
+  a_type_ptr                tp;
 
   begin_template_arg_list_traversal_simple(template_args, &tap);
   for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
@@ -16352,9 +16353,10 @@ traverse_type_tree for func, flags, and the meaning of the return value.
          be deduced with the addition of C++17 auto/decltype(auto) template
          parameters.  When looking for a specific template parameter (e.g.,
          during partial specialization checks) or if the template parameter
-         list is not provided, all constant template parameters are considered
-         deduced contexts.  Otherwise, only parameters declared with a
-         placeholder type are considered deduced contexts. */
+         list is not provided, all constant (i.e., "nontype") template
+         parameters are considered deduced contexts.  Otherwise, only
+         parameters declared with a placeholder type are considered deduced
+         contexts. */
       a_boolean  do_traverse = TRUE;
       if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
         /* We are not restricted to deduced contexts.  So perform the
