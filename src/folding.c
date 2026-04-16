@@ -6490,7 +6490,7 @@ expression is a glvalue, do not fold (see fold_glvalue_expr instead).
     /* Only fold expressions that produce prvalue results. */
     folded = FALSE;
   } else if (is_template_dependent_context() && !scope_stack_top().is_rescan &&
-             expr_is_instantiation_dependent(expr)) {
+             expr_is_instantiation_dependent(expr, /*exclude_this=*/FALSE)) {
     /* Don't attempt to fold expressions that are dependent. */
     folded = FALSE;
   } else {
@@ -10559,7 +10559,7 @@ constant is set as well.
       has_error = TRUE;
       break;
     } else if (!is_dependent && is_template_dependent_context() &&
-               expr_is_instantiation_dependent(arg)) {
+               expr_is_instantiation_dependent(arg, /*exclude_this=*/FALSE)) {
       is_dependent = TRUE;
     }  /* if */
   }  /* for */
@@ -11287,7 +11287,7 @@ either a ck_template_param constant or has a template-dependent type.
     if (!is_constant_node(expr)) {
       is_constant = FALSE;
       break;
-    } else if (expr_is_instantiation_dependent(expr)) {
+    } else if (expr_is_instantiation_dependent(expr, /*exclude_this=*/FALSE)) {
       is_dependent = TRUE;
     }  /* if */
   }  /* for */

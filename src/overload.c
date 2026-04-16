@@ -3856,7 +3856,8 @@ have_level:;
           conptr = &arg_operand->variant.constant;
         } else if (is_expression_operand(arg_operand) &&
                    is_a_prvalue(arg_operand) &&
-                   !operand_is_instantiation_dependent(arg_operand) &&
+                   !operand_is_instantiation_dependent(
+                                        arg_operand, /*exclude_this=*/TRUE) &&
                    constant_prvalue_pointer(arg_operand->variant.expression,
                                             con, /*address_escapes=*/FALSE)) {
           conptr = con;
@@ -10620,7 +10621,7 @@ Return TRUE if the given component is instantiation-dependent.
 
   if (is_expression_component(alep)) {
     an_operand  *opnd = operand_of_arg_list_elem(alep);
-    if (operand_is_instantiation_dependent(opnd)) {
+    if (operand_is_instantiation_dependent(opnd, /*exclude_this=*/TRUE)) {
       is_dependent = TRUE;
     } else if (is_constant_operand(opnd)) {
       if (constant_is(&opnd->variant.constant, ck_template_param)) {
@@ -19072,14 +19073,50 @@ like sizeof(sizeof(T)) is instantiation-dependent but not type-dependent).
        interpretation of "template dependent". */
     result = operand_is_dependent(opnd1) ||
              (!unary_op && operand_is_dependent(opnd2));
+  } else if (opname_kind == onk_subscript) {
+    /* A user-defined subscript operator is always the result of calling a
+       class member operator.  So if the first operand is a nondependent class
+       type, the type of the result can be determined if the second operand is
+       not type dependent. */
+    a_type  *tp1 = opnd1->type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cli_or_cx_enabled && is_handle_type(tp1)) {
+      /* Handles to class types are essentially the underlying class type for
+         overload resolution purposes. */
+      tp1 = type_pointed_to(tp1);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    tp1 = skip_typerefs(tp1);
+    if (is_immediate_class_type(tp1) &&
+        !tp1->variant.class_struct_union.is_nonreal_class) {
+      result = operand_is_dependent(opnd2);
+    } else {
+      result = operand_is_instantiation_dependent(opnd1,
+                                                  /*exclude_this=*/FALSE) ||
+               operand_is_instantiation_dependent(opnd2,
+                                                  /*exclude_this=*/FALSE);
+    }  /* if */
   } else if (opname_kind == onk_and_and || opname_kind == onk_or_or) {
     /* Don't prevent short-circuiting if the second operand is instantiation-
        dependent but not type-dependent. */
-    result = operand_is_instantiation_dependent(opnd1) ||
+    result = operand_is_instantiation_dependent(
+                                             opnd1, /*exclude_this=*/FALSE) ||
              (!unary_op && operand_is_dependent(opnd2));
   } else {
-    result = operand_is_instantiation_dependent(opnd1) ||
-             (!unary_op && operand_is_instantiation_dependent(opnd2));
+    a_type  *tp1 = skip_typerefs(opnd1->type),
+            *tp2 = opnd2 != NULL ? skip_typerefs(opnd2->type)
+                                 : (a_type*)NULL;
+    if ((is_immediate_class_type(tp1) &&
+         tp1->variant.class_struct_union.is_nonreal_class) ||
+        (opnd2 != NULL && is_immediate_class_type(tp2) &&
+         tp2->variant.class_struct_union.is_nonreal_class)) {
+      result = TRUE;
+    } else {
+      result = operand_is_instantiation_dependent(opnd1,
+                                                  /*exclude_this=*/FALSE) ||
+               (!unary_op && operand_is_instantiation_dependent(
+                                              opnd2, /*exclude_this=*/FALSE));
+    }  /* if */
   }  /* if */
   return result;
 }  /* treat_operator_generically */
@@ -23005,7 +23042,8 @@ is_transparent.  conv_context describes the context of the conversion.
                                            dest_type,
                                            &err_code) &&
           (constant_src ||
-           !operand_is_instantiation_dependent(source_operand))) {
+           !operand_is_instantiation_dependent(source_operand,
+                                               /*exclude_this=*/FALSE))) {
         if (expr_diagnostic_should_be_issued(es_discretionary_error,
                                              err_code, err_pos)) {
           an_error_severity  sev = es_discretionary_error;
@@ -24998,7 +25036,8 @@ appropriate.
   a_boolean  invalid = FALSE;
 
   if (is_expression_operand(source_operand) &&
-      !operand_is_instantiation_dependent(source_operand)) {
+      !operand_is_instantiation_dependent(source_operand,
+                                          /*exclude_this=*/FALSE)) {
     an_expr_node_ptr  expr;
     if (generalized_nontype_arguments &&
         expr_interpret_expression_operand(source_operand,
@@ -26144,7 +26183,8 @@ initialization processing.
   }  /* if */
   is_narrowing = is_narrowing_conversion(source_type, con, dest_type,
                                          check_enum_target, &err_code) &&
-                 !operand_is_instantiation_dependent(source_operand);
+                 !operand_is_instantiation_dependent(
+                                      source_operand, /*exclude_this=*/FALSE);
   if (free_local_constant) {
     release_local_constant(&con);
   }  /* if */
@@ -28751,7 +28791,8 @@ if so.
                                                   param_type,
                                                   (an_error_code *)NULL) &&
           (source_is_constant ||
-           !operand_is_instantiation_dependent(operand))) {
+           !operand_is_instantiation_dependent(
+                                          operand, /*exclude_this=*/FALSE))) {
         compatible = FALSE;
       }  /* if */
       if (free_local_con) {

@@ -1987,7 +1987,9 @@ extern void eliminate_statement_expr_src_seq_entries(an_expr_node_ptr  expr);
 extern a_boolean expr_is_dep_static_member_of_current_instantiation(
                                                         an_expr_node_ptr expr);
 
-extern a_boolean expr_is_instantiation_dependent(an_expr_node_ptr expr);
+extern
+a_boolean expr_is_instantiation_dependent(an_expr_node_ptr expr,
+                                          a_boolean        exclude_this);
 
 extern a_boolean constant_is_instantiation_dependent(a_constant_ptr con);
 
@@ -2317,6 +2319,10 @@ typedef int a_compare_constants_options_set;
 			   the same name. */
 #define CC_TEMPLATE_ARG 0x40
 			/* TRUE when comparing template nontype arguments. */
+#define CC_GENERIC 0x80
+			/* TRUE if the expressions were built up in a
+			   template-dependent context, which makes some
+			   attributes (like value category) unreliable. */
 
 extern a_boolean compare_constants(a_constant_ptr                   cp1,
                                    a_constant_ptr                   cp2,

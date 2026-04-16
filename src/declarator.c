@@ -4963,8 +4963,7 @@ constant.
       switch_to_file_scope_region(&region_to_switch_back_to);
       if (template_dependent_bound) {
         /* Template-dependent bound (constant but not a known value). */
-        check_assertion(constant->kind ==
-                                    (a_constant_repr_kind)ck_template_param);
+        check_assertion(constant_is(constant, ck_template_param));
         if (constant_is_shareable(constant)) {
           il_constant = alloc_shareable_constant(constant);
         } else {
@@ -4981,6 +4980,7 @@ constant.
                                                      /*source_in_il=*/FALSE,
                                                      /*suppress_copy=*/
                                                      (expr_case||sizeof_case));
+          do_fs_constant_fixup(il_constant);
           /* In a couple of cases, we can record a local expr ref and
              keep a function-scope expression. */
           if (expr_case) {
