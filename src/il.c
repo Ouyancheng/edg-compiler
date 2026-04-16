@@ -8175,7 +8175,7 @@ are done.
        that in template contexts, glvalue-to-prvalue conversion may or may not
        have occurred and thus value category comparison may not be reliable.
        CC_GENERIC indicates that we are in such a context where value
-       category can differ.  In such cases, types can also differ in their
+       categories can differ.  In such cases, types can also differ in their
        type qualifiers (see below). */
     a_boolean do_type_comparison = TRUE;
     switch (node1->kind) {
@@ -8535,9 +8535,9 @@ are done.
       if ((node1->is_lvalue != node2->is_lvalue ||
            node1->is_xvalue != node2->is_xvalue)) {
         /* In generic contexts, the value category may be unreliable, and in
-           turn that may mean some qualifiers are drop on one node but not the
-           other.  We still want to check the types, because they may contain
-           components that have different SFINAE behavior, such as
+           turn that may mean some qualifiers are dropped on one node but not
+           the other.  We still want to check the types, because they may
+           contain components that have different SFINAE behavior, such as
            decltype(T::x) vs. decltype(T::y). */
         itf_options |= ITF_IGNORE_TOP_LEVEL_QUALIFIERS;
       }  /* if */
