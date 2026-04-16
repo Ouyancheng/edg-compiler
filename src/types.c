@@ -3457,8 +3457,7 @@ is_auto_type.
   a_boolean result = FALSE;
 
   if (is_template_param(tp) &&
-      tp->variant.template_param.kind ==
-                               (a_template_param_type_kind)tptk_param &&
+      tp->variant.template_param.kind == tptk_param &&
       tp->variant.template_param.is_auto_param) {
     result = TRUE;
   }  /* if */
@@ -3478,8 +3477,7 @@ is_decltype_auto_type.
   a_boolean result = FALSE;
 
   if (is_template_param(tp) &&
-      tp->variant.template_param.kind ==
-                               (a_template_param_type_kind)tptk_param &&
+      tp->variant.template_param.kind == tptk_param &&
       tp->variant.template_param.is_decltype_auto) {
     result = TRUE;
   }  /* if */
@@ -16140,7 +16138,7 @@ language mode flags.
 */
 {
   /* When auto template parameters are enabled, the type of a nontype template
-     parameter is a deduced context. */
+     parameter is a potential deduced context. */
   if (auto_template_params_enabled &&
       (*ttt_flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
     *ttt_flags |= TTT_TYPE_OF_NONTYPE_ARG;
@@ -16303,18 +16301,26 @@ traverse_type_tree_full.  Return TRUE if traverse_type_tree_full returns TRUE.
 
 static a_boolean traverse_template_args(
                              a_template_arg_ptr             template_args,
+                             a_template_parameter_ptr       template_params,
                              a_type_predicate_function_ptr  func,
                              a_type_post_order_function_ptr pofunc,
                              a_type_tree_traversal_flag_set flags)
 /*
 This routine is called by traverse_type_tree to traverse the template argument
-list specified by template_args.  See traverse_type_tree for func, flags,
-and the meaning of the return value.
+list specified by template_args.  template_params is the list of template
+parameters of the template being instantiated; it is used only when looking
+for any deduced template parameter (i.e., when specific_template_param_type
+and specific_template_param_constant are both NULL and flags includes the flag
+TTT_DEDUCED_CONTEXTS_ONLY) to find nontype parameters declared with a
+placeholder ("auto" or "decltype(auto)") type.  If template_params is NULL,
+all nontype arguments are assumed to appear in deduced contexts.  See
+traverse_type_tree for func, flags, and the meaning of the return value.
 */
 {
-  a_template_arg_ptr	tap;
-  a_boolean		status = FALSE;
-  a_type_ptr		tp;
+  a_template_arg_ptr	    tap;
+  a_template_parameter_ptr  tpp = template_params;
+  a_boolean		    status = FALSE;
+  a_type_ptr		    tp;
 
   begin_template_arg_list_traversal_simple(template_args, &tap);
   for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
@@ -16337,19 +16343,54 @@ and the meaning of the return value.
         status = traverse_type_tree_full(tp, func, pofunc, flags);
       }  /* if */
     } else if (!tap->is_array_bound_of_unknown_type &&
-               tap->variant.constant != NULL) {
-      /* Nontype template argument.  Check the type of the constant.  The
-         type is nondeduced in older C++ dialects, but is deduced with the
-         addition of auto template parameters. */
-      if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY) ||
-          (flags & TTT_TYPE_OF_NONTYPE_ARG)) {
+               tap->variant.constant != NULL &&
+               (flags & TTT_TYPE_OF_NONTYPE_ARG) != 0) {
+      /* Nontype template argument.  Check the type of the constant unless
+         the TTT_TYPE_OF_NONTYPE_ARG flag is FALSE or, in some cases, if only
+         deduced contexts are traversed (i.e., TTT_DEDUCED_CONTEXT_ONLY is
+         TRUE).  The type is always nondeduced in older C++ dialects, but may
+         be deduced with the addition of C++17 auto/decltype(auto) template
+         parameters.  When looking for a specific template parameter (e.g.,
+         during partial specialization checks) or if the template parameter
+         list is not provided, all constant template parameters are considered
+         deduced contexts.  Otherwise, only parameters declared with a
+         placeholder type are considered deduced contexts. */
+      a_boolean  do_traverse = TRUE;
+      if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
+        /* We are not restricted to deduced contexts.  So perform the
+           traversal. */
+#if !STANDALONE_UTILITY_PROGRAM
+      } else if (specific_template_param_type != NULL ||
+                 specific_template_param_constant != NULL) {
+        /* A specific-parameter query: Do not check deducibility. */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+      } else if (tpp != NULL && tpp->kind == tpk_nontype &&
+                 tpp->variant.nontype.constant != NULL) {
+        /* Only traverse the type if the parameter was declared with a
+           a placeholder type. */
+        a_type_ptr  param_type = tpp->variant.nontype.constant->type;
+        do_traverse = is_auto_template_param_type(param_type) ||
+                      is_decltype_auto_template_param_type(param_type);
+      }  /* if */
+      if (do_traverse) {
         status = traverse_types_for_constant(tap->variant.constant,
                                              func, pofunc, flags);
       }  /* if */
     }  /* if */
+    /* Advance the corresponding template parameter, if any.  Stay on the
+       same parameter if this argument is part of a pack expansion for a
+       pack parameter. */
+    if (tpp != NULL &&
+        (!tap->is_pack_element ||
+         (tap->next != NULL &&
+          is_start_of_pack_expansion_templ_arg(tap->next)))) {
+      tpp = tpp->next;
+    }  /* if */
+    if (status) break;
   }  /* for */
   return status;
 }  /* traverse_template_args */
+
 
 a_boolean traverse_type_tree_full(a_type_ptr                      type_ptr,
                                   a_type_predicate_function_ptr   func,
@@ -16548,9 +16589,14 @@ return type be examined? what about its parameters?).
           /* Traverse the template argument list, if present (for template
              aliases). */
           a_template_arg_ptr	tap;
+          a_template_parameter_ptr  tpp = NULL;
           tap = ttsp->template_arg_list;
+          if (ttsp->assoc_template != NULL &&
+              ttsp->assoc_template->template_decl != NULL) {
+            tpp = ttsp->assoc_template->template_decl->param_list;
+          }  /* if */
           if (tap != NULL) {
-            status = traverse_template_args(tap, func, pofunc, flags);
+            status = traverse_template_args(tap, tpp, func, pofunc, flags);
           }  /* if */
         }  /* if */
         if (scan_alias_template_args) {
@@ -16639,9 +16685,16 @@ return type be examined? what about its parameters?).
                 is_cli_type_to_treat_as_nonreal(type_ptr)))) {
             /* Traverse the template argument list, if present. */
             a_template_arg_ptr	tap;
+            a_template_parameter_ptr  tpp = NULL;
             tap = class_type_supp(type_ptr)->template_arg_list;
+            if (class_type_supp(type_ptr)->assoc_template != NULL &&
+                class_type_supp(type_ptr)->assoc_template->template_decl !=
+                                                                       NULL) {
+              tpp = class_type_supp(type_ptr)->assoc_template
+                                              ->template_decl->param_list;
+            }  /* if */
             if (tap != NULL) {
-              status = traverse_template_args(tap, func, pofunc, flags);
+              status = traverse_template_args(tap, tpp, func, pofunc, flags);
             }  /* if */
           }  /* if */
           if (!status && type_ptr->source_corresp.is_class_member) {

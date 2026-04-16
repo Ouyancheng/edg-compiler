@@ -1,5 +1,34 @@
 Version 6.9
 
+4/16/26  [EDGcpfe/24619,EDGcpfe/26682,EDGcpfe/28602]
+Incorrect handling of deducibility in C++17 (and later) modes
+
+Consider:
+
+  template<typename> struct W {};
+  template<int> struct X {
+    enum { x };
+    template<typename T> X(T);
+  };
+  template<typename T> void f(X<T::x>, W<T>);
+  void g(W<X<1>> w) {
+    f(1, w);
+  }
+
+The parameter type X<T::x> of function template f is "not deducible", and so
+T should be deduced from the other parameter (of deducible type W<T>).
+However, in C++17 mode, the front failed to mark the first parameter as not
+deducible and when attempting deduction on it for the call f(1, w) then failed
+deduction altogether.  This issue also affected partial specialization (which
+is based on deduction).  For example:
+
+  template<auto, auto> struct S;
+  template<typename X, typename Y, X X::*x, Y Y::*y> class S<x, y> {};
+
+This previously elicited a spurious error about template parameter X not
+being deducible.  This is now fixed.
+
+
 4/16/26  [EDGcpfe/24532,EDGcpfe/25753,EDGcpfe/26858,EDGcpfe/28017,
           EDGcpfe/28664,EDGcpfe/28666]
 Operators with template-dependent but not type-dependent operands
