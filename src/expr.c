@@ -9864,7 +9864,7 @@ routines.
 {
   a_template_arg_ptr new_tap;
 
-  options |= CTWS_COPY_ARG_OPERAND_INFO | CTWS_KEEP_TOP_TPCK_EXPRESSION;
+  options |= CTWS_COPY_ARG_OPERAND_INFO;
   /* A partial argument list is okay for function templates and cases
      where we don't know the template.  It is not okay for non-function
      templates (e.g., classes, variables). */

@@ -2894,13 +2894,6 @@ typedef int a_ctws_options_set;
 #define CTWS_ALIAS_DEDUCTION_GUIDE	0x40000
 			/* TRUE when doing substitution to create a deduction
 			   guide routine type for an alias template. */
-#define CTWS_KEEP_TOP_TPCK_EXPRESSION	0x80000
-			/* TRUE if substituting a tpck_expression constant
-			   produces an expression that cannot (yet) be folded.
-			   This happens, for example, when the wrapped
-			   expression is a glvalue for a local variable with
-			   a known value, but we do not yet know if the
-			   expression will be converted to a prvalue. */
 
 
 /*

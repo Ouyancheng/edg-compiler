@@ -15278,14 +15278,14 @@ parameters.
   a_template_param_ptr	tpp = templ_param;
   a_template_arg_ptr	tap = templ_arg;
   a_boolean		have_params = (param_list_for_copy != NULL);
-  a_boolean		is_partial_spec_check, keep_top_tpck_expression;
+  a_boolean		is_partial_spec_check, copy_arg_operand_info;
   a_boolean		saved_substituted_parameter_pack =
                                         ctws_state->substituted_parameter_pack;
 
   is_partial_spec_check =
                          (options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) != 0;
-  keep_top_tpck_expression = (options & CTWS_KEEP_TOP_TPCK_EXPRESSION) != 0;
-  options &= ~CTWS_KEEP_TOP_TPCK_EXPRESSION;
+  copy_arg_operand_info = (options & CTWS_COPY_ARG_OPERAND_INFO) != 0;
+  options &= ~CTWS_COPY_ARG_OPERAND_INFO;
   /* Make sure that the template argument kind matches the parameter
      kind. */
   if (have_params) {
@@ -15366,21 +15366,23 @@ parameters.
     { a_ctws_options_set  cp_options = (options & ~CTWS_NON_CONSTANT_EXPR) |
                                        CTWS_NONTYPE_TEMPLATE_ARG;
       a_constant_ptr      cp = tap->variant.constant;
-      if (keep_top_tpck_expression && constant_is(cp, ck_template_param) &&
+      if (copy_arg_operand_info && !have_params &&
+          constant_is(cp, ck_template_param) &&
           tpck_is(cp, tpck_expression)) {
         /* If after substitution a tpck_expression entry still doesn't produce
            a constant value (it may be an lvalue referring to a local constexpr
            variable, for example), accept the substitution anyway and wrap it
            in a tpck_expression entry.  We'll record the wrapped expression in
            an an_arg_operand entry below. */
-        cp_options |= CTWS_KEEP_TOP_TPCK_EXPRESSION;
+        cp_options |= CTWS_COPY_ARG_OPERAND_INFO;
       }  /* if */
       cp = copy_template_param_con_with_substitution(
                                          cp, templ_arg_list, templ_param_list,
                                          template_param_type, source_pos,
                                          cp_options, copy_error, ctws_state);
       if (*copy_error) goto done;
-      if (keep_top_tpck_expression && constant_is(cp, ck_template_param) &&
+      if (copy_arg_operand_info && !have_params &&
+          constant_is(cp, ck_template_param) &&
           tpck_is(cp, tpck_expression)) {
         record_template_arg_operand(tap, expr_node_from_tpck_expression(cp));
       } else {
@@ -15631,7 +15633,6 @@ If there is an error in the copying, set *copy_error to TRUE.
        references. */
     copy_arg_operands = TRUE;
   }  /* if */
-  options &= ~CTWS_COPY_ARG_OPERAND_INFO;
   prev_new_tap = new_list = NULL;
   /* Note that this routine does not use the template argument list
      traversal routines. */

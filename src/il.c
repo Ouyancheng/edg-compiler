@@ -21884,9 +21884,9 @@ options.
            arguments and fold any constant operations that result. */
         { a_constant_ptr  base_con;
           a_boolean       explicit_cast, keep_tpck_expression = FALSE;
-          if (options & CTWS_KEEP_TOP_TPCK_EXPRESSION) {
+          if (options & CTWS_COPY_ARG_OPERAND_INFO) {
             keep_tpck_expression = TRUE;
-            options &= ~CTWS_KEEP_TOP_TPCK_EXPRESSION;
+            options &= ~CTWS_COPY_ARG_OPERAND_INFO;
           }  /* if */
           if (is_template_param_cast_constant(
                                             con, &base_con, &explicit_cast)) {
@@ -21938,7 +21938,7 @@ options.
                  follow.  We also sometimes wrap a top-level expression that
                  cannot be folded when we do not yet know the template
                  parameter that the result will be bound to (indicated via
-                 the option CTWS_KEEP_TOP_TPCK_EXPRESSION). */
+                 the option CTWS_COPY_ARG_OPERAND_INFO). */
               if (expr != expr_copy) {
                 make_template_param_expr_constant(expr_copy, constant);
                 con_copy = NULL;
