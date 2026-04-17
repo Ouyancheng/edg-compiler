@@ -16344,8 +16344,7 @@ pofunc, flags, and the meaning of the return value.
         status = traverse_type_tree_full(tp, func, pofunc, flags);
       }  /* if */
     } else if (!tap->is_array_bound_of_unknown_type &&
-               tap->variant.constant != NULL &&
-               (flags & TTT_TYPE_OF_NONTYPE_ARG) != 0) {
+               tap->variant.constant != NULL) {
       /* Nontype template argument.  Check the type of the constant unless
          the TTT_TYPE_OF_NONTYPE_ARG flag is FALSE or, in some cases, if only
          deduced contexts are traversed (i.e., TTT_DEDUCED_CONTEXT_ONLY is
@@ -16361,6 +16360,8 @@ pofunc, flags, and the meaning of the return value.
       if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
         /* We are not restricted to deduced contexts.  So perform the
            traversal. */
+      } else if ((flags & TTT_TYPE_OF_NONTYPE_ARG) == 0) {
+        do_traverse = FALSE;
 #if !STANDALONE_UTILITY_PROGRAM
       } else if (specific_template_param_type != NULL ||
                  specific_template_param_constant != NULL) {

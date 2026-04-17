@@ -1923,8 +1923,9 @@ typedef int a_type_tree_traversal_flag_set;
 			   but only if the type is a nonreal type. */
 #define TTT_TYPE_OF_NONTYPE_ARG 0x2000
 			/* TRUE if the type of nontype template arguments
-			   should be traversed.  This forces the type to
-			   be considered a deduced context. */
+			   should be traversed.  This should only be used in
+			   conjunction with TTT_DEDUCED_CONTEXTS_ONLY, by
+			   calling add_implicit_ttt_flags. */
 #define TTT_SCAN_ALIAS_TEMPLATE_ARGS 0x4000
 			/* TRUE if the template arguments of an alias
 			   template or alias template specialization, as
