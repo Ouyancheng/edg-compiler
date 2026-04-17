@@ -1,5 +1,23 @@
 Version 6.9
 
+4/17/26  [EDGcpfe/28494,EDGcpfe/28563]
+Abort in i_copy_dynamic_init on lambda in template argument list
+
+Consider, in C++20 mode:
+
+  struct D { ~D(); };
+  struct X {
+    X(D l = D()) {}
+  };
+  template<typename> int v;
+  int main() {
+    v<decltype( []{ X(); } )>;
+  }
+
+This previously aborted in i_copy_dynamic_init (in file il.c) while copying
+the default argument of the X::X(D) constructor.  That is now fixed.
+
+
 4/16/26  [EDGcpfe/28799]
 Incorrect declaration of orig_char_from_embed_directive
 

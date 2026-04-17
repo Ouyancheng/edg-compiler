@@ -34680,6 +34680,9 @@ initialize class_def_state.
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
                         closure_class, (a_routine_ptr)NULL);
   scope_stack_top().class_def_state = class_state;
+  /* A template-argument-list context doesn't extend into the body of any
+     lambda expression it might contain. */
+  scope_stack_top().in_template_arg_list = FALSE;
 }  /* push_closure_class */
 
 

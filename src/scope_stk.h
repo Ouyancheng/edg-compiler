@@ -1071,9 +1071,10 @@ typedef struct a_scope_stack_entry {
 			   initializer expression). */
   a_bit_field	in_template_arg_list:1;
 			/* TRUE while scanning a template argument list.  This
-			   flag is inherited by most scopes pushed on the
-			   stack, except template instantiation and
-			   instantiation context scopes. */
+			   flag is inherited by many scopes pushed on the
+			   stack, but not template instantiation and
+			   instantiation context scopes, nor class definition
+			   scopes resulting from lambda expressions. */
   a_bit_field	implicit_typename:1;
 			/* TRUE if, in this scope, implicit typename processing
 			   should be done. */
