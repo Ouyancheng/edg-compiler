@@ -6143,7 +6143,7 @@ representation is valid; otherwise, return FALSE.
                     "stage_2 is not properly sized storage!");
       copy_from_node_field(&stage_2, universal.get_storage(), /*offset=*/14);
       /* Pack the fields (sort, value, index) into the 64 bit WordCategory
-         representation.  Then, decode the bit encoded value using the standard
+         representation.  Then, decode the bit-encoded value using the standard
          conversion to the universal representation for the category. */
       stage_3 = 0;
       stage_3 |= stage_0;
@@ -6179,7 +6179,7 @@ representation is valid; otherwise, return FALSE.
                     "stage_2 is not properly sized storage!");
       copy_from_node_field(&stage_2, universal.get_storage(), /*offset=*/14);
       /* Pack the fields (sort, value, index) into the 64 bit WordCategory
-         representation.  Then, decode the bit encoded value using the standard
+         representation.  Then, decode the bit-encoded value using the standard
          conversion to the universal representation for the category. */
       stage_3 = 0;
       stage_3 |= stage_0;
@@ -6215,7 +6215,7 @@ representation is valid; otherwise, return FALSE.
                     "stage_2 is not properly sized storage!");
       copy_from_node_field(&stage_2, universal.get_storage(), /*offset=*/14);
       /* Pack the fields (sort, value, index) into the 64 bit WordCategory
-         representation.  Then, decode the bit encoded value using the standard
+         representation.  Then, decode the bit-encoded value using the standard
          conversion to the universal representation for the category. */
       stage_3 = 0;
       stage_3 |= stage_0;
@@ -22897,7 +22897,7 @@ representation is valid; otherwise, return FALSE.
                     "stage_2 is not properly sized storage!");
       copy_from_node_field(&stage_2, universal.get_storage(), /*offset=*/14);
       /* Pack the fields (sort, value, index) into the 64 bit WordCategory
-         representation.  Then, decode the bit encoded value using the standard
+         representation.  Then, decode the bit-encoded value using the standard
          conversion to the universal representation for the category. */
       stage_3 = 0;
       stage_3 |= stage_0;
@@ -22933,7 +22933,7 @@ representation is valid; otherwise, return FALSE.
                     "stage_2 is not properly sized storage!");
       copy_from_node_field(&stage_2, universal.get_storage(), /*offset=*/14);
       /* Pack the fields (sort, value, index) into the 64 bit WordCategory
-         representation.  Then, decode the bit encoded value using the standard
+         representation.  Then, decode the bit-encoded value using the standard
          conversion to the universal representation for the category. */
       stage_3 = 0;
       stage_3 |= stage_0;
@@ -22969,7 +22969,7 @@ representation is valid; otherwise, return FALSE.
                     "stage_2 is not properly sized storage!");
       copy_from_node_field(&stage_2, universal.get_storage(), /*offset=*/14);
       /* Pack the fields (sort, value, index) into the 64 bit WordCategory
-         representation.  Then, decode the bit encoded value using the standard
+         representation.  Then, decode the bit-encoded value using the standard
          conversion to the universal representation for the category. */
       stage_3 = 0;
       stage_3 |= stage_0;
