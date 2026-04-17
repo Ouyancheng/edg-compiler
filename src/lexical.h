@@ -4352,7 +4352,7 @@ extern a_token_kind concat_adjacent_string_literals(
 /* Read tokens from a #embed expansion. */
 extern void insert_embed_contents(a_source_position *pos);
 /* Retrieve a character replaced in a #embed directive by a lexical escape. */
-extern a_const_char orig_char_from_embed_directive(a_const_char lex_escape);
+extern char orig_char_from_embed_directive(a_const_char lex_escape);
 /* Get next token. */
 extern a_token_kind get_token(void);
 /* Return whether a token is a keyword token. */

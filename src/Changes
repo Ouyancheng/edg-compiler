@@ -1,5 +1,14 @@
 Version 6.9
 
+4/16/26  [EDGcpfe/28799]
+Incorrect declaration of orig_char_from_embed_directive
+
+The function orig_char_from_embed_directive (lexical.h and lexical.c) was
+previously declared as returning type "a_const_char".  Because top-level
+cv-qualifiers are meaningless in function return types, the function has
+now been changed to return "char".
+
+
 4/16/26  [EDGcpfe/24619,EDGcpfe/26682,EDGcpfe/28602]
 Incorrect handling of deducibility in C++17 (and later) modes
 

@@ -11015,7 +11015,7 @@ closing '}'.  Resume normal processing of the #embed expansion.
 }  /* process_embed_data_as_bytes */
 
 
-a_const_char orig_char_from_embed_directive(a_const_char lex_escape)
+char orig_char_from_embed_directive(a_const_char lex_escape)
 /*
 Return the original character from the current #embed directive that was
 replaced by the second character of the lexical escape marking the end of a
