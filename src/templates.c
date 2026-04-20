@@ -1949,22 +1949,23 @@ checked when deduced_only is TRUE).
 }  /* template_param_used_in_type */
 
 
-static a_boolean template_param_appears_in_param_list
-				(a_symbol_ptr param_sym,
-                                 a_type_ptr   rout_type,
-                                 a_boolean    deduced_only,
-                                 uint32_t     param_count)
+static a_boolean template_param_appears_in_param_list(
+                                        a_symbol_ptr param_sym,
+                                        a_type_ptr   rout_type,
+                                        a_boolean    deduced_only,
+                                        uint32_t     param_count = UINT32_MAX)
 /*
 tparam_type is a tk_template_param type entry used in a template declaration,
 and rout_type is a routine type.  Search each of the routine's parameter types
 to see if tparam_type appears in it.  If deduced_only is TRUE, nondeduced
-contexts are excluded from the check.  If param_count is non-zero, only
-parameters 1 through param_count are checked.
+contexts are excluded from the check.  Only parameters 1 through param_count
+are checked.  If param_count is zero, no parameter is checked (the default is
+UINT32_MAX, which causes all parameters to be checked).
 */
 {
   a_boolean         found = FALSE;
   a_param_type_ptr  ptp;
-  a_boolean         use_count = param_count != 0;
+  a_boolean         use_count = param_count != UINT32_MAX;
 
   ptp = rout_type->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL && (!use_count || param_count-- >= 1); ptp = ptp->next) {
@@ -30842,8 +30843,7 @@ first declaration of the template.
          function parameter types. */
       param_used = template_param_appears_in_param_list(param_sym,
                                                         rout_type,
-                                                        /*deduced_only=*/TRUE,
-                                                        /*param_count=*/0);
+                                                        /*deduced_only=*/TRUE);
     }  /* if */
     last_param_num = tpp->param_num;
     if (is_conversion_operator && !param_used) {
