@@ -2045,7 +2045,7 @@ Set param_symbol to refer to an error value.
 
 
 void update_template_param_symbols(a_template_param_ptr  param_list,
-                                          a_template_arg_ptr    arg_list)
+                                   a_template_arg_ptr    arg_list)
 /*
 Update the symbol entries for template formal parameters to reflect the
 values to be used for a given instantiation.  This routine is called by

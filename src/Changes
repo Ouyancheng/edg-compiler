@@ -15,7 +15,7 @@ For example:
   static_assert(C<int>);  // Previously failed.  Now okay.
 
 Some cases of lambda substitution are still not handled correctly, but these
-changes make most of the more straightforward situation now work as expected.
+changes make most of the more straightforward situations now work as expected.
 
 
 4/17/26  [EDGcpfe/28494,EDGcpfe/28563]

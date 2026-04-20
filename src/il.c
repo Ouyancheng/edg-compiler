@@ -20267,11 +20267,9 @@ copy_template_param_expr for the parameter descriptions.
         an_expr_stack_entry_ptr saved_curr_expr_stack = expr_stack;
         scope_depth_before_local_reactivation = depth_scope_stack;
         reactivate_local_context(/*decl_info=*/(a_template_decl_info_ptr)NULL,
-                                 active_enclosing_scope,
-                                 /*instance_sym=*/(a_symbol_ptr)NULL,
-                                 /*assoc_type=*/(a_type_ptr)NULL,
-                                 enclosing_rp,
-                                 /*options=*/0);
+                                 active_enclosing_scope, /*instance_sym=*/NULL,
+                                 /*assoc_type=*/NULL, enclosing_rp,
+                                 PS_NO_OPTIONS);
         /* push_scope_full clears the global expression stack when it
            pushes an sck_function scope.  Since we are rescanning in an
            already-active expression context, restore it. */
