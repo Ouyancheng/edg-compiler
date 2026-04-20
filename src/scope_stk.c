@@ -2044,7 +2044,7 @@ Set param_symbol to refer to an error value.
 }  /* set_template_param_symbol_to_error */
 
 
-static void update_template_param_symbols(a_template_param_ptr  param_list,
+void update_template_param_symbols(a_template_param_ptr  param_list,
                                           a_template_arg_ptr    arg_list)
 /*
 Update the symbol entries for template formal parameters to reflect the
@@ -4682,7 +4682,6 @@ information about the parameters.
 }  /* reactivate_class_context */
 
 
-static
 void reactivate_local_context(
 			a_template_decl_info_ptr	decl_info,
 			a_scope_ptr			scope,
@@ -4709,7 +4708,16 @@ for information about the parameters.
     is_template = rp->is_template_function && !rp->is_specialized &&
                   rp->template_arg_list != NULL;
     if (is_template) {
-      parent_tdip = decl_info->enclosing_template_decl;
+      /* When no decl_info was supplied (e.g., from the lambda token rescan
+         path, which only needs to make local variables from the enclosing
+         function visible during name lookup), suppress the template
+         instantiation scope push below.  The template parameter symbols are
+         already visible from the surrounding instantiation context. */
+      if (decl_info == NULL) {
+        is_template = FALSE;
+      } else {
+        parent_tdip = decl_info->enclosing_template_decl;
+      }  /* if */
     }  /* if */
   } else {
     parent = scope->parent;
@@ -11639,7 +11647,7 @@ rescan.
   *template_param = NULL;
   begin_special_variadic_template_arg_list_traversal(
                                  templ_param_list, templ_arg_list, &tpp, &tap);
-  for (; tap != NULL;
+  for (; tap != NULL && tpp != NULL;
        special_variadic_advance_to_next_template_arg(&tpp, &tap)) {
     if (tpp->param_symbol->token_sequence_number ==
                                                   sym->token_sequence_number) {

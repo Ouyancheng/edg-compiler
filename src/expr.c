@@ -38593,8 +38593,12 @@ look_for_var:
         if (scope_is(&scope_stack[body_depth], sck_template_instantiation)) {
           ++body_depth;
         }  /* if */
-        check_assertion(body_depth <= depth_scope_stack &&
-                        scope_is(&scope_stack[body_depth], sck_function));
+        check_assertion(body_depth <= depth_scope_stack);
+        if (!scope_is(&scope_stack[body_depth], sck_function)) {
+          expect_error();
+          sd = NO_SCOPE_DEPTH;
+          goto done;
+        }  /* if */
         assoc_lambda = get_lambda_for_scope_depth(body_depth);
         if (assoc_lambda == NULL) {
           /* This is possible if we're in a scope stack entry that is a
@@ -42242,7 +42246,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
 }  /* make_initializer_for_lambda */
 
 
-static void scan_lambda_expression(an_operand  *result)
+void scan_lambda_expression(an_operand  *result)
 /*
 Scan a C++ lambda expression, e.g., something like
 

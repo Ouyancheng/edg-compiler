@@ -2352,6 +2352,14 @@ extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
 
 extern void make_class_definition_context_visible(void);
 
+extern void reactivate_local_context(
+			a_template_decl_info_ptr	decl_info,
+			a_scope_ptr			scope,
+			a_symbol_ptr			instance_sym,
+			a_type_ptr			assoc_type,
+			a_routine_ptr			assoc_routine,
+			a_push_scope_options_set	options);
+
 extern void pop_namespace_scope(void);
 
 extern void inject_tokens_in_namespace(a_token_cache  *tokens,
@@ -2419,6 +2427,9 @@ extern void push_instantiation_scope_for_templ_param_rescan(
 			    a_push_scope_options_set	ps_options);
 
 extern void pop_template_instantiation_scope(void);
+
+extern void update_template_param_symbols(a_template_param_ptr param_list,
+                                          a_template_arg_ptr   arg_list);
 
 extern void finish_function_processing_for_function_def(
                                             a_function_def_number n,

@@ -892,6 +892,8 @@ extern an_expr_node_ptr scan_boolean_controlling_expression(
 extern a_const_char *scan_uuidof_operand(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern void scan_lambda_expression(an_operand  *result);
+
 extern
 a_type_ptr scan_decltype_operator(a_rescan_control_block *rcblock,
                                   a_boolean              might_be_id_start);

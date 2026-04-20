@@ -27684,6 +27684,7 @@ Do one-time initialization of variables related to expression processing.
   register_trans_unit_variable(pending_consteval_failure);
   register_trans_unit_variable(requires_ranges);
   register_trans_unit_variable(requires_expr_substs);
+  register_trans_unit_variable(cached_lambdas);
 #if SEQUENCING_DIAGNOSTICS_ENABLED
   sequencing_diagnostics_enabled = is_effective_diagnostic(
                                                 ec_unsequenced_use_of_variable,
@@ -27716,6 +27717,7 @@ re-initialized for each translation unit.
   pending_consteval_failure.routine = NULL;
   requires_ranges = new_fe<a_requires_range_map>(/*mask_width=*/10u);
   requires_expr_substs = new_fe<a_requires_subst_map>(/*mask_width=*/8u);
+  cached_lambdas = new_fe<a_cached_lambdas_map>(/*mask_width=*/5u);
   vars_being_deduced = new_fe<Ptr_map<a_variable_ptr, a_boolean>>(
                                                             /*mask_width=*/5u);
 }  /* exprutil_trans_unit_init */

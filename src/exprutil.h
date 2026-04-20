@@ -3336,6 +3336,17 @@ EXTERN_THREAD Ptr_map<a_variable_ptr, a_boolean>
 			/* A map containing variables whose type is in the
 			   process of being deduced. */
 
+typedef Ptr_map<a_type_ptr, a_token_cache_ptr>
+		a_cached_lambdas_map;
+
+EXTERN_THREAD a_cached_lambdas_map
+		*cached_lambdas;
+			/* A map from the closure class of a lambda expression
+			   scanned in a template deduction context to the
+			   token cache that holds the tokens of the lambda.
+			   This is used to re-instantiate the lambda when the
+			   enclosing template parameters are substituted. */
+
 
 extern
 a_dynamic_init_ptr unoptimize_conditional_return(a_dynamic_init_ptr  dip,

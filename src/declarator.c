@@ -3177,9 +3177,14 @@ an error if a default argument expression is encountered.
     /* Custom name linkage kinds may presumably not affect routine types
        (i.e., calling conventions). */
     /*lint -e{587,650,685}*/
-    check_assertion(!C_mode() &&
-                    extra_info->routine_name_linkage >
-                        (a_name_linkage_kind)nlk_last_standard);
+#if CHECKING
+    if (extra_info->routine_name_linkage == nlk_none) {
+      expect_error();
+    } else {
+      check_assertion(!C_mode() &&
+                      extra_info->routine_name_linkage > nlk_last_standard);
+    }  /* if */
+#endif /* CHECKING */
     extra_info->routine_name_linkage =
                                   (a_name_linkage_kind)nlk_cplusplus_external;
   }  /* if */

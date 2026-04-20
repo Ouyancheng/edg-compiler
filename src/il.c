@@ -23,6 +23,7 @@ il.c -- Construction of intermediate language trees.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "expr.h"
 #include "exprutil.h"
 #include "folding.h"
 #include "il_walk.h"
@@ -20154,6 +20155,169 @@ TRUE.
 }  /* substituted_cast_is_valid */
 
 
+static an_expr_node_ptr copy_template_param_lambda_expr(
+                                  an_expr_node_ptr       expr,
+                                  a_template_arg_ptr     template_arg_list,
+                                  a_template_param_ptr   template_param_list,
+                                  a_source_position      *source_pos,
+                                  a_ctws_options_set     options,
+                                  a_boolean              *copy_error,
+                                  a_ctws_state_ptr       ctws_state)
+/*
+Substitute template parameters in the lambda expression expr by re-scanning
+the tokens of the lambda that were cached when the lambda was first scanned
+(see scan_lambda in class_decl.c).  This creates a new closure class and a
+new enk_lambda expression node.  Return the copied expression, or NULL if the
+copy fails (in which case *copy_error is set to TRUE).  See
+copy_template_param_expr for the parameter descriptions.
+*/
+{
+  an_expr_node_ptr    expr_copy = NULL;
+  a_lambda_ptr        lambda = expr->variant.init.source.lambda;
+  a_type_ptr          closure_class = lambda->closure_class;
+  a_token_cache_ptr   tokens;
+
+  /* First, do a preliminary substitution on the lambda's routine type so that
+     any SFINAE-able substitution failure is reported as a deduction failure
+     here rather than as a hard error during the re-scanning of the tokens. */
+  (void)copy_type_with_substitution(lambda->lambda_routine->type,
+                                    template_arg_list, template_param_list,
+                                    source_pos, options,
+                                    copy_error, ctws_state);
+  if (*copy_error) goto done;
+  tokens = cached_lambdas->get(closure_class);
+  if (tokens == NULL) {
+    /* No cached tokens were recorded for this lambda (this can happen in
+       severe error cases).  Substitution cannot proceed. */
+    subst_fail(*copy_error);
+  } else {
+    an_operand                  result_operand;
+    an_expr_stack_entry         expr_stack_entry;
+    an_expr_stack_entry_ptr     saved_expr_stack;
+    a_boolean                   pushed_template_decl_scope = FALSE;
+    a_scope_ptr                 lambda_enclosing_scope = NULL;
+    a_scope_depth               scope_depth_before_local_reactivation =
+                                                                NO_SCOPE_DEPTH;
+    /* Set up a fresh expression and lexical context so that the lambda tokens
+       can be rescanned without interfering with the surrounding state, then
+       re-parse the lambda as a full expression. */
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack(ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/TRUE);
+    expr_stack_entry.template_deduction_context = TRUE;
+    expr_stack_entry.suppress_diagnostics = TRUE;
+    expr_stack_entry.possible_rescan_context = TRUE;
+    push_lexical_state_stack();
+    if (template_param_list != NULL &&
+        template_param_list->cache.decl_info != NULL &&
+        template_param_list->param_symbol != NULL) {
+      /* Make the template parameters being substituted visible during the
+         rescan so that names that refer to them can be resolved.  The scope
+         is pushed reusing the original declaration scope number so that the
+         template parameter symbols are visible to ordinary name lookup. */
+      push_template_declaration_scope_full(
+                            template_param_list->cache.decl_info,
+                            template_param_list->param_symbol->decl_scope,
+                            /*is_template_template_param=*/FALSE,
+                            /*is_template_param_rescan=*/FALSE);
+      scope_stack_top().is_reactivation = TRUE;
+      pushed_template_decl_scope = TRUE;
+      /* Force the template parameter symbols to refer to the values
+         specified by the actual template arguments so that name
+         lookup of those parameters during the rescan returns the
+         substituted values directly (their state will be restored
+         by the enclosing instantiation scope when it is left). */
+      update_template_param_symbols(template_param_list,
+                                    template_arg_list);
+    }  /* if */
+    /* If the lambda was originally declared in a local scope (i.e., inside a
+       function body), reactivate that scope so that local variables and other
+       names declared in the enclosing function are visible to ordinary name
+       lookup during the rescan.  This mirrors the treatment of generic
+       lambdas, where the enclosing local scope is reactivated when the call
+       operator is instantiated (see the use of PS_IS_GENERIC_LAMBDA in
+       push_template_instantiation_scope).  The lambda's stored parent scope
+       is the one recorded when the lambda was originally scanned -- for a
+       lambda inside a template, that is the template's function scope, not
+       the current instantiation.  To reactivate local variables from the
+       enclosing function as they exist during this instantiation, find the
+       innermost local scope that is currently on the scope stack; that
+       is the scope for the instance of the enclosing routine that is
+       presently being processed. */
+    lambda_enclosing_scope = get_parent_scope_of(closure_class);
+    if (lambda_enclosing_scope != NULL &&
+        is_local_scope_kind(lambda_enclosing_scope->kind)) {
+      a_scope_depth d;
+      a_scope_ptr   active_enclosing_scope = NULL;
+      a_routine_ptr enclosing_rp = NULL;
+      for (d = depth_scope_stack; d != NO_SCOPE_DEPTH; d--) {
+        a_scope_stack_entry_ptr ssep = &scope_stack[d];
+        if (is_local_scope_kind(ssep->kind) && !ssep->is_reactivation &&
+            ssep->il_scope != NULL) {
+          active_enclosing_scope = ssep->il_scope;
+          if (scope_is(active_enclosing_scope, sck_function)) {
+            enclosing_rp = active_enclosing_scope->variant.routine.ptr;
+          }  /* if */
+          break;
+        }  /* if */
+        if (d == 0) break;
+      }  /* for */
+      if (active_enclosing_scope != NULL) {
+        an_expr_stack_entry_ptr saved_curr_expr_stack = expr_stack;
+        scope_depth_before_local_reactivation = depth_scope_stack;
+        reactivate_local_context(/*decl_info=*/(a_template_decl_info_ptr)NULL,
+                                 active_enclosing_scope,
+                                 /*instance_sym=*/(a_symbol_ptr)NULL,
+                                 /*assoc_type=*/(a_type_ptr)NULL,
+                                 enclosing_rp,
+                                 /*options=*/0);
+        /* push_scope_full clears the global expression stack when it
+           pushes an sck_function scope.  Since we are rescanning in an
+           already-active expression context, restore it. */
+        expr_stack = saved_curr_expr_stack;
+      }  /* if */
+    }  /* if */
+    rescan_persistent_reusable_cache(tokens);
+    scan_lambda_expression(&result_operand);
+    if (is_immediate_class_type(result_operand.type) &&
+        is_lambda_closure_type(result_operand.type)) {
+      /* FIXME: Pushing a template declaration scope above (to reactivate the
+         template parameters) unfortunately causes make_closure_class to mark
+         the closure as nonreal.  In some situations with class template
+         argument deduction, we get a spuriously nonreal class even when we
+         didn't push the template declaration scope above.  For now, just
+         reset the flag here. */
+      result_operand.type->variant.class_struct_union.is_nonreal_class = FALSE;
+    }  /* if */
+    flush_past_token_cache_terminator();
+    if (scope_depth_before_local_reactivation != NO_SCOPE_DEPTH) {
+      /* Pop the reactivation scopes that were pushed above. */
+      while (depth_scope_stack > scope_depth_before_local_reactivation) {
+        pop_scope();
+      }  /* while */
+    }  /* if */
+    if (pushed_template_decl_scope) {
+      pop_scope();
+    }  /* if */
+    pop_lexical_state_stack();
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
+    if (is_error_operand(&result_operand)) {
+      subst_fail(*copy_error);
+    } else {
+      expr_copy = expr_node_from_operand(&result_operand);
+      if (expr_copy == NULL || !node_is(expr_copy, enk_lambda)) {
+        /* The re-scanned lambda is malformed. */
+        subst_fail(*copy_error);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+done:
+  return expr_copy;
+}  /* copy_template_param_lambda_expr */
+
+
 an_expr_node_ptr copy_template_param_expr(
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
@@ -20754,6 +20918,12 @@ options is a set of substitution options.
       }  /* if */
       break;
     case enk_lambda:
+      expr_copy = copy_template_param_lambda_expr(expr,
+                                                  template_arg_list,
+                                                  template_param_list,
+                                                  source_pos, options,
+                                                  copy_error, ctws_state);
+      break;
     case enk_error:
       subst_fail(*copy_error);
       break;

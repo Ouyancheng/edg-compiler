@@ -2746,7 +2746,8 @@ the fields implied by the lambda's capture list).
   }  /* if */
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
-  if (is_template_dependent_context()) {
+  if (is_template_dependent_context() &&
+      !scope_stack_top().is_rescan) {
     /* If the lambda appears in a template-dependent context, mark it as a
        nonreal class.  (Local classes in such contexts are marked as
        nonreal but not as prototype instantiations.  However, their
@@ -35403,13 +35404,16 @@ to generate_lambda_conversion_functions_if_needed.
 }  /* define_lambda_conversion_functions_if_needed */
 
 
-static void scan_lambda_body(a_lambda_ptr       lambda,
-                             a_func_info_block  *func_info)
+static void scan_lambda_body(a_lambda_ptr             lambda,
+                             a_func_info_block        *func_info,
+                             a_token_sequence_number  *p_rbrace_tsn)
 /*
 Scan the body of the given lambda (except in some error cases).  If no body is
 found, set lambda->lambda_routine to NULL.  *func_info describes some
 properties of the call operator with which the lambda body is associated.
-The heavy lifting for this routine is performed by scan_function_body.
+This function sets *p_rbrace_tsn to the token sequence number of the closing
+right brace of the body.  The heavy lifting for this routine is performed by
+scan_function_body.
 */
 {
   if (lambda->lambda_routine != NULL) {
@@ -35436,6 +35440,7 @@ The heavy lifting for this routine is performed by scan_function_body.
       /* Don't use required_token, because if we aren't at a brace, an error
          has already been issued, and we are at the token to restart parsing
          with. */
+      *p_rbrace_tsn = last_token_sequence_number_of_token;
       (void)get_token();
     }  /* if */
     remove_stop_token(tok_rbrace);
@@ -35547,6 +35552,11 @@ For example:
   a_boolean            bad_scope;
   a_def_arg_expr_fixup_ptr
                        saved_curr_default_args = curr_default_args;
+  a_boolean            cache_lambda_tokens =
+                               scope_stack_top().in_template_deduction_context;
+  a_token_sequence_number
+                       first_tsn = NO_TOKEN_SEQUENCE_NUMBER,
+                       last_tsn = NO_TOKEN_SEQUENCE_NUMBER;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean            saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -35568,6 +35578,13 @@ For example:
   /* Start a new stop token context. */
   push_stop_token_stack();
   check_assertion(curr_token == tok_lbracket);
+  if (cache_lambda_tokens) {
+    /* The lambda appears in a template deduction context.  Cache the tokens
+       of the lambda starting with the "[" so that the lambda can be re-scanned
+       when the enclosing template parameters are later substituted. */
+    first_tsn = curr_token_sequence_number;
+    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+  }  /* if */
   lambda->start_position = pos_curr_token;
   report_gnu_cpp11_extension_if_needed(&pos_curr_token, ec_lambdas_is_cpp11);
   /* Initialize the closure class and set up a context in which members
@@ -35621,12 +35638,13 @@ For example:
     function_prototype_instantiation(sym);
     /* The terminating right brace is not cached when the template body is
        cached. */
+    last_tsn = curr_token_sequence_number;
     (void)required_token(tok_rbrace, ec_exp_rbrace);
     free_auto_param_descriptions(&decl_info.decl_state);
   } else {
     /* Ordinary (non-generic) lambda: Scan the lambda body and, if needed,
        generate a lambda conversion function. */
-    scan_lambda_body(lambda, &func_info);
+    scan_lambda_body(lambda, &func_info, &last_tsn);
   }  /* if */
   { /* Generate conversion functions and special member functions. */
     a_generated_special_function_descr  gsfd;
@@ -35668,6 +35686,21 @@ For example:
   scope_stack_top().source_sequence_entries_disallowed 
                                     = saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (cache_lambda_tokens) {
+    /* End the caching of tokens for the lambda and save the cached tokens
+       so that the lambda can be re-scanned during template substitution.
+       See the handling of enk_lambda in copy_template_param_expr. */
+    end_caching_fetched_tokens();
+    if (lambda != NULL && closure_class != NULL &&
+        last_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
+      a_token_cache_ptr  cache = new_fe<a_token_cache>(/*reusable=*/TRUE);
+      copy_tokens_from_cache(curr_lexical_state_cache(),
+                             first_tsn, last_tsn, /*include_last_token=*/TRUE,
+                             cache);
+      terminate_token_cache(cache);
+      cached_lambdas->map_or_replace(closure_class, cache);
+    }  /* if */
+  }  /* if */
   return lambda;
 }  /* scan_lambda */
 
