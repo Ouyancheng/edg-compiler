@@ -16687,14 +16687,14 @@ return type be examined? what about its parameters?).
                (type_ptr->variant.class_struct_union.is_nonreal_class ||
                 is_cli_type_to_treat_as_nonreal(type_ptr)))) {
             /* Traverse the template argument list, if present. */
-            a_template_arg_ptr	tap;
+            a_template_arg_ptr	      tap;
             a_template_parameter_ptr  tpp = NULL;
             tap = class_type_supp(type_ptr)->template_arg_list;
             if (class_type_supp(type_ptr)->assoc_template != NULL &&
                 class_type_supp(type_ptr)->assoc_template->template_decl !=
                                                                        NULL) {
               tpp = class_type_supp(type_ptr)->assoc_template
-                                              ->template_decl->param_list;
+                                             ->template_decl->param_list;
             }  /* if */
             if (tap != NULL) {
               status = traverse_template_args(tap, tpp, func, pofunc, flags);
