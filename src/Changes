@@ -62,7 +62,7 @@ Consider:
 
 The parameter type X<T::x> of function template f is "not deducible", and so
 T should be deduced from the other parameter (of deducible type W<T>).
-However, in C++17 mode, the front failed to mark the first parameter as not
+However, in C++17 mode, the front end failed to mark the first parameter as not
 deducible and when attempting deduction on it for the call f(1, w) then failed
 deduction altogether.  This issue also affected partial specialization (which
 is based on deduction).  For example:
