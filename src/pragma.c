@@ -541,17 +541,18 @@ a_shared_pending_pragma add_curr_token_pseudo_pragma(a_pragma_kind     kind,
                                                      a_source_position *pos)
 /*
 This routine is used to create pragma entries for things like lint comments
-that are treated as "pseudo pragmas" by the front end (although this
-routine can actually be used to create any kind of pragma entry).  A
-pending pragma is created and added to the current token pragma list.
-The pragma entry is returned to the caller so that the pragma-specific
-information can be updated, if necessary.
+that are treated as "pseudo pragmas" by the front end.  A pending pragma is
+created and added to the current token pragma list.  The pragma entry is
+returned to the caller so that the pragma-specific information can be updated,
+if necessary.
 */
 {
   a_pragma_kind_description_ptr pkdp =
                                  pragma_description_for_pragma_kind[(int)kind];
   a_shared_pending_pragma       spp = shared_obj<a_pending_pragma>(pkdp);
 
+  /* Ensure the pragma description is a pseudo-pragma description. */
+  check_assertion(pkdp->is_pseudo_pragma);
   /* We don't have two positions for pseudo pragmas.  Use the same
      position for both the ID and the start of the directive. */
   spp->id_position = *pos;

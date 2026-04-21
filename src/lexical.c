@@ -28356,10 +28356,16 @@ encountered, whatever their other characteristics, are included.
         put_ch_to_temp_text_buffer('"');
       }  /* if */
       put_str_to_temp_text_buffer(pragma_ids[(int)ppp->descr_ptr->kind]);
-      check_assertion(ppp->token_cache.ptr() != NULL);
-      if (!ppp->token_cache->is_empty()) {
-        /* Add the tokens from the pragma token cache to the string. */
-        add_token_cache_to_string(ppp->token_cache.ptr());
+      if (is_pseudo_pragma) {
+        /* Do nothing for pseudo pragmas; they should have no token cache. */
+        check_assertion(ppp->token_cache.ptr() == NULL);
+      } else {
+        /* Otherwise, there should always be a token cache. */
+        check_assertion(ppp->token_cache.ptr() != NULL);
+        if (!ppp->token_cache->is_empty()) {
+          /* Add the tokens from the pragma token cache to the string. */
+          add_token_cache_to_string(ppp->token_cache.ptr());
+        }  /* if */
       }  /* if */
       if (ppp->is_function_style_pragma &&
           !ppp->is_microsoft_pragma_operator) {
