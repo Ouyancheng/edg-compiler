@@ -4,7 +4,7 @@ Version 6.9
           EDGcpfe/26243,EDGcpfe/26272,EDGcpfe/26528,EDGcpfe/26725,
           EDGcpfe/27660,EDGcpfe/27779,EDGcpfe/27879,EDGcpfe/28262,
           EDGcpfe/28391,EDGcpfe/28486,EDGcpfe/28767,EDGcpfe/28788]
-Copy and substituting lambda expressions
+Copying and substituting lambda expressions
 
 The front end was previously unable to copy and substitute lambda expressions.
 This caused any case requiring substitution of a lambda expression to fail.
