@@ -3856,8 +3856,7 @@ have_level:;
           conptr = &arg_operand->variant.constant;
         } else if (is_expression_operand(arg_operand) &&
                    is_a_prvalue(arg_operand) &&
-                   !operand_is_instantiation_dependent(
-                                        arg_operand, /*exclude_this=*/TRUE) &&
+                   !operand_is_instantiation_dependent(arg_operand) &&
                    constant_prvalue_pointer(arg_operand->variant.expression,
                                             con, /*address_escapes=*/FALSE)) {
           conptr = con;
@@ -10621,7 +10620,7 @@ Return TRUE if the given component is instantiation-dependent.
 
   if (is_expression_component(alep)) {
     an_operand  *opnd = operand_of_arg_list_elem(alep);
-    if (operand_is_instantiation_dependent(opnd, /*exclude_this=*/TRUE)) {
+    if (operand_is_instantiation_dependent(opnd)) {
       is_dependent = TRUE;
     } else if (is_constant_operand(opnd)) {
       if (constant_is(&opnd->variant.constant, ck_template_param)) {
@@ -19091,16 +19090,13 @@ like sizeof(sizeof(T)) is instantiation-dependent but not type-dependent).
         !tp1->variant.class_struct_union.is_nonreal_class) {
       result = operand_is_dependent(opnd2);
     } else {
-      result = operand_is_instantiation_dependent(opnd1,
-                                                  /*exclude_this=*/FALSE) ||
-               operand_is_instantiation_dependent(opnd2,
-                                                  /*exclude_this=*/FALSE);
+      result = operand_is_instantiation_dependent(opnd1) ||
+               operand_is_instantiation_dependent(opnd2);
     }  /* if */
   } else if (opname_kind == onk_and_and || opname_kind == onk_or_or) {
     /* Don't prevent short-circuiting if the second operand is instantiation-
        dependent but not type-dependent. */
-    result = operand_is_instantiation_dependent(
-                                             opnd1, /*exclude_this=*/FALSE) ||
+    result = operand_is_instantiation_dependent(opnd1) ||
              (!unary_op && operand_is_dependent(opnd2));
   } else {
     a_type  *tp1 = skip_typerefs(opnd1->type),
@@ -19112,10 +19108,8 @@ like sizeof(sizeof(T)) is instantiation-dependent but not type-dependent).
          tp2->variant.class_struct_union.is_nonreal_class)) {
       result = TRUE;
     } else {
-      result = operand_is_instantiation_dependent(opnd1,
-                                                  /*exclude_this=*/FALSE) ||
-               (!unary_op && operand_is_instantiation_dependent(
-                                              opnd2, /*exclude_this=*/FALSE));
+      result = operand_is_instantiation_dependent(opnd1) ||
+               (!unary_op && operand_is_instantiation_dependent(opnd2));
     }  /* if */
   }  /* if */
   return result;
@@ -23042,8 +23036,7 @@ is_transparent.  conv_context describes the context of the conversion.
                                            dest_type,
                                            &err_code) &&
           (constant_src ||
-           !operand_is_instantiation_dependent(source_operand,
-                                               /*exclude_this=*/FALSE))) {
+           !operand_is_instantiation_dependent(source_operand))) {
         if (expr_diagnostic_should_be_issued(es_discretionary_error,
                                              err_code, err_pos)) {
           an_error_severity  sev = es_discretionary_error;
@@ -25036,8 +25029,7 @@ appropriate.
   a_boolean  invalid = FALSE;
 
   if (is_expression_operand(source_operand) &&
-      !operand_is_instantiation_dependent(source_operand,
-                                          /*exclude_this=*/FALSE)) {
+      !operand_is_instantiation_dependent(source_operand)) {
     an_expr_node_ptr  expr;
     if (generalized_nontype_arguments &&
         expr_interpret_expression_operand(source_operand,
@@ -26183,8 +26175,7 @@ initialization processing.
   }  /* if */
   is_narrowing = is_narrowing_conversion(source_type, con, dest_type,
                                          check_enum_target, &err_code) &&
-                 !operand_is_instantiation_dependent(
-                                      source_operand, /*exclude_this=*/FALSE);
+                 !operand_is_instantiation_dependent(source_operand);
   if (free_local_constant) {
     release_local_constant(&con);
   }  /* if */
@@ -28791,8 +28782,7 @@ if so.
                                                   param_type,
                                                   (an_error_code *)NULL) &&
           (source_is_constant ||
-           !operand_is_instantiation_dependent(
-                                          operand, /*exclude_this=*/FALSE))) {
+           !operand_is_instantiation_dependent(operand))) {
         compatible = FALSE;
       }  /* if */
       if (free_local_con) {

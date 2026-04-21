@@ -115,24 +115,19 @@ Return TRUE if we are currently inside an expression context.
 }  /* in_expression_context */
 
 
-a_boolean operand_is_instantiation_dependent(an_operand_ptr  operand,
-                                             a_boolean       exclude_this)
+a_boolean operand_is_instantiation_dependent(an_operand_ptr  operand)
 /*
 Return TRUE if the given operand is instantiation-dependent, which normally
 includes type-dependent cases, value-dependent cases, and cases where a
 template parameter appears somewhere in a subexpression but doesn't make the
-overall result dependent in the other senses.  If exclude_this is TRUE,
-the "this" parameter is never considered "instantiation dependent" (i.e.,
-it is treated as a reference to the "current instantiation", and members of
-the "current instantiation" are not necessarily dependent).
+overall result dependent in the other senses.
 */
 {
   a_boolean      contains_template_param = FALSE;
   a_constant_ptr con;
 
   if (is_expression_operand(operand) &&
-      expr_is_instantiation_dependent(operand->variant.expression,
-                                      exclude_this)) {
+      expr_is_instantiation_dependent(operand->variant.expression)) {
     contains_template_param = TRUE;
   } else if (is_constant_operand(operand) &&
              constant_is_instantiation_dependent(&operand->variant.constant)) {
@@ -164,7 +159,7 @@ Return TRUE if the given arg_operand is instantiation-dependent.
 {
   a_boolean contains_template_param =
                      operand_is_instantiation_dependent(
-                                &arg_operand->operand, /*exclude_this=*/TRUE);
+                                                       &arg_operand->operand);
 
   return contains_template_param;
 }  /* arg_operand_is_instantiation_dependent */
@@ -182,7 +177,7 @@ dependent operand.
     for (; alep != NULL; alep = next_elem(alep)) {
       if (is_expression_component(alep)) {
         an_operand  *opnd = operand_of_arg_list_elem(alep);
-        if (operand_is_instantiation_dependent(opnd, /*exclude_this=*/TRUE)) {
+        if (operand_is_instantiation_dependent(opnd)) {
           result = TRUE;
           break;
         }  /* if */
@@ -9674,7 +9669,7 @@ qualified_name_check:
     an_operand  opnd2;
     clear_operand(ok_error, &opnd2);
     scan_expr_splicer((a_rescan_control_block*)NULL, &opnd2);
-    if (operand_is_instantiation_dependent(&opnd2, /*exclude_this=*/FALSE)) {
+    if (operand_is_instantiation_dependent(&opnd2)) {
       *splicer = make_node_from_operand(&opnd2);
     } else if (is_sym_for_member_operand(&opnd2)) {
       make_locator_for_symbol(opnd2.symbol, locator);
@@ -14547,7 +14542,7 @@ scanned sizeof or __datasizeof expression, and return the result in *result
     orig_sizeof_type = operand.type;
     sizeof_type = orig_sizeof_type;
     type_position = operand.position;
-    if (operand_is_instantiation_dependent(&operand, /*exclude_this=*/FALSE)) {
+    if (operand_is_instantiation_dependent(&operand)) {
       template_case = TRUE;
     }  /* if */
   }  /* if */
@@ -15045,7 +15040,7 @@ standard headers (e.g., to implement <stdarg.h>).
                                         &start_position, &is_error,
                                         &template_case);
   if (!is_type && !template_case && is_template_dependent_context() &&
-      operand_is_instantiation_dependent(&operand, /*exclude_this=*/FALSE)) {
+      operand_is_instantiation_dependent(&operand)) {
     template_case = TRUE;
   }  /* if */
   /* The result of alignof (or __ALIGNOF__, etc.) is an integer indicating the
@@ -17587,8 +17582,7 @@ id_case:
       goto general_case;
     }  /* if */
   } else if (microsoft_mode && expr != NULL && expr->is_lvalue &&
-             is_uuidof_expr(expr) &&
-             !expr_is_instantiation_dependent(expr, /*exclude_this=*/TRUE)) {
+             is_uuidof_expr(expr) && !expr_is_instantiation_dependent(expr)) {
     /* Although __uuidof(expr) produces an lvalue result, MSVC produces its
        expression type (_GUID const) as the decltype result instead of a
        reference type as would be expected. */
@@ -17641,8 +17635,7 @@ general_case:
                 !is_indefinite_function_operand(operand))) {
       /* For an lvalue, the returned type is an lvalue reference to the
          expression type. */
-      if (operand_is_instantiation_dependent(
-                                           operand, /*exclude_this=*/FALSE)) {
+      if (operand_is_instantiation_dependent(operand)) {
         /* Use a completely unknown type when a reference type would be
            created over an instantiation-dependent type, to avoid problems 
            with stripping the decltype when doing a type_pointed_to on the 
@@ -17654,8 +17647,7 @@ general_case:
     } else if (is_an_xvalue(operand)) {
       /* For an xvalue, the returned type is an rvalue reference to the
          expression type. */
-      if (operand_is_instantiation_dependent(
-                                           operand, /*exclude_this=*/FALSE)) {
+      if (operand_is_instantiation_dependent(operand)) {
         /* Use a completely unknown type when a reference type would be
            created over an instantiation-dependent type, to avoid problems 
            with stripping the decltype when doing a type_pointed_to on the 
@@ -17874,7 +17866,7 @@ name.  We do not advance to the token after the decltype in this case.
     tp->variant.typeref.kind = trk_is_decltype;
     tp->variant.typeref.decltype_expr_not_parenthesized = no_parens_matters;
     if (is_template_dependent_context() &&
-        (operand_is_instantiation_dependent(&operand, /*exclude_this=*/TRUE) ||
+        (operand_is_instantiation_dependent(&operand) ||
          utp == type_of_unknown_templ_param_nontype)) {
       tp->variant.typeref.is_dependent_type_operator = TRUE;
       prep_generic_operand(&operand);
@@ -18075,8 +18067,7 @@ This routine can be called from outside of the expression-processing routines.
   }  /* if */
   if (is_error_type(operand.type)) {
     err = TRUE;
-  } else if (operand_is_instantiation_dependent(
-                                           &operand, /*exclude_this=*/TRUE)) {
+  } else if (operand_is_instantiation_dependent(&operand)) {
     result.kind = iek_type;
     result.ptr = (char*)type_of_unknown_templ_param_nontype;
   } else if (!is_reflection_type(operand.type)) {
@@ -18153,7 +18144,7 @@ This routine can be called from outside of the expression-processing routines.
       /* Check for cases where the result type is not dependent but the
          expression is instantiation-dependent. */
       if (is_template_dependent_context() &&
-          expr_is_instantiation_dependent(expr, /*exclude_this=*/TRUE)) {
+          expr_is_instantiation_dependent(expr)) {
         tp->variant.typeref.is_dependent_type_operator = TRUE;
       }  /* if */
     }  /* if */
@@ -18723,7 +18714,7 @@ the expression-processing routines.
         /* Check for cases where the result type is not dependent but the
            expression is instantiation-dependent. */
         if (is_template_dependent_context() &&
-            expr_is_instantiation_dependent(expr, /*exclude_this=*/TRUE)) {
+            expr_is_instantiation_dependent(expr)) {
           typeof_type->variant.typeref.is_dependent_type_operator = TRUE;
         }  /* if */
       }  /* if */
@@ -19670,8 +19661,7 @@ previously-scanned noexcept expression, and return the result in
   operand_expr = make_node_from_operand(&operand);
   operand_expr = wrap_up_full_expression(operand_expr);
   dependent_case = (is_template_dependent_context() &&
-                    expr_is_instantiation_dependent(
-                                        operand_expr, /*exclude_this=*/TRUE));
+                    expr_is_instantiation_dependent(operand_expr));
   if (dependent_case) {
     /* The result value is dependent, or at least it needs to be reanalyzed
        on a rescan.  The result is a template-dependent constant. */
@@ -20839,7 +20829,7 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
           extract_reflected_entity(&refl_cp->variant.reflection);
           if (con != NULL) release_local_constant(&con);
         }  /* if */
-        if (operand_is_instantiation_dependent(&opnd, /*exclude_this=*/TRUE)) {
+        if (operand_is_instantiation_dependent(&opnd)) {
           is_dependent = TRUE;
         }  /* if */
       }  /* if */
@@ -21216,7 +21206,7 @@ call to cast_type_pre_check.)
       !is_array_type(cast_type) && !is_template_dependent_type(cast_type) &&
       !microsoft_mode && !gpp_version_is(<110000) &&
       !((gpp_mode || clang_mode) &&
-        operand_is_instantiation_dependent(operand, /*exclude_this=*/TRUE))) {
+        operand_is_instantiation_dependent(operand))) {
     expr_issue_incomplete_type_diag(diag_pos, cast_type);
     make_error_operand(operand);
   }  /* if */
@@ -30772,8 +30762,7 @@ non_ctor_case_after_expr_scan:
       } else if (is_template_dependent_context() &&
                  ((is_template_dependent_type(type_cast_to) &&
                    !is_auto_cast) ||
-                  operand_is_instantiation_dependent(
-                                            result, /*exclude_this=*/TRUE))) {
+                  operand_is_instantiation_dependent(result))) {
         if (result->bound_function) {
           /* Make sure the bound function is handled now and not returned to
              the caller. */
@@ -34695,8 +34684,7 @@ and whether the operator appears at the top level of a requires clause.
       do_binary_operation(op, operand_1, &operand_2, result_type, result,
                           &operator_position, operator_tok_seq_number);
       if (is_expression_operand(result) && is_template_dependent_context() &&
-          operand_is_instantiation_dependent(
-                                        &operand_2, /*exclude_this=*/TRUE)) {
+          operand_is_instantiation_dependent(&operand_2)) {
         /* In template-dependent contexts, something like "0 && F(x)", where
            F is a nontype template parameter, will not have been folded here.
            However, downstream components may attempt to fold the operation
@@ -40563,8 +40551,7 @@ type_identifier_case:
                      is_alias_in_template_decl_context() ||
                      (scope_stack_top().in_nonreal_instantiation &&
                       !scope_stack_top().is_rescan)) &&
-                    expr_is_instantiation_dependent(
-                                              node, /*exclude_this=*/FALSE)) {
+                    expr_is_instantiation_dependent(node)) {
                   if (is_at_least_one_error() &&
                       template_arg_list_involves_error_entity(tap)) {
                     make_error_operand(result);
@@ -40821,8 +40808,7 @@ FIXME: This is currently incomplete.
   pop_expr_stack();
   if (is_error_operand(&opnd) || is_error_type(opnd.type)) {
     make_error_operand(result);
-  } else if (operand_is_instantiation_dependent(
-                                              &opnd, /*exclude_this=*/TRUE)) {
+  } else if (operand_is_instantiation_dependent(&opnd)) {
     an_expr_node  *refl = make_node_from_operand(&opnd),
                   *splice = make_operator_node(
                        eok_splice, type_of_unknown_templ_param_nontype, refl);
@@ -45321,8 +45307,7 @@ should not be considered.
     if (constexpr_enabled && is_expression_operand(operand)) {
       a_boolean  template_context = is_template_dependent_context();
       a_boolean  dependent_opnd = template_context &&
-                                  operand_is_instantiation_dependent(
-                                             operand, /*exclude_this=*/FALSE);
+                                  operand_is_instantiation_dependent(operand);
       if (dependent_opnd) {
         /* Assume we'll be able to fold the operand after substitution. */
         make_template_param_constant_from_operand(operand, result_con,
@@ -45502,7 +45487,7 @@ be recorded that the final comparison was 5 == 4.
                 scope_stack_top().alias_in_template_decl ||
                (scope_stack_top().in_nonreal_instantiation &&
                  !scope_stack_top().is_rescan)) &&
-               expr_is_instantiation_dependent(expr, /*exclude_this=*/FALSE)) {
+               expr_is_instantiation_dependent(expr)) {
       make_template_param_expr_constant(expr, constant);
       discard_more_info_list(diag_list);
       if (expr_stack->possible_rescan_context) {
@@ -51427,7 +51412,7 @@ expression context.  Return either *is_constant TRUE and a constant value in
     }  /* if */
   }  /* if */
   if (is_expression_operand(&result) && !expr_stack->possible_rescan_context &&
-      operand_is_instantiation_dependent(&result, /*exclude_this=*/FALSE)) {
+      operand_is_instantiation_dependent(&result)) {
     make_template_param_expr_constant_operand(&result);
   }  /* if */
   /* Return a constant or expression depending on what was scanned. */

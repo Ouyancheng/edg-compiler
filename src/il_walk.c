@@ -2887,7 +2887,6 @@ default values.
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
   tblock->seq_pt_var_list = NULL;
   tblock->end_of_full_expr = FALSE;
-  tblock->this_can_be_instantiation_dependent = FALSE;
 }  /* clear_expr_or_stmt_traversal_block */
 
 

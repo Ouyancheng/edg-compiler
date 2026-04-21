@@ -17160,7 +17160,7 @@ constant; otherwise, return NULL.
         /* Check for a dependent expression that might be a constant in an
            instantiation. */
         expr = init->dynamic->variant.expression;
-        if (expr_is_instantiation_dependent(expr, /*exclude_this=*/FALSE) &&
+        if (expr_is_instantiation_dependent(expr) &&
             !has_statement_expression(expr) &&
             init->dynamic->init_expr_lifetime == NULL) {
           /* Use the expression as a template parameter constant. */
@@ -21421,7 +21421,7 @@ instantiation dependent, set *p_template_case to TRUE.
        we can detect any possible errors anyway. */
     if (is_template_dependent_context() &&
         (expr != NULL ?
-           expr_is_instantiation_dependent(expr, /*exclude_this=*/FALSE) :
+           expr_is_instantiation_dependent(expr) :
            is_instantiation_dependent_type(alignof_type))) {
       template_case = TRUE;
     }  /* if */
@@ -21749,8 +21749,7 @@ and source_pos are forwarded from copy_template_param_con.
         if (rcblock.error_detected) {
           subst_fail(*copy_error);
         } else if (new_expr != NULL) {
-          if (!expr_is_instantiation_dependent(new_expr,
-                                               /*exclude_this=*/TRUE)) {
+          if (!expr_is_instantiation_dependent(new_expr)) {
             refl_cp->type = reflection_type();
           }  /* if */
           rvp->entity.ptr = (char*)new_expr;
@@ -22413,8 +22412,7 @@ lookup options.
           make_template_param_expr_constant(expr_copy, constant);
         } else if (!fold_expr(expr_copy, constant)) {
           if (!(options & CTWS_NON_CONSTANT_EXPR) &&
-              !expr_is_instantiation_dependent(
-                                         expr_copy, /*exclude_this=*/FALSE)) {
+              !expr_is_instantiation_dependent(expr_copy)) {
             /* If we are in a context requiring a constant result and the
                substituted expression does not fold to a constant, the
                substitution effectively fails. */
@@ -26607,11 +26605,7 @@ instantiation-dependent.
     /* Treat local variables of function templates as "instantiation
        dependent". */
     a_variable  *vp = node_variable(expr);
-    if (0 && vp->is_this_parameter) {
-      /* The "this" parameter refers to the current instantiation and should
-         not be treated as instantiation-dependent. */
-      skip_typecheck = TRUE;
-    } else if (vp->is_nonreal) {
+    if (vp->is_nonreal) {
       tblock->result = TRUE;
       tblock->terminate = TRUE;
     } else {
@@ -26650,16 +26644,12 @@ indirectly by expr_is_instantiation_dependent.
 }  /* examine_dyn_init_for_instantiation_dependence */
 
 
-a_boolean expr_is_instantiation_dependent(an_expr_node_ptr expr,
-                                          a_boolean        exclude_this)
+a_boolean expr_is_instantiation_dependent(an_expr_node_ptr expr)
 /*
 Return TRUE if expr is instantiation-dependent.  This normally includes type-
 dependent and value-dependent cases, and also cases where a template parameter
 appears in a subexpression but the result is neither type-dependent or value-
-dependent (e.g. "sizeof(sizeof(T))").  If exclude_this is TRUE, the "this"
-parameter is never considered "instantiation dependent" (i.e., it is treated
-as a reference to the "current instantiation", and members of the "current
-instantiation" are not necessarily dependent). 
+dependent (e.g. "sizeof(sizeof(T))").
 */
 {
   a_boolean result = FALSE;
@@ -26675,7 +26665,6 @@ instantiation" are not necessarily dependent).
     tblock.process_type = examine_type_for_instantiation_dependence;
     tblock.process_non_dynamic_constants = TRUE;
     tblock.skip_expr_process_type = TRUE;
-    tblock.this_can_be_instantiation_dependent = !exclude_this;
     traverse_expr(expr, &tblock);
     result = tblock.result;
   }  /* if */
@@ -31925,8 +31914,7 @@ have the is_lvalue/is_xvalue flags set incorrectly; return TRUE otherwise.
         if (!il_header.il_has_C_semantics &&
             node_operator_is(node, eok_cast) &&
             (is_void_type(node->type) ||
-             expr_is_instantiation_dependent(operand_1,
-                                             /*exclude_this=*/FALSE))) {
+             expr_is_instantiation_dependent(operand_1))) {
           /* In C++, a cast to void can have a glvalue operand.  Furthermore,
              the value category of an instantiation-dependent expression is
              unreliable. */

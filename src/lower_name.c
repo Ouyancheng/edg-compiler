@@ -2733,8 +2733,7 @@ the original expression may have additional flags that might affect mangling
       (!emulate_gnu_abi_bugs || gnu_version >= 40000) &&
 #endif /* IA64_ABI */
       (expr == NULL ? !is_instantiation_dependent_type(type) :
-                      !expr_is_instantiation_dependent(
-                                              expr, /*exclude_this=*/TRUE))) {
+                      !expr_is_instantiation_dependent(expr))) {
     /* For a sizeof/alignof whose argument is not dependent, use a literal
        representation of the value rather than the mangled encoding for
        sizeof/alignof.  Often this substitution has already been made by

@@ -26992,7 +26992,7 @@ the value representation of the integer value.
     case enk_requires:
       { a_subst_pairs_array  no_subst_pairs;
         if (is_template_dependent_context() && !scope_stack_top().is_rescan &&
-            expr_is_instantiation_dependent(expr, /*exclude_this=*/FALSE)) {
+            expr_is_instantiation_dependent(expr)) {
           /* We may get here when evaluating constant-expressions in dependent
              contexts.  Calling requires_expr_satisfied on a dependent
              requires expression can trigger a hard error and should thus not

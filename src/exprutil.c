@@ -6441,8 +6441,7 @@ the given operand to a prvalue (without updating the original expression tree).
               scope_stack_top().alias_in_template_decl ||
               (scope_stack_top().in_nonreal_instantiation &&
                !scope_stack_top().is_rescan)) &&
-               operand_is_instantiation_dependent(operand,
-                                                  /*exclude_this=*/FALSE)) {
+               operand_is_instantiation_dependent(operand)) {
     /* In template-dependent contexts, assume the expression might become
        constant after instantiation. */
     make_template_param_expr_constant_operand(operand);
@@ -6766,8 +6765,7 @@ Extract the constant value from the operand *operand and place it in
                     scope_stack_top().alias_in_template_decl ||
                    (scope_stack_top().in_nonreal_instantiation &&
                      !scope_stack_top().is_rescan)) &&
-                   operand_is_instantiation_dependent(
-                                           operand, /*exclude_this=*/FALSE)) {
+                   operand_is_instantiation_dependent(operand)) {
           make_template_param_constant_from_operand(operand, constant,
                                                     (a_type_ptr)NULL);
         } else {
@@ -6902,8 +6900,7 @@ details of why folding failed.  Return TRUE if an error was issued.
          await a real instantiation. */
       if (operand != NULL) {
         if (scope_stack_top().is_rescan &&
-            !operand_is_instantiation_dependent(
-                                           operand, /*exclude_this=*/FALSE)) {
+            !operand_is_instantiation_dependent(operand)) {
           /* In a SFINAE context is_template_dependent_context() is TRUE, but
              the rescan may be "real".  In such situations, don't force the
              representation into a constant if folding failed. */
@@ -7117,7 +7114,7 @@ the call target).
         make_expression_operand(temp_node, result);
       }  /* if */
     } else if (is_consteval) {
-      if (expr_is_instantiation_dependent(call_expr, /*exclude_this=*/FALSE)) {
+      if (expr_is_instantiation_dependent(call_expr)) {
         make_expression_operand(call_expr, result);
         make_template_param_expr_constant_operand(result);
       } else if (expr_stack != NULL &&
@@ -19599,8 +19596,7 @@ set to reflect whether the call was folded or not.
             is_foldable_gnu_builtin_function(rp, (a_boolean *)NULL)) {
           /* Some __builtin_xxx functions act as constant-expressions. */
           if (!is_prototype_instantiation_context() ||
-              !operand_is_instantiation_dependent(
-                                            result, /*exclude_this=*/FALSE)) {
+              !operand_is_instantiation_dependent(result)) {
             call_folded_to_constant = fold_gnu_call_if_possible(
                                                   result, function_call_node);
           } else {
@@ -22298,7 +22294,7 @@ it might produce an error).
         case eok_points_to_static:
           /* Static field selection operator.  Apply the transformation to the
              second operand, unless the first operand is template-dependent. */
-          if (expr_is_instantiation_dependent(op1, /*exclude_this=*/FALSE)) {
+          if (expr_is_instantiation_dependent(op1)) {
             /* Wait until substitution to perform the transformation. */
             simple_glvalue_to_prvalue(op2, prvalue_node_type);
             simple_glvalue_to_prvalue(node, prvalue_node_type);

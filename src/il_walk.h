@@ -409,10 +409,6 @@ typedef struct an_expr_or_stmt_traversal_block {
 			   with each variable. */
   a_boolean	end_of_full_expr;
 			/* The check is at the end of the full expression. */
-  /* Fields used by examine_expr_for_instantiation_dependence: */
-  a_boolean	this_can_be_instantiation_dependent;
-			/* TRUE if "this" should be considered instantiation-
-			   dependent if its type is dependent. */
 } an_expr_or_stmt_traversal_block;
 
 extern void clear_expr_or_stmt_traversal_block(
