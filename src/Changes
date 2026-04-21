@@ -1,7 +1,7 @@
 Version 6.9
 
 4/21/26  [EDGcpfe/28551]
-Spurious on constexpr constructor of a class template with a base class
+Spurious error on constexpr constructor of a class template with a base class
 
 Consider:
 
