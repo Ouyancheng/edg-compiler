@@ -9775,16 +9775,29 @@ initialized.  These are addressed in the course of the processing.
             /* The base has a component that requires initialization and the
                (trivial) default constructor won't do that initialization:
                That is not permitted in a constexpr constructor (which must
-               fully initialize the object). */
-            pos_ty_error(ec_constexpr_ctor_does_not_initialize_base,
-                         &err_pos, tp);
-            dip = make_error_constant_dynamic_init();
+               fully initialize the object).  For compiler-generated
+               constructors and for template instances, however, failing this
+               test isn't an error; it just makes the function effectively
+               non-constexpr. */
+            if ((ctor_rout->is_declared_constexpr ||
+                 ctor_rout->is_consteval) &&
+                !is_unspecialized_template_member_function(ctor_rout) &&
+                !ctor_rout->is_defaulted) {
+              pos_ty_error(ec_constexpr_ctor_does_not_initialize_base,
+                           &err_pos, tp);
+              dip = make_error_constant_dynamic_init();
+            } else {
+              if (!ctor_rout->is_prototype_instantiation) {
+                ctor_rout->is_constexpr = FALSE;
+              }  /* if */
+              dip = alloc_dynamic_init(dik_none);
+            }  /* if */
           } else {
             check_assertion(is_immediate_class_type(tp) ||
                             type_is(tp, tk_template_param) ||
                             (array_type != NULL &&
                              is_incomplete_array_type(array_type)));
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+            dip = alloc_dynamic_init(dik_none);
           }  /* if */
         } else {
           /* A default constructor does exist.  Generate the dynamic init

@@ -1,5 +1,27 @@
 Version 6.9
 
+4/21/26  [EDGcpfe/28551]
+Spurious on constexpr constructor of a class template with a base class
+
+Consider:
+
+  template<typename T> struct Base { 
+    constexpr Base() = default;
+    T arr[2];
+  };
+  template<typename T>
+  struct Derived : public Base<T> {
+      constexpr Derived() = default;
+  };
+  Derived<double> d;
+
+The front end previously erroneously rejected this because the base class
+constructor doesn't initialize its array elements.  However, since the
+Derived<double> constructor is templated, this should only result in it being
+treated as effectively not constexpr, rather than triggering an error.  That
+is now fixed.
+
+
 4/21/26  [EDGcpfe/28798]
 Regression causing assertion failure in add_pragmas_to_string
 
