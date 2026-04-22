@@ -10013,7 +10013,11 @@ being popped.
       etfp->variant.variable->type = etfp->type;
     }  /* if */
   }  /* for */
-  if (kind == (a_scope_kind)sck_function && curr_routine != NULL) {
+  if (kind == sck_function && curr_routine != NULL && !ssep->is_reactivation) {
+    /* End-of-function-definition processing: This is skipped for a reactivated
+       function scope.  A reactivated function definition was either already
+       processed earlier, or it will be processed when its still-active
+       original scope stack entry is processed. */
     /* See whether this is a function whose body should be discarded. */
     discard_function_body = function_body_should_be_discarded(curr_routine) ||
                             scope_stack[depth_scope_stack].discard_when_popped;
