@@ -133,6 +133,13 @@ enum an_overload_context {
                                   resolution in a call to function
                                   conversion_to_class_possible. */
   oc_multi_subscript,          /* A C++23 multi-subscript call. */
+  oc_call_through_address_of_overload_set,
+                               /* A call of the form "(&func)(args...)".  In
+                                  this context, no implied object argument is
+                                  is added, static member functions do not get
+                                  an implicit object parameter, and if the
+                                  selected function is an ordinary nonstatic
+                                  member, the program is ill-formed. */
   oc_last
 };
 

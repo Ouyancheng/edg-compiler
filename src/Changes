@@ -1,5 +1,29 @@
 Version 6.9
 
+4/22/26  [EDGcpfe/26092]
+C++23: Static and explicit-object member functions with matching parameters
+
+Consider:
+
+  struct S {
+    void f(this const S&);   // (1) Explicit-this member.
+    void f() &;              // (2) Ordinary nonstatic member.
+    static void f(int = 0);  // (3) Ordinary static member.
+    void calls() {
+      (&S::f)(S{});    // Calls (1).
+      (&S::f)(*this);  // Selects (2), which is an error.
+      (&S::f)();       // Calls (3).
+    }
+  };
+
+Previously, the front diagnosed each call in S::calls().  Now, the front end
+implements the proposal in the standardization committee's paper P2797R0, which
+makes the first and third call valid.  The second call is also handled
+differently: Previously, it was treated as not matching any candidate.  Now it
+is considered to match candidate (2), but calls of this form may not resolve
+to ordinary nonstatic member functions.
+
+
 4/21/26  [EDGcpfe/28551]
 Spurious error on constexpr constructor of a class template with a base class
 

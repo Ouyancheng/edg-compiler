@@ -6825,14 +6825,24 @@ next_argument:
         }  /* if */
       }  /* if */
     } else {
-      /* We have no selector.  For functions other than a nonstatic
-         member function, this is fine.  For a nonstatic member function,
-         it doesn't count against the function (see core issue 364),
-         but the function is not callable if selected. */
+      /* We have no selector.  For functions other than a nonstatic member
+         function, this is fine.  For a nonstatic member function, it doesn't
+         count against the function (see core issue 364), but the function is
+         not callable if selected. */
       /* But for operator-form references, the match fails for a nonstatic
          member function. */
       if (is_overloaded_operator &&
           function_is_nonstatic_member_function) {
+        goto reject_function;
+      }  /* if */
+      /* In C++23 (via P2797R0), if a call is of the form (&func)(args...),
+         ordinary nonstatic member functions are matched with a selector
+         produced from the first argument (which would have been synthesized
+         by try_overloaded_function_match).  If we reach here with no selector
+         and the function is an ordinary nonstatic member, no such argument
+         was available and therefore the function is not viable. */
+      if (function_is_nonstatic_member_function &&
+          ovl_context == oc_call_through_address_of_overload_set) {
         goto reject_function;
       }  /* if */
     }  /* if */
@@ -7058,6 +7068,9 @@ context of the conversion.
   an_overload_set_traversal_block
                 ostblock;
   a_boolean     in_init_list_ctor_pass;
+  a_boolean     candidate_have_selector;
+  an_operand    *candidate_selector;
+  an_operand    synthesized_selector;
 
   check_assertion(init_list_ctor_arg_list == NULL ||
                   (is_braced_init_component(init_list_ctor_arg_list) &&
@@ -7072,11 +7085,14 @@ context of the conversion.
     /* If we have no selector, see if any one of the functions requires one.
        If so, we will look to see if an implicit "this->" can be generated.
        Don't do this for the constructor case (the "this" parameter of the
-       constructor is not used in the match).  Also don't do this for
-       cases written in operator form -- they can't be rewritten by
-       preceding them with "this->", so a selector should not be invented. */
+       constructor is not used in the match).  Also don't do this for cases
+       written in operator form -- they can't be rewritten by preceding them
+       with "this->", so a selector should not be invented.  In C++23 (via
+       P2797R0), don't do this for a call of the form (&func)(args...) (if
+       the call resolves to a nonstatic data member, it is ill-formed). */
     if (!ctor_conversion_case && !is_overloaded_operator && !have_selector &&
-        !is_ctor_or_deduction_guide(proj_function_symbol)) {
+        !is_ctor_or_deduction_guide(proj_function_symbol) &&
+        ovl_context != oc_call_through_address_of_overload_set) {
       a_type_ptr routine_type;
       a_boolean  some_function_needs_selector = FALSE;
       /* Check the first or only function to see whether or not it requires
@@ -7254,6 +7270,39 @@ retry2:
     }  /* if */
     /* Determine whether the function is viable by looking at the arguments.
        Add the function to the candidates list if it is viable. */
+    candidate_have_selector = have_selector;
+    candidate_selector = bound_function_selector;
+    if (ovl_context == oc_call_through_address_of_overload_set &&
+        !candidate_have_selector && eff_arg_list != NULL &&
+        is_expression_component(eff_arg_list)) {
+      /* In C++23 (via P2797R0), for calls of the form (&func)(args...),
+         no implicit "this->" is added.  If overload resolution ends up
+         selecting an ordinary nonstatic member function, the call is ill-
+         formed.  For example:
+           struct S {
+             void f(this const S&);   // (1) Explicit-this member.
+             void f() &;              // (2) Ordinary nonstatic member.
+             static void f(int = 0);  // (3) Ordinary static member.
+             void calls() {
+               (&S::f)(S{});    // Calls (1).
+               (&S::f)(*this);  // Selects (2), which is an error.
+               (&S::f)();       // Calls (3).
+             }
+           };
+         We achieve that by, using the argument as the selector for the match
+         (and dropping it from the remaining argument list) if the candidate
+         is an ordinary nonstatic member function. */
+      a_type_ptr candidate_routine_type =
+                       function_or_template_symbol_type(proj_function_symbol);
+      if (routine_type_is_nonstatic_member_function(candidate_routine_type)) {
+        an_operand *first_arg_op = operand_of_arg_list_elem(eff_arg_list);
+        copy_operand(first_arg_op, &synthesized_selector);
+        synthesized_selector.selector_is_object_pointer = FALSE;
+        candidate_selector = &synthesized_selector;
+        candidate_have_selector = TRUE;
+        eff_arg_list = eff_arg_list->next;
+      }  /* if */
+    }  /* if */
     determine_function_viability(proj_function_symbol,
                                  overloaded_function_symbol,
                                  is_template_id,
@@ -7261,8 +7310,8 @@ retry2:
                                  (a_symbol_ptr)NULL,
                                  (a_type_ptr)NULL,
                                  eff_arg_list,
-                                 have_selector,
-                                 bound_function_selector,
+                                 candidate_have_selector,
+                                 candidate_selector,
                                  implicit_selector_type,
                                  ctor_conversion_case,
                                  effects_copy_initialization,
@@ -10862,6 +10911,8 @@ static constexpr an_error_code default_none_applies_code[(int)oc_last] = {
   ec_no_matching_constructor,                /* oc_reversed_cmp_candidate */
   ec_no_matching_function,                   /* oc_conv_to_class_check */
   ec_no_matching_function,                   /* oc_multi_subscript */
+  ec_no_matching_function,                   /* oc_call_through_address_of_
+                                                  overload_set */
 };
 
 /*
@@ -10887,6 +10938,8 @@ static constexpr an_error_code default_ambiguous_code[(int)oc_last] = {
   ec_ambiguous_overloaded_function,          /* oc_reversed_cmp_candidate */
   ec_ambiguous_overloaded_function,          /* oc_conv_to_class_check */
   ec_ambiguous_overloaded_function,          /* oc_multi_subscript */
+  ec_ambiguous_overloaded_function,          /* oc_call_through_address_of_
+                                                  overload_set */
 };
 
 /*
@@ -10912,6 +10965,8 @@ static constexpr an_error_code default_undefined_code[(int)oc_last] = {
   ec_undefined_identifier,                   /* oc_reversed_cmp_candidate */
   ec_undefined_identifier,                   /* oc_conv_to_class_check */
   ec_undefined_identifier,                   /* oc_multi_subscript */
+  ec_undefined_identifier,                   /* oc_call_through_address_of_
+                                                  overload_set */
 };
 
 
@@ -15557,6 +15612,14 @@ in C++ mode.  arg_list is not freed by this routine.
   a_boolean                unknown_dependent_function;
 
   db_enter(4, "select_and_prepare_to_call_overloaded_function");
+  if (cpp23_mode && ovl_context == oc_default &&
+      orig_function_operand != NULL &&
+      orig_function_operand->is_operand_of_address_of &&
+      is_indefinite_function_operand(orig_function_operand)) {
+    /* In C++23, a call of the form (&func)(args...) is handled specially (via
+       the changes introduced by P2797R0). */
+    ovl_context = oc_call_through_address_of_overload_set;
+  }  /* if */
   check_assertion((orig_function_operand != NULL) ?
                                   (orig_function_operand != function_operand) :
                                   (call_position != NULL));
@@ -15672,7 +15735,22 @@ in C++ mode.  arg_list is not freed by this routine.
        because the specific symbol was not known, and build an operand
        for the function. */
     has_explicit_this = has_explicit_this_parameter(routine_type);
-    if (!have_selector && has_explicit_this) {
+    if (ovl_context == oc_call_through_address_of_overload_set &&
+        routine_type_is_nonstatic_member_function(routine_type)) {
+      /* C++23 P2797R0: If overload resolution for an address-of-overload-set
+         call selects an implicit object member function, the program is
+         ill-formed. */
+      if (expr_error_should_be_issued()) {
+        expr_pos_sy_diagnostic(
+                      es_error,
+                      ec_address_of_overload_set_implicit_obj_member_selected,
+                      call_position, base_function_symbol);
+      }  /* if */
+      okay = FALSE;
+      goto done;
+    }  /* if */
+    if (!have_selector && has_explicit_this &&
+        ovl_context != oc_call_through_address_of_overload_set) {
       /* Check if we are in a position to add an implicit "this->" selector for
          an explicit "this" parameter. */
       bool            make_this_pointer = FALSE;
