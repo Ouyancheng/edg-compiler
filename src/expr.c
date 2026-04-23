@@ -9959,6 +9959,56 @@ arguments (argument-dependent lookup may still find a different template).
 }  /* rescan_locator_template_arg_list */
 
 
+static a_symbol_ptr symbol_for_nonreal_closure_call_operator_rescan(
+                                         a_constant_ptr          con,
+                                         a_type_ptr              parent_class)
+/*
+con is a tpck_expression constant used as the operand in a generic selection
+expression being rescanned.  parent_class is the substituted class in which
+the rescanned selection should occur.  If con represents the address of a
+function (under an implicit cast, likely), return the symbol for the
+corresponding function in parent_class.  This currently only occurs for a case
+like
+  template<typename> concept X = [] static { return true; }();
+  static_assert(X<int>);
+where the lambda call in the rescannable context is made template-dependent by
+wrapping the address of the operator() in a tpck_expression entry.
+*/
+{
+  a_symbol_ptr      result = NULL;
+  an_expr_node_ptr  expr;
+  a_constant_ptr    addr_con;
+  a_routine_ptr     rp;
+  a_symbol_locator  loc;
+
+  check_assertion(constant_is(con, ck_template_param) &&
+                  tpck_is(con, tpck_expression));
+  if (!is_class_struct_union_type(parent_class)) {
+    goto done;
+  }  /* if */
+  expr = expr_node_from_tpck_expression(con);
+  if (expr == NULL) goto done;
+  expr = strip_implicit_operations_for_rescan(
+                                  expr, (an_expr_rescan_info_entry_ptr*)NULL);
+  if (!is_constant_node(expr)) {
+    goto done;
+  }
+  addr_con = node_constant(expr);
+  if (!constant_is(addr_con, ck_address) ||
+      !address_base_is(addr_con, abk_routine)) {
+    goto done;
+  }  /* if */
+  rp = addr_con->variant.address.variant.routine;
+  check_assertion(rp != NULL && rp->source_corresp.is_class_member);
+  /* Pattern matched -- produce the symbol. */
+  make_locator_for_symbol(symbol_for(rp), &loc);
+  clear_specific_symbol(loc);
+  result = look_up_selection_name(&loc, parent_class);
+done:
+  return result;
+}  /* symbol_for_nonreal_closure_call_operator_rescan */
+
+
 static void get_locator_for_rescanned_selection_second_operand(
                                 a_type_ptr             class_struct_union_type,
                                 a_rescan_control_block *rcblock,
@@ -10102,11 +10152,20 @@ a left parenthesis in the source.
               member_con = NULL;
             }  /* if */
             is_template_ref = TRUE;
-          } else if (con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function) {
+          } else if (tpck_is(con, tpck_unknown_function)) {
             if (con->source_corresp.is_class_member) {
               member_con = con;
             }  /* if */
+          } else if (tpck_is(con, tpck_expression)) {
+            /* This can happen in a case like:
+                 template<typename> concept C = [] static { return true; }();
+                 static_assert(C<int>);
+               where the called operator() has a nondependent type but the
+               closure class is nonreal (since it appears in a rescannable
+               context). */
+            sym = symbol_for_nonreal_closure_call_operator_rescan(
+                                                con, class_struct_union_type);
+            goto have_symbol;
           }  /* if */
           if (member_con != NULL) {
             /* See if we need to do a lookup to find the member. */
