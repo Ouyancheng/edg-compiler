@@ -1,5 +1,23 @@
 Version 6.9
 
+4/23/26  [EDGcpfe/28759]
+Clang compatibility: incorrect lookup bug emulation
+
+The front end emulates a g++ lookup bug (in g++ versions prior to 6.x) that
+treats certain names as templates without the use of the "template" keyword.
+However, this emulation was incorrectly also enabled in Clang mode.  For
+example, with --clang:
+
+  template<typename T> void f();
+  template<typename T> struct C {
+    T f;
+  };
+  template<typename T> bool g(C<T> c) {
+    return c.f < 0;  // Previously a spurious error.  Now okay.
+  }
+  template bool g(C<int>);
+
+
 4/22/26  [EDGcpfe/26092]
 C++23: Static and explicit-object member functions with matching parameters
 
