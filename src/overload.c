@@ -7068,8 +7068,8 @@ context of the conversion.
   an_overload_set_traversal_block
                 ostblock;
   a_boolean     in_init_list_ctor_pass;
-  a_boolean     candidate_have_selector;
-  an_operand    *candidate_selector;
+  a_boolean     have_selector_for_candidate;
+  an_operand    *selector_for_candidate;
   an_operand    synthesized_selector;
 
   check_assertion(init_list_ctor_arg_list == NULL ||
@@ -7270,10 +7270,10 @@ retry2:
     }  /* if */
     /* Determine whether the function is viable by looking at the arguments.
        Add the function to the candidates list if it is viable. */
-    candidate_have_selector = have_selector;
-    candidate_selector = bound_function_selector;
+    have_selector_for_candidate = have_selector;
+    selector_for_candidate = bound_function_selector;
     if (ovl_context == oc_call_through_address_of_overload_set &&
-        !candidate_have_selector && eff_arg_list != NULL &&
+        !have_selector_for_candidate && eff_arg_list != NULL &&
         is_expression_component(eff_arg_list)) {
       /* In C++23 (via P2797R0), for calls of the form (&func)(args...),
          no implicit "this->" is added.  If overload resolution ends up
@@ -7298,8 +7298,8 @@ retry2:
         an_operand *first_arg_op = operand_of_arg_list_elem(eff_arg_list);
         copy_operand(first_arg_op, &synthesized_selector);
         synthesized_selector.selector_is_object_pointer = FALSE;
-        candidate_selector = &synthesized_selector;
-        candidate_have_selector = TRUE;
+        selector_for_candidate = &synthesized_selector;
+        have_selector_for_candidate = TRUE;
         eff_arg_list = eff_arg_list->next;
       }  /* if */
     }  /* if */
@@ -7310,8 +7310,8 @@ retry2:
                                  (a_symbol_ptr)NULL,
                                  (a_type_ptr)NULL,
                                  eff_arg_list,
-                                 candidate_have_selector,
-                                 candidate_selector,
+                                 have_selector_for_candidate,
+                                 selector_for_candidate,
                                  implicit_selector_type,
                                  ctor_conversion_case,
                                  effects_copy_initialization,
