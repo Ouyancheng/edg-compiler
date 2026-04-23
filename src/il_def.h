@@ -15055,6 +15055,10 @@ typedef struct an_expr_node {
 			/* TRUE if this was an unqualified call and the called
 			   function was only found through argument-dependent
 			   lookup (and not through ordinary lookup). */
+      a_bit_field
+		called_through_address_of_overload_set:1;
+			/* TRUE for a call of the form "(&func)(args...)"
+			   where func is an overload set. */
 #endif /* BACK_END_IS_CP_GEN_BE */
       a_bit_field
                 call_uses_operator_syntax:1;

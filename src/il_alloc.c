@@ -3442,6 +3442,7 @@ fields to default values.
       node->variant.operation.call_with_qualified_function_name = FALSE;
 #if BACK_END_IS_CP_GEN_BE
       node->variant.operation.only_found_through_arg_dependent_lookup = FALSE;
+      node->variant.operation.called_through_address_of_overload_set = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
       node->variant.operation.call_uses_operator_syntax = FALSE;
 #if GNU_EXTENSIONS_ALLOWED

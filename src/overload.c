@@ -15612,14 +15612,6 @@ in C++ mode.  arg_list is not freed by this routine.
   a_boolean                unknown_dependent_function;
 
   db_enter(4, "select_and_prepare_to_call_overloaded_function");
-  if (cpp23_mode && ovl_context == oc_default &&
-      orig_function_operand != NULL &&
-      orig_function_operand->is_operand_of_address_of &&
-      is_indefinite_function_operand(orig_function_operand)) {
-    /* In C++23, a call of the form (&func)(args...) is handled specially (via
-       the changes introduced by P2797R0). */
-    ovl_context = oc_call_through_address_of_overload_set;
-  }  /* if */
   check_assertion((orig_function_operand != NULL) ?
                                   (orig_function_operand != function_operand) :
                                   (call_position != NULL));

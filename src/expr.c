@@ -7577,6 +7577,8 @@ and bound_function_selector are expected to be NULL in that case.
   a_boolean         saved_uses_this_operand = expr_stack->uses_this_operand;
   an_expression_kind
                     saved_expr_kind = expr_stack->expression_kind;
+  an_overload_context
+                    ovl_context = oc_default;
 
   db_enter(4, "scan_function_call");
   /* While processing this call, ensure that the "uses_this_operand" only
@@ -8424,12 +8426,18 @@ and bound_function_selector are expected to be NULL in that case.
     an_operand           orig_operand;
     a_boolean            name_reference_was_saved = FALSE;
     a_name_reference     saved_name_reference = null_name_reference;
-    an_overload_context  ovl_context = oc_default;
     a_template_arg_ptr   template_arg_list;
     if (is_multi_subscript) {
       ovl_context = oc_multi_subscript;
     } else if (operand->is_microsoft_deferred_name) {
       ovl_context = oc_deferred;
+    } else if (cpp23_mode && operand->is_operand_of_address_of &&
+               is_indefinite_function_operand(operand)) {
+      /* Check whether this is a call of the form (&func)(args...) where func
+         is an overload set.  This affects overload resolution, and is also
+         used below to mark the resulting call node so that the C++-generating
+         back end can emit the call in the same form. */
+      ovl_context = oc_call_through_address_of_overload_set;
     }  /* if */
     template_arg_list = operand->template_arg_list;
     orig_operand = *operand;
@@ -8604,6 +8612,14 @@ and bound_function_selector are expected to be NULL in that case.
       if (is_multi_subscript) {
         function_call_node->variant.operation.call_uses_operator_syntax = TRUE;
       }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+      if (ovl_context == oc_call_through_address_of_overload_set) {
+        /* Record that this call was of the form "(&f)(args)" so the
+           C++-generating back end can reproduce that form. */
+        function_call_node->variant.operation.
+                                 called_through_address_of_overload_set = TRUE;
+      }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
       record_operator_position_in_expr_rescan_info(function_call_node,
                                                    &operator_position,
                                                   opening_paren_tok_seq_number,

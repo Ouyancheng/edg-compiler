@@ -4797,6 +4797,9 @@ Display the indicated expression node.
       if (ptr->variant.operation.only_found_through_arg_dependent_lookup) {
         disp_boolean("only_found_through_arg_dependent_lookup", TRUE);
       }  /* if */
+      if (ptr->variant.operation.called_through_address_of_overload_set) {
+        disp_boolean("called_through_address_of_overload_set", TRUE);
+      }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
       if (ptr->variant.operation.call_uses_operator_syntax) {
         disp_boolean("call_uses_operator_syntax", TRUE);

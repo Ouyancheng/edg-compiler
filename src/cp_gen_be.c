@@ -17167,7 +17167,16 @@ call.
       /* Do not insert code here. */
       {
         a_type_ptr    rout_type = skip_typerefs(rout->type);
-        if (rout_type->variant.routine.extra_info->this_class != NULL ||
+        if (expr->variant.operation.called_through_address_of_overload_set) {
+          /* The call was of the form (&func)(args...) where func finds an
+             overload set.  Overload resolution is different for such cases
+             (see P2797R0), and so we should render the call in its original
+             form. */
+          write_tok_str("(&");
+          gen_name_from_routine_node(func_expr, /*only_found_by_adl=*/FALSE,
+                                     /*qualified=*/FALSE);
+          write_tok_ch(')');
+        } else if (rout_type->variant.routine.extra_info->this_class != NULL ||
             explicit_this_case) {
           /* Nonstatic member function call, so put out the selector object
              first. */
