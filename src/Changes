@@ -1,5 +1,17 @@
 Version 6.9
 
+4/23/26  [EDGcpfe/28807]
+Unbounded loop computing preorder base class list in C++/CLI mode
+
+In configurations with IA64_ABI set to TRUE, the front end maintains a list of
+base classes in "preorder traversal order".  This list is normally computed
+once the base class list is complete, but with C++/CLI managed class types it
+is possible for additional base classes to be implicitly added long after the
+base class list has been parsed: This requires the preorder list to be
+recomputed.  Previously this recomputation was done erroneously such that the
+front end could get stuck in an unbounded loop.  That is now fixed.
+
+
 4/23/26  [EDGcpfe/28759]
 Clang compatibility: incorrect lookup bug emulation
 

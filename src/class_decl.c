@@ -9305,6 +9305,14 @@ list.  Returns a pointer to the new end of the list.
 {
   a_base_class_ptr bcp, new_base, old_base;
 
+  if (base == NULL && *end_of_list != NULL) {
+    /* We already computed a preorder list, but since then additional classes
+       have been added (possible in C++/CLI mode): Recompute that list. */
+    for (bcp = base_classes_of(type_ptr); bcp != NULL; bcp = bcp->next) {
+      bcp->next_preorder = NULL;
+    }  /* for */
+    *end_of_list = NULL;
+  }  /* if */
   /* Traverse the direct base classes in declaration order. */
   for (bcp = direct_base_classes_of((base == NULL) ? type_ptr : base->type);
        bcp != NULL;
