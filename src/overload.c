@@ -7289,7 +7289,7 @@ retry2:
                (&S::f)();       // Calls (3).
              }
            };
-         We achieve that by, using the argument as the selector for the match
+         We achieve that by using the argument as the selector for the match
          (and dropping it from the remaining argument list) if the candidate
          is an ordinary nonstatic member function. */
       a_type_ptr candidate_routine_type =
