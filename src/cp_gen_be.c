@@ -10104,7 +10104,7 @@ will be put out when they are encountered when generating the parameter types.
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition, found_decl, is_type;
 
-  for (;;) {
+  while (curr_source_sequence_entry != NULL) {
     a_source_sequence_scan_state saved_state;
     save_source_sequence_scan_state(&saved_state);
     /* Skip past macros, etc.  We come back and process these entries if
@@ -10144,7 +10144,7 @@ will be put out when they are encountered when generating the parameter types.
          definition as delayed. */
       skip_type_and_delay_definition(type, is_definition);
     }  /* if */
-  }  /* for */
+  }  /* while */
 }  /* bypass_prototyped_param_src_seq_entries */
 
 
