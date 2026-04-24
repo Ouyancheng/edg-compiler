@@ -10943,12 +10943,6 @@ default arguments should be suppressed (needed for template specializations).
                      rtsp->assoc_routine_is_ctor);
       /* Put out the ellipsis if there is one. */
       if (rtsp->has_ellipsis) write_tok_str(", ...");
-      if (rtsp->prototype_scope != NULL) {
-        /* Restore any names hidden by parameters (if this is a definition,
-           they will also be represented in the hidden name list in the
-           function scope and thus rehidden when that scope is pushed). */
-        pop_name_context();
-      }  /* if */
     }  /* if */
   }  /* if */
   write_tok_ch(')');
@@ -11003,6 +10997,12 @@ default arguments should be suppressed (needed for template specializations).
   if (rtsp->trailing_return_type) {
     write_tok_str("->");
     gen_type(type->variant.routine.return_type);
+  }  /* if */
+  if (rtsp->prototype_scope != NULL) {
+    /* Restore any names hidden by parameters (if this is a definition,
+       they will also be represented in the hidden name list in the
+       function scope and thus rehidden when that scope is pushed). */
+    pop_name_context();
   }  /* if */
   pop_function_prototype(&octl);
 }  /* gen_function_declarator_with_scope */

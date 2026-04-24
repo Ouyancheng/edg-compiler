@@ -1,5 +1,18 @@
 Version 6.9
 
+4/23/26  [EDGcpfe/28810]
+C++-generating back end: missing name qualifier in trailing return type
+
+In some cases, the C++-generating back end could omit the name qualification
+required when a function parameter name hides a name in a containing scope
+that is used in the function's trailing return type.  This is now fixed.
+For example, with --c++20:
+
+  int x;
+  template <int *> struct A { } ; 
+  auto f(int x) -> decltype(new A<&::x>);   // Previously omitted "::"
+
+
 4/23/26  [EDGcpfe/28807]
 Unbounded loop computing preorder base class list in C++/CLI mode
 
