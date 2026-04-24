@@ -10911,8 +10911,8 @@ static constexpr an_error_code default_none_applies_code[(int)oc_last] = {
   ec_no_matching_constructor,                /* oc_reversed_cmp_candidate */
   ec_no_matching_function,                   /* oc_conv_to_class_check */
   ec_no_matching_function,                   /* oc_multi_subscript */
-  ec_no_matching_function,                   /* oc_call_through_address_of_
-                                                  overload_set */
+  ec_no_matching_function,
+                                 /* oc_call_through_address_of_overload_set */
 };
 
 /*
@@ -10938,8 +10938,8 @@ static constexpr an_error_code default_ambiguous_code[(int)oc_last] = {
   ec_ambiguous_overloaded_function,          /* oc_reversed_cmp_candidate */
   ec_ambiguous_overloaded_function,          /* oc_conv_to_class_check */
   ec_ambiguous_overloaded_function,          /* oc_multi_subscript */
-  ec_ambiguous_overloaded_function,          /* oc_call_through_address_of_
-                                                  overload_set */
+  ec_ambiguous_overloaded_function,
+                                 /* oc_call_through_address_of_overload_set */
 };
 
 /*
@@ -10965,8 +10965,8 @@ static constexpr an_error_code default_undefined_code[(int)oc_last] = {
   ec_undefined_identifier,                   /* oc_reversed_cmp_candidate */
   ec_undefined_identifier,                   /* oc_conv_to_class_check */
   ec_undefined_identifier,                   /* oc_multi_subscript */
-  ec_undefined_identifier,                   /* oc_call_through_address_of_
-                                                  overload_set */
+  ec_undefined_identifier,
+                                 /* oc_call_through_address_of_overload_set */
 };
 
 
