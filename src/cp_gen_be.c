@@ -10875,6 +10875,7 @@ default arguments should be suppressed (needed for template specializations).
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
   a_param_type_ptr              param;
   a_func_prototype_stack_entry  fpse;
+  a_boolean                     context_pushed = FALSE;
 
   /* Push an entry onto the function prototype stack. */
   fpse.params = type->variant.routine.extra_info->param_type_list;
@@ -10928,6 +10929,7 @@ default arguments should be suppressed (needed for template specializations).
       if (rtsp->prototype_scope != NULL) {
         /* Set up any name hiding by parameters. */
         push_name_context(rtsp->prototype_scope);
+        context_pushed = TRUE;
       }  /* if */
       if (scope == NULL) {
         /* This is not a definition.  Advance past the source sequence
@@ -10998,7 +11000,7 @@ default arguments should be suppressed (needed for template specializations).
     write_tok_str("->");
     gen_type(type->variant.routine.return_type);
   }  /* if */
-  if (rtsp->prototype_scope != NULL) {
+  if (context_pushed) {
     /* Restore any names hidden by parameters (if this is a definition,
        they will also be represented in the hidden name list in the
        function scope and thus rehidden when that scope is pushed). */
