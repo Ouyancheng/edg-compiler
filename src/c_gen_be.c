@@ -2677,20 +2677,19 @@ IL entity.
 }  /* dump_scope_pragmas */
 
 
-static void dump_associated_pragmas(char *entity_ptr)
+static void dump_associated_pragmas(char             *entity_ptr,
+                                    an_il_entry_kind entity_kind)
 /*
-Dump out any pragmas associated with the entity at the given address.
-The caller has already determined that the entity does have one or more
-associated pragmas.
+Dump out any pragmas associated with the entity at the given address with the
+given kind.  The caller is responsible for determining that the entity has at
+least one associated pragmas.
 */
 {
   a_pragma_ptr pp, prev_pp = NULL;
 
   while ((pp = find_assoc_pragma(entity_ptr,
-                                 (innermost_function_scope != NULL) ?
-                                                                 curr_scope :
-                                                                 NULL,
-                                 (a_type_ptr)NULL,
+                                 entity_kind,
+                                 innermost_function_scope,
                                  prev_pp)) != NULL) {
     dump_pragma(pp);
     prev_pp = pp;
@@ -2701,17 +2700,31 @@ associated pragmas.
 }  /* dump_associated_pragmas */
 
 
-static void dump_decl_associated_pragmas(a_source_correspondence *scp)
+template<typename an_IL_type>
+static INLINE void dump_associated_pragmas(an_IL_type *il_entity)
 /*
-Dump out any pragmas associated with the entity whose source correspondence
-information is given by scp.
+Dump out any pragmas associated with the given IL entity.
 */
 {
-  if (scp->has_associated_pragma) {
+  if (il_entity->source_corresp.has_associated_pragma) {
     /* The entity has one or more associated pragmas.  Dump them. */
-    dump_associated_pragmas((char *)scp);
+    dump_associated_pragmas((char *)il_entity,
+                            type_to_il_entry_kind<an_IL_type>());
   }  /* if */
-}  /* dump_decl_associated_pragmas */
+}  /* dump_associated_pragmas */
+
+
+template<>
+INLINE void dump_associated_pragmas(a_statement *il_entity)
+/*
+Dump out any pragmas associated with the given statement.
+*/
+{
+  if (il_entity->has_associated_pragma) {
+    /* The statement has one or more associated pragmas.  Dump them. */
+    dump_associated_pragmas((char *)il_entity, iek_statement);
+  }  /* if */
+}  /* dump_associated_pragmas */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -2835,7 +2848,7 @@ Print a typedef declaration.
          has a builtin bool type. */
     } else {
       /* Dump any pragmas associated with the type. */
-      dump_decl_associated_pragmas(&type->source_corresp);
+      dump_associated_pragmas(type);
       set_output_position(&type->source_corresp.decl_position);
       write_tok_str("typedef ");
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2917,7 +2930,7 @@ if output_final_semi is TRUE.
   write_if_0_directive();
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   /* Dump any pragmas associated with the type. */
-  dump_decl_associated_pragmas(&type->source_corresp);
+  dump_associated_pragmas(type);
   set_output_position(&type->source_corresp.decl_position);
   /* Generate "enum <name>". */
   write_tok_str("enum ");
@@ -3419,7 +3432,7 @@ padding in the generated code.
       dump_field_padding(prev_field, padding);
     }  /* if */
     set_output_position(&field->source_corresp.decl_position);
-    dump_decl_associated_pragmas(&field->source_corresp);
+    dump_associated_pragmas(field);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target) {
       dump_microsoft_align_declspec(field->alignment);
@@ -3715,7 +3728,7 @@ final semicolon if output_final_semi is TRUE.
       need_to_restore_default_alignment = TRUE;
     }  /* if */
     /* Dump any pragmas associated with the type. */
-    dump_decl_associated_pragmas(&type->source_corresp);
+    dump_associated_pragmas(type);
     set_output_position(&type->source_corresp.decl_position);
     write_tok_str(tag_kind(type->kind));
     write_space();
@@ -4023,7 +4036,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
             if (!output_defn) {
               /* Dump any pragmas associated with the type if no definition
                  will be output on the second pass. */
-              dump_decl_associated_pragmas(&type->source_corresp);
+              dump_associated_pragmas(type);
             }  /* if */
             set_output_position(&type->source_corresp.decl_position);
             dump_tag_reference(type);
@@ -8711,7 +8724,7 @@ parameters.
       /* Dump any pragmas associated with the variable on the first
          declaration of the variable. */
       if (dump_vars_without_initializers) {
-        dump_decl_associated_pragmas(&variable->source_corresp);
+        dump_associated_pragmas(variable);
       }  /* if */
       set_output_position(&variable->source_corresp.decl_position);
       if (init_con != NULL &&
@@ -9121,7 +9134,7 @@ Generate C for an asm statement or declaration.
 */
 {
   /* Dump any pragmas associated with the entry. */
-  dump_decl_associated_pragmas(&aep->source_corresp);
+  dump_associated_pragmas(aep);
   set_output_position(&aep->source_corresp.decl_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode || msvc_is_generated_code_target) {
@@ -9285,7 +9298,7 @@ Dump out one constant declaration.
 {
   if (annotate) {
     /* Dump any pragmas associated with the constant. */
-    dump_decl_associated_pragmas(&constant->source_corresp);
+    dump_associated_pragmas(constant);
     set_output_position(&constant->source_corresp.decl_position);
     write_tok_str("enum {");
     dump_constant_name(constant);
@@ -9665,10 +9678,7 @@ Generate C for a statement.
   check_assertion(statement != NULL);
   kind = statement->kind;
   /* Dump out any pragmas associated with the statement. */
-  if (statement->has_associated_pragma) {
-    /* The statement has one or more associated pragmas.  Dump them. */
-    dump_associated_pragmas((char *)statement);
-  }  /* if */
+  dump_associated_pragmas(statement);
   /* Identify the line number except for lines that put out their own
      line info. */
   if (kind != (a_statement_kind)stmk_label &&
@@ -10973,7 +10983,7 @@ declare_routine:
     /* Dump any pragmas associated with the routine on the definition
        of the routine if it has one, otherwise on the declaration. */
     if (is_definition || !has_defn) {
-      dump_decl_associated_pragmas(&rout->source_corresp);
+      dump_associated_pragmas(rout);
       if (is_definition) {
         /* Generate any needed standard C99 pragma. */
         if (rout->fp_contract != stdc_pv_none &&

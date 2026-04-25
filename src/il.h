@@ -3289,14 +3289,31 @@ extern void add_to_ms_if_exists_list(an_ms_if_exists_ptr	msiep,
 extern void add_to_macros_list(a_macro_ptr  mp);
 #endif /* RECORD_MACROS_IN_IL */
 
-extern void add_to_pragma_list(a_pragma_ptr             pragma,
-                               a_scope_depth            scope_depth,
-                               a_source_correspondence  *scp);
+typedef struct a_pragma_kind_description *a_pragma_kind_description_ptr;
 
-extern a_pragma_ptr find_assoc_pragma(char          *il_entity,
-                                      a_scope_ptr   scope,
-                                      a_type_ptr    class_type,
-                                      a_pragma_ptr  prev_assoc_pragma);
+extern a_pragma_ptr add_non_entity_pragma_to_list(
+                    a_pragma_kind_description_ptr pragma_descr,
+                    a_source_position             pragma_position,
+                    char                          *pragma_text,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                    a_boolean                     is_microsoft_pragma_operator,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                    a_scope_depth                 pragma_scope_depth);
+
+extern a_pragma_ptr add_entity_pragma_to_list(
+                    a_pragma_kind_description_ptr pragma_descr,
+                    a_source_position             pragma_position,
+                    char                          *pragma_text,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                    a_boolean                     is_microsoft_pragma_operator,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                    char                          *entity_ptr,
+                    an_il_entry_kind              entity_kind);
+
+extern a_pragma_ptr find_assoc_pragma(char             *entity_ptr,
+                                      an_il_entry_kind entity_kind,
+                                      a_scope_ptr      func_scope,
+                                      a_pragma_ptr     prev_assoc_pragma);
 
 extern a_boolean operator_takes_lvalue_op1(an_expr_operator_kind op);
 

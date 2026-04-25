@@ -120,6 +120,15 @@ typeref, and a dependent pack-index-expr is represented as an enk_pack_index
 expression node.
 
 
+4/24/26  [EDGcpfe/28806]
+Regression in library use of find_assoc_pragma
+
+The changes for EDGcpfe/27282 (in version 6.7) introduced a regression by
+changing where in the IL pragmas are represented that was not reflected in
+find_assoc_pragma resulting in pragmas associated with classes not being found.
+This is now fixed.
+
+
 4/23/26  [EDGcpfe/28810]
 C++-generating back end: missing name qualifier in trailing return type
 

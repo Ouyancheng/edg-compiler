@@ -760,16 +760,13 @@ there is additional processing to be done.
     /* Pragmas from C++17 constexpr if discarded statements are not added
        to the IL. */
   } else {
-    a_pragma_ptr            pp;
-    a_memory_region_number  region_to_switch_back_to;
-    a_scope_depth           scope_depth = depth_scope_stack;
-    a_boolean               tu_pushed = FALSE;
-    a_source_correspondence *scp = NULL;
+    a_pragma_ptr pp;
 
     /* Determine the memory region in which the IL pragma entry should be
        allocated and the scope_depth of the scope entry to which it should
        be attached. */
     if (entity_ptr == NULL) {
+      a_scope_depth scope_depth = depth_scope_stack;
       /* The pragma is not associated with any entity.  If it is a global
          pragma, associate it with the file scope; otherwise, it belongs to
          the local context. */
@@ -820,67 +817,43 @@ there is additional processing to be done.
           }  /* switch */
         }  /* for */
       }  /* if */
-    } else if (entity_kind == (an_il_entry_kind)iek_statement) {
-      /* Pragmas bound to statements are in local memory and are attached to
-         the current scope. */
-      /* Set the has_associated_pragma field. */
-      ((a_statement_ptr)entity_ptr)->has_associated_pragma = TRUE;
-    } else {
-      /* We are binding to a declarative entity, and the IL pragma entry
-         should be allocated in file-scope memory if the entity itself was
-         allocated there; otherwise, use the current memory. */
-      scp = source_corresp_for_il_entry(entity_ptr, entity_kind);
-      check_assertion_str2(scp != NULL, "add_pragma_to_il:",
-                           "invalid entity kind (no source corresp)");
-
-      a_symbol_ptr sym = (a_symbol_ptr)scp->assoc_info;
-      tu_pushed = push_translation_unit_if_needed(sym);
-      if (tu_pushed) {
-        /* If a TU was pushed (meaning this entity is in a different
-           translation unit than curr_translation_unit prior to calling
-           add_pragma_to_il), the pragma should be allocated into that
-           translation unit's IL scope. */
-        scope_depth = DEPTH_OF_FILE_SCOPE;
-      } else if (scp_is_class_or_namespace_member(scp) ||
-                 in_file_scope(scp) ||
-                 !scp->is_local_to_function) {
-        /* For non-local entities, the pragma is always allocated with the IL
-           (in the TU file scope). */
-        scope_depth = DEPTH_OF_FILE_SCOPE;
-      } else {
-        /* Otherwise, this is a local entity in the current translation unit
-           allocate the pragma on the current scope. */
-      }  /* if */
-      /* Set the has_associated_pragma field. */
-      scp->has_associated_pragma = TRUE;
-    }  /* if */
-    /* Switch to the proper memory region. */
-    switch_to_scope_region(scope_depth, &region_to_switch_back_to);
-    pp = alloc_pragma(ppp->descr_ptr->kind);
-    pp->position = ppp->pragma_position;
-    pp->pragma_text = ppp->pragma_text;
-    pp->ignore_in_back_end = ppp->descr_ptr->ignore_in_back_end;
+      /* Ensure there's an IL scope to attach the pragma to. */
+      ensure_il_scope_exists(&scope_stack[scope_depth]);
+      /* Construct an IL pragma and attach it to the scope. */
+      pp = add_non_entity_pragma_to_list(
+                                     ppp->descr_ptr,
+                                     ppp->pragma_position,
+                                     ppp->pragma_text,
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    pp->is_microsoft_pragma_operator = ppp->is_microsoft_pragma_operator;
+                                     ppp->is_microsoft_pragma_operator,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (entity_ptr != NULL) {
-      pp->entity.kind = entity_kind;
-      pp->entity.ptr = entity_ptr;
-    }  /* if */
-#if DEBUG
-    if (db_flag_is_set("add_pragma_to_il")) {
-      fprintf(f_debug, "Adding pragma at seq=%u, col=%u to depth %d\n",
-              pp->position.seq, (unsigned)pp->position.column, scope_depth);
-    }  /* if */
-#endif /* DEBUG */
-    /* coverity[var_deref_model] */
-    add_to_pragma_list(pp, scope_depth, scp);
-    switch_back_to_original_region(region_to_switch_back_to);
-    if (tu_pushed) {
-      pop_translation_unit_stack();
+                                     scope_depth);
+    } else {
+      /* Construct an IL pragma and associate it with the entity. */
+      pp = add_entity_pragma_to_list(
+                                     ppp->descr_ptr,
+                                     ppp->pragma_position,
+                                     ppp->pragma_text,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                                     ppp->is_microsoft_pragma_operator,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                     entity_ptr,
+                                     entity_kind);
+#if EXPENSIVE_CHECKING
+      /* Verify that the constructed IL pragma can be found. */
+      { a_pragma_ptr npp = NULL;
+
+        do {
+          npp = find_assoc_pragma(entity_ptr, entity_kind,
+                                  innermost_function_scope,
+                                  npp);
+        } while (pp != npp && npp->next != NULL);
+       check_assertion(pp == npp);
+      }
+#endif /* EXPENSIVE_CHECKING */
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
+    update_source_sequence_list((char *)pp, iek_pragma,
                                 ppp->source_sequence_entry);
     /* The source sequence entry is now attached to the IL pragma entry.
        Clear the copy of the source_sequence_entry pointer in the pending
