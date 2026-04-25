@@ -848,7 +848,7 @@ there is additional processing to be done.
                                   innermost_function_scope,
                                   npp);
         } while (pp != npp && npp->next != NULL);
-       check_assertion(pp == npp);
+        check_assertion(pp == npp);
       }
 #endif /* EXPENSIVE_CHECKING */
     }  /* if */

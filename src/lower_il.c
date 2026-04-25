@@ -18323,8 +18323,7 @@ set *insert_location so that statements can be inserted at the beginning
 of the block (i.e., in front of the original statement).  *orig_statement
 is set to point to the original statement in its new location.  If the
 original statement has an associated pragma, move it to the copy.
-scope points to the function scope immediately surrounding the original
-statement.
+scope points to the scope immediately surrounding the original statement.
 */
 {
   turn_statement_into_block(statement, insert_location, orig_statement);

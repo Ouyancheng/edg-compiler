@@ -27524,12 +27524,12 @@ statement that returns a value).  See change_block_into_statement_expression.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static inline void find_scope_for_entity_pragmas(
-                    char                          *entity_ptr,
-                    an_il_entry_kind              entity_kind,
-                    a_source_correspondence_ptr   entity_scp,
-                    a_scope_ptr                   func_scope,
-                    a_scope_ptr                   *il_scope,
-                    a_scope_pointers_block_ptr    *pointers_block)
+                                 char                          *entity_ptr,
+                                 an_il_entry_kind              entity_kind,
+                                 a_source_correspondence_ptr   entity_scp,
+                                 a_scope_ptr                   func_scope,
+                                 a_scope_ptr                   *il_scope,
+                                 a_scope_pointers_block_ptr    *pointers_block)
 /*
 Given an IL entity pointer, kind, and the associated source correspondence for
 the entity: this routine determines the IL scope (*il_scope) and associated
@@ -27556,7 +27556,7 @@ associated innermost_function_scope.  Otherwise, func_scope can be NULL.
     *il_scope = func_scope;
     if (!scope_is_null_or_placeholder(*il_scope) &&
         (*il_scope)->depth_in_scope_stack != NO_SCOPE_DEPTH) {
-      /* There is a corresponding scope stack entry, update the pointers block
+      /* There is a corresponding scope stack entry: update the pointers block
          value. */
       *pointers_block =
            scope_stack[(*il_scope)->depth_in_scope_stack].assoc_pointers_block;

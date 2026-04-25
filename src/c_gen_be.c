@@ -2682,7 +2682,7 @@ static void dump_associated_pragmas(char             *entity_ptr,
 /*
 Dump out any pragmas associated with the entity at the given address with the
 given kind.  The caller is responsible for determining that the entity has at
-least one associated pragmas.
+least one associated pragma.
 */
 {
   a_pragma_ptr pp, prev_pp = NULL;
