@@ -11263,7 +11263,6 @@ scope.
   return scope;
 }  /* function_scope_for_local_type */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 static a_scope_ptr get_scope_for_list(
                                  a_scope_depth               scope_level,
@@ -11280,9 +11279,12 @@ scope need not be on the scope stack.  That mode cannot be used for
 function-local entities unless they are class or namespace members.
 *pointers_block is returned NULL if there is no pointers block (anymore)
 for the scope, which means no last-pointer is being maintained (anymore).
+
+When used from outside of the front end, this function may return a NULL scope
+(as no further IL scopes can be created) if the returned scope would have been
+a scope from the scope stack (i.e., not a file, namespace, or class scope).
 */
 {
-  a_scope_stack_entry_ptr  ssep;
   a_scope_ptr              sp = NULL;
   a_namespace_ptr          nsp = NULL;
   a_type_ptr               class_type = NULL;
@@ -11293,7 +11295,11 @@ for the scope, which means no last-pointer is being maintained (anymore).
     if (scp->is_class_member) {
       /* Compute the scope and pointers-block for the scope associated with
          the parent class. */
-      class_type = scp_parent_class(scp);
+      if (!C_mode()) {
+        class_type = scp_parent_class(scp);
+      } else {
+        scope_level = DEPTH_OF_FILE_SCOPE;
+      }  /* if */
     } else if (!C_mode() &&
                scp->name_linkage == (a_name_linkage_kind)nlk_external) {
       /* extern "C" functions and variables are always on the file scope
@@ -11309,23 +11315,29 @@ for the scope, which means no last-pointer is being maintained (anymore).
       }  /* if */
     }  /* if */
   }  /* if */
-  if (sp != NULL) {
-    /* The scope has already been determined. */
-  } else if (class_type != NULL) {
+  if (class_type != NULL) {
     check_assertion_str(!C_mode(),
                         "get_scope_for_list: class scope in C mode");
     sp = class_type_supp(scp_parent_class(scp))->assoc_scope;
-    if (!scope_is_null_or_placeholder(sp)) {
-      scope_level = sp->depth_in_scope_stack;
-    }  /* if */
-    if (scope_level == NO_SCOPE_DEPTH) {
-      /* The class has already been popped off the scope stack. */
-      *pointers_block = NULL;
-    } else {
-      check_assertion(trans_unit_for_scope[sp->number] ==
+#if !STANDALONE_UTILITY_PROGRAM
+    if (in_front_end) {
+      if (!scope_is_null_or_placeholder(sp)) {
+        scope_level = sp->depth_in_scope_stack;
+      }  /* if */
+      if (scope_level == NO_SCOPE_DEPTH) {
+        /* The class has already been popped off the scope stack. */
+        *pointers_block = NULL;
+      } else {
+        check_assertion(trans_unit_for_scope[sp->number] ==
                                                         curr_translation_unit);
-      ssep = &scope_stack[scope_level];
-      *pointers_block = assoc_pointers_block_of(ssep);
+
+        a_scope_stack_entry_ptr ssep = &scope_stack[scope_level];
+        *pointers_block = assoc_pointers_block_of(ssep);
+      }  /* if */
+    } else
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+    {
+      *pointers_block = NULL;
     }  /* if */
   } else if (nsp != NULL) {
     /* Use the IL scope from the namespace. */
@@ -11339,15 +11351,25 @@ for the scope, which means no last-pointer is being maintained (anymore).
     sp = curr_translation_unit->primary_scope;
     *pointers_block = &curr_translation_unit->file_scope_pointers_block;
   } else {
-    /* Use the IL scope associated with scope_level on the scope_stack. */
-    check_assertion(scope_level >= 0 && scope_level <= depth_scope_stack);
-    ssep = &scope_stack[scope_level];
-    sp = ensure_il_scope_exists(ssep);
-    *pointers_block = assoc_pointers_block_of(ssep);
+#if !STANDALONE_UTILITY_PROGRAM
+    if (in_front_end) {
+      /* Use the IL scope associated with scope_level on the scope_stack. */
+      check_assertion(scope_level >= 0 && scope_level <= depth_scope_stack);
+
+      a_scope_stack_entry_ptr ssep = &scope_stack[scope_level];
+      sp = ensure_il_scope_exists(ssep);
+      *pointers_block = assoc_pointers_block_of(ssep);
+    } else
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+    /* Do not add code here. */
+    {
+      *pointers_block = NULL;
+    }  /* if */
   }  /* if */
   return sp;
 }  /* get_scope_for_list */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
                                      a_scope_depth  decl_level)
@@ -27499,6 +27521,7 @@ statement that returns a value).  See change_block_into_statement_expression.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* change_statement_into_block */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static inline void find_scope_for_entity_pragmas(
                     char                          *entity_ptr,
@@ -27543,6 +27566,7 @@ associated innermost_function_scope.  Otherwise, func_scope can be NULL.
   check_assertion(*il_scope != NULL);
 }  /* find_scope_for_entity_pragmas */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 static void append_pragma(a_scope_ptr                il_scope,
                           a_scope_pointers_block_ptr pointers_block,
@@ -27699,6 +27723,7 @@ be set appropriately.
   return pp;
 }  /* add_entity_pragma_to_list */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_pragma_ptr find_assoc_pragma(char             *entity_ptr,
                                an_il_entry_kind entity_kind,
@@ -27748,6 +27773,7 @@ is bound to the il_entity).
   return assoc_pragma;
 }  /* find_assoc_pragma */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 void add_to_destructions_list(a_dynamic_init_ptr      dip,
                               an_object_lifetime_ptr  olp)
