@@ -27422,221 +27422,56 @@ statement that returns a value).  See change_block_into_statement_expression.
 }  /* change_statement_into_block */
 
 
-static inline void find_scope_for_entity_pragmas(
-                    char                          *entity_ptr,
-                    an_il_entry_kind              entity_kind,
-                    a_source_correspondence_ptr   entity_scp,
-                    a_scope_ptr                   func_scope,
-                    a_scope_ptr                   *il_scope,
-                    a_scope_pointers_block_ptr    *pointers_block)
+void add_to_pragma_list(a_pragma_ptr             pragma,
+                        a_scope_depth            scope_depth,
+			a_source_correspondence  *scp)
 /*
-Given an IL entity pointer, kind, and the associated source correspondence for
-the entity: this routine determines the IL scope (*il_scope) and associated
-pointers (*pointers_block) block (if any) that list the pragmas for the given
-entity.
-
-If called with a function-local entity, func_scope must be set to the
-associated innermost_function_scope.  Otherwise, func_scope can be NULL.
+Add the indicated pragma entry to the end of the pragmas list of the
+appropriate scope.  scope_depth may be specified, in which case the
+corresponding IL scope is used.  Otherwise, *scp will point to the source
+correspondence of the entity (a class or namespace member) to which the
+pragma is bound, and the pragma will be entered in the IL scope associated
+with the class or namespace.
 */
 {
-  *il_scope = NULL;
-  *pointers_block = NULL;
-  if (entity_scp != NULL && !entity_scp->is_local_to_function) {
-    /* When an entity source correspondence is present and the entity is not
-       function local, use get_scope_for_list to determine an appropriate
-       scope. */
-    *il_scope = get_scope_for_list(NO_SCOPE_DEPTH, entity_scp, pointers_block);
-  } else if (entity_kind == iek_statement ||
-             (entity_scp != NULL && entity_scp->is_local_to_function)) {
-    /* This is a pragma applied to either a statement or function local entity.
-       These pragmas are associated with the innermost associated function
-       scoped (which is required to exist). */
-    check_assertion(func_scope != NULL);
-    *il_scope = func_scope;
-    if (!scope_is_null_or_placeholder(*il_scope) &&
-        (*il_scope)->depth_in_scope_stack != NO_SCOPE_DEPTH) {
-      /* There is a corresponding scope stack entry, update the pointers block
-         value. */
-      *pointers_block =
-           scope_stack[(*il_scope)->depth_in_scope_stack].assoc_pointers_block;
-    }  /* if */
-  }  /* if */
-  /* There should always be an IL scope at this point. */
-  check_assertion(*il_scope != NULL);
-}  /* find_scope_for_entity_pragmas */
+  a_scope_ptr                 sp;
+  a_scope_pointers_block_ptr  pointers_block;
 
-
-static void append_pragma(a_scope_ptr                il_scope,
-                          a_scope_pointers_block_ptr pointers_block,
-                          a_pragma_ptr               pp)
-/*
-Append the given pragma pointer (pp) to the given il_scope (using
-pointers_block as an optimization if non-NULL).
-*/
-{
-  if (il_scope->pragmas == NULL) {
-    il_scope->pragmas = pp;
+  sp = get_scope_for_list(scope_depth, scp, &pointers_block);
+  if (sp->pragmas == NULL) {
+    sp->pragmas = pragma;
   } else if (pointers_block == NULL) {
     /* No scope stack entry, find the end of the pragma list.  Note that
        the case where sp->pragmas is NULL is already tested above. */
-    a_pragma_ptr end_of_list = il_scope->pragmas;
-
-    while (end_of_list->next != NULL) {
-      end_of_list = end_of_list->next;
-    }  /* while */
-    end_of_list->next = pp;
+    a_pragma_ptr	end_of_list = sp->pragmas;
+    while (end_of_list->next != NULL) end_of_list = end_of_list->next;
+    end_of_list->next = pragma;
   } else {
-    pointers_block->last_pragma->next = pp;
+    pointers_block->last_pragma->next = pragma;
   }  /* if */
-  if (pointers_block != NULL) {
-    pointers_block->last_pragma = pp;
-  }  /* if */
-}  /* append_pragma */
+  if (pointers_block != NULL) pointers_block->last_pragma = pragma;
+}  /* add_to_pragma_list */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
-a_pragma_ptr add_non_entity_pragma_to_list(
-                    a_pragma_kind_description_ptr pragma_descr,
-                    a_source_position             pragma_position,
-                    char                          *pragma_text,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                    a_boolean                     is_microsoft_pragma_operator,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                    a_scope_depth                 pragma_scope_depth)
+a_pragma_ptr find_assoc_pragma(char          *il_entity,
+                               a_scope_ptr   scope,
+                               a_type_ptr    class_type,
+                               a_pragma_ptr  prev_assoc_pragma)
 /*
-This function constructs a new IL pragma entry that's not associated with any
-IL entity using the given pragma_descr (the pragma description),
-pragma_position (the pragma source position), pragma_text (the text that
-comprises the pragma), and is_microsoft_pragma_operator (if the pragma is a
-Microsoft pragma operator).  Then, the constructed pragma is added to the
-appropriate scope on the scope stack (as specified by pragma_scope_depth).
-*/
-{
-  a_memory_region_number region_to_switch_back_to = NO_MEMORY_REGION_NUMBER;
+Return a pointer to a pragma that is bound to il_entity.  prev_assoc_pragma is
+a (possibly NULL) pointer to another pragma that is bound to the same IL entity
+and has already been located (used for iterative calls to find_assoc_pragma and
+is typically the result of the previous (non-NULL) find_assoc_pragma call with
+the same il_entity).
 
-  switch_to_scope_region(pragma_scope_depth, &region_to_switch_back_to);
+When prev_assoc_pragma is NULL, one of three scopes is searched, in this order:
 
-  a_pragma_ptr pp = alloc_pragma(pragma_descr->kind);
-  pp->position = pragma_position;
-  pp->pragma_text = pragma_text;
-  pp->ignore_in_back_end = pragma_descr->ignore_in_back_end;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  pp->is_microsoft_pragma_operator = is_microsoft_pragma_operator;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if DEBUG
-  if (db_flag_is_set("add_pragma_to_il")) {
-    fprintf(f_debug,
-            "Adding non-entity pragma at seq=%u, col=%u to scope %d "
-            "(depth %d)\n",
-            pp->position.seq, (unsigned)pp->position.column,
-            scope_stack[pragma_scope_depth].number,
-            pragma_scope_depth);
-  }  /* if */
-#endif /* DEBUG */
-  append_pragma(scope_stack[pragma_scope_depth].il_scope,
-                scope_stack[pragma_scope_depth].assoc_pointers_block,
-                pp);
-  if (region_to_switch_back_to != NO_MEMORY_REGION_NUMBER) {
-    switch_back_to_original_region(region_to_switch_back_to);
-  }  /* if */
-  return pp;
-}  /* add_non_entity_pragma_to_list */
-
-
-a_pragma_ptr add_entity_pragma_to_list(
-                    a_pragma_kind_description_ptr pragma_descr,
-                    a_source_position             pragma_position,
-                    char                          *pragma_text,
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                    a_boolean                     is_microsoft_pragma_operator,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                    char                          *entity_ptr,
-                    an_il_entry_kind              entity_kind)
-/*
-This function constructs a new IL pragma entry that's associated with an IL
-entity using the given pragma_descr (the pragma description), pragma_position
-(the pragma source position), pragma_text (the text that comprises the
-pragma), is_microsoft_pragma_operator (if the pragma is a Microsoft pragma
-operator), and associated IL entity.  Then, the constructed pragma is added to
-the appropriate scope so that it can be retrieved by find_assoc_pragma later.
-
-Note that if called with a function-local entity, innermost_function_scope must
-be set appropriately.
-*/
-{
-  a_boolean                   tu_pushed = FALSE;
-  a_memory_region_number      region_to_switch_back_to =
-                                                       NO_MEMORY_REGION_NUMBER;
-  a_source_correspondence_ptr scp = source_corresp_for_il_entry(entity_ptr,
-                                                                entity_kind);
-
-  if (scp != NULL) {
-    a_symbol_ptr sym = (a_symbol_ptr)scp->assoc_info;
-
-    tu_pushed = push_translation_unit_if_needed(sym);
-  }  /* if */
-
-  a_scope_ptr                 il_scope;
-  a_scope_pointers_block_ptr  pointers_block;
-  find_scope_for_entity_pragmas(entity_ptr, entity_kind, scp,
-                                innermost_function_scope,
-                                &il_scope, &pointers_block);
-  if (il_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
-    switch_to_scope_region(il_scope->depth_in_scope_stack,
-                           &region_to_switch_back_to);
-  } else {
-    switch_to_file_scope_region(&region_to_switch_back_to);
-  }  /* if */
-  if (entity_kind == iek_statement) {
-    /* Pragmas bound to statements are in local memory and are attached to
-       the current scope. */
-    /* Set the has_associated_pragma field. */
-    ((a_statement_ptr)entity_ptr)->has_associated_pragma = TRUE;
-  }  /* if */
-
-  a_pragma_ptr pp = alloc_pragma(pragma_descr->kind);
-  pp->position = pragma_position;
-  pp->pragma_text = pragma_text;
-  pp->ignore_in_back_end = pragma_descr->ignore_in_back_end;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  pp->is_microsoft_pragma_operator = is_microsoft_pragma_operator;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  pp->entity.kind = entity_kind;
-  pp->entity.ptr = entity_ptr;
-#if DEBUG
-  if (db_flag_is_set("add_pragma_to_il")) {
-    fprintf(f_debug,
-            "Adding entity pragma at seq=%u, col=%u to scope %d "
-            "(depth %d)\n",
-            pp->position.seq, (unsigned)pp->position.column, il_scope->number,
-            il_scope->depth_in_scope_stack);
-  }  /* if */
-#endif /* DEBUG */
-  append_pragma(il_scope, pointers_block, pp);
-  if (region_to_switch_back_to != NO_MEMORY_REGION_NUMBER) {
-    switch_back_to_original_region(region_to_switch_back_to);
-  }  /* if */
-  if (tu_pushed) {
-    pop_translation_unit_stack();
-  }  /* if */
-  return pp;
-}  /* add_entity_pragma_to_list */
-
-
-a_pragma_ptr find_assoc_pragma(char             *entity_ptr,
-                               an_il_entry_kind entity_kind,
-                               a_scope_ptr      func_scope,
-                               a_pragma_ptr     prev_assoc_pragma)
-/*
-Return a pointer to a pragma that is bound to IL entity described by entity_ptr
-and entity_kind.  prev_assoc_pragma is a (possibly NULL) pointer to another
-pragma that is bound to the same IL entity and has already been located (used
-for iterative calls to find_assoc_pragma and is typically the result of the
-previous (non-NULL) find_assoc_pragma call with the same il_entity).
-
-When prev_assoc_pragma is NULL, the list of pragmas where any new pragmas for
-the given entity would be added is searched.  To search for pragmas associated
-with entities that are function-local, func_scope must be set to the innermost
-function scope that would've been active when the pragma was created.
+  1) if class_type is non-NULL, the scope associated with class_type,
+  2) otherwise, if scope is non-NULL, scope is used (except when the specified
+     scope is a function/block scope and the il_entity is in the file scope, in
+     which case the file scope is used),
+  3) otherwise, the file scope is searched.
 
 When prev_assoc_pragma is non-NULL, search the remainder of the list it belongs
 to.  The front end aborts with a failed assertion if prev_assoc_pragma is NULL
@@ -27645,31 +27480,48 @@ is bound to the il_entity).
 */
 {
   a_pragma_ptr  assoc_pragma;
+  a_scope_ptr   sp;
 
-  if (prev_assoc_pragma != NULL) {
+  if (prev_assoc_pragma) {
     /* A pragma has already been found that is associated with *il_entity.
        Any additional pragmas associated with the same entity will be among
        its successors on the same list. */
     assoc_pragma = prev_assoc_pragma->next;
   } else {
     /* Determine which scope has the list that is to be searched. */
-    a_source_correspondence_ptr scp = source_corresp_for_il_entry(entity_ptr,
-                                                                  entity_kind);
-    a_scope_pointers_block_ptr  pointers_block;
-    a_scope_ptr                 il_scope;
-
-    find_scope_for_entity_pragmas(entity_ptr, entity_kind, scp, func_scope,
-                                  &il_scope, &pointers_block);
-    assoc_pragma = il_scope->pragmas;
+    if (class_type != NULL) {
+      check_assertion(!C_mode());
+      /* The entity is a member of a class, so look on the pragma list for the
+         scope associated with the class. */
+      sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
+    } else if (scope != NULL) {
+      if ((scope->kind == (a_scope_kind)sck_block ||
+           scope->kind == (a_scope_kind)sck_function) &&
+          in_file_scope(il_entity)) {
+        /* The specified scope was a block or function scope, but the entity
+           is from the file scope.  Use the file scope instead of the
+           specified scope. */
+        sp = il_header.primary_scope;
+      } else {
+        /* A function/block scope and a non-file scope entity, or some other
+           kind of scope.  Use the specified scope.  */
+        sp = scope;
+      }  /* if */
+    } else {
+      /* The pragma must be on the file scope's pragma list. */
+      sp = il_header.primary_scope;
+    }  /* if */
+    assoc_pragma = sp->pragmas;
   }  /* if */
   for (; assoc_pragma != NULL; assoc_pragma = assoc_pragma->next) {
-    if (assoc_pragma->entity.ptr == entity_ptr) break;
+    if (assoc_pragma->entity.ptr == il_entity) break;
   }  /* for */
   check_assertion_str((assoc_pragma != NULL) || (prev_assoc_pragma != NULL),
                       "find_assoc_pragma: pragma not found");
   return assoc_pragma;
 }  /* find_assoc_pragma */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 void add_to_destructions_list(a_dynamic_init_ptr      dip,
                               an_object_lifetime_ptr  olp)

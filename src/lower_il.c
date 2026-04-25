@@ -18323,8 +18323,7 @@ set *insert_location so that statements can be inserted at the beginning
 of the block (i.e., in front of the original statement).  *orig_statement
 is set to point to the original statement in its new location.  If the
 original statement has an associated pragma, move it to the copy.
-scope points to the function scope immediately surrounding the original
-statement.
+scope points to the scope immediately surrounding the original statement.
 */
 {
   turn_statement_into_block(statement, insert_location, orig_statement);
@@ -18332,14 +18331,9 @@ statement.
     /* The original statement has an associated pragma (or list of pragmas).
        Reattach it/them to the copy. */
     a_pragma_ptr assoc_pragma, prev_assoc_pragma = NULL;
-
-    /* Find the innermost function scope skipping any block scopes. */
-    while (scope != NULL && scope->kind != sck_function) {
-      scope = scope->parent;
-    }  /* while */
     while ((assoc_pragma = find_assoc_pragma((char *)statement,
-                                             iek_statement,
                                              scope,
+                                             (a_type_ptr)NULL,
                                              prev_assoc_pragma)) != NULL) {
       /* Relink the pragma to the copy of the original statement. */
       assoc_pragma->entity.ptr = (char *)*orig_statement;
