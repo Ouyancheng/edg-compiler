@@ -26,7 +26,7 @@ that is used in the function's trailing return type.  This is now fixed.
 For example, with --c++20:
 
   int x;
-  template <int *> struct A { } ; 
+  template <int *> struct A { }; 
   auto f(int x) -> decltype(new A<&::x>);   // Previously omitted "::"
 
 
