@@ -4149,41 +4149,45 @@ The syntax is:
   /* Push a scope in C99 mode. */
   if (c99_mode) push_statement_scope();
   /* Check for a C++17 "if constexpr" or a C++23 "if consteval"/"if not
-     consteval" statement. */
-  if (constexpr_if_enabled || if_consteval_enabled) {
+     consteval" statement (the latter is accepted as an extension in C++20). */
+  if (constexpr_if_enabled || if_consteval_enabled || cpp20_mode) {
     a_token_kind  next_tok = next_token();
     if (constexpr_if_enabled && next_tok == tok_constexpr) {
       kind = (a_statement_kind)stmk_constexpr_if;
       ssk_kind = ssk_constexpr_if;
       is_constexpr_if = TRUE;
-    } else if ((if_consteval_enabled ||
-                (gpp_version_is(>=120000) && cpp20_mode)) &&
+    } else if ((if_consteval_enabled || cpp20_mode) &&
                next_tok == tok_consteval) {
       if (!if_consteval_enabled) {
-        /* GCC accepts "if consteval" with a warning in C++20 mode. */
-        pos_warning(ec_if_consteval_nonstandard, &pos_curr_token);
+        /* Some compilers accept "if consteval" with a warning in C++20
+           mode. */
+        pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
+                                        : es_warning,
+                       ec_if_consteval_nonstandard, &pos_curr_token);
       }  /* if */
-      kind = (a_statement_kind)stmk_if_consteval;
+      kind = stmk_if_consteval;
       ssk_kind = ssk_if;
       is_if_consteval = TRUE;
-    } else if ((if_consteval_enabled ||
-                (gpp_version_is(>=120000) && cpp20_mode)) &&
+    } else if ((if_consteval_enabled || cpp20_mode) &&
                next_tok == tok_not) {
       a_token_kind  next_next_tok;
       if (next_two_tokens(tok_not, &next_next_tok) == tok_not &&
           next_next_tok == tok_consteval) {
         if (!if_consteval_enabled) {
-          /* GCC accepts "if consteval" with a warning in C++20 mode. */
-          pos_warning(ec_if_consteval_nonstandard, &pos_curr_token);
+          /* Some compilers accept "if consteval" with a warning in C++20
+             mode. */
+          pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
+                                          : es_warning,
+                         ec_if_consteval_nonstandard, &pos_curr_token);
         }  /* if */
-        kind = (a_statement_kind)stmk_if_not_consteval;
+        kind = stmk_if_not_consteval;
         ssk_kind = ssk_if;
         is_if_consteval = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
   if (!is_constexpr_if && !is_if_consteval) {
-    kind = (a_statement_kind)stmk_if;
+    kind = stmk_if;
     ssk_kind = ssk_if;
   }  /* if */
   /* Allocate the statement. */
