@@ -7950,6 +7950,11 @@ expression context) rather than a declaration.
       (void)get_token();
     }  /* if */
     if (dps.has_deduced_type) {
+      /* The init_state used for prescan_initializer_for_auto_type_deduction
+         must match that would be called during the call to initializer(...)
+         below.  Otherwise, object lifetime expectations may not match, which
+         could result in an internal error. */
+      dps.init_state.initializer_must_be_constant = var_ptr->is_constexpr;
       prescan_initializer_for_auto_type_deduction(
                                          &dps, has_parenthesized_initializer);
       complete_type_is_needed(dps.type);
@@ -8009,8 +8014,8 @@ expression context) rather than a declaration.
   } else if (!is_var_templ_instance || (template_sym->defined && is_use)) {
     a_boolean	def_init_okay;
     /* The storage class must be set before def_initializer is called. */
-    if (var_ptr->storage_class == (a_storage_class)sc_extern) {
-      var_ptr->storage_class = (a_storage_class)sc_unspecified;
+    if (var_ptr->storage_class == sc_extern) {
+      var_ptr->storage_class = sc_unspecified;
     }  /* if */
     if (dps.dso_flags & DSO_CONSTINIT) var_ptr->declared_constinit = TRUE;
     /* There's no explicit initializer.  See if the variable can be
@@ -8044,8 +8049,8 @@ expression context) rather than a declaration.
   if (is_definition) {
     /* Set the storage class if not set above. */
     check_assertion(master_instance_of(tip)->already_instantiated);
-    if (var_ptr->storage_class == (a_storage_class)sc_extern) {
-      var_ptr->storage_class = (a_storage_class)sc_unspecified;
+    if (var_ptr->storage_class == sc_extern) {
+      var_ptr->storage_class = sc_unspecified;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_definition && (var_ptr->decl_modifiers & DM_DLLIMPORT)) {

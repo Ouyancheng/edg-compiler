@@ -1,5 +1,26 @@
 Version 6.9
 
+4/27/26  [EDGcpfe/28801]
+Assertion failure on constexpr variable template with class temporary
+
+Consider, in C++20 mode:
+
+  struct D {
+    constexpr ~D() {}
+  };
+  struct S {
+    D a = D{};
+  };
+  template<typename T> constexpr auto v = T{}.a;
+  D vs = v<S>;
+
+Previously, the front end aborted with an assertion failure in
+unbundle_init_component_expressions in overload.c, due to inconsistent
+handling of the initial parsing of the initializer for the instantiation of
+v<S> to determine its deduced type and the subsequent processing of that
+initializer to complete the representation of vs.  That is now fixed.
+
+
 4/26/26  [EDGcpfe/26823,EDGcpfe/27650]
 C++26: Pack indexing (IL CHANGE)
 
