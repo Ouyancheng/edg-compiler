@@ -20311,12 +20311,12 @@ copy_template_param_expr for the parameter descriptions.
     scan_lambda_expression(&result_operand);
     if (is_immediate_class_type(result_operand.type) &&
         is_lambda_closure_type(result_operand.type)) {
-      /* FIXME: Pushing a template declaration scope above (to reactivate the
+      /* Pushing a template declaration scope above (to reactivate the
          template parameters) unfortunately causes make_closure_class to mark
          the closure as nonreal.  In some situations with class template
          argument deduction, we get a spuriously nonreal class even when we
-         didn't push the template declaration scope above.  For now, just
-         reset the flag here. */
+         didn't push the template declaration scope above.  Just reset
+         the flag here. */
       result_operand.type->variant.class_struct_union.is_nonreal_class = FALSE;
     }  /* if */
     flush_past_token_cache_terminator();
