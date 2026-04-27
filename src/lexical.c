@@ -24911,8 +24911,22 @@ construct of the form:
 
   if (pack_indexing_allowed && curr_token == tok_identifier) {
     a_token_kind  token_2 = tok_error;
-    result = next_two_tokens(tok_ellipsis, &token_2) == tok_ellipsis &&
-             token_2 == tok_lbracket;
+
+    if (next_two_tokens(tok_ellipsis, &token_2) == tok_ellipsis &&
+        token_2 == tok_lbracket) {
+      a_tiny_scanning_token_cache  cache;
+
+      cache_curr_token(cache.ptr());
+      (void)get_token();
+      cache_curr_token(cache.ptr());
+      (void)get_token();
+      cache_curr_token(cache.ptr());
+      /* An empty "[]" is not a pack-index-specifier.  In a declaration like
+         "T ... []", the brackets are an array declarator following the
+         function parameter pack ellipsis. */
+      if (get_token() != tok_rbracket) result = TRUE;
+      rescan_cached_tokens(cache.ptr());
+    }  /* if */
   }  /* if */
   return result;
 }  /* pack_index_next */
