@@ -30028,6 +30028,20 @@ one argument, return TRUE; otherwise, return FALSE.
 }  /* conversion_has_one_argument */
 
 
+static a_type_ptr type_after_auto_cast_transformations(a_type_ptr  type,
+                                                       an_operand  *operand)
+/*
+Return the type produced by a C++23 auto(x) or auto{x} cast from an operand of
+the given type.  This is like the usual implicit transformations, except that
+the invented "auto" also discards top-level cv-qualification.
+*/
+{
+  type = do_implicit_type_transformations(type, operand);
+  type = remove_qualifiers(type, TQ_CONST | TQ_VOLATILE);
+  return type;
+}  /* type_after_auto_cast_transformations */
+
+
 static void scan_braced_init_list_cast(a_type_ptr         type_cast_to,
                                        a_cast_source_form source_form,
                                        an_init_component  *rescan_icp,
@@ -30080,7 +30094,8 @@ previously-scanned braced initializer.
           next_elem(icp->variant.braced.list) == NULL) {
         an_operand  *opnd = operand_of_arg_list_elem(icp->variant.braced.list);
         if (!is_template_dependent_type(opnd->type)) {
-          type_cast_to = do_implicit_type_transformations(opnd->type,
+          type_cast_to = type_after_auto_cast_transformations(
+                                                          opnd->type,
                                                           (an_operand*)NULL);
         }  /* if */
       } else {
@@ -30922,7 +30937,8 @@ non_ctor_case_after_expr_scan:
         if (is_auto_cast) {
           /* auto(x) and auto{x} cast to the corresponding prvalue type (after
              function/array decay). */
-          type_cast_to = do_implicit_type_transformations(result->type,
+          type_cast_to = type_after_auto_cast_transformations(
+                                                          result->type,
                                                           (an_operand*)NULL);
         }  /* if */
         /* Check compatibility of the types and do the cast. */
