@@ -5744,7 +5744,8 @@ are done in the il_to_str routines before this routine is called.
             is_typeref_kind(underlying_type,
                             trk_is_typeof_with_type_operand) ||
 #endif /* GNU_EXTENSIONS_ALLOWED */
-            is_typeref_kind(underlying_type, trk_is_splice)) {
+            is_typeref_kind(underlying_type, trk_is_splice) ||
+            is_typeref_kind(underlying_type, trk_pack_index)) {
           an_expr_node_ptr expr = decltype_arg(underlying_type);
           if (expr != NULL && !expr_is_unusable(expr)) {
             /* This type operator is usable to refer to the type. */
@@ -5875,7 +5876,8 @@ return NULL.
     a_type_ptr proxy_type = class_type_supp(class_type)->proxy_of_type;
     if (type_is(proxy_type, tk_typeref) &&
         (is_typeref_kind(proxy_type, trk_is_decltype) ||
-         is_typeref_kind(proxy_type, trk_is_splice))) {
+         is_typeref_kind(proxy_type, trk_is_splice) ||
+         is_typeref_kind(proxy_type, trk_pack_index))) {
       decltype_type = proxy_type;
     }  /* if */
   }  /* if */
@@ -9165,6 +9167,7 @@ expression is presumed to be valid at this point in the translation unit.
   a_type_ptr                   type_opnd = tp->variant.typeref.extra_info->
                                                              operator_type_arg;
   a_boolean                    operator_suppressed = FALSE;
+  a_boolean                    is_pack_index = FALSE;
 
   check_assertion(tp->kind == tk_typeref);
   switch (tp->variant.typeref.kind) {
@@ -9193,6 +9196,9 @@ expression is presumed to be valid at this point in the translation unit.
     case trk_direct_bases:
       name = "__direct_bases";
       break;
+    case trk_pack_index:
+      is_pack_index = TRUE;
+      break;
     default:
       check_assertion(typeref_is_type_transforming_intrinsic(tp));
       name = type_transforming_intrinsic_name(tp->variant.typeref.kind);
@@ -9211,6 +9217,14 @@ expression is presumed to be valid at this point in the translation unit.
        declaration or C-style cast can be misparsed as an expression
        instead of a type, so use the underlying type directly. */
     operator_suppressed = TRUE;
+  } else if (is_pack_index) {
+    /* Emit a C++26 type pack-index-specifier:
+         type-name ... [ constant-expression ] */
+    check_assertion(type_opnd != NULL && expr != NULL);
+    gen_type(type_opnd);
+    write_tok_str("...[");
+    gen_expression(expr);
+    write_tok_ch(']');
   } else if (type_opnd != NULL) {
     a_boolean for_all_scopes = FALSE;
     skip_embedded_declarations();
@@ -13120,7 +13134,8 @@ specialization, since such specializations appear in namespace scope.)
 
   if (type->kind == (a_type_kind)tk_typeref &&
       (is_typeref_kind(type, trk_is_decltype) ||
-       is_typeref_kind(type, trk_is_typeof_with_expression)) &&
+       is_typeref_kind(type, trk_is_typeof_with_expression) ||
+       is_typeref_kind(type, trk_pack_index)) &&
       type->variant.typeref.extra_info->expr == NULL) {
     /* End the traversal and return TRUE. */
     result = TRUE;
@@ -19418,6 +19433,12 @@ sizeof_cases:
     case enk_token_sequence:
       gen_token_sequence(expr);
       break;
+    case enk_pack_index:
+      gen_expression(expr->variant.pack_index.expr);
+      write_tok_str("...[");
+      gen_expression(expr->variant.pack_index.index_expr);
+      write_tok_ch(']');
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
@@ -23380,14 +23401,15 @@ handle_dynamic_init:
               an_expr_node_ptr init_expr =
                                   skip_implicit_steps(dip->variant.expression);
               if (node_is(init_expr, enk_variable) ||
+                  node_is(init_expr, enk_pack_index) ||
                   (node_is(init_expr, enk_operation) &&
                    (node_operator_is(init_expr, eok_dot_field) ||
                     node_operator_is(init_expr, eok_points_to_field)))) {
-                /* The presence or absence of parentheses around a variable
-                   or member access expression in the initializer of a
-                   decltype(auto) variable determines whether the deduced
-                   type is a reference or not, so we must reflect the
-                   source form accurately. */
+                /* The presence or absence of parentheses around a variable,
+                   pack indexing, or member access expression in the
+                   initializer of a decltype(auto) variable determines whether
+                   the deduced type is a reference or not, so we must reflect
+                   the source form accurately. */
                 need_parens = init_expr->is_parenthesized;
               } else {
                 need_parens = TRUE;

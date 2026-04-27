@@ -3684,6 +3684,11 @@ fields to default values.
       node->variant.token_sequence.interpolations = NULL;
       node->variant.token_sequence.tokens = NULL;
       break;
+    case enk_pack_index:
+      /* C++26 pack-index-expression operands. */
+      node->variant.pack_index.expr = NULL;
+      node->variant.pack_index.index_expr = NULL;
+      break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */

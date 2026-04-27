@@ -10406,7 +10406,8 @@ can only contain CLI interfaces.
         a_boolean           err = FALSE, is_decltype = FALSE,
                             is_dependent_type = FALSE,
                             is_dedup_pack = FALSE,
-                            is_dedup_dependent_pack = FALSE;
+                            is_dedup_dependent_pack = FALSE,
+                            is_pack_index = FALSE;
         a_template_arg_ptr  dedup_pack_args = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         a_source_position   decltype_end_pos = end_pos_curr_token;
@@ -10446,6 +10447,31 @@ can only contain CLI interfaces.
             /* Must be a class or struct (not a union). */
             pos_error(ec_not_a_class_or_struct_name, &base_class_decl_pos);
             goto skip_base_class;
+          }  /* if */
+        } else if (!locator_for_curr_id.is_qualified_name &&
+                   pack_index_next()) {
+          /* A C++26 type pack-index-specifier in a base class specifier:
+               type-name ... [ constant-expression ] [ "..." ]
+             The current token is still on the identifier; delegate the
+             full scan to scan_pack_index_type_specifier. */
+          is_pack_index = TRUE;
+          sym = NULL;
+          base_class_type = scan_pack_index_type_specifier(
+                                             /*is_new_type_name=*/FALSE,
+                                             /*is_implicit_type_context=*/TRUE,
+                                             /*concept_okay=*/FALSE,
+                                             /*might_be_id_start=*/FALSE);
+          if (is_error_type(base_class_type)) {
+            goto skip_base_class;
+          } else {
+            if (is_template_dependent_context() &&
+                type_is(base_class_type, tk_typeref) &&
+                base_class_type->variant.typeref.is_dependent_type_operator) {
+              is_dependent_type = TRUE;
+            } else if (!is_class_or_struct(skip_typerefs(base_class_type))) {
+              pos_error(ec_not_a_class_or_struct_name, &base_class_decl_pos);
+              goto skip_base_class;
+            }  /* if */
           }  /* if */
         } else {
           /* Look up the identifier for the base class.  Only identifiers
@@ -10552,7 +10578,7 @@ normal_base_class_processing:
           type_error(ec_implements_requires_interface, type_symbol_type(sym));
           goto skip_base_class;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (!is_decltype && !is_dedup_pack &&
+        } else if (!is_decltype && !is_pack_index && !is_dedup_pack &&
                    locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible
              according to the ARM lookup rules but is returned in support of
@@ -10567,7 +10593,7 @@ normal_base_class_processing:
              has already been issued. */
           goto skip_base_class;
         }  /* if */
-        if (!is_decltype && !is_dedup_pack) {
+        if (!is_decltype && !is_pack_index && !is_dedup_pack) {
           /* Record the symbol as referenced. */
           mark_referenced(sym, &locator_for_curr_id.source_position);
           /* Do ambiguity and access control checking for the symbol. */
@@ -10744,7 +10770,9 @@ skip_base_class:
         /* Advance past the base class name to the comma or right brace (in the
            decltype and dedup_pack cases the tokens have already been
            consumed). */
-        if (!is_decltype && !is_dedup_pack) (void)get_token();
+        if (!is_decltype && !is_pack_index && !is_dedup_pack) {
+          (void)get_token();
+        }  /* if */
         if (dedup_pack_args != NULL) {
           base_class_type = dedup_pack_args->variant.type;
           dedup_pack_args = dedup_pack_args->next;
@@ -10765,14 +10793,16 @@ dedup_base_done:;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       pedep = end_potential_pack_expansion_context(pesep,
                                                    /*is_declarator=*/FALSE);
-      if (pedep != NULL && new_direct_bcp != NULL) {
+      if (pedep != NULL && !pedep->is_pack_index && new_direct_bcp != NULL) {
         new_direct_bcp->is_pack_expansion = TRUE;
         new_direct_bcp->variant.pack_expansion_descr = pedep;
         /* Ensure the class is marked as nonreal.  This might not always be
            the case for local classes. */
         type_ptr->variant.class_struct_union.is_nonreal_class = TRUE;
       }  /* if */
-      any_types = advance_to_next_pack_element(pesep);
+      if (!skip_pack_index_iteration(&pesep, pedep, &any_types)) {
+        any_types = advance_to_next_pack_element(pesep);
+      }  /* if */
     }  /* while */
     /* Advance past the next comma, if any, and scan the next base class
        specifier. */

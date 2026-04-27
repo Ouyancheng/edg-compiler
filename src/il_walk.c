@@ -3665,6 +3665,12 @@ as specified in the control block.
     case enk_token_sequence:
       traverse_expr_list(expr->variant.token_sequence.interpolations, tblock);
       break;
+    case enk_pack_index:
+      /* Traverse both operands of a C++26 pack-index-expression. */
+      traverse_expr(expr->variant.pack_index.expr, tblock);
+      if (tblock->terminate) goto end_of_routine;
+      traverse_expr(expr->variant.pack_index.index_expr, tblock);
+      break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */

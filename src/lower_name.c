@@ -3861,10 +3861,12 @@ appear in mangled names).
 
 static a_boolean is_unresolved_type(a_type_ptr type)
 /*
-Returns TRUE if type is an <unresolved-type>, i.e., a <decltype> or a
-<template-param>.  This is called on the top-level qualifier during mangling of
-an <unresolved-name> to determine which of the three scope resolution cases is
-appropriate. The type must not have had its typerefs skipped by the caller.
+Returns TRUE if type is an <unresolved-type>, i.e., a dependent
+decltype-like operator typeref (decltype/splice/pack-index) or a
+<template-param>.  This is called on the top-level qualifier during mangling
+of an <unresolved-name> to determine which of the three scope resolution cases
+is appropriate.  The type must not have had its typerefs skipped by the
+caller.
 */
 {
   a_boolean       result = FALSE;
@@ -3872,7 +3874,8 @@ appropriate. The type must not have had its typerefs skipped by the caller.
   type = skip_typerefs_not_dependent_decltypes(type);
   if (type->kind == (a_type_kind)tk_typeref &&
       (is_typeref_kind(type, trk_is_decltype) ||
-       is_typeref_kind(type, trk_is_splice))) {
+       is_typeref_kind(type, trk_is_splice) ||
+       is_typeref_kind(type, trk_pack_index))) {
     result = TRUE;
   } else {
     if (is_proxy_class(type)) {
@@ -7536,6 +7539,12 @@ is TRUE.
                                           es_once, /*make_default=*/FALSE);
       add_to_mangled_name('?', mctl);
       break;
+    case enk_pack_index:
+      /* The IA-64 ABI does not specify how to mangle a pack index expression
+         yet, so just use the pack for now. */
+      mangled_encoding_for_expression(expr->variant.pack_index.expr,
+                                      in_dependent_expr, mctl);
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
@@ -10527,10 +10536,10 @@ as needed.
     goto end_of_routine;
   }  /* if */
 #endif /* IA64_ABI */
-  /* Walk through any typerefs above the type.  Remember type qualifiers
-     and skip down to the "real" underlying type.  decltype and typeof typerefs
-     are handled here.  Template alias typerefs are stripped here so that the
-     underlying type is mangled. */
+  /* Walk through typerefs above the type, remembering qualifiers and moving
+     down to the underlying type.  Dependent typeref-based type operators
+     (e.g., decltype/typeof/splice/pack-index) are handled here.  Template
+     alias typerefs are stripped so the underlying type is mangled. */
   /*lint --e{446} type modified in loop (LINTBUG) */
   for (; type_is(type, tk_typeref); type = type->variant.typeref.type) {
 #if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 402
@@ -10604,6 +10613,10 @@ top_of_loop:
     } else if (is_typeref_kind(type, trk_is_splice) &&
                type->variant.typeref.is_dependent_type_operator) {
       /* This splice needs to appear in the mangled name. */
+      break;
+    } else if (is_typeref_kind(type, trk_pack_index) &&
+               type->variant.typeref.is_dependent_type_operator) {
+      /* This pack-index-specifier needs to appear in the mangled name. */
       break;
     } else if (is_typeref_kind(type, trk_is_underlying_type) &&
                type->variant.typeref.is_dependent_type_operator) {
@@ -11116,10 +11129,10 @@ top_of_loop:
         }  /* if */
         break;
       case tk_typeref:
-        /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/
-           __underlying_types/typeofs should have been stripped, leaving only
-           dependent decltype/__underlying_type/typeof typerefs and
-           type-returning type traits. */
+        /* Typedefs, cv-qualifiers, aliases, and nondependent type operators
+           should have been stripped, leaving only dependent operator typerefs
+           (e.g., decltype/splice/pack-index/__underlying_type/typeof),
+           type-returning type traits, and deduced-auto placeholders. */
         check_assertion(typeref_is_type_operator(type) ||
                         typeref_is_type_transforming_intrinsic(type) ||
                         is_typeref_kind(type, trk_is_deduced_auto) ||
@@ -11151,6 +11164,13 @@ top_of_loop:
 #if IA64_ABI
           add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
+          goto have_whole_mangled_name;
+        } else if (is_typeref_kind(type, trk_pack_index)) {
+          /* The IA-64 ABI does not specify how to mangle a pack index type
+             specifier yet, so just use the pack for now (which is what Clang
+             does). */
+          mangled_encoding_for_type(typeref_supp(type)->operator_type_arg,
+                                    mctl);
           goto have_whole_mangled_name;
         } else if (is_typeref_kind(type, trk_is_underlying_type)) {
           /* Provide mangling for __underlying_type.  Note that in the IA-64

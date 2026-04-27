@@ -2865,6 +2865,71 @@ behavior of MSVC.)
 }  /* fold_noncast_expr_if_possible */
 
 
+static a_boolean extract_unsigned_value_from_operand(
+                                               an_operand             *operand,
+                                               a_host_large_unsigned  *value)
+/*
+Extract an unsigned value from the given operand.  Return TRUE if the value was
+successfully extracted and stored in *value, FALSE otherwise.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_constant_operand(operand) &&
+      !is_error_constant(&operand->variant.constant)) {
+    a_boolean  ovflo;
+    *value = unsigned_value_of_integer_constant(&operand->variant.constant,
+                                                &ovflo);
+    result = !ovflo;
+  }  /* if */
+  return result;
+}  /* extract_unsigned_value_from_operand */
+
+
+static a_pack_expansion_descr_ptr end_comma_separated_pack_element_scan(
+                             a_boolean                         pack_index_expr,
+                             a_pack_expansion_stack_entry_ptr  pesep,
+                             a_boolean                         *p_any_more)
+/*
+Complete the outer pack expansion context for a list element.  If
+pack_index_expr is TRUE (C++26 pack-index-expression), the context is only
+completed when a trailing "..." follows; otherwise it is abandoned to prevent
+inner pack references from being diagnosed as unexpanded.  If pack_index_expr
+is FALSE, the context is always completed and the expansion advances.  pesep
+is the pack expansion stack entry for the outer context.  *p_any_more is set
+to TRUE if more elements remain in the expansion.
+*/
+{
+  a_pack_expansion_descr_ptr  pedep = NULL;
+  if (pack_index_expr) {
+    if (curr_token == tok_ellipsis) {
+      pedep = end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+      if (in_generic_lambda_in_prototype_instantiation()) {
+        /* In a generic-lambda prototype instantiation nested inside a real
+           instantiation, keep the outer "..." dependent for later rescan
+           (when inner template arguments are known) rather than advancing a
+           hybrid pack expansion here. */
+        *p_any_more = FALSE;
+        abandon_potential_pack_expansion_context(pesep);
+      } else {
+        *p_any_more = advance_to_next_pack_element(pesep);
+      }  /* if */
+    } else {
+      *p_any_more = FALSE;
+      if (pesep != NULL) {
+        abandon_potential_pack_expansion_context(pesep);
+      }  /* if */
+    }  /* if */
+  } else {
+    pedep = end_potential_pack_expansion_context(pesep,
+                                                 /*is_declarator=*/FALSE);
+    *p_any_more = advance_to_next_pack_element(pesep);
+  }  /* if */
+  return pedep;
+}  /* end_comma_separated_pack_element_scan */
+
+
 static an_arg_list_elem_ptr scan_expr_list(
                                a_token_kind         closing_token,
                                a_boolean            is_delegate_init,
@@ -2920,6 +2985,7 @@ resulting argument list is returned.
     do {
       a_pack_expansion_stack_entry_ptr pesep;
       a_boolean                        any_more;
+      a_boolean                        pack_index_expr;
       if (after_cached_expr) {
         /* If we took one or more cached expressions above, we're already
            after the expression, so go to where we process the comma for the
@@ -2945,6 +3011,7 @@ resulting argument list is returned.
       /* Note that the code here is very similar to
          scan_potential_pack_expansion_initializer_expr and
          scan_expression_list_context_expr. */
+      pack_index_expr = pack_index_next();
       any_more = begin_potential_pack_expansion_context(&pesep);
       while (any_more) {
         /* Scan another element for the list. */
@@ -2979,8 +3046,8 @@ resulting argument list is returned.
         end_expr_list = alep;
         /* If this is a pack expansion, swallow the trailing "..." and
            loop for the next iteration of the expansion. */
-        pedep = end_potential_pack_expansion_context(pesep,
-                                                     /*is_declarator=*/FALSE);
+        pedep = end_comma_separated_pack_element_scan(pack_index_expr, pesep,
+                                                      &any_more);
         if (pedep != NULL) {
           /* This element is a variadic template pack expansion, i.e.,
              it's followed by "...".  Furthermore, we're in the prototype
@@ -2988,7 +3055,6 @@ resulting argument list is returned.
              element. */
           mark_arg_list_elem_as_pack_expansion(alep, pedep);
         }  /* if */
-        any_more = advance_to_next_pack_element(pesep);
       }  /* while */
     } while (loop_token(tok_comma));
     remove_stop_token(tok_comma);
@@ -3022,7 +3088,8 @@ additional ones over the basic ones implied for this case.
   a_pack_expansion_stack_entry_ptr pesep;
   a_boolean                        any_more, first_time = TRUE;
   a_boolean                        error_issued = FALSE;
-  
+  a_boolean                        pack_index_expr;
+
   *expr_not_present = TRUE;
   options |= EOPT_DISALLOW_COMMA_OPERATOR;
   if (!C_mode() && bound_function_selector != NULL) {
@@ -3030,10 +3097,11 @@ additional ones over the basic ones implied for this case.
   }  /* if */
   /* Note that the code here is very similar to scan_expr_list and
      scan_potential_pack_expansion_initializer_expr. */
+  pack_index_expr = pack_index_next();
   do {
     any_more = begin_potential_pack_expansion_context(&pesep);
     /* Skip over any empty pack expansions. */
-  } while (!any_more && loop_token(tok_comma));
+  } while (!pack_index_expr && !any_more && loop_token(tok_comma));
   while (any_more) {
     an_operand                 local_operand, local_bound_function_selector;
     a_pack_expansion_descr_ptr pedep;
@@ -3065,8 +3133,8 @@ additional ones over the basic ones implied for this case.
     }  /* if */
     /* If this is a pack expansion, swallow the trailing "..." and
        loop for the next iteration of the expansion. */
-    pedep = end_potential_pack_expansion_context(pesep,
-                                                 /*is_declarator=*/FALSE);
+    pedep = end_comma_separated_pack_element_scan(pack_index_expr, pesep,
+                                                  &any_more);
     if (pedep != NULL) {
       /* This expression is a variadic template pack expansion, i.e.,
          it's followed by "...".  Furthermore, we're in the prototype
@@ -3075,10 +3143,9 @@ additional ones over the basic ones implied for this case.
       check_assertion(first_time);
       mark_operand_as_pack_expansion(operand, pedep);
     }  /* if */
-    any_more = advance_to_next_pack_element(pesep);
     first_time = FALSE;
   }  /* while */
-  skip_empty_pack_expansions_after_comma();
+  if (!pack_index_expr) skip_empty_pack_expansions_after_comma();
 }  /* scan_expression_list_context_expr */
 
 
@@ -17607,6 +17674,10 @@ expression (i.e., id-expression or member access).
       default:
         unexpected_condition();
     }  /* switch */
+  } else if (expr != NULL && node_is(expr, enk_pack_index)) {
+    /* A pack-index-expression is also an id-expression. */
+    *no_parens_matters = TRUE;
+    goto id_case;
   } else if (operand->is_id_expression &&
              !operand->id_expression_was_parenthesized) {
     /* Produce the type of the entity referenced by the id-expression.
@@ -42891,6 +42962,654 @@ done_with_requirements:
   }  /* if */
 }  /* scan_requires_expr */
 
+
+static a_pack_expansion_descr_ptr consume_pack_index_ellipsis(
+                          a_boolean                          owns_pack_context,
+                          a_pack_expansion_stack_entry_ptr  *p_pesep,
+                          a_source_position                 *id_position,
+                          a_boolean                         *p_err)
+/*
+Advance past the "..." token in a C++26 pack-index construct (pack...[index]).
+owns_pack_context is TRUE when this scan created its own pack-expansion stack
+entry (at the start of the pack-index construct), FALSE when an enclosing
+lookahead/disambiguation context owns the pack bookkeeping.
+
+In a real instantiation where we own the pack context, end the pack expansion
+context at the ellipsis and return the resulting pack expansion descriptor.
+When we do not own the context, record the ellipsis position on the enclosing
+context so its eventual end call sees ellipsis_seen.
+
+On error, *p_err is set to TRUE and the pack context may be abandoned.
+*/
+{
+  a_pack_expansion_descr_ptr pedep = NULL;
+
+  /* Move to the ellipsis token.  Depending on token coalescing, curr_token can
+     already be tok_ellipsis or tok_lbracket (when the ellipsis was effectively
+     consumed before this point). */
+  if (curr_token == tok_identifier) {
+    (void)get_token();
+  }  /* if */
+  if (curr_token == tok_ellipsis) {
+    if (owns_pack_context) {
+      pedep = end_potential_pack_expansion_context(*p_pesep,
+                                                   /*is_declarator=*/FALSE);
+    } else {
+      /* An enclosing lookahead owns the pack bookkeeping.  Record the ellipsis
+         on that context. */
+      record_pack_expansion_ellipsis_position(&pos_curr_token);
+      (void)get_token();
+    }  /* if */
+  } else if (curr_token == tok_lbracket) {
+    /* The "..." has already been consumed by an earlier lexical/coalescing
+       step.  Mark the pack expansion as seen so pack references in this
+       context are not diagnosed as unexpanded. */
+    record_pack_expansion_ellipsis_position(id_position);
+    if (owns_pack_context) {
+      pedep = end_potential_pack_expansion_context(*p_pesep,
+                                                   /*is_declarator=*/FALSE);
+    }  /* if */
+  } else {
+    expr_syntax_error(ec_exp_ellipsis);
+    *p_err = TRUE;
+    if (owns_pack_context) {
+      abandon_potential_pack_expansion_context(*p_pesep);
+      *p_pesep = NULL;
+    }  /* if */
+  }  /* if */
+  return pedep;
+}  /* consume_pack_index_ellipsis */
+
+
+static a_boolean should_be_pack_index_prototype_mode(
+                           a_boolean                         owns_pack_context,
+                           a_pack_expansion_stack_entry_ptr  pesep,
+                           a_pack_expansion_descr_ptr        pedep)
+/*
+Return TRUE if the pack-index construct currently being scanned should be
+preserved as a dependent (prototype) form.  owns_pack_context is TRUE when the
+scan created its own pack-expansion stack entry.  pesep is the pack expansion
+stack entry for the current context, or NULL if there is none.  pedep is the
+pack expansion descriptor if one was already claimed.
+*/
+{
+  a_boolean should_be_prototype = FALSE;
+
+  if (pesep != NULL) {
+    if (!owns_pack_context) {
+      /* A surrounding lookahead/disambiguation context already owns the pack
+         stack entry for this token position. */
+      should_be_prototype = TRUE;
+    } else if (pesep->instantiation_descr == NULL) {
+      /* We are still in a template declaration that has not been
+         instantiated. */
+      should_be_prototype = TRUE;
+    } else if (is_alias_in_template_decl_context() &&
+               enclosing_scope_is_prototype_instantiation_context()) {
+      /* Alias template being parsed inside a prototype instantiation. */
+      should_be_prototype = TRUE;
+    } else if (is_template_dependent_context() &&
+               (pedep != NULL ||
+                in_generic_lambda_in_prototype_instantiation() ||
+                in_ms_nonreal_class_instantiation())) {
+      /* Dependent context where the pack-index prefix or the surrounding
+         instantiation is not yet resolvable. */
+      should_be_prototype = TRUE;
+    }  /* if */
+  }  /* if */
+  return should_be_prototype;
+}  /* should_be_pack_index_prototype_mode */
+
+
+static void force_pack_index_prototype_mode(
+                           a_boolean                         owns_pack_context,
+                           a_pack_expansion_stack_entry_ptr  *p_pesep)
+/*
+Force prototype handling for a pack-index construct.  Used both at the point
+where the initial decision is made and later when the index expression turns
+out to be dependent.  When this scan owns the pack context, the pack-expansion
+stack entry is abandoned and cleared so callers cannot accidentally continue to
+iterate pack elements.
+*/
+{
+  if (owns_pack_context) {
+    if (pack_expansion_stack == *p_pesep) {
+      abandon_potential_pack_expansion_context(*p_pesep);
+    }  /* if */
+    *p_pesep = NULL;
+  }  /* if */
+}  /* force_pack_index_prototype_mode */
+
+
+static void skip_to_pack_index_lbracket(void)
+/*
+Skip forward to the "[" of a pack-index construct.  This handles cases
+where the token position might be at the start of the pack-index sequence
+(identifier), at the "...", or already at "[".
+*/
+{
+  if (curr_token == tok_identifier) (void)get_token();
+  if (curr_token == tok_ellipsis) (void)get_token();
+}  /* skip_to_pack_index_lbracket */
+
+
+static a_pack_expansion_descr_ptr claim_pack_index_descriptor(
+                          a_pack_expansion_stack_entry_ptr   pesep,
+                          a_pack_expansion_descr_ptr         pedep,
+                          a_boolean                          owns_pack_context)
+/*
+Claim the pack-expansion descriptor for the pack-index construct being scanned
+and mark it as such.  If the caller already has the descriptor (pedep != NULL)
+that is the one claimed; otherwise, when an enclosing pesep carries a suitable
+descriptor, its descriptor is adopted.  The chosen descriptor has its
+is_pack_index flag set.  Return the claimed descriptor, or NULL if none was
+found.
+*/
+{
+  a_pack_expansion_descr_ptr result_pedep = pedep;
+
+  if (result_pedep == NULL && pesep != NULL &&
+      pesep->expansion_descr != NULL &&
+      (!owns_pack_context || in_generic_lambda_in_prototype_instantiation())) {
+    /* Either we are reusing an enclosing lookahead context (not owning it), or
+       we are in a generic-lambda prototype instantiation.  In both cases the
+       pack-index descriptor to claim is the one on the current pesep. */
+    result_pedep = pesep->expansion_descr;
+  }  /* if */
+  if (result_pedep != NULL) {
+    result_pedep->is_pack_index = TRUE;
+  }  /* if */
+  return result_pedep;
+}  /* claim_pack_index_descriptor */
+
+
+static void consume_replayed_pack_index_tokens(a_boolean  consume_rbracket)
+/*
+After advancing through replayed pack expansion elements to select a particular
+pack index, consume one replayed pack index expression.  If consume_rbracket is
+TRUE, advance past the trailing "]"; otherwise leave curr_token at "]".
+*/
+{
+  skip_to_pack_index_lbracket();
+  if (curr_token == tok_lbracket) {
+    flush_until_matching_token_full(/*limit_flush=*/FALSE);
+  } else {
+    (void)required_token_no_advance(tok_lbracket, ec_exp_lbracket);
+  }  /* if */
+  if (consume_rbracket) {
+    (void)get_token();
+  }  /* if */
+}  /* consume_replayed_pack_index_tokens */
+
+
+static a_boolean advance_pack_index_to_element(
+                          a_pack_expansion_stack_entry_ptr  pesep,
+                          a_host_large_unsigned             target_index)
+/*
+During real instantiation of a pack-index construct, advance through pack
+expansion elements until the target_index element is reached.  pesep is the
+pack expansion stack entry that controls the advancement.  Return TRUE if the
+target element was found.
+*/
+{
+  a_host_large_unsigned  current_index = 0;
+  a_boolean              found = (target_index == 0);
+
+  while (!found && advance_to_next_pack_element(pesep)) {
+    current_index++;
+    if (current_index == target_index) {
+      found = TRUE;
+    }  /* if */
+  }  /* while */
+  return found;
+}  /* advance_pack_index_to_element */
+
+
+a_type_ptr scan_pack_index_type_specifier(a_boolean  is_new_type_name,
+                                          a_boolean  is_implicit_type_context,
+                                          a_boolean  concept_okay,
+                                          a_boolean  might_be_id_start)
+/*
+Scan a C++26 type pack-index-specifier (P2662R3):
+
+        type-name ... [ constant-expression ]
+
+The current token is the identifier naming the type pack and the next token is
+"...".  is_new_type_name is TRUE when the type name can be a new type name.
+is_implicit_type_context is TRUE when an implicit typename is allowed.
+concept_okay is TRUE when a concept name is allowed in this context.  In
+dependent/prototype contexts, preserve a trk_pack_index typeref; in real
+instantiations, select and return the indexed pack element type.  If
+might_be_id_start is TRUE, leave curr_token at the closing "]" so callers
+can probe for a following "::" in nested-name-specifier contexts.
+*/
+{
+  a_pack_expansion_stack_entry_ptr
+                         outer_pesep, pesep = NULL;
+  a_pack_expansion_descr_ptr
+                         pedep = NULL;
+  a_constant             index_constant;
+  a_host_large_unsigned  index_value;
+  a_symbol_ptr           sym = NULL;
+  a_type_ptr             first_pack_type = NULL;
+  a_source_position      start_position, id_position = null_source_position;
+  a_boolean              err = FALSE, any_more = FALSE, is_prototype = FALSE,
+                         owns_pack_context = FALSE,
+                         pack_from_enclosing_inst = FALSE,
+                         index_is_dependent = FALSE;
+  a_type_ptr             result = error_type();
+
+  db_enter(4, "scan_pack_index_type_specifier");
+  if (!is_variadic_template_context()) {
+    expr_pos_error(ec_pack_indexing_in_non_variadic_context, &pos_curr_token);
+    err = TRUE;
+  } else if (!pack_indexing_enabled) {
+    /* Pack indexing is allowed by GCC/Clang in pre-C++26 modes. */
+    pos_warning(ec_pack_indexing_is_cpp26, &pos_curr_token);
+  }  /* if */
+  start_position = pos_curr_token;
+  outer_pesep = pack_expansion_stack;
+  any_more = begin_potential_pack_expansion_context_full(
+                                             &pesep,
+                                             (a_pack_expansion_descr_ptr*)NULL,
+                                             /*is_lookahead=*/FALSE,
+                                             /*allow_empty_list=*/FALSE,
+                                             /*ignore_suppression=*/FALSE,
+                                             /*claim_pack_index=*/TRUE);
+  owns_pack_context = pesep != NULL && pesep != outer_pesep;
+  /* If owns_pack_context is FALSE and pesep is non-NULL, an enclosing
+     lookahead context owns pack bookkeeping and must not be modified here. */
+  if (owns_pack_context) {
+    pack_from_enclosing_inst = reset_enclosing_packs_for_pack_index(pesep);
+  }  /* if */
+  /* Process the first expansion element to validate the pack and record pack
+     references. */
+  if (any_more) {
+    if (curr_token != tok_identifier) {
+      expr_syntax_error(ec_exp_identifier);
+      err = TRUE;
+      if (owns_pack_context) {
+        abandon_potential_pack_expansion_context(pesep);
+        pesep = NULL;
+      }  /* if */
+    } else {
+      id_position = pos_curr_token;
+      sym = curr_type_symbol(is_new_type_name, /*in_prescan=*/FALSE,
+                             /*in_type_check=*/TRUE, is_implicit_type_context,
+                             /*is_sizeof_context=*/FALSE, concept_okay);
+      if (sym == NULL || !is_type_symbol(sym)) {
+        err = TRUE;
+      } else {
+        first_pack_type = type_symbol_type(sym);
+        if (pesep != NULL && pesep->instantiation_descr == NULL) {
+          if (!type_is_pack(skip_typerefs(first_pack_type))) {
+            if (in_generic_lambda_in_prototype_instantiation()) {
+              /* In generic-lambda prototype instantiation nested in a real
+                 instantiation, the operand may already denote a selected
+                 outer-pack element while still requiring deferred
+                 pack-indexing; keep the construct dependent here. */
+              suppress_expansion_with_no_packs_diagnostic(pesep);
+            } else if (owns_pack_context) {
+              err = TRUE;
+            }  /* if */
+          } else {
+            record_potential_pack_reference(sym, &id_position);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      pedep = consume_pack_index_ellipsis(owns_pack_context, &pesep,
+                                          &id_position, &err);
+      pedep = claim_pack_index_descriptor(pesep, pedep, owns_pack_context);
+    }  /* if */
+  }  /* if */
+  if (!err && !is_prototype &&
+      should_be_pack_index_prototype_mode(owns_pack_context, pesep, pedep)) {
+    is_prototype = TRUE;
+    force_pack_index_prototype_mode(owns_pack_context, &pesep);
+  }  /* if */
+  /* Scan the index expression "[constant-expression]". */
+  skip_to_pack_index_lbracket();
+  (void)required_token(tok_lbracket, ec_exp_lbracket);
+  add_stop_token(tok_rbracket);
+  scan_integral_constant_expression(&index_constant);
+  (void)required_token_no_advance(tok_rbracket, ec_exp_rbracket);
+  remove_stop_token(tok_rbracket);
+  if (curr_token == tok_rbracket && !might_be_id_start) (void)get_token();
+  /* Decide whether the index forces us to preserve a dependent trk_pack_index
+     (either the index itself is dependent, or the pack came from an enclosing
+     real instantiation). */
+  if (!is_error_constant(&index_constant)) {
+    index_is_dependent = constant_is_instantiation_dependent(&index_constant);
+  }  /* if */
+  if (!err && !is_prototype &&
+      (index_is_dependent || pack_from_enclosing_inst)) {
+    is_prototype = TRUE;
+    force_pack_index_prototype_mode(owns_pack_context, &pesep);
+  }  /* if */
+  if (err) {
+    result = error_type();
+    if (owns_pack_context) {
+      abandon_potential_pack_expansion_context(pesep);
+      pesep = NULL;
+    }  /* if */
+  } else if (is_prototype) {
+    if (!any_more) {
+      /* Empty pack: no index can ever be valid, even if the index is
+         dependent. */
+      expr_pos_error(ec_pack_index_out_of_bounds, &start_position);
+      result = error_type();
+    } else if (is_error_constant(&index_constant)) {
+      result = error_type();
+    } else {
+      /* Create a dependent trk_pack_index typeref for prototype
+         instantiations. */
+      an_expr_node_ptr  index_expr;
+      an_operand        index_operand;
+
+      result = alloc_type(tk_typeref);
+      result->variant.typeref.kind = trk_pack_index;
+      result->variant.typeref.type = type_of_unknown_templ_param_nontype;
+      result->variant.typeref.is_dependent_type_operator = TRUE;
+      result->variant.typeref.extra_info->operator_type_arg = first_pack_type;
+      make_constant_operand(&index_constant, &index_operand);
+      index_expr = make_node_from_operand(&index_operand);
+      if (in_file_scope(index_expr)) {
+        result->variant.typeref.extra_info->expr = index_expr;
+      } else {
+        a_scope_depth  expr_scope_depth;
+        expr_scope_depth = scope_depth_to_allocate_unevaluated_operand();
+        make_local_expr_node_ref(index_expr, lerk_decltype, (char *)result,
+                                 scope_stack[expr_scope_depth].il_scope);
+        result->source_corresp.enclosing_routine =
+                                   scope_stack[expr_scope_depth].assoc_routine;
+      }  /* if */
+    }  /* if */
+  } else if (any_more && owns_pack_context) {
+    /* Real instantiation: advance through expansion elements until the indexed
+       one is found. */
+    a_boolean  found;
+    if (!is_error_constant(&index_constant)) {
+      a_boolean  ovflo;
+      index_value = unsigned_value_of_integer_constant(&index_constant,
+                                                       &ovflo);
+      if (ovflo) err = TRUE;
+    } else {
+      err = TRUE;
+    }  /* if */
+    if (err) {
+      result = error_type();
+      if (owns_pack_context) {
+        abandon_potential_pack_expansion_context(pesep);
+      }  /* if */
+    } else {
+      found = advance_pack_index_to_element(pesep, index_value);
+      if (found) {
+        if (index_value == 0) {
+          result = first_pack_type;
+        } else {
+          if (curr_token != tok_identifier) {
+            expr_syntax_error(ec_exp_identifier);
+            result = error_type();
+          } else {
+            a_symbol_ptr selected_sym;
+            selected_sym = curr_type_symbol(is_new_type_name,
+                                            /*in_prescan=*/FALSE,
+                                            /*in_type_check=*/FALSE,
+                                            is_implicit_type_context,
+                                            /*is_sizeof_context=*/FALSE,
+                                            concept_okay);
+            if (selected_sym == NULL || !is_type_symbol(selected_sym)) {
+              result = error_type();
+            } else {
+              result = type_symbol_type(selected_sym);
+            }  /* if */
+            (void)get_token();
+          }  /* if */
+          (void)end_potential_pack_expansion_context(pesep,
+                                                     /*is_declarator=*/FALSE);
+          consume_replayed_pack_index_tokens(!might_be_id_start);
+        }  /* if */
+        abandon_potential_pack_expansion_context(pesep);
+      } else {
+        expr_pos_error(ec_pack_index_out_of_bounds, &start_position);
+        result = error_type();
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Empty pack in a real, non-dependent instantiation: any index is out of
+       bounds. */
+    expr_pos_error(ec_pack_index_out_of_bounds, &start_position);
+    result = error_type();
+    if (owns_pack_context) {
+      abandon_potential_pack_expansion_context(pesep);
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return result;
+}  /* scan_pack_index_type_specifier */
+
+
+static void scan_pack_index_expr(an_operand  *result)
+/*
+Scan a C++26 pack-index-expression (P2662R3):
+
+        id-expression ... [ constant-expression ]
+
+The current token is the identifier that names a parameter pack.  The
+next token is "...".  result is the operand in which the scanned result
+is stored.  Like scan_pack_index_type_specifier, this routine manages a
+pack context for the pack operand and then scans the index expression
+separately.
+
+The first expansion element is processed to validate the pack and record
+pack references, and its scanned operand is preserved.  The index
+"[constant-expression]" is then scanned.  For real instantiation,
+advance_to_next_pack_element is called to skip to the desired element:
+index 0 reuses the scanned operand, while other indices scan the selected
+replayed identifier to build the result operand.
+*/
+{
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position      end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_pack_expansion_stack_entry_ptr
+                         outer_pesep, pesep = NULL, suppression_pesep = NULL;
+  a_pack_expansion_descr_ptr
+                         pedep = NULL;
+  a_constant             index_constant;
+  a_host_large_unsigned  index_value;
+  a_symbol_ptr           sym = NULL;
+  a_source_position      start_position, id_position = null_source_position;
+  a_boolean              err = FALSE, any_more = FALSE, is_prototype = FALSE,
+                         owns_pack_context = FALSE,
+                         pack_from_enclosing_inst = FALSE,
+                         index_is_dependent = FALSE;
+  an_operand             id_operand;
+
+  db_enter(4, "scan_pack_index_expr");
+  if (!is_variadic_template_context()) {
+    expr_pos_error(ec_pack_indexing_in_non_variadic_context, &pos_curr_token);
+    err = TRUE;
+  } else if (!pack_indexing_enabled) {
+    /* Pack indexing is allowed by GCC/Clang in pre-C++26 modes. */
+    pos_warning(ec_pack_indexing_is_cpp26, &pos_curr_token);
+  }  /* if */
+  start_position = pos_curr_token;
+  outer_pesep = pack_expansion_stack;
+  any_more = begin_potential_pack_expansion_context_full(
+                                             &pesep,
+                                             (a_pack_expansion_descr_ptr*)NULL,
+                                             /*is_lookahead=*/FALSE,
+                                             /*allow_empty_list=*/FALSE,
+                                             /*ignore_suppression=*/FALSE,
+                                             /*claim_pack_index=*/TRUE);
+  owns_pack_context = pesep != NULL && pesep != outer_pesep;
+  /* If owns_pack_context is FALSE and pesep is non-NULL, an enclosing
+     lookahead context owns pack bookkeeping and must not be modified here. */
+  if (owns_pack_context) {
+    pack_from_enclosing_inst = reset_enclosing_packs_for_pack_index(pesep);
+  }  /* if */
+  /* Process the first expansion element to validate the pack and record pack
+     references. */
+  if (any_more) {
+    if (curr_token != tok_identifier) {
+      expr_syntax_error(ec_exp_identifier);
+      err = TRUE;
+      if (owns_pack_context) {
+        abandon_potential_pack_expansion_context(pesep);
+        pesep = NULL;
+      }  /* if */
+    } else {
+      id_position = pos_curr_token;
+      /* Scan the identifier in the ordinary way (including any side effects)
+         and keep the resulting operand for potential reuse below. */
+      push_expansion_suppression(&suppression_pesep);
+      scan_identifier(&id_operand, EOPT_NO_OPTIONS, PREC_LOWEST,
+                      (a_rescan_control_block *)NULL, (a_symbol *)NULL,
+                      (an_operand *)NULL, /*rescan_is_template_id=*/FALSE,
+                      (a_template_arg *)NULL, &sym, (a_boolean *)NULL);
+      pop_expansion_suppression(suppression_pesep);
+      if (sym != NULL) sym = fundamental_symbol_of(sym);
+      if (sym == NULL || is_error_operand(&id_operand)) {
+        err = TRUE;
+      } else if (pesep != NULL && pesep->instantiation_descr == NULL) {
+        if (!symbol_is_pack(sym)) {
+          if (in_generic_lambda_in_prototype_instantiation()) {
+            /* In generic-lambda prototype instantiation nested in a real
+               instantiation, the operand may already denote a selected
+               outer-pack element while still requiring deferred pack-indexing;
+               keep the construct dependent here. */
+            suppress_expansion_with_no_packs_diagnostic(pesep);
+          } else if (owns_pack_context) {
+            err = TRUE;
+          }  /* if */
+        } else {
+          record_potential_pack_reference(sym, &id_position);
+        }  /* if */
+      }  /* if */
+      pedep = consume_pack_index_ellipsis(owns_pack_context, &pesep,
+                                          &id_position, &err);
+      pedep = claim_pack_index_descriptor(pesep, pedep, owns_pack_context);
+    }  /* if */
+  }  /* if */
+  if (!err && !is_prototype &&
+      should_be_pack_index_prototype_mode(owns_pack_context, pesep, pedep)) {
+    is_prototype = TRUE;
+    force_pack_index_prototype_mode(owns_pack_context, &pesep);
+  }  /* if */
+  /* Scan the index expression "[constant-expression]". */
+  skip_to_pack_index_lbracket();
+  (void)required_token(tok_lbracket, ec_exp_lbracket);
+  add_matching_stop_token(tok_rbracket);
+  scan_integral_constant_expression(&index_constant);
+  (void)required_token_no_advance(tok_rbracket, ec_exp_rbracket);
+  remove_matching_stop_token(tok_rbracket);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Skip over the closing "]". */
+  if (curr_token == tok_rbracket) (void)get_token();
+  /* Decide whether the index forces us to preserve a dependent enk_pack_index
+     (either the index itself is dependent, or the pack came from an enclosing
+     real instantiation). */
+  if (!is_error_constant(&index_constant)) {
+    index_is_dependent = constant_is_instantiation_dependent(&index_constant);
+  }  /* if */
+  if (!err && !is_prototype &&
+      (index_is_dependent || pack_from_enclosing_inst)) {
+    is_prototype = TRUE;
+    force_pack_index_prototype_mode(owns_pack_context, &pesep);
+  }  /* if */
+  if (err) {
+    make_error_operand(result);
+    if (owns_pack_context) {
+      abandon_potential_pack_expansion_context(pesep);
+      pesep = NULL;
+    }  /* if */
+  } else if (is_prototype) {
+    if (!any_more) {
+      /* Empty pack: no index can ever be valid, even if the index is
+         dependent. */
+      expr_pos_error(ec_pack_index_out_of_bounds, &start_position);
+      make_error_operand(result);
+    } else if (is_error_constant(&index_constant)) {
+      make_error_operand(result);
+    } else {
+      /* Create a dependent enk_pack_index node for prototype
+         instantiations. */
+      an_expr_node_ptr  expr, index_expr;
+      an_operand        index_operand;
+
+      expr = alloc_expr_node(enk_pack_index);
+      expr->type = type_of_unknown_templ_param_nontype;
+      expr->variant.pack_index.expr = make_node_from_operand(&id_operand);
+      make_constant_operand(&index_constant, &index_operand);
+      index_expr = make_node_from_operand(&index_operand);
+      expr->variant.pack_index.index_expr = index_expr;
+      make_expression_operand(expr, result);
+      if (pedep != NULL) {
+        mark_operand_as_pack_expansion(result, pedep);
+        /* Preserve the pack expansion descriptor for expression rescanning. */
+        expr->extra.rescan_info = save_operand_info_in_rescan_info_entry(
+                                              result, expr->extra.rescan_info);
+      }  /* if */
+      result->pack_expansion_descr = NULL;
+    }  /* if */
+  } else if (any_more && owns_pack_context) {
+    /* Real instantiation: advance through expansion elements until the indexed
+       one is found. */
+    a_boolean  found;
+    if (!is_error_constant(&index_constant)) {
+      a_boolean  ovflo;
+      index_value = unsigned_value_of_integer_constant(&index_constant,
+                                                       &ovflo);
+      if (ovflo) err = TRUE;
+    } else {
+      err = TRUE;
+    }  /* if */
+    if (err) {
+      make_error_operand(result);
+      if (owns_pack_context) {
+        abandon_potential_pack_expansion_context(pesep);
+      }  /* if */
+    } else {
+      found = advance_pack_index_to_element(pesep, index_value);
+      if (found) {
+        /* Create the result for the selected element. */
+        if (index_value == 0) {
+          copy_operand(&id_operand, result);
+        } else {
+          /* For replayed elements, scan the identifier directly to build the
+             selected-element operand (including normal identifier side
+             effects). */
+          scan_identifier(result, EOPT_NO_OPTIONS, PREC_LOWEST,
+                          (a_rescan_control_block *)NULL, (a_symbol *)NULL,
+                          (an_operand *)NULL, /*rescan_is_template_id=*/FALSE,
+                          (a_template_arg *)NULL, (a_symbol_ptr *)NULL,
+                          (a_boolean *)NULL);
+          (void)end_potential_pack_expansion_context(pesep,
+                                                     /*is_declarator=*/FALSE);
+          consume_replayed_pack_index_tokens(/*consume_rbracket=*/TRUE);
+        }  /* if */
+        abandon_potential_pack_expansion_context(pesep);
+      } else {
+        expr_pos_error(ec_pack_index_out_of_bounds, &start_position);
+        make_error_operand(result);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Empty pack: any index is out of bounds. */
+    expr_pos_error(ec_pack_index_out_of_bounds, &start_position);
+    make_error_operand(result);
+    if (owns_pack_context) {
+      abandon_potential_pack_expansion_context(pesep);
+    }  /* if */
+  }  /* if */
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+  db_exit();
+}  /* scan_pack_index_expr */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean turn_safe_cast_into_keyword_if_appropriate(void)
@@ -43652,6 +44371,66 @@ handle_identifier:
               }  /* for */
             }  /* if */
           }  /* if */
+        }  /* if */
+        if (!locator_for_curr_id.is_qualified_name && pack_index_next()) {
+          /* This could be either a C++26 pack-index-expression:
+               id ... [N]
+             or a function-style cast with a type pack-index-specifier:
+               T ... [N](...) / T ... [N]{...}
+             Probe ahead to disambiguate. */
+          a_scanning_token_cache       pack_index_cache;
+          a_boolean                    parse_as_type_cast = FALSE;
+          a_symbol_ptr                 type_sym;
+
+          type_sym = curr_type_symbol(/*is_new_type_name=*/FALSE,
+                                      /*in_prescan=*/FALSE,
+                                      /*in_type_check=*/TRUE,
+                                      /*is_implicit_type_context=*/FALSE,
+                                      /*is_sizeof_context=*/FALSE,
+                                      /*concept_okay=*/FALSE);
+          cache_curr_token(pack_index_cache.ptr());
+          (void)get_token();
+          if (type_sym != NULL && is_type_symbol(type_sym)) {
+            /* We're about to advance over "...", so preserve it in the cache.
+               (Do not do this for the expression path, where the current token
+               remains "...", because rescan_cached_tokens already preserves
+               the current token.) */
+            cache_curr_token(pack_index_cache.ptr());
+            (void)get_token();
+            if (curr_token == tok_lbracket &&
+                !cache_token_stream_until_matching_token(
+                                                        pack_index_cache.ptr(),
+                                                        CTS_NO_OPTIONS)) {
+              a_token_kind  tok_after_index = next_token();
+              parse_as_type_cast = tok_after_index == tok_lparen ||
+                                   (list_init_enabled &&
+                                    tok_after_index == tok_lbrace);
+            }  /* if */
+          }  /* if */
+          rescan_cached_tokens(pack_index_cache.ptr());
+          if (parse_as_type_cast) {
+            a_type_ptr cast_type = scan_pack_index_type_specifier(
+                                            /*is_new_type_name=*/FALSE,
+                                            /*is_implicit_type_context=*/FALSE,
+                                            /*concept_okay=*/FALSE,
+                                            /*might_be_id_start=*/FALSE);
+            if ((local_options & EOPT_REQUIRES_CLAUSE) != 0) {
+              pos_error(ec_cast_in_requires_clause, &pos_curr_token);
+              local_options &= ~EOPT_REQUIRES_CLAUSE;
+            }  /* if */
+            scan_functional_notation_type_conversion(
+                                                (a_rescan_control_block *)NULL,
+                                                (a_dynamic_init_ptr)NULL,
+                                                /*arg_list_supplied=*/FALSE,
+                                                (an_arg_list_elem *)NULL,
+                                                cast_type,
+                                                &start_position,
+                                                &local_result,
+                                                local_options);
+          } else {
+            scan_pack_index_expr(&local_result);
+          }  /* if */
+          break;
         }  /* if */
         scan_identifier(&local_result, local_options, prec_level,
                         (a_rescan_control_block *)NULL, (a_symbol *)NULL,
@@ -46044,6 +46823,7 @@ parse) and get_continued_elem (for resuming a suspended parse).
   a_braced_list_continuation       *continuation = NULL;
   a_pack_expansion_stack_entry_ptr pesep;
   a_boolean                        any_more;
+  a_boolean                        pack_index_expr = FALSE;
   a_boolean                        designator_seen = FALSE;
   a_boolean                        non_designator_seen = FALSE;
   a_boolean                        mixed_err_given = FALSE;
@@ -46170,6 +46950,7 @@ restart_embed_data:
     }  /* if */
     /* An element of the list might be a pack expansion in some modes
        and contexts. */
+    pack_index_expr = pack_index_next();
     any_more = begin_potential_pack_expansion_context(&pesep);
     while (any_more) {
       a_pack_expansion_descr_ptr pedep;
@@ -46199,8 +46980,8 @@ restart_embed_data:
       elem_seen = TRUE;
       /* If this is a pack expansion, swallow the trailing "..." and
          loop for the next iteration of the expansion. */
-      pedep = end_potential_pack_expansion_context(pesep,
-                                                   /*is_declarator=*/FALSE);
+      pedep = end_comma_separated_pack_element_scan(pack_index_expr, pesep,
+                                                    &any_more);
       if (pedep != NULL) {
         /* This element is a variadic template pack expansion, i.e.,
            it's followed by "...".  Furthermore, we're in the prototype
@@ -46208,7 +46989,6 @@ restart_embed_data:
            element. */
         mark_arg_list_elem_as_pack_expansion(elem_icp, pedep);
       }  /* if */
-      any_more = advance_to_next_pack_element(pesep);
     }  /* while */
 check_for_comma:
     /* A comma or a closing brace should be next.  If not, we recover
@@ -46461,16 +47241,16 @@ related information so it can be saved off to the side (e.g., in an initializer
 cache) for later restoration and further processing.
 */
 {
-  a_pack_expansion_stack_entry_ptr pesep;
-  a_boolean                        any_more;
-
   if (cached_initializer_present()) {
     /* If there's already a cached expression, just return.  A cached
        expression is already on the other side of pack expansion and the
        loop below is not required. */
-  } else {    
+  } else {
     /* Note that the code here is very similar to scan_expr_list and
        scan_expression_list_context_expr. */
+    a_pack_expansion_stack_entry_ptr  pesep = NULL;
+    a_boolean                         pack_index_expr, any_more;
+    pack_index_expr = pack_index_next();
     any_more = begin_potential_pack_expansion_context(&pesep);
     while (any_more) {
       an_init_component_ptr      icp;
@@ -46482,8 +47262,8 @@ cache) for later restoration and further processing.
       add_init_component_to_initializer_cache(icp, /*to_front=*/FALSE, cache);
       /* If this is a pack expansion, swallow the trailing "..." and
          loop for the next iteration of the expansion. */
-      pedep = end_potential_pack_expansion_context(pesep,
-                                                   /*is_declarator=*/FALSE);
+      pedep = end_comma_separated_pack_element_scan(pack_index_expr, pesep,
+                                                    &any_more);
       if (pedep != NULL) {
         /* This expression is a variadic template pack expansion, i.e.,
            it's followed by "...".  Furthermore, we're in the prototype
@@ -46491,7 +47271,6 @@ cache) for later restoration and further processing.
            expression. */
         mark_arg_list_elem_as_pack_expansion(icp, pedep);
       }  /* if */
-      any_more = advance_to_next_pack_element(pesep);
     }  /* while */
   }  /* if */
 }  /* scan_potential_pack_expansion_initializer_expr */
@@ -53372,6 +54151,8 @@ set accordingly.
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_fold) {
     operator_token = tok_ellipsis;
+  } else if (expr->kind == enk_pack_index) {
+    operator_token = tok_ellipsis;
   } else {
     rescannable = FALSE;
   }  /* if */
@@ -53406,6 +54187,82 @@ static void rescan_fold_expression(
                              a_rescan_control_block  *rcblock,
                              an_operand              *result,
                              an_operand              *bound_function_selector);
+
+
+static void rescan_pack_index_expression(a_rescan_control_block  *rcblock,
+                                         an_operand              *result)
+/*
+rcblock->expr points to an enk_pack_index node that must be rescanned with
+template parameter substitutions.  rcblock provides the rescan context with
+template argument and parameter lists.  result is the operand in which the
+rescanned result is stored.  For preserve-deduced-packs contexts, keep the
+generic form.  Otherwise, perform pack expansion and return the selected
+element operand.
+*/
+{
+  an_expr_node_ptr              expr = rcblock->expr;
+  an_expr_rescan_info_entry_ptr eriep;
+  a_pack_expansion_descr_ptr    pedep;
+  a_pack_expansion_stack_entry_ptr
+                                pesep = NULL;
+  an_operand                    pack_operand, index_operand;
+  a_boolean                     any_more, err = FALSE;
+  a_host_large_unsigned         index_value = 0;
+
+  check_assertion(node_is(expr, enk_pack_index));
+  eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+  pedep = eriep->saved_operand.pack_expansion_descr;
+  if ((rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) != 0) {
+    /* Preserve the generic form so unresolved packs can still be deduced
+       during a later substitution pass. */
+    an_expr_node_ptr expr_copy = copy_expr_tree(expr, CE_PRESERVE_RESCAN_INFO);
+    make_lvalue_or_rvalue_expression_operand(expr_copy, result);
+    restore_operand_info_from_expr_rescan_info_entry(result, eriep);
+  } else {
+    any_more = begin_rescan_pack_expansion_context(
+                                           pedep, rcblock->template_param_list,
+                                           rcblock->template_arg_list, &pesep,
+                                           rcblock->options,
+                                           rcblock->ctws_state, &err);
+    if (err || rcblock->error_detected || !any_more) {
+      err = TRUE;
+      subst_fail(rcblock->error_detected);
+    }  /* if */
+    if (!err) {
+      make_rescan_operand(expr->variant.pack_index.index_expr, rcblock,
+                          &index_operand);
+      if (rcblock->error_detected || is_error_operand(&index_operand)) {
+        err = TRUE;
+        subst_fail(rcblock->error_detected);
+      } else if (!extract_unsigned_value_from_operand(&index_operand,
+                                                      &index_value)) {
+        err = TRUE;
+        subst_fail(rcblock->error_detected);
+      } else if (!advance_pack_index_to_element(pesep, index_value)) {
+        err = TRUE;
+        subst_fail(rcblock->error_detected);
+      } else {
+        make_rescan_operand(expr->variant.pack_index.expr, rcblock,
+                            &pack_operand);
+        if (rcblock->error_detected || is_error_operand(&pack_operand)) {
+          err = TRUE;
+          subst_fail(rcblock->error_detected);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (!err) {
+      copy_operand(&pack_operand, result);
+      copy_operand_position(&eriep->saved_operand, result);
+      result->pack_expansion_descr = NULL;
+    } else {
+      make_error_operand(result);
+      copy_operand_position(&eriep->saved_operand, result);
+    }  /* if */
+    if (pesep != NULL && pack_expansion_stack == pesep) {
+      abandon_potential_pack_expansion_context(pesep);
+    }  /* if */
+  }  /* if */
+}  /* rescan_pack_index_expression */
 
 
 void rescan_expr_with_substitution_internal(
@@ -53776,7 +54633,12 @@ a enclosing expression).
                                           result);
         break;
       case tok_ellipsis:
-        rescan_fold_expression(rcblock, result, bound_function_selector);
+        if (node_is(expr, enk_fold)) {
+          rescan_fold_expression(rcblock, result, bound_function_selector);
+        } else {
+          check_assertion(node_is(expr, enk_pack_index));
+          rescan_pack_index_expression(rcblock, result);
+        }  /* if */
         break;
       case tok_builtin_offsetof:
         /* __builtin_offsetof construct. */

@@ -16378,7 +16378,8 @@ no corresponding type, return an error type.
                                                   /*p_pedp=*/NULL,
                                                   /*is_lookahead=*/FALSE,
                                                   /*allow_empty_list=*/FALSE,
-                                                  /*ignore_suppression=*/TRUE);
+                                                  /*ignore_suppression=*/TRUE,
+                                                  /*claim_pack_index=*/FALSE);
         /* Form the IL type. */
         result = this->derived()->load(pack);
 
@@ -17363,7 +17364,8 @@ with an error constant.
                                                   /*p_pedp=*/NULL,
                                                   /*is_lookahead=*/FALSE,
                                                   /*allow_empty_list=*/FALSE,
-                                                  /*ignore_suppression=*/TRUE);
+                                                  /*ignore_suppression=*/TRUE,
+                                                  /*claim_pack_index=*/FALSE);
 
     /* Perform the expression scan to form the constant from tokens. */
     a_module_entity_rescan rescan(&cache);
@@ -17903,7 +17905,8 @@ represented by the expression.
                                                   /*p_pedp=*/NULL,
                                                   /*is_lookahead=*/FALSE,
                                                   /*allow_empty_list=*/FALSE,
-                                                  /*ignore_suppression=*/TRUE);
+                                                  /*ignore_suppression=*/TRUE,
+                                                  /*claim_pack_index=*/FALSE);
           a_boolean is_injected_class_name;
           new_arg->variant.type = scan_template_type_argument(
                                                      &is_injected_class_name,

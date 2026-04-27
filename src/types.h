@@ -670,7 +670,8 @@ clang/GNU type-returning type builtin.
              is_typeref_kind((tp), trk_bases) ||
              is_typeref_kind((tp), trk_direct_bases) ||
              is_typeref_kind((tp), trk_is_typeof_with_expression) ||
-             is_typeref_kind((tp), trk_is_typeof_with_type_operand);
+             is_typeref_kind((tp), trk_is_typeof_with_type_operand) ||
+             is_typeref_kind((tp), trk_pack_index);
   }  /* if */
   return result;
 }  /* typeref_is_type_operator */

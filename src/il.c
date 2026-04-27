@@ -1826,6 +1826,16 @@ Dump the contents of the indicated type entry, for debug purposes.
             db_abbr_expr(decltype_arg(tp), &octl);
             fputs(is_typeref_kind(tp, trk_is_splice) ? ":] " : ") ", f_debug);
           }  /* if */
+          if (is_typeref_kind(tp, trk_pack_index)) {
+            db_abbreviated_type(typeref_supp(tp)->operator_type_arg);
+            fputs("...[", f_debug);
+            an_il_to_str_output_control_block octl;
+            clear_il_to_str_output_control_block(&octl);
+            octl.output_str = put_str_to_f_debug;
+            octl.debug_output = TRUE;
+            db_abbr_expr(decltype_arg(tp), &octl);
+            fputs("] ", f_debug);
+          }  /* if */
           if (typeref_is_type_transforming_intrinsic(tp)) {
             fputs(type_transforming_intrinsic_name(tp->variant.typeref.kind),
                   f_debug);
@@ -2479,6 +2489,15 @@ sizeof_cases:
     case enk_const_eval_deferred:
       fputs("const-eval-deferred\n", f_debug);
       db_expr_node(node->variant.const_eval_deferred.wrapped, level+2);
+      break;
+    case enk_pack_index:
+      fputs("pack-index-expr\n", f_debug);
+      db_indent(level);
+      fputs("<pack> =\n", f_debug);
+      db_expr_node(node->variant.pack_index.expr, level + 2);
+      db_indent(level);
+      fputs("<index> =\n", f_debug);
+      db_expr_node(node->variant.pack_index.index_expr, level + 2);
       break;
     case enk_error:
       fputs("error node\n", f_debug);
@@ -7467,6 +7486,10 @@ to refine the hash value developed in hash_constant.
       if (ttsp->expr != NULL) {
         hash_value += hash_expr(ttsp->expr);
       }  /* if */
+      if (is_typeref_kind(type, trk_pack_index)) {
+        /* Also hash the pack type operand of a pack-index-specifier. */
+        hash_value += 17*hash_type(ttsp->operator_type_arg);
+      }  /* if */
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
@@ -8511,6 +8534,13 @@ are done.
         break;
       case enk_template_name:
         eq = node1->variant.template_name == node2->variant.template_name;
+        break;
+      case enk_pack_index:
+        eq = compare_expressions(node1->variant.pack_index.expr,
+                                 node2->variant.pack_index.expr, options) &&
+             compare_expressions(node1->variant.pack_index.index_expr,
+                                 node2->variant.pack_index.index_expr,
+                                 options);
         break;
       case enk_error:
         /* Nonequivalence is assumed. */
@@ -15581,6 +15611,7 @@ field in the new parameter types will be NULL.
   } else if (from_kind == (a_type_kind)tk_typeref) {
     /* For a typeref, copy the supplement. */
     *ttsp = *from->variant.typeref.extra_info;
+    to->variant.typeref.extra_info = ttsp;
   }  /* if */
 }  /* copy_type_full */
 
@@ -20835,6 +20866,39 @@ options is a set of substitution options.
         }  /* if */
       }
       break;
+    case enk_pack_index:
+      {
+        an_expr_node_ptr new_pack_expr, new_index_expr;
+        a_constant_ptr   alloc_con_1 = NULL, alloc_con_2 = NULL;
+
+        new_pack_expr = copy_template_param_expr(
+                                     expr->variant.pack_index.expr,
+                                     template_arg_list, template_param_list,
+                                     (a_type_ptr)NULL,
+                                     source_pos, options, copy_error,
+                                     ctws_state, constant_1, &alloc_con_1);
+        if (!*copy_error) {
+          new_index_expr = copy_template_param_expr(
+                                  expr->variant.pack_index.index_expr,
+                                  template_arg_list, template_param_list,
+                                  (a_type_ptr)NULL,
+                                  source_pos, options, copy_error,
+                                  ctws_state, constant_2, &alloc_con_2);
+        }  /* if */
+        if (!*copy_error) {
+          /* Ensure both children are represented as expression nodes. */
+          new_pack_expr = alloc_copied_template_param_expr(new_pack_expr,
+                                                           constant_1,
+                                                           alloc_con_1);
+          new_index_expr = alloc_copied_template_param_expr(new_index_expr,
+                                                            constant_2,
+                                                            alloc_con_2);
+          expr_copy = copy_node(expr);
+          expr_copy->variant.pack_index.expr = new_pack_expr;
+          expr_copy->variant.pack_index.index_expr = new_index_expr;
+        }  /* if */
+      }
+      break;
     case enk_concept_id:
       {
         a_template_arg_ptr  new_args =
@@ -23392,6 +23456,14 @@ be called to start a copy.
       expr_copy->position = expr->position;
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+    case enk_pack_index:
+      expr_copy->variant.pack_index.expr =
+                                i_copy_expr_tree(expr->variant.pack_index.expr,
+                                                 options, cblock);
+      expr_copy->variant.pack_index.index_expr =
+                          i_copy_expr_tree(expr->variant.pack_index.index_expr,
+                                           options, cblock);
+      break;
     case enk_statement:
       /* Doesn't have to be copied because forbidden in default argument
          expressions and because functions containing statement expressions
@@ -25544,6 +25616,11 @@ doing nothing should be suppressed.
          side-effect after substitution.  Assume it will. */
       has_side_effects = TRUE;
       break;
+    case enk_pack_index:
+      /* pack...[N] has no side effects. */
+      has_side_effects = FALSE;
+      tblock->suppress_subtree_walk = TRUE;
+      break;
     case enk_braced_init_list:
     case enk_type_operand:
     case enk_param_ref:
@@ -26134,6 +26211,7 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
     case enk_datasizeof:
     case enk_alignof:
     case enk_sizeof_pack:
+    case enk_pack_index:
       tblock->suppress_subtree_walk = TRUE;
       break;
     case enk_typeid:

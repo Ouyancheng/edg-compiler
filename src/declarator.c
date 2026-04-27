@@ -3342,7 +3342,8 @@ an error if a default argument expression is encountered.
                                                 &pesep, &pedp,
                                                 /*is_lookahead=*/FALSE,
                                                 /*allow_empty_list=*/FALSE,
-                                                /*ignore_suppression=*/FALSE);
+                                                /*ignore_suppression=*/FALSE,
+                                                /*claim_pack_index=*/FALSE);
         if (any_params) break;
         /* An empty pack expansions: Create a dummy parameter id entry in case
            nested prototype instantiations refer to it. */
@@ -4117,6 +4118,12 @@ an error if a default argument expression is encountered.
            used to create a substituted function type. */
         ptp->pack_expansion_descr =
            end_potential_pack_expansion_context(pesep, /*is_declarator=*/TRUE);
+        if (ptp->pack_expansion_descr != NULL &&
+            ptp->pack_expansion_descr->is_pack_index) {
+          /* A pack-index specifier is a single-element parameter
+             declaration, not a pack expansion. */
+          ptp->pack_expansion_descr = NULL;
+        }  /* if */
         if (ptp->pack_expansion_descr != NULL) {
           ptp->is_parameter_pack = TRUE;
           last_param_id->is_parameter_pack = TRUE;
@@ -4136,7 +4143,11 @@ an error if a default argument expression is encountered.
             last_param_id->uses_only_enclosing_pack = TRUE;
           }  /* if */
         }  /* if */
-        any_variadic_params = advance_to_next_pack_element(pesep);
+        if (!skip_pack_index_iteration(&pesep,
+                                       (a_pack_expansion_descr_ptr)NULL,
+                                       &any_variadic_params)) {
+          any_variadic_params = advance_to_next_pack_element(pesep);
+        }  /* if */
         if (!any_variadic_params) {
           /* The previous variadic expansion is now complete.  Prepare for the
              possibility that the next parameter will come from a variadic
@@ -7593,7 +7604,8 @@ etc.).
         any_args = begin_potential_pack_expansion_context_full(
                                          &pesep, &pedp, /*is_lookahead=*/TRUE,
                                          /*allow_empty_list=*/FALSE,
-                                         /*ignore_suppression=*/FALSE);
+                                         /*ignore_suppression=*/FALSE,
+                                         /*claim_pack_index=*/FALSE);
       }  /* if */
       if (curr_token == tok_rparen || !any_args ||
           is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
@@ -7950,7 +7962,8 @@ etc.).
         any_args = begin_potential_pack_expansion_context_full(
                                          &pesep, &pedp, /*is_lookahead=*/TRUE,
                                          /*allow_empty_list=*/FALSE,
-                                         /*ignore_suppression=*/FALSE);
+                                         /*ignore_suppression=*/FALSE,
+                                         /*claim_pack_index=*/FALSE);
         if (!is_template_dependent_context() && pedp != NULL) {
           /* This is a real instantiation.  If we found a function declarator
              in the prototype instantiation, treat this as one now. */
@@ -8009,6 +8022,13 @@ etc.).
             rescan_cached_tokens(cache.ptr());
           }  /* if */
           if (!is_function_decl) {
+            if (pesep != NULL) {
+              /* We are committing to a parenthesized initializer, so this
+                 disambiguation-only pack context must not remain on the
+                 stack. */
+              abandon_potential_pack_expansion_context(pesep);
+              pesep = NULL;
+            }  /* if */
             *output_flags |= DO_PARENTHESIZED_INITIALIZER;
             if (decl_pos_block != NULL) {
               decl_pos_block->var_init_range.start = lparen_pos;

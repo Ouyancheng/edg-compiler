@@ -20214,6 +20214,21 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
      following the identifier is always interpreted as the delimiter of a
      template argument list. */
   (void)get_token();
+  if (is_destructor && pack_index_next()) {
+    /* In destructor-call syntax, allow a C++26 pack-index type-specifier:
+         c->~T...[I]()
+       Model this like the ~decltype(...) case. */
+    a_source_position  pack_index_position = pos_curr_token;
+    a_type_ptr         pack_index_type = scan_pack_index_type_specifier(
+                                           /*is_new_type_name=*/FALSE,
+                                           /*is_implicit_type_context=*/FALSE,
+                                           /*concept_okay=*/FALSE,
+                                           /*might_be_id_start=*/TRUE);
+    locator_for_curr_id = cleared_locator;
+    locator_for_curr_id.variant.decltype_type = pack_index_type;
+    locator_for_curr_id.source_position = pack_index_position;
+    curr_token = tok_decltype_construct;
+  }  /* if */
   if (!f_is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
                                          GID_DISALLOW_OPERATOR_NAME |
                                          GID_IS_DTOR_NAME |
@@ -21021,6 +21036,50 @@ of a_constant entries.
 }  /* scan_integer_pack */
 
 
+static a_boolean complete_template_arg_pack_element(
+              a_pack_expansion_stack_entry_ptr  *p_pesep,
+              a_template_arg_ptr                arg_ptr,
+              a_template_arg_ptr                *p_first_pack,
+              a_boolean                         use_builtin_pack_elem,
+              a_boolean                         is_secondary_builtin_pack_elem)
+/*
+Complete processing of one template argument pack element and indicate whether
+more elements remain.  For a C++26 pack-index argument not followed by "...",
+the pack context is abandoned and FALSE is returned to stop list iteration.
+Otherwise, the argument's pack_expansion_descr is finalized, *p_first_pack is
+set to arg_ptr if this is the first pack argument (when p_first_pack is
+non-NULL), and the pack expansion is advanced.  Return TRUE if more elements
+remain, or FALSE if this was the last element.  use_builtin_pack_elem indicates
+whether builtin pack elements drive the iteration.
+is_secondary_builtin_pack_elem indicates this is a secondary element from such
+a pack.
+*/
+{
+  a_pack_expansion_stack_entry_ptr pesep = *p_pesep;
+
+  if (!is_secondary_builtin_pack_elem) {
+    a_boolean pack_index_context = pesep != NULL &&
+                                   pesep->expansion_descr != NULL &&
+                                   pesep->expansion_descr->is_pack_index;
+    if (pack_index_context && curr_token != tok_ellipsis) {
+      /* A standalone pack-index argument (e.g., T...[I]) contributes a
+         single argument unless it is followed by a list-level "...". */
+      arg_ptr->pack_expansion_descr = NULL;
+      abandon_potential_pack_expansion_context(pesep);
+      *p_pesep = NULL;
+      return FALSE;
+    }  /* if */
+    arg_ptr->pack_expansion_descr = end_potential_pack_expansion_context(
+                                               pesep, /*is_declarator=*/FALSE);
+    if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
+    if (p_first_pack != NULL && arg_ptr->is_pack && *p_first_pack == NULL) {
+      *p_first_pack = arg_ptr;
+    }  /* if */
+  }  /* if */
+  return use_builtin_pack_elem || advance_to_next_pack_element(pesep);
+}  /* complete_template_arg_pack_element */
+
+
 a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal,
                                                   a_boolean *p_err)
 /*
@@ -21072,7 +21131,8 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
                                     &pesep, (a_pack_expansion_descr_ptr*)NULL,
                                     /*is_lookahead=*/FALSE,
                                     /*allow_empty_list=*/FALSE,
-                                    /*ignore_suppression=*/TRUE);
+                                    /*ignore_suppression=*/TRUE,
+                                    /*claim_pack_index=*/FALSE);
     while (any_args) {
       a_boolean     is_secondary_builtin_pack_elem = FALSE;
       a_token_kind  next_tok;
@@ -21232,13 +21292,11 @@ arg_produced:
       if (arg_list == NULL) arg_list = arg_ptr;
       if (last_arg != NULL) last_arg->next = arg_ptr;
       last_arg = arg_ptr;
-      if (!is_secondary_builtin_pack_elem) {
-        arg_ptr->pack_expansion_descr =
-         end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
-        if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
-      }  /* if */
-      any_args = builtin_pack_elems != NULL ||
-                 advance_to_next_pack_element(pesep);
+      any_args = complete_template_arg_pack_element(
+                                               &pesep, arg_ptr,
+                                               (a_template_arg_ptr*)NULL,
+                                               builtin_pack_elems != NULL,
+                                               is_secondary_builtin_pack_elem);
       remove_stop_token(tok_comma);
     }  /* while */
   } while (loop_token(tok_comma));
@@ -21444,7 +21502,8 @@ the <int> is matched with U and no argument is generated for V.
                                     &pesep, (a_pack_expansion_descr_ptr*)NULL,
                                     /*is_lookahead=*/FALSE,
                                     /*allow_empty_list=*/FALSE,
-                                    /*ignore_suppression=*/TRUE);
+                                    /*ignore_suppression=*/TRUE,
+                                    /*claim_pack_index=*/FALSE);
 next_builtin_pack_element:
     /* If we have run out of parameters but there are more arguments, exit
        the loop.  This test is done here so that a construct like
@@ -21718,14 +21777,10 @@ next_builtin_pack_element:
       last_arg = arg_ptr;
       remove_stop_token(tok_comma);
       ++arg_number;
-      if (!is_secondary_builtin_pack_elem) {
-        arg_ptr->pack_expansion_descr =
-         end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
-        if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
-        if (arg_ptr->is_pack && first_pack == NULL) first_pack = arg_ptr;
-      }  /* if */
-      any_args = (builtin_pack_elems != NULL && param_ptr->is_pack) ||
-                 advance_to_next_pack_element(pesep);
+      any_args = complete_template_arg_pack_element(
+                              &pesep, arg_ptr, &first_pack,
+                              builtin_pack_elems != NULL && param_ptr->is_pack,
+                              is_secondary_builtin_pack_elem);
       /* Record whether, for a pack expansion in an instantiation, the
          argument was part of a pack expansion.  This is needed for
          C++-generating back end cases where pack_expansion_descr is NULL
@@ -24845,6 +24900,96 @@ The current token is "[:".  Return TRUE if the matching ":]" is followed by
 }  /* spliced_name_qualifier_next */
 
 
+a_boolean pack_index_next(void)
+/*
+Return TRUE if the current token sequence starts with a C++26 pack-index
+construct of the form:
+    identifier ... [ constant-expression ]
+*/
+{
+  a_boolean result = FALSE;
+
+  if (pack_indexing_allowed && curr_token == tok_identifier) {
+    a_token_kind  token_2 = tok_error;
+    result = next_two_tokens(tok_ellipsis, &token_2) == tok_ellipsis &&
+             token_2 == tok_lbracket;
+  }  /* if */
+  return result;
+}  /* pack_index_next */
+
+
+a_token_kind token_kind_following_pack_index_specifier(void)
+/*
+The current token is an identifier.  If this begins a C++26
+pack-index-specifier of the form
+
+    type-name ... [ constant-expression ]
+
+return the token kind that follows the closing "]".  Return tok_error
+otherwise.
+
+This routine must peek without consuming tokens: it is called during
+speculative lookahead (e.g., from is_decl_not_expr_full) where
+get_token-based caching would be unsafe because fetching through the
+end of an active reusable cache may cause the cache to be popped.
+*/
+{
+  a_token_kind result = tok_error;
+
+  if (pack_index_next()) {
+    a_cached_token_supplier    token_supp;
+    an_immutable_cached_token  *token;
+    unsigned                   depth = 0;
+
+    /* pack_index_next guaranteed that the next two tokens are "..."
+       and "[".  Step past them. */
+    token_supp++;
+    token_supp++;
+    /* Skip to the matching closing "]" of the index expression. */
+    for (;;) {
+      token = *(token_supp++);
+      if (token == NULL || token->is(tok_end_of_source)) goto done;
+      switch (token->get_kind()) {
+        case tok_lparen:
+        case tok_lbracket:
+        case tok_lbrace:
+        case tok_lsplice:
+          depth++;
+          break;
+        case tok_rparen:
+        case tok_rbrace:
+        case tok_rsplice:
+          if (depth > 0) depth--;
+          break;
+        case tok_rbracket:
+          if (depth == 0) {
+            /* Found the matching "]". */
+            token = *(token_supp++);
+            if (token != NULL) result = token->get_kind();
+            goto done;
+          }  /* if */
+          depth--;
+          break;
+        default:;
+      }  /* switch */
+    }  /* for */
+  }  /* if */
+done:
+  return result;
+}  /* token_kind_following_pack_index_specifier */
+
+
+static a_boolean pack_index_name_qualifier_next(void)
+/*
+The current token is an identifier.  Return TRUE if this starts a C++26
+pack-index-specifier that is followed by "::":
+    type-name ... [ constant-expression ] ::
+*/
+{
+  return token_kind_following_pack_index_specifier() == tok_colon_colon;
+}  /* pack_index_name_qualifier_next */
+
+
 a_boolean f_is_generalized_identifier_start(
 			an_identifier_options_set	options,
 			a_type_ptr			field_sel_type)
@@ -24878,6 +25023,7 @@ following cases:
 	NS::i
 	NS::A::i
 	decltype(expr)::something
+	T...[N]::something
 	i
 	operator =
 	operator int
@@ -24989,7 +25135,8 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			is_super_qualified = FALSE;
   a_boolean			is_conversion_type = FALSE;
   a_boolean			qualifier_is_decltype = FALSE,
-                                qualifier_is_splice = FALSE;
+                                qualifier_is_splice = FALSE,
+                                qualifier_is_pack_index = FALSE;
   a_boolean			is_decltype_qualified = FALSE;
   a_type_ptr			decltype_type = NULL;
   a_boolean			qualified_conversion_operator = FALSE;
@@ -25120,6 +25267,34 @@ selection operator, in which case it points to the type of the left operand.
          is handled below without changing qualifier_separator. */
       might_be_qualifier = TRUE;
       qualifier_separator = tok_period;
+    }  /* if */
+    if (!might_be_qualifier && !is_global_qualified_name &&
+        (options & GID_SUPPRESS_PACK_INDEX_QUALIFIER) == 0 &&
+        pack_index_name_qualifier_next()) {
+      a_type_ptr  tp;
+      tp = scan_pack_index_type_specifier(/*is_new_type_name=*/FALSE,
+                                          /*is_implicit_type_context=*/FALSE,
+                                          /*concept_okay=*/FALSE,
+                                          /*might_be_id_start=*/TRUE);
+      next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
+                                                        &next_tok_2);
+      if (next_tok == tok_colon_colon) {
+        /* A pack-index type used as a nested-name-specifier:
+             T...[N]::name
+           Process this through the same qualifier path used for
+           decltype-based qualifiers. */
+        might_be_qualifier = TRUE;
+        if (tp->kind == tk_typeref && is_template_dependent_type(tp)) {
+          tp = proxy_class_for_template_param(tp);
+          qualifier_type = tp;
+        } else {
+          qualifier_type = skip_typerefs(tp);
+        }  /* if */
+        decltype_type = tp;
+        qualifier_is_pack_index = TRUE;
+        qualifier_sym = symbol_for(qualifier_type);
+        if (is_error_type(tp)) err = TRUE;
+      }  /* if */
     }  /* if */
   } else if (!is_global_qualified_name &&
              ((curr_token == tok_decltype && !decltype_auto_tokens_next()) ||
@@ -25263,9 +25438,10 @@ selection operator, in which case it points to the type of the left operand.
          "::". */
       is_vacuous_dtor_or_finalizer = TRUE;
       qualifier_sym = NULL;
-    } else if (qualifier_is_decltype || qualifier_is_splice) {
-      /* A construct like "decltype(x)::something.  The qualifier type or
-         (for some splices) namespace was set above. */
+    } else if (qualifier_is_decltype || qualifier_is_pack_index ||
+               qualifier_is_splice) {
+      /* A construct like "decltype(x)::something" or "T...[N]::something".
+         The qualifier type or (for some splices) namespace was set above. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_super) {
       /* The Microsoft __super qualifier. */
@@ -25527,8 +25703,8 @@ selection operator, in which case it points to the type of the left operand.
 #if GNU_EXTENSIONS_ALLOWED
                !(gpp_mode && qualifier_sym == NULL && !err &&
                  !(options & GID_IS_EXPR_CONTEXT) &&
-                 !qualifier_is_decltype && !qualifier_is_splice &&
-                 !qualifier_is_super) &&
+                 !qualifier_is_decltype && !qualifier_is_pack_index &&
+                 !qualifier_is_splice && !qualifier_is_super) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                ((!microsoft_bugs || microsoft_version >= 1300) ||
                 is_vacuous_dtor_or_finalizer ||
@@ -25562,7 +25738,7 @@ selection operator, in which case it points to the type of the left operand.
         qualifier_lexical_type = NULL;
         if (err ||
             (qualifier_sym == NULL && !qualifier_is_super &&
-             !qualifier_is_decltype)) {
+             !qualifier_is_decltype && !qualifier_is_pack_index)) {
           invalid_qualifier_sym = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (qualifier_is_super) {
@@ -25570,7 +25746,8 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_is_type = TRUE;
           qualifier_type_is_class = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (qualifier_is_decltype) {
+        } else if (qualifier_is_decltype || qualifier_is_pack_index) {
+          /* decltype(...):: or pack-index-specifier:: */
           qualifier_is_type = TRUE;
           qualifier_type_is_class = is_class_struct_union_type(qualifier_type);
           qualifier_is_enum = is_enum_type(qualifier_type);
@@ -25706,8 +25883,9 @@ selection operator, in which case it points to the type of the left operand.
         } else if (qualifier_is_super) {
           /* The Microsoft __super qualifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (qualifier_is_decltype) {
-          /* A decltype(x):: qualifier that may have no associated symbol. */
+        } else if (qualifier_is_decltype || qualifier_is_pack_index) {
+          /* A decltype(x):: or T...[N]:: qualifier that may have no
+             associated symbol. */
         } else {
           /* The qualifier symbol is valid. Record the reference on the
              symbol. */
@@ -26114,6 +26292,7 @@ selection operator, in which case it points to the type of the left operand.
         type_position = pos_curr_token;
         qualifier_is_super = FALSE;
         qualifier_is_decltype = FALSE;
+        qualifier_is_pack_index = FALSE;
       }  /* for */
     }  /* if */
   } else if (is_resolved_id_pseudo_token(curr_token)) {
@@ -26300,7 +26479,28 @@ selection operator, in which case it points to the type of the left operand.
            the locator and look up the identifier or type that follows the
            tilde (or the exclamation point in the finalizer case). */
         (void)get_token();  /* Get the token after the "~" or "!". */
-        if (curr_token == tok_identifier) {
+        if (is_destructor_name && curr_token == tok_identifier &&
+            pack_index_next()) {
+          /* A C++26 pack-index pseudo-destructor: ~Ts...[I].  Scan the full
+             pack-index-specifier and use the resolved (or dependent) type as
+             the destructor type. */
+          dtor_or_finalizer_type = scan_pack_index_type_specifier(
+                                           /*is_new_type_name=*/FALSE,
+                                           /*is_implicit_type_context=*/FALSE,
+                                           /*concept_okay=*/FALSE,
+                                           /*might_be_id_start=*/TRUE);
+          if (is_error_type(dtor_or_finalizer_type)) {
+            err = TRUE;
+          } else {
+            dtor_or_finalizer_class_type = qualifier_type;
+            if (dtor_or_finalizer_class_type == NULL) {
+              dtor_or_finalizer_class_type = field_sel_type;
+            }  /* if */
+            qualifier_type = dtor_or_finalizer_type;
+            qualifier_is_type = TRUE;
+          }  /* if */
+          curr_token = tok_identifier;
+        } else if (curr_token == tok_identifier) {
 	  /* A typedef name -- look up the symbol and find the type pointed to.
              This will be something like "i::~i" or "A::i::~i".  If "i" is a
              member of a class then we need to do the lookup in the class of

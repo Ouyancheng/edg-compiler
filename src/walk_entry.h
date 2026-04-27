@@ -2030,6 +2030,12 @@ do_set_proper_definition_needed_flag:
             walk_ptr(eptr->variant.token_sequence.tokens,
                      a_token_sequence_ptr, iek_token_sequence);
             break;
+          case enk_pack_index:
+            walk_ptr(eptr->variant.pack_index.expr, an_expr_node_ptr,
+                     iek_expr_node);
+            walk_ptr(eptr->variant.pack_index.index_expr, an_expr_node_ptr,
+                     iek_expr_node);
+            break;
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");

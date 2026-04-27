@@ -7507,19 +7507,20 @@ static a_constructor_init_ptr scan_mem_initializer_id(
                                              a_type_ptr         *p_init_type,
                                              a_type_ptr         *p_array_type)
 /*
-Scan a mem-initializer-id (i.e., the name of a field or base class or a
-decltype that denotes a base class to be initialized by a constructor
-definition) and return a constructor init entry corresponding to it.
-class_type is the parent class of the constructor.  *cibp tracks the state of
-the constructor init entries for the constructor currently being defined.
-*p_init_type is the type to be initialized; in the case of an array, it is the
-underlying element type and the array type itself is returned through
-*p_array_type (in non-array cases, *p_array_type is left unchanged).
+Scan a mem-initializer-id (i.e., the name of a field or base class, a decltype,
+or a C++26 type pack-index-specifier that denotes a base class to be
+initialized by a constructor definition) and return a constructor init entry
+corresponding to it.  class_type is the parent class of the constructor.  *cibp
+tracks the state of the constructor init entries for the constructor currently
+being defined.  *p_init_type is the type to be initialized; in the case of an
+array, it is the underlying element type and the array type itself is returned
+through *p_array_type (in non-array cases, *p_array_type is left unchanged).
 */
 {
   a_symbol_ptr               member_or_base_sym = NULL;
   a_type_ptr                 init_type, orig_type = NULL;
   a_boolean                  template_param_init = FALSE, is_decltype = FALSE;
+  a_boolean                  is_pack_index = FALSE;
   a_boolean                  prototype_instantiation;
   a_base_class_ptr           bcp;
   a_constructor_init_ptr     cip, new_cip = NULL;
@@ -7557,6 +7558,19 @@ underlying element type and the array type itself is returned through
     if (orig_type->variant.typeref.is_dependent_type_operator) {
       template_param_init = TRUE;
     }  /* if */
+  } else if (!locator_for_curr_id.is_qualified_name && pack_index_next()) {
+    /* A C++26 type pack-index-specifier. */
+    is_pack_index = TRUE;
+    orig_type = scan_pack_index_type_specifier(
+                                             /*is_new_type_name=*/FALSE,
+                                             /*is_implicit_type_context=*/TRUE,
+                                             /*concept_okay=*/FALSE,
+                                             /*might_be_id_start=*/FALSE);
+    if (is_error_type(orig_type)) {
+      init_type = error_type();
+      goto scan_paren;
+    }  /* if */
+    template_param_init = is_template_param_or_nonreal_class_type(orig_type);
   } else {
     /* A field or base class name. */
     member_or_base_sym = look_up_mem_initializer_id();
@@ -7648,7 +7662,7 @@ underlying element type and the array type itself is returned through
                             member_or_base_sym, &error_position,
                             /*update_il_entry=*/FALSE);
   }  /* if */
-  if (!is_decltype &&
+  if (!is_decltype && !is_pack_index &&
       symbol_is(member_or_base_sym, sk_field) &&
       same_entities(sym_parent_class(member_or_base_sym), class_type)) {
     /* This is a field of the current class and may be mentioned in the
@@ -7778,14 +7792,14 @@ underlying element type and the array type itself is returned through
        in or inserted into the list of such entries at a spot corresponding to
        its declaration order. */
     check_out_of_order_init(new_cip, cibp);
-  } else if (is_decltype ||
+  } else if (is_decltype || is_pack_index ||
              is_class_symbol(member_or_base_sym) ||
              template_param_init) {
     /* It is a base class of the current class for which initialization is to
        be done.  (In a prototype instantiation, this could look like the
        initialization of a template parameter.) */
     a_boolean  indirect_nonvirtual_base_class_found = FALSE;
-    if (!is_decltype) {
+    if (!is_decltype && !is_pack_index) {
       if (locator_for_curr_id.is_semivisible_nested_type) {
         /* The symbol in the locator is a nested class that is not visible with
            the standard lookup rules but is returned in support of the nested
@@ -7861,6 +7875,10 @@ underlying element type and the array type itself is returned through
           /* Decltype does not denote a base class of the type
              being defined. */
           pos_ty_error(ec_decltype_is_not_base_class, &pos, class_type);
+        } else if (is_pack_index) {
+          /* The pack-index-specifier does not denote a base class of the type
+             being defined. */
+          pos_error(ec_bad_base_class, &pos);
         } else {
           /* Not a base class of the class for which a constructor is
              being defined. */
@@ -7898,7 +7916,7 @@ underlying element type and the array type itself is returned through
     init_type = error_type();
   }  /* if */
 scan_paren:
-  if (!is_decltype) {
+  if (!is_decltype && !is_pack_index) {
     /* Advance past the identifier. */
     (void)get_token();
   }  /* if */
@@ -9282,7 +9300,7 @@ initialized.  These are addressed in the course of the processing.
         end_init_pos = pos_curr_token;
         pedep = end_potential_pack_expansion_context(cib.pesep,
                                                      /*is_declarator=*/FALSE);
-        if (pedep != NULL && cip != NULL) {
+        if (pedep != NULL && !pedep->is_pack_index && cip != NULL) {
           /* This mem-initializer is a variadic template pack expansion, i.e.,
              it's followed by "...".  Furthermore, we're in the prototype
              instantiation, so we mark the constructor init as a pack
@@ -9296,7 +9314,9 @@ initialized.  These are addressed in the course of the processing.
                            &end_init_pos);
           }  /* if */
         }  /* if */
-        any_more = advance_to_next_pack_element(cib.pesep);
+        if (!skip_pack_index_iteration(&cib.pesep, pedep, &any_more)) {
+          any_more = advance_to_next_pack_element(cib.pesep);
+        }  /* if */
       }  /* while */
       cib.pack_expansion_context_started = FALSE;
       remove_stop_token(tok_comma);

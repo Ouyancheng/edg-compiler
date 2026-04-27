@@ -1088,11 +1088,13 @@ return the symbol representing that template.
   an_identifier_options_set  options;
 
   assoc_symbol = NULL;
-  /* Set the options.  Since this call is a "probe" to determine if the
-     current identifier is a type name, don't complain if the name is that
-     of a template but there are no template args (since it may actually
-     be a different use of the name). */
-  options = GID_NO_OPTIONS;
+  /* Set the options.  Suppress recognition of a pack-index-specifier as a
+     nested-name-specifier to avoid partial processing during this tentative
+     parse.  Since this call is a "probe" to determine if the current
+     identifier is a type name, don't complain if the name is that of a
+     template but there are no template args (since it may actually be a
+     different use of the name). */
+  options = GID_SUPPRESS_PACK_INDEX_QUALIFIER;
   if (is_new_type_name) options |= GID_IS_NEW_TYPE_NAME;
   if (in_prescan || class_template_arg_deduction_enabled) {
     /* When class template argument deduction is being done, a class

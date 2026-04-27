@@ -916,6 +916,12 @@ extern a_type_ptr decltype_of_expr_with_substitution(
 
 extern a_type_ptr scan_type_returning_type_trait_operator(void);
 
+extern a_type_ptr scan_pack_index_type_specifier(
+                                          a_boolean is_new_type_name,
+                                          a_boolean is_implicit_type_context,
+                                          a_boolean concept_okay,
+                                          a_boolean might_be_id_start);
+
 extern a_type_ptr scan_typeof_operator(a_rescan_control_block *rcblock,
                                        a_decl_pos_block       *decl_pos_block);
 

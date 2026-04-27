@@ -2962,6 +2962,20 @@ EXTERN_THREAD a_boolean
 			/* TRUE if C++26 structured binding packs are
 			   supported. */
 
+EXTERN_THREAD a_boolean
+		pack_indexing_enabled;
+			/* TRUE if C++26 pack indexing is supported. */
+
+/*
+Macro that determines whether pack indexing should be accepted.  Pack indexing
+is a standard feature in C++26 mode (and the global variable
+pack_indexing_enabled is TRUE in that case) that is also accepted with a
+warning in recent GNU and Clang C++ modes.
+*/
+#define pack_indexing_allowed                                                \
+  (pack_indexing_enabled ||                                                  \
+   gpp_version_is(>=150000) || clangcpp_version_is(>=190000))
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

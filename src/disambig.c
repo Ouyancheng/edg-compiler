@@ -785,6 +785,29 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
              is actually parsed later. */
           clear_specific_symbol(locator_for_curr_id);
         }  /* if */
+        if (pack_indexing_allowed && is_decl_specifier_token &&
+            type_specifier_seen && !locator_for_curr_id.is_qualified_name &&
+            next_token() == tok_ellipsis) {
+          /* A potential C++26 type pack-index-specifier (T...[N]) during the
+             decl-specifier prescan.  Cache the whole construct so the
+             following "[" is not mistaken for the start of an abstract
+             declarator.  Only type_specifier_seen cases need this: outside a
+             decl-specifier-seq "T..." is a pack expansion of an id-expression,
+             not a type, so the "[" is handled by the normal expression
+             disambiguation path. */
+          get_token_and_coalesce_if_identifier(flags);
+          next_token_fetched = TRUE;
+          if (curr_token == tok_ellipsis && next_token() == tok_lbracket) {
+            get_token_and_coalesce_if_identifier(flags);
+            if (curr_token == tok_lbracket) {
+              get_token_and_coalesce_if_identifier(flags);
+              cache_tokens_until(tok_rbracket, /*coalesce=*/TRUE);
+              if (curr_token == tok_rbracket) {
+                get_token_and_coalesce_if_identifier(flags);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
         break;
       /* Type specifier - other simple type name tokens. */
       case tok_char:
@@ -1677,6 +1700,17 @@ types separated by commas (when single_type_required is FALSE).
   next_tok = next_token();
   is_start_of_type = is_type_start_full(/*is_expr_context=*/TRUE,
                                         /*is_prescan=*/TRUE, IDS_NO_OPTIONS);
+  if (pack_indexing_allowed && is_start_of_type &&
+      curr_token == tok_identifier && next_tok == tok_ellipsis) {
+    a_token_kind  pack_index_next_tok =
+                                   token_kind_following_pack_index_specifier();
+    if (pack_index_next_tok == tok_lparen ||
+        (is_template_argument(flags) && pack_index_next_tok == tok_lbrace)) {
+      /* The token stream is of the form "T...[N]".  Treat this C++26 type
+         pack-index-specifier as if it were the bare type-name "T". */
+      next_tok = pack_index_next_tok;
+    }  /* if */
+  }  /* if */
   if (microsoft_mode && is_start_of_type && curr_token != tok_identifier &&
       next_tok != tok_lparen && next_tok != tok_declspec &&
       next_tok != tok_alignas) {
@@ -1740,6 +1774,7 @@ types separated by commas (when single_type_required is FALSE).
        Similarly, "_Atomic(" is the start of a type specifier, not a cast. */
   } else if (curr_token == tok_typename ||
              ((next_tok == tok_lparen ||
+               (is_template_argument(flags) && next_tok == tok_lbrace) ||
                (is_cast(flags) && /* See note above */
                 is_implicit_template_type)) &&
               is_start_of_type)) {

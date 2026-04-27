@@ -2222,6 +2222,7 @@ Display a typeref kind.
     case trk_remove_volatile:          str = "remove_volatile";          break;
     case trk_template_arg_list:        str = "template_arg_list";        break;
     case trk_name_qualifier:           str = "name_qualifier";           break;
+    case trk_pack_index:               str = "pack_index";               break;
     default:                           str = "**BAD TYPEREF KIND**";     break;
   }  /* switch */
   (void)fprintf(f_display, "%s\n", str);
@@ -5157,6 +5158,11 @@ cleanup_state_common:
     case enk_template_name:
       disp_ptr("template_name", (char *)ptr->variant.template_name,
                iek_template);
+      break;
+    case enk_pack_index:
+      disp_ptr("expr", (char *)ptr->variant.pack_index.expr, iek_expr_node);
+      disp_ptr("index_expr", (char *)ptr->variant.pack_index.index_expr,
+               iek_expr_node);
       break;
     default:
       (void)fprintf(f_display, "**BAD EXPR NODE KIND**\n");

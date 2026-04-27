@@ -2205,6 +2205,28 @@ for more information about when this is done.
 }  /* reset_enclosing_pack_values */
 
 
+a_boolean reset_enclosing_packs_for_pack_index(
+		a_pack_expansion_stack_entry_ptr	pesep)
+/*
+For a pack-index construct (C++26 "pack...[index]") scanned during the rescan
+of a template declaration nested inside a real variadic instantiation, reset
+the enclosing pack parameter symbols back to their dependent values.  Return
+TRUE if the reset was done.
+*/
+{
+  a_boolean  did_reset = FALSE;
+
+  if (pesep != NULL && pesep->instantiation_descr != NULL &&
+      !pesep->enclosing_packs_reset &&
+      is_uninstantiated_pack_expansion_context()) {
+    reset_enclosing_pack_values();
+    pesep->enclosing_packs_reset = TRUE;
+    did_reset = TRUE;
+  }  /* if */
+  return did_reset;
+}  /* reset_enclosing_packs_for_pack_index */
+
+
 static void restore_enclosing_pack_values(a_boolean process_enclosing_scopes)
 /*
 Restore the pack values of the current pack expansion (after another
@@ -11189,6 +11211,7 @@ to it.
   pedp->is_function_declarator = FALSE;
   pedp->uses_only_enclosing_packs = FALSE;
   pedp->uses_any_enclosing_packs = FALSE;
+  pedp->is_pack_index = FALSE;
   pedp->tentative_pack_expansion_depth = (scope_stack_top().in_tentative_decl ?
                                           depth_tentative_pack_expansions : 0);
   return pedp;
@@ -11476,6 +11499,26 @@ Display the tokens that make up a pack expansion, for debugging purposes.
 #endif /* DEBUG */
 
 
+static a_boolean pack_expansion_descr_is_on_stack(
+                                              a_pack_expansion_descr_ptr  pedp)
+/*
+Return TRUE if the given pack expansion descriptor appears on the current pack
+expansion stack.
+*/
+{
+  a_pack_expansion_stack_entry_ptr  pesep;
+  a_boolean                         on_stack = FALSE;
+
+  for (pesep = pack_expansion_stack; pesep != NULL; pesep = pesep->next) {
+    if (!pesep->is_suppression && pesep->expansion_descr == pedp) {
+      on_stack = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return on_stack;
+}  /* pack_expansion_descr_is_on_stack */
+
+
 static a_pack_expansion_descr_ptr get_pack_expansion_for_curr_context(void)
 /*
 Look for a pack expansion descriptor for the current token location.
@@ -11504,10 +11547,62 @@ determine whether we are entering a pack expansion context.
       for (; pedp != NULL && pedp->first_token > curr_token_sequence_number;
            pedp = pedp->previous) {}
       if (pedp != NULL && pedp->first_token == curr_token_sequence_number) {
-        /* Record the most recent pack used. */
-        ssep->last_pack_expansion_used = pedp;
-        result_pedp = pedp;
-        break;
+        /* Multiple expansions can share a first token (e.g., nested contexts
+           that begin at the same source location).  Pick one based on range
+           nesting and the active expansion stack, so that the outermost
+           expansion is selected first and inner expansions are selected when
+           entered recursively. */
+        a_pack_expansion_descr_ptr first_same = pedp;
+        a_pack_expansion_descr_ptr cand, best = NULL;
+        a_boolean                  have_bound = FALSE;
+        a_token_sequence_number    bound_last = NO_TOKEN_SEQUENCE_NUMBER;
+        a_pack_expansion_stack_entry_ptr
+                                   pesep;
+
+        while (first_same->previous != NULL &&
+               first_same->previous->first_token ==
+                                                  curr_token_sequence_number) {
+          first_same = first_same->previous;
+        }  /* while */
+        /* If we are already inside a same-token expansion, constrain the
+           candidate to be nested within the innermost active one. */
+        for (pesep = pack_expansion_stack;
+             pesep != NULL;
+             pesep = pesep->next) {
+          if (!pesep->is_suppression &&
+              pesep->expansion_descr != NULL &&
+              pesep->expansion_descr->first_token ==
+                                                  curr_token_sequence_number) {
+            if (!have_bound ||
+                pesep->expansion_descr->last_token < bound_last) {
+              bound_last = pesep->expansion_descr->last_token;
+              have_bound = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        for (cand = first_same;
+             cand != NULL && cand->first_token == curr_token_sequence_number;
+             cand = cand->next) {
+          if (cand->packs_referenced != NULL &&
+              !pack_expansion_descr_is_on_stack(cand) &&
+              (!have_bound || cand->last_token < bound_last) &&
+              (best == NULL || best->last_token < cand->last_token)) {
+            /* Prefer the outermost descriptor among those available. */
+            best = cand;
+          }  /* if */
+        }  /* for */
+        if (best != NULL) {
+          pedp = best;
+        } else if (pedp->packs_referenced == NULL) {
+          /* The matching same-token entries are non-pack contexts. */
+          pedp = NULL;
+        }  /* if */
+        if (pedp != NULL) {
+          /* Record the most recent pack used. */
+          ssep->last_pack_expansion_used = pedp;
+          result_pedp = pedp;
+          break;
+        }
       }  /* if */
     }  /* if */
   }  /* for */
@@ -12993,7 +13088,8 @@ a_boolean begin_potential_pack_expansion_context_full(
 		a_pack_expansion_descr_ptr		*p_pedp,
 		a_boolean				is_lookahead,
 		a_boolean				allow_empty_list,
-		a_boolean				ignore_suppression)
+		a_boolean				ignore_suppression,
+		a_boolean				claim_pack_index)
 /*
 This is called at the start of a construct that could be a variadic template
 pack expansion.  Such pack expansions occur only within the declarations
@@ -13055,6 +13151,12 @@ allow_empty_list is TRUE if a pack instantiation entry should be created
 
 If ignore_suppression is TRUE, a new entry will be pushed even if a
 suppression is on the stack.
+
+claim_pack_index is TRUE when the caller is scanning the operand of a C++26
+pack-index construct.  Descriptors for those constructs are reserved for that
+scan.  Other callers that encounter such a descriptor should treat the
+construct as a single element and leave the descriptor available for the
+pack-index scanner.
 */
 {
   a_boolean				any_args = FALSE;
@@ -13085,37 +13187,45 @@ suppression is on the stack.
     pedp = pesep->expansion_descr;
     any_args = TRUE;
   } else if (is_pack_instantiation_context(&pedp)) {
-    /* This is a real instantiation.  See if there is a corresponding
-       parameter pack from the template definition.  Get the template
-       parameter list and template argument associated with the current
-       instantiation. */
-    a_template_param_ptr	templ_param_list;
-    a_template_arg_ptr		templ_arg_list;
-    a_boolean			err;
-    get_curr_template_params_and_args(&templ_param_list, &templ_arg_list);
-    pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
-                                    /*is_rescan=*/FALSE,
-                                    /*is_deduction=*/FALSE,
-                                    allow_empty_list,
-                                    (a_ctws_state_ptr)NULL, &err);
-    increment_dependent_scans_for_reusable_cache();
-    any_args = pesep != NULL;
-    if (pesep != NULL && pesep->instantiation_descr != NULL &&
-        !pesep->instantiation_descr->is_empty) {
-      check_assertion(curr_token_sequence_number == pedp->first_token);
-      pesep->first_token_cache = get_token_cache_being_scanned();
-      pesep->first_token_tsn = curr_token_sequence_number;
-      /* Mark that the current reusable cache is being used for rescan
-         purposes. */
-      if (is_lookahead) pesep->is_lookahead = TRUE;
+    if (pedp != NULL && pedp->is_pack_index && !claim_pack_index) {
+      /* This descriptor belongs to a pack-index operand, not the current
+         list-level context.  Leave it for the pack-index scanner and handle
+         the current construct as a single element. */
+      any_args = TRUE;
+      pedp = NULL;
     } else {
-      /* There are no arguments to be expanded.  Advance to the token
-         after the end of the expansion.  Don't advance when is_lookahead
-         is TRUE because we want to return the same result (i.e., FALSE)
-         when this routine is called again. */
-      decrement_dependent_scans_for_reusable_cache();
-      if (!is_lookahead) skip_pack_expansion_tokens(pedp);
-      any_args = FALSE;
+      /* This is a real instantiation.  See if there is a corresponding
+         parameter pack from the template definition.  Get the template
+         parameter list and template argument associated with the current
+         instantiation. */
+      a_template_param_ptr	templ_param_list;
+      a_template_arg_ptr		templ_arg_list;
+      a_boolean			err;
+      get_curr_template_params_and_args(&templ_param_list, &templ_arg_list);
+      pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
+                                      /*is_rescan=*/FALSE,
+                                      /*is_deduction=*/FALSE,
+                                      allow_empty_list,
+                                      (a_ctws_state_ptr)NULL, &err);
+      increment_dependent_scans_for_reusable_cache();
+      any_args = pesep != NULL;
+      if (pesep != NULL && pesep->instantiation_descr != NULL &&
+          !pesep->instantiation_descr->is_empty) {
+        check_assertion(curr_token_sequence_number == pedp->first_token);
+        pesep->first_token_cache = get_token_cache_being_scanned();
+        pesep->first_token_tsn = curr_token_sequence_number;
+        /* Mark that the current reusable cache is being used for rescan
+           purposes. */
+        if (is_lookahead) pesep->is_lookahead = TRUE;
+      } else {
+        /* There are no arguments to be expanded.  Advance to the token
+           after the end of the expansion.  Don't advance when is_lookahead
+           is TRUE because we want to return the same result (i.e., FALSE)
+           when this routine is called again. */
+        decrement_dependent_scans_for_reusable_cache();
+        if (!is_lookahead) skip_pack_expansion_tokens(pedp);
+        any_args = FALSE;
+      }  /* if */
     }  /* if */
   } else if (is_uninstantiated_pack_expansion_context() ||
              in_ms_nonreal_class_instantiation()) {
@@ -13162,7 +13272,8 @@ default values for certain arguments.  See that routine for more information.
                                    p_pesep, (a_pack_expansion_descr_ptr*)NULL,
                                    /*is_lookahead=*/FALSE,
                                    /*allow_empty_list=*/FALSE,
-                                   /*ignore_suppression=*/FALSE);
+                                   /*ignore_suppression=*/FALSE,
+                                   /*claim_pack_index=*/FALSE);
   return any_args;
 }  /* begin_potential_pack_expansion_context */
 
@@ -13807,6 +13918,36 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
 }  /* advance_to_next_pack_element */
 
 
+a_boolean skip_pack_index_iteration(
+                                 a_pack_expansion_stack_entry_ptr  *p_pesep,
+                                 a_pack_expansion_descr_ptr        pedep,
+                                 a_boolean                         *p_any_more)
+/*
+Short-circuit pack iteration for a standalone pack-index construct.  A
+pack-index that is not followed by "..." contributes a single element,
+so there is nothing to iterate.  If the pending pack-expansion context
+describes such a pack-index, abandon it, clear *p_pesep, set *p_any_more
+to FALSE, and return TRUE to tell the caller to stop.  Otherwise return
+FALSE so the caller can proceed with normal advance_to_next_pack_element
+processing.
+*/
+{
+  a_pack_expansion_stack_entry_ptr  pesep = *p_pesep;
+  a_boolean                         is_pack_index;
+
+  is_pack_index = pesep != NULL && pesep->instantiation_descr != NULL &&
+                  pesep->expansion_descr != NULL &&
+                  pesep->expansion_descr->is_pack_index &&
+                  (pedep == NULL || pedep->is_pack_index);
+  if (is_pack_index) {
+    abandon_potential_pack_expansion_context(pesep);
+    *p_pesep = NULL;
+    *p_any_more = FALSE;
+  }  /* if */
+  return is_pack_index;
+}  /* skip_pack_index_iteration */
+
+
 void abandon_potential_pack_expansion_context(
 				a_pack_expansion_stack_entry_ptr	pesep)
 /*
@@ -13819,6 +13960,13 @@ pack expansion stack must be popped.
     /* The pack expansion descriptor passed in should be on top of the
        stack. */
     check_assertion(pesep == pack_expansion_stack);
+    if (pesep->instantiation_descr != NULL && !pesep->is_rescan) {
+      /* begin_potential_pack_expansion_context increments the dependent-scan
+         count for real instantiations.  If this context is abandoned (instead
+         of being finished via advance_to_next_pack_element), balance that
+         increment here. */
+      decrement_dependent_scans_for_reusable_cache();
+    }  /* if */
     /* Propagate the contains_pack_reference flag to the enclosing context. */
     if (pesep->next != NULL && pesep->contains_pack_reference) {
       pesep->next->contains_pack_reference = TRUE;
@@ -13897,14 +14045,16 @@ is the type specified, and direct_bases is TRUE for the __direct_bases
 form.
 */
 {
-  /* It is only possible to reference a pack expansion in a template
-     definition context.  Don't record pack references during rescans -- just
-     use the pack references from the definition. */
+  /* It is only possible to reference a pack expansion in a template definition
+     context.  Don't record pack references during rescans or while expansion
+     processing is suppressed -- just use the pack references from the
+     definition. */
   if (is_uninstantiated_pack_expansion_context() &&
       !(pack_expansion_stack != NULL &&
        pack_expansion_stack->instantiation_descr != NULL) &&
-      (pack_expansion_stack == NULL || !pack_expansion_stack->is_rescan ||
-       pack_expansion_stack->is_suppression)) {
+      (pack_expansion_stack == NULL ||
+       (!pack_expansion_stack->is_rescan &&
+        !pack_expansion_stack->is_suppression))) {
     if (bases_type != NULL || symbol_is_pack(pack_symbol)) {
       /* Add this pack symbol to the list of packs in the scope stack
          entry. */

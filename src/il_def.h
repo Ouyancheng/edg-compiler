@@ -9636,6 +9636,8 @@ enum a_typeref_kind : a_byte {
                            template argument list. */
   trk_name_qualifier,   /* A typeref representing the nested name specifier of
                            the type as written. */
+  trk_pack_index,       /* A type entry representing a C++26
+                           pack-index-specifier (T...[N]). */
 };
 
 /*
@@ -13528,6 +13530,7 @@ enum an_expr_node_kind : a_bit_field {
   enk_token_sequence,	/* A token sequence (a reflection feature). */
   enk_reclaimed,	/* Used to represent a node that's been reclaimed and
 			   is part of the avail_fs_nodes list. */
+  enk_pack_index,       /* A C++26 pack index expression. */
   enk_last
 };
 
@@ -13590,6 +13593,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, expr_node_kind_names, enk_last + 1)
 /* enk_template_name */			"template_name",
 /* enk_token_sequence */		"token_sequence",
 /* enk_reclaimed */			"reclaimed",
+/* enk_pack_index */			"pack_index",
 /* enk_last */				"last"
 }
 #endif /* VAR_INITIALIZERS */
@@ -15601,6 +15605,14 @@ typedef struct an_expr_node {
 		reattempt_state;
 			/* The associated reattempt conditions. */
     } const_eval_deferred;
+    /* When kind == enk_pack_index: */
+    struct {
+      an_expr_node_ptr
+		expr;	/* The pack expression. */
+      an_expr_node_ptr
+		index_expr;
+			/* The index constant-expression. */
+    } pack_index;
   } variant;
   union {
     an_expr_rescan_info_entry_ptr

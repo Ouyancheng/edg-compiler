@@ -7433,9 +7433,10 @@ static a_type_ptr skip_typerefs_for_distinct_decltype_check(
 /*
 Remove typerefs from the given type in preparation for the check in
 distinct_dependent_decltypes.  Typerefs are removed until there are no
-more or until a dependent decltype or typeof based on an expression
-is encountered.  If the type returned is one of those typerefs,
-*check_expr is returned TRUE.
+more or until a dependent expression-based type operator (e.g., decltype,
+typeof with an expression operand, or a type pack-index-specifier) is
+encountered.  If the type returned is one of those typerefs, *check_expr is
+returned TRUE.
 */
 {
   *check_expr = FALSE;
@@ -7460,11 +7461,12 @@ static a_boolean distinct_dependent_decltypes(a_type_ptr      type_1,
                                               a_type_ptr      type_2,
                                               an_itf_flag_set itf_flags)
 /*
-If type_1 and/or type_2 are expressed using decltype (or typeof) constructs
-with dependent arguments, return TRUE if those constructs can be considered
-to be distinct.  itf_flags is a set of option flags that specify options for
-type comparisons.  The C++ standard defines notions of "equivalent" and
-"functionally equivalent" expressions.  When decltype is applied to
+If type_1 and/or type_2 are expressed using dependent expression-based type
+operators (decltype, typeof-with-expression, or pack-index-specifier forms),
+return TRUE if those constructs can be considered distinct.  itf_flags is a
+set of option flags that specify options for type comparisons.  The C++
+standard defines notions of "equivalent" and "functionally equivalent"
+expressions.  When decltype is applied to
 "equivalent expressions" (which implies identical syntax), the resulting types
 are also equivalent (and this routine returns FALSE).  When decltype is
 applied to "expressions that are not functionally equivalent", the resulting
@@ -7481,16 +7483,17 @@ normal (underlying) type comparison.
 
   if (!C_mode() && in_front_end) {
 top_of_loop:
-    /* Peel off tk_typeref layers looking for template-dependent decltype or
-       typeof nodes based on expressions. */
+    /* Peel off tk_typeref layers looking for template-dependent,
+       expression-based type operators. */
     type_1 = skip_typerefs_for_distinct_decltype_check(type_1,
                                                        &check_expr_1);
     type_2 = skip_typerefs_for_distinct_decltype_check(type_2,
                                                        &check_expr_2);
     if (check_expr_1 || check_expr_2) {
-      /* Some dependent decltype/typeof type was encountered. */
+      /* Some dependent type operator was encountered. */
       if (check_expr_1 != check_expr_2) {
-        /* One is a decltype with an expression and the other isn't. */
+        /* One type has an expression-based dependent type operator and the
+           other does not. */
         result = TRUE;
       } else if (type_1 == type_2) {
         /* We don't need to compare the types and expressions because they
@@ -7508,6 +7511,9 @@ top_of_loop:
                      type_2->variant.typeref.decltype_expr_not_parenthesized) {
         /* The two types were obtained with different constructs and are
            therefore different. */
+        result = TRUE;
+      } else if (is_typeref_kind(type_1, trk_pack_index) !=
+                                     is_typeref_kind(type_2, trk_pack_index)) {
         result = TRUE;
       } else {
         /* Compare the expressions. */
@@ -7529,6 +7535,17 @@ top_of_loop:
             cc_options |= CC_EXACT_EQUIVALENCE;
           }  /* if */
           result = !compare_expressions(expr1, expr2, cc_options);
+        }  /* if */
+        if (!result && is_typeref_kind(type_1, trk_pack_index)) {
+          /* For a type pack-index-specifier, both the index expression and
+             the pack type operand participate in dependent distinctness. */
+          a_type_ptr pack_type_1 = type_1->variant.typeref.extra_info->
+                                                             operator_type_arg;
+          a_type_ptr pack_type_2 = type_2->variant.typeref.extra_info->
+                                                             operator_type_arg;
+          if (!f_identical_types(pack_type_1, pack_type_2, itf_flags)) {
+            result = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (!result) {
@@ -16582,6 +16599,12 @@ return type be examined? what about its parameters?).
               ttsp->expr != NULL) {
             /* Traverse the expression under the decltype or typeof. */
             status = traverse_types_for_expr(ttsp->expr, func, pofunc, flags);
+          }  /* if */
+          if (!status && ttsp->operator_type_arg != NULL) {
+            /* Traverse the type operand of operator typerefs such as
+               __bases, __direct_bases, and pack-index-specifiers. */
+            status = traverse_type_tree_full(ttsp->operator_type_arg, func,
+                                             pofunc, flags);
           }  /* if */
         }  /* if */
         if (!status &&

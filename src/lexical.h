@@ -195,6 +195,13 @@ typedef unsigned an_identifier_options_set;
 			/* TRUE if a name qualifier that is not a type or
 			   namespace (or a known entity at all) should be
 			   permitted (e.g., X::name where X is not found). */
+#define GID_SUPPRESS_PACK_INDEX_QUALIFIER 0x20000000u
+			/* TRUE to suppress recognition of a
+			   pack-index-specifier as a nested-name-specifier
+			   during type name probing in curr_type_symbol.  This
+			   prevents pack-index constructs like T...[N]::name
+			   from being partially processed during tentative
+			   parses. */
 
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
@@ -4501,6 +4508,10 @@ extern void begin_rescan_of_pragma_tokens(struct a_pending_pragma *ppp);
 extern void wrapup_rescan_of_pragma_tokens(a_boolean  error_in_pragma);
 
 extern a_boolean spliced_name_qualifier_next(void);
+
+extern a_boolean pack_index_next(void);
+
+extern a_token_kind token_kind_following_pack_index_specifier(void);
 
 extern a_boolean f_is_generalized_identifier_start
                      (an_identifier_options_set options,

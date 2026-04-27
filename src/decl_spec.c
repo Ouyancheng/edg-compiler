@@ -7446,7 +7446,8 @@ constructor).
           any_args = begin_potential_pack_expansion_context_full(
                                          &pesep, &pedp, /*is_lookahead=*/TRUE,
                                          /*allow_empty_list=*/FALSE,
-                                         /*ignore_suppression=*/FALSE);
+                                         /*ignore_suppression=*/FALSE,
+                                         /*claim_pack_index=*/FALSE);
           if (!any_args ||
               is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
                             IDS_IMPLICIT_TYPENAME_CONTEXT)) {
@@ -12310,19 +12311,26 @@ general_identifier_case:
         }  /* if */
         { a_boolean  implicit_typename = state->is_implicit_type_context &&
                                          relaxed_typename_enabled,
-                     retried = FALSE;
+                     retried = FALSE,
+                     concept_okay = concepts_enabled &&
+                                    (is_parameter ||
+                                     state->auto_type_allowed ||
+                                     state->is_trailing_return_type);
 retry_type_name_determination:
+          /* If a type pack-index-specifier (T...[N]) follows, the identifier
+             must be classified with curr_type_symbol(..., in_type_check=TRUE)
+             on this pass so the lookup does not record variadic pack
+             references that belong only to the real pack-index parse in
+             scan_pack_index_type_specifier. */
           curr_token_type_symbol =
                     curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                      /*in_prescan=*/FALSE,
-                                     /*in_type_check=*/FALSE,
+                                     /*in_type_check=*/
+                                     (!locator_for_curr_id.is_qualified_name &&
+                                      pack_index_next()),
                                      implicit_typename,
                                      /*is_sizeof_context=*/FALSE,
-                                     /*concept_okay=*/
-                                     (is_parameter || 
-                                      state->auto_type_allowed ||
-                                      state->is_trailing_return_type) &&
-                                       concepts_enabled);
+                                     concept_okay);
           if (clangcpp_version_is(>= 160000)) {
             /* Clang 16 (and later) appears to accept the implicit typename
                contexts of C++20 in pre-C++20 modes, but with a warning.  We
@@ -12338,6 +12346,19 @@ retry_type_name_determination:
             } else if (retried && curr_token_type_symbol != NULL) {
               pos_warning(ec_missing_typename, &pos_curr_token);
             }  /* if */
+          }  /* if */
+          if (curr_token_type_symbol != NULL &&
+              is_type_symbol(curr_token_type_symbol) &&
+              !locator_for_curr_id.is_qualified_name && pack_index_next()) {
+            /* This is a C++26 type pack-index-specifier. */
+            *type_ptr = scan_pack_index_type_specifier(
+                                     (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                                     implicit_typename, concept_okay,
+                                     /*might_be_id_start=*/FALSE);
+            basic_type = bt_typedef;
+            decl_specifiers_seen |= DS_TYPE;
+            state->type_is_injected_class_name = FALSE;
+            goto no_get_token;
           }  /* if */
         }
         if (curr_token_type_symbol != NULL &&

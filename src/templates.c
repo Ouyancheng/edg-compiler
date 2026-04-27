@@ -17205,6 +17205,201 @@ parameters.
 }  /* copy_param_type_list_with_substitution */
 
 
+static a_template_arg_ptr get_pack_arg_from_active_instantiations(
+                   a_template_param_coordinate_ptr  coordinates,
+                   a_boolean                        *p_args_known_nondependent)
+/*
+If an active instantiation scope has a template parameter list that matches
+coordinates->depth, return the corresponding pack argument from that scope's
+template argument list.  Set *p_args_known_nondependent TRUE only when the
+matching instantiation arguments are known nondependent.
+*/
+{
+  a_template_arg_ptr   tap = NULL;
+  a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
+
+  *p_args_known_nondependent = FALSE;
+  for (size_t i = subst_pairs.length(); i > 0; --i) {
+    const a_subst_pairs_descr  *spd = &subst_pairs[i - 1];
+    if (is_template_param_from_list(coordinates, spd->params)) {
+      if (spd->args_known_nondependent) {
+        a_template_arg_ptr arg_list = spd->args;
+        tap = get_template_arg_by_list_pos(spd->params, &arg_list, coordinates,
+                                           /*is_rescan=*/TRUE,
+                                           /*ignore_packs=*/TRUE);
+        *p_args_known_nondependent = spd->args_known_nondependent;
+      }  /* if */
+      break;
+    }  /* if */
+  }  /* for */
+  return tap;
+}  /* get_pack_arg_from_active_instantiations */
+
+
+static a_type_ptr copy_pack_index_type_with_substitution(
+                        a_type_ptr               type,
+                        a_template_arg_ptr       templ_arg_list,
+                        a_template_param_ptr     templ_param_list,
+                        a_source_position        *source_pos,
+                        a_ctws_options_set       options,
+                        a_boolean                *copy_error,
+                        a_ctws_state_ptr         ctws_state)
+/*
+Substitute a dependent trk_pack_index typeref.  type is the trk_pack_index
+typeref to substitute.  templ_arg_list is the list of template arguments
+to use for substitution.  templ_param_list is the list of template
+parameters that correspond to templ_arg_list.  source_pos is the source
+position for error reporting.  options controls substitution behavior.
+copy_error is set TRUE if an error occurs during copying.  ctws_state
+tracks the substitution state.  If substitution yields a fully-known pack
+and integral index, return the selected type element.  Otherwise, preserve
+a (possibly updated) trk_pack_index typeref so later substitution passes
+(e.g., for enclosing template levels) can continue deduction.
+*/
+{
+  a_type_ptr              result = type;
+  a_type_ptr              pack_type;
+  an_expr_node_ptr        index_expr, new_index_expr;
+  a_constant_ptr          index_constant = NULL;
+  a_constant_ptr          local_index_constant = local_constant();
+  a_type_ptr              resolved_type = NULL;
+  a_boolean               preserve_deduced_packs =
+                                  (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0;
+  a_boolean               index_is_known = FALSE;
+  a_host_large_unsigned   index_value = 0;
+  an_operand              index_operand;
+
+  check_assertion(is_typeref_kind(type, trk_pack_index) &&
+                  type->variant.typeref.is_dependent_type_operator);
+  pack_type = type->variant.typeref.extra_info->operator_type_arg;
+  index_expr = decltype_arg(type);
+  check_assertion(pack_type != NULL && index_expr != NULL);
+  new_index_expr = copy_template_param_expr(index_expr, templ_arg_list,
+                                            templ_param_list, (a_type_ptr)NULL,
+                                            source_pos, options, copy_error,
+                                            ctws_state, local_index_constant,
+                                            &index_constant);
+  if (*copy_error) goto done;
+  if (index_constant == NULL && new_index_expr != NULL &&
+      fold_constexpr_expr(new_index_expr, local_index_constant,
+                          /*is_constant_evaluated=*/TRUE,
+                          /*force_prvalue=*/TRUE)) {
+    /* The substituted expression could be folded to a constant. */
+    new_index_expr = NULL;
+  }  /* if */
+  if (index_constant == NULL && new_index_expr == NULL) {
+    /* Move a folded local constant to IL memory. */
+    index_constant = move_local_constant_to_il(&local_index_constant);
+  }  /* if */
+  if (index_constant != NULL) {
+    if (is_error_constant(index_constant)) {
+      subst_fail(*copy_error);
+      goto done;
+    }  /* if */
+    if (index_constant->kind == ck_integer) {
+      a_boolean  ovflo;
+      index_value = unsigned_value_of_integer_constant(index_constant, &ovflo);
+      if (ovflo) {
+        subst_fail(*copy_error);
+        goto done;
+      }  /* if */
+      index_is_known = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!preserve_deduced_packs && index_is_known) {
+    a_type_ptr  unqual_pack_type = skip_typerefs(pack_type);
+    if (type_is(unqual_pack_type, tk_template_param) &&
+        type_is_pack(unqual_pack_type)) {
+      a_template_param_coordinate_ptr
+                             coordinates = &unqual_pack_type
+                                            ->variant.template_param.extra_info
+                                            ->coordinates;
+      a_template_arg_ptr     tap = NULL;
+      a_host_large_unsigned  elem_idx = index_value;
+      a_boolean              have_known_pack_args = TRUE;
+      if (is_template_param_from_list(coordinates, templ_param_list)) {
+        tap = get_template_arg_by_list_pos(templ_param_list, &templ_arg_list,
+                                           coordinates, /*is_rescan=*/TRUE,
+                                           /*ignore_packs=*/TRUE);
+      } else {
+        a_boolean args_known_nondependent = FALSE;
+        tap = get_pack_arg_from_active_instantiations(
+                                        coordinates, &args_known_nondependent);
+        if (!args_known_nondependent) {
+          /* No known enclosing argument list is currently active.  Preserve
+             the pack index for a later substitution pass. */
+          have_known_pack_args = FALSE;
+          ctws_state->unexpanded_pack = TRUE;
+        }  /* if */
+      }  /* if */
+      if (have_known_pack_args) {
+        if (tap == NULL || !tap->is_pack_element) {
+          /* Empty pack: any index is out of bounds. */
+          subst_fail(*copy_error);
+        } else {
+          while (elem_idx > 0 && tap != NULL && tap->is_pack_element) {
+            tap = tap->next;
+            elem_idx--;
+          }  /* while */
+          if (elem_idx > 0 || tap == NULL || !tap->is_pack_element) {
+            /* Index beyond known pack elements. */
+            subst_fail(*copy_error);
+          } else if (is_type_templ_arg(tap) && tap->variant.type != NULL &&
+                     !template_arg_is_dependent(tap)) {
+            /* A concrete pack element was selected. */
+            resolved_type = tap->variant.type;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    } else if (!is_template_dependent_type(pack_type) &&
+               !is_error_type(pack_type)) {
+      /* The left operand no longer denotes a pack after substitution. */
+      subst_fail(*copy_error);
+    }  /* if */
+  }  /* if */
+  if (*copy_error) {
+    goto done;
+  } else if (resolved_type != NULL) {
+    result = resolved_type;
+  } else if (new_index_expr == index_expr && index_constant == NULL) {
+    /* Nothing changed. */
+    result = type;
+  } else {
+    /* Convert constant to expression if needed. */
+    if (new_index_expr == NULL && index_constant != NULL) {
+      make_constant_operand(index_constant, &index_operand);
+      new_index_expr = make_node_from_operand(&index_operand);
+    }  /* if */
+    /* Create a dependent trk_pack_index typeref preserving the source
+       position from the original type.  The enclosing routine is set
+       below only when the substituted index expression is anchored in a
+       function scope via make_local_expr_node_ref. */
+    result = alloc_type(tk_typeref);
+    result->variant.typeref.kind = trk_pack_index;
+    result->variant.typeref.type = type_of_unknown_templ_param_nontype;
+    result->variant.typeref.is_dependent_type_operator = TRUE;
+    result->variant.typeref.extra_info->operator_type_arg = pack_type;
+    result->source_corresp = type->source_corresp;
+    result->source_corresp.enclosing_routine = NULL;
+    if (new_index_expr != NULL) {
+      if (in_file_scope(new_index_expr) || innermost_function_scope == NULL) {
+        result->variant.typeref.extra_info->expr = new_index_expr;
+      } else {
+        make_local_expr_node_ref(new_index_expr, lerk_decltype, (char *)result,
+                                 innermost_function_scope);
+        result->source_corresp.enclosing_routine =
+                                 innermost_function_scope->variant.routine.ptr;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+done:
+  if (local_index_constant != NULL) {
+    release_local_constant(&local_index_constant);
+  }  /* if */
+  return result;
+}  /* copy_pack_index_type_with_substitution */
+
+
 a_type_ptr copy_type_with_substitution(
 			a_type_ptr			type,
 			a_template_arg_ptr		templ_arg_list,
@@ -17485,7 +17680,15 @@ a pointer over a reference type or creating an array of references.
         }  /* if */
         break;
       case tk_typeref:
-        if (typeref_is_type_operator(type) &&
+        if (is_typeref_kind(type, trk_pack_index)) {
+          new_type = copy_pack_index_type_with_substitution(type,
+                                                            templ_arg_list,
+                                                            templ_param_list,
+                                                            source_pos,
+                                                            options,
+                                                            copy_error,
+                                                            ctws_state);
+        } else if (typeref_is_type_operator(type) &&
             type->variant.typeref.is_dependent_type_operator &&
             (expr = decltype_arg(type)) != NULL &&
             expr->extra.rescan_info != NULL) {
@@ -28810,7 +29013,8 @@ to represent the template parameters.
                                                  &pesep, &pedp,
                                                  /*is_lookahead=*/FALSE,
                                                  /*allow_empty_list=*/TRUE,
-                                                 /*ignore_suppression=*/FALSE);
+                                                 /*ignore_suppression=*/FALSE,
+                                                 /*claim_pack_index=*/FALSE);
     /* If this is the parameter list of a template template parameter, use
        the pack expansion stack entry of the template template parameter. */
     if (decl_state->enclosing_param != NULL) {
@@ -28902,7 +29106,11 @@ to represent the template parameters.
       }  /* if */
       (void)end_potential_pack_expansion_context(
                                                pesep, /*is_declarator=*/FALSE);
-      any_params = advance_to_next_pack_element(pesep);
+      if (!skip_pack_index_iteration(&pesep,
+                                     (a_pack_expansion_descr_ptr)NULL,
+                                     &any_params)) {
+        any_params = advance_to_next_pack_element(pesep);
+      }  /* if */
       if (pesep != NULL && pesep->instantiation_descr == NULL &&
           template_param->is_pack_expansion) {
         /* If this an expansion of a pack, record the symbol header

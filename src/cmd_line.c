@@ -4305,6 +4305,7 @@ default mode (e.g., exception handling).
   if (cpp26_mode) {
     embed_enabled = TRUE;
     struct_binding_packs_enabled = TRUE;
+    pack_indexing_enabled = TRUE;
   }  /* if */
   /* Disable "false" as a null pointer constant in C++11 mode (as per Core
      issue 903). */
@@ -13622,6 +13623,7 @@ variables declared in cmd_line.h.
   auto_cast_enabled = FALSE;
   embed_enabled = FALSE;
   struct_binding_packs_enabled = FALSE;
+  pack_indexing_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

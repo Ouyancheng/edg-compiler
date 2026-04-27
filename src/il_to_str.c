@@ -2178,8 +2178,9 @@ in the current context.
 
 an_expr_node_ptr decltype_arg(a_type_ptr  type)
 /*
-The given type represents a decltype, typeof, or other type construct.
-Return its argument expression if available, or NULL otherwise.
+The given type represents a typeref-based type operator (e.g., decltype,
+typeof, splice, or pack-index).  Return its argument expression if
+available, or NULL otherwise.
 */
 {
   an_expr_node_ptr  expr = type->variant.typeref.extra_info->expr;
@@ -2187,7 +2188,8 @@ Return its argument expression if available, or NULL otherwise.
   if (expr == NULL &&
       (is_typeref_kind(type, trk_is_decltype) ||
        is_typeref_kind(type, trk_is_splice) ||
-       is_typeref_kind(type, trk_is_typeof_with_expression))) {
+       is_typeref_kind(type, trk_is_typeof_with_expression) ||
+       is_typeref_kind(type, trk_pack_index))) {
     /* See if the expression can be found in a local function scope. */
     a_scope_ptr  scope;
     if (type->source_corresp.enclosing_routine != NULL &&
@@ -2473,7 +2475,8 @@ by octl.
       form_tag_reference(type, octl);
       break;
     case tk_typeref:
-      /* A typeref here should be a typedef or a type operator. */
+      /* A typeref here should be a typedef or a typeref-based type
+         operator. */
       if (is_type_operator_to_be_rendered(type, octl) &&
           octl->gen_compilable_code && octl->output_name != NULL &&
           typeref_is_type_operator(type, /*include_traits=*/TRUE)) {
@@ -2524,6 +2527,29 @@ by octl.
             octl->output_str("<expr>", octl);
           }  /* if */
           octl->output_str(")", octl);
+        }  /* if */
+      } else if (is_typeref_kind(type, trk_pack_index)) {
+        /* C++26 type pack-index-specifier:
+             type-name ... [ constant-expression ] */
+        if (octl->gen_compilable_code && octl->output_name != NULL) {
+          octl->output_name((char*)type, iek_type);
+        } else {
+          a_type_ptr        pack_type = type->variant.typeref.extra_info
+                                                           ->operator_type_arg;
+          an_expr_node_ptr  index_expr = decltype_arg(type);
+          form_type(pack_type, octl);
+          octl->output_str("...[", octl);
+          if (index_expr != NULL) {
+            if (octl->output_expression != NULL) {
+              octl->output_expression(index_expr, /*suppress_parens=*/TRUE);
+            } else {
+              form_expression(index_expr, octl);
+            }  /* if */
+          } else {
+            check_assertion(!octl->gen_compilable_code);
+            octl->output_str("<expr>", octl);
+          }  /* if */
+          octl->output_str("]", octl);
         }  /* if */
       } else if (typeref_is_type_transforming_intrinsic(type) ||
                  is_typeref_kind(type, trk_bases) ||
@@ -2976,7 +3002,7 @@ static a_boolean is_type_operator_to_be_rendered(
 Return TRUE if the given typeref type is a construct that should be
 rendered.  Otherwise, the underlying type should be rendered (e.g., in
 diagnostics the underlying type is more helpful, and in the C-generating
-back end typeof/decltype constructs are either not available or not
+back end type-operator constructs are either not available or not
 portable).
 */
 {
@@ -2993,17 +3019,19 @@ portable).
       /* Never render a type operator in the C-generating back end. */
       render = FALSE;
     } else if (typeref_is_type_transforming_intrinsic(type) ||
+               is_typeref_kind(type, trk_pack_index) ||
                is_typeref_kind(type, trk_bases) ||
                is_typeref_kind(type, trk_direct_bases) ||
                (!is_typeref_kind(type, trk_is_decltype) && expr == NULL)) {
-      /* A non-expression case: __underlying_type, typeof, etc. applied to
-         a type name.  Render the operator in the C++-generating back end
-         (to match the source form) or when the argument is template-dependent.
-         Otherwise, render the underlying type. */
+      /* A case that is always represented syntactically as an operator form
+         here (e.g., __underlying_type, __bases, or type pack-index).  Render
+         the operator in the C++-generating back end (to match the source
+         form) or when the argument is template-dependent.  Otherwise, render
+         the underlying type. */
       render = octl->gen_compilable_code ||
                type->variant.typeref.is_dependent_type_operator;
     } else {
-      /* The decltype or typeof is based on an expression. */
+      /* The type operator is based on an expression. */
       a_type_ptr underlying_type = type->variant.typeref.type;
       underlying_type = skip_typerefs(underlying_type);
       if (underlying_type->kind == (a_type_kind)tk_template_param &&
@@ -3015,8 +3043,8 @@ portable).
       } else if (octl->gen_compilable_code && expr != NULL &&
                  (octl->expr_is_unusable == NULL ||
                   !octl->expr_is_unusable(expr))) {
-        /* We're generating compilable code, and the decltype or typeof is
-           based on a usable expression.  Render it. */
+        /* We're generating compilable code, and the type operator is based on
+           a usable expression.  Render it. */
         render = TRUE;
       }  /* if */
     }  /* if */
@@ -3172,8 +3200,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       }  /* if */
     } else if (resolved_type == NULL &&
                is_type_operator_to_be_rendered(type, octl)) {
-      /* A decltype or typeof operator that should be rendered in its
-         original form (instead of rendering the underlying type). */
+      /* A type operator that should be rendered in its original form
+         (instead of rendering the underlying type). */
       break;
     } else if (is_for_cp_gen_be(octl) &&
                (type->variant.typeref.kind == trk_template_arg_list ||
@@ -3827,7 +3855,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   options &= ~FTO_SUPPRESS_CONST;
   /* Remove type qualifiers but not typedefs.  Also drop typedefs that aren't
-     visible here.  The decltype and GNU typeof operators are like visible
+     visible here.  Type operators that are rendered are treated like visible
      typedefs.  Accumulate the type qualifier set. */
   while (type->kind == (a_type_kind)tk_typeref) {
     /* If resolved_type is non-NULL, the call to typedef_is_invisible in a
@@ -3843,8 +3871,8 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
       }  /* if */
     } else if (resolved_type == NULL &&
                is_type_operator_to_be_rendered(type, octl)) {
-      /* A decltype or typeof operator that should be rendered in its
-         original form (instead of rendering the underlying type). */
+      /* A type operator that should be rendered in its original form
+         (instead of rendering the underlying type). */
       break;
     } else if (resolved_type == NULL && is_for_cp_gen_be(octl) &&
                (type->variant.typeref.kind == trk_template_arg_list ||
@@ -6444,6 +6472,13 @@ on every expression.
             octl->output_str("<...>", octl);
           }  /* if */
         }
+        break;
+      case enk_pack_index:
+        /* C++26 pack index expression: pack...[index] */
+        form_expression(expr->variant.pack_index.expr, octl);
+        octl->output_str("...[", octl);
+        form_expression(expr->variant.pack_index.index_expr, octl);
+        octl->output_str("]", octl);
         break;
       default:
         octl->output_str(error_text(ec_quoted_expression), octl);

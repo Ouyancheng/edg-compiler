@@ -1,5 +1,22 @@
 Version 6.9
 
+4/26/26  [EDGcpfe/26823,EDGcpfe/27650]
+C++26: Pack indexing (IL CHANGE)
+
+The front end now supports pack indexing, which has been adopted for the
+upcoming C++26 Standard via WG21 paper P2662R3.  For example, with --c++26:
+
+  template<int I, typename ... Ts>
+  constexpr auto f(Ts ... vs) -> Ts ... [I] {
+    return vs ... [I];
+  }
+  static_assert(f<0>(1, 2L) == 1 && f<1>(1, 2L) == 2L);
+
+A dependent type pack-index-specifier is represented as a trk_pack_index
+typeref, and a dependent pack-index-expr is represented as an enk_pack_index
+expression node.
+
+
 4/23/26  [EDGcpfe/28810]
 C++-generating back end: missing name qualifier in trailing return type
 

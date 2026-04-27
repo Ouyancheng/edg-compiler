@@ -503,28 +503,27 @@ typedef struct a_pack_expansion_descr {
 			   repeated scan is not necessary, this value will
 			   be reset to 0.  See
 			   begin/end_tentative_pack_expansion_context. */
-  a_byte_boolean
-		ellipsis_seen;
+  a_bit_field	ellipsis_seen:1;
 			/* TRUE if the ellipsis marking a pack expansion
 			   has been encountered.  This is primarily used for
 			   the declarator case where the "..." is not
 			   necessarily at the end. */
-  a_byte_boolean
-		is_function_declarator;
+  a_bit_field	is_function_declarator:1;
 			/* This field is used by declarator processing to
 			   save the disambiguation result between a function
 			   declarator and a parenthesized initializer so that
 			   during an actual instantiation the zero-trip case
 			   can be handled properly. */
-  a_byte_boolean
-		uses_only_enclosing_packs;
+  a_bit_field	uses_only_enclosing_packs:1;
 			/* TRUE if all of the pack references are to packs
 			   from enclosing templates.  These must be expanded
 			   during the declaration of a nested template. */
-  a_byte_boolean
-		uses_any_enclosing_packs;
+  a_bit_field	uses_any_enclosing_packs:1;
 			/* TRUE if any of the pack references are to packs
 			   from enclosing templates. */
+  a_bit_field	is_pack_index:1;
+			/* TRUE if this pack expansion describes a C++26
+			   pack-index construct (T...[N] or id...[N]). */
 } a_pack_expansion_descr;
 
 
@@ -2610,7 +2609,8 @@ extern a_boolean begin_potential_pack_expansion_context_full(
 		a_pack_expansion_descr_ptr		*p_pedp,
 		a_boolean				is_lookahead,
 		a_boolean				allow_empty_list,
-		a_boolean				ignore_suppression);
+		a_boolean				ignore_suppression,
+		a_boolean				claim_pack_index);
 
 extern a_boolean begin_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	*p_pesep);
@@ -2640,6 +2640,16 @@ a_boolean advance_to_next_pack_element(a_pack_expansion_stack_entry_ptr	pesep);
 extern
 void abandon_potential_pack_expansion_context(
 				a_pack_expansion_stack_entry_ptr	pesep);
+
+extern
+a_boolean reset_enclosing_packs_for_pack_index(
+				a_pack_expansion_stack_entry_ptr	pesep);
+
+extern
+a_boolean skip_pack_index_iteration(
+			a_pack_expansion_stack_entry_ptr	*p_pesep,
+			a_pack_expansion_descr_ptr		pedep,
+			a_boolean				*p_any_more);
 
 extern void record_potential_pack_reference_full(
 				a_symbol_ptr		pack_symbol,
