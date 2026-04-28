@@ -35729,8 +35729,7 @@ For example:
        so that the lambda can be re-scanned during template substitution.
        See the handling of enk_lambda in copy_template_param_expr. */
     end_caching_fetched_tokens();
-    if (lambda != NULL && closure_class != NULL &&
-        last_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
+    if (lambda != NULL && last_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
       a_token_cache_ptr  cache = new_fe<a_token_cache>(/*reusable=*/TRUE);
       copy_tokens_from_cache(curr_lexical_state_cache(),
                              first_tsn, last_tsn, /*include_last_token=*/TRUE,
