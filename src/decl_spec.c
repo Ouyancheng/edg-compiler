@@ -12315,7 +12315,10 @@ general_identifier_case:
                      concept_okay = concepts_enabled &&
                                     (is_parameter ||
                                      state->auto_type_allowed ||
-                                     state->is_trailing_return_type);
+                                     state->is_trailing_return_type),
+                     pack_index_follows =
+                                      !locator_for_curr_id.is_qualified_name &&
+                                      pack_index_next();
 retry_type_name_determination:
           /* If a type pack-index-specifier (T...[N]) follows, the identifier
              must be classified with curr_type_symbol(..., in_type_check=TRUE)
@@ -12325,9 +12328,7 @@ retry_type_name_determination:
           curr_token_type_symbol =
                     curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                      /*in_prescan=*/FALSE,
-                                     /*in_type_check=*/
-                                     (!locator_for_curr_id.is_qualified_name &&
-                                      pack_index_next()),
+                                     /*in_type_check=*/pack_index_follows,
                                      implicit_typename,
                                      /*is_sizeof_context=*/FALSE,
                                      concept_okay);
@@ -12348,8 +12349,7 @@ retry_type_name_determination:
             }  /* if */
           }  /* if */
           if (curr_token_type_symbol != NULL &&
-              is_type_symbol(curr_token_type_symbol) &&
-              !locator_for_curr_id.is_qualified_name && pack_index_next()) {
+              is_type_symbol(curr_token_type_symbol) && pack_index_follows) {
             /* This is a C++26 type pack-index-specifier. */
             *type_ptr = scan_pack_index_type_specifier(
                                      (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
