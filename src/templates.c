@@ -7950,10 +7950,11 @@ expression context) rather than a declaration.
       (void)get_token();
     }  /* if */
     if (dps.has_deduced_type) {
-      /* The init_state used for prescan_initializer_for_auto_type_deduction
-         must match the one that will be called during the call to
-         initializer(...) below.  Otherwise, object lifetime expectations may
-         not match, which could result in an internal error. */
+      /* The init_state.initializer_must_be_constant value used for
+         prescan_initializer_for_auto_type_deduction must match the value that
+         will be established during the call to initializer(...) below.
+         Otherwise, object lifetime expectations may not match, which could
+        result in an internal error. */
       dps.init_state.initializer_must_be_constant = var_ptr->is_constexpr;
       prescan_initializer_for_auto_type_deduction(
                                          &dps, has_parenthesized_initializer);
