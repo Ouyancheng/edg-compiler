@@ -2869,19 +2869,31 @@ static a_boolean extract_unsigned_value_from_operand(
                                                an_operand             *operand,
                                                a_host_large_unsigned  *value)
 /*
-Extract an unsigned value from the given operand.  Return TRUE if the value was
-successfully extracted and stored in *value, FALSE otherwise.
+Extract an unsigned value from the given operand, folding an expression operand
+when needed.  Return TRUE if the value was successfully extracted and stored in
+*value, FALSE otherwise.
 */
 {
-  a_boolean  result = FALSE;
+  a_constant_ptr  constant = NULL, folded_constant = NULL;
+  a_boolean       result = FALSE;
 
   if (is_constant_operand(operand) &&
       !is_error_constant(&operand->variant.constant)) {
+    constant = &operand->variant.constant;
+  } else if (is_expression_operand(operand)) {
+    folded_constant = local_constant();
+    if (fold_constexpr_expr(operand->variant.expression, folded_constant,
+                            /*is_constant_evaluated=*/TRUE,
+                            /*force_prvalue=*/TRUE)) {
+      constant = folded_constant;
+    }  /* if */
+  }  /* if */
+  if (constant != NULL && !is_error_constant(constant)) {
     a_boolean  ovflo;
-    *value = unsigned_value_of_integer_constant(&operand->variant.constant,
-                                                &ovflo);
+    *value = unsigned_value_of_integer_constant(constant, &ovflo);
     result = !ovflo;
   }  /* if */
+  if (folded_constant != NULL) release_local_constant(&folded_constant);
   return result;
 }  /* extract_unsigned_value_from_operand */
 
@@ -43110,29 +43122,32 @@ where the token position might be at the start of the pack-index sequence
 
 
 static a_pack_expansion_descr_ptr claim_pack_index_descriptor(
-                          a_pack_expansion_stack_entry_ptr   pesep,
-                          a_pack_expansion_descr_ptr         pedep,
-                          a_boolean                          owns_pack_context)
+                                a_pack_expansion_stack_entry_ptr   pesep,
+                                a_pack_expansion_descr_ptr         pedep,
+                                a_token_sequence_number            first_token)
 /*
 Claim the pack-expansion descriptor for the pack-index construct being scanned
-and mark it as such.  If the caller already has the descriptor (pedep != NULL)
-that is the one claimed; otherwise, when an enclosing pesep carries a suitable
-descriptor, its descriptor is adopted.  The chosen descriptor has its
-is_pack_index flag set.  Return the claimed descriptor, or NULL if none was
-found.
+and mark it as such.  pesep is the current pack expansion stack entry.  If the
+caller already has a descriptor (pedep != NULL), that descriptor is returned;
+if it starts at first_token, it is also claimed.  Otherwise, when pesep carries
+a suitable descriptor starting at first_token, its descriptor is adopted and
+claimed.  A claimed descriptor has its is_pack_index flag set.  Return the
+descriptor, or NULL if none was found.
 */
 {
   a_pack_expansion_descr_ptr result_pedep = pedep;
+  a_boolean                  claim_result = FALSE;
 
-  if (result_pedep == NULL && pesep != NULL &&
+  if (pedep == NULL || pedep->first_token == first_token) {
+    claim_result = TRUE;
+  }  /* if */
+  if (pedep == NULL && pesep != NULL &&
       pesep->expansion_descr != NULL &&
-      (!owns_pack_context || in_generic_lambda_in_prototype_instantiation())) {
-    /* Either we are reusing an enclosing lookahead context (not owning it), or
-       we are in a generic-lambda prototype instantiation.  In both cases the
-       pack-index descriptor to claim is the one on the current pesep. */
+      pesep->expansion_descr->first_token == first_token) {
+    /* The pack-index descriptor to claim is the one on the current pesep. */
     result_pedep = pesep->expansion_descr;
   }  /* if */
-  if (result_pedep != NULL) {
+  if (result_pedep != NULL && claim_result) {
     result_pedep->is_pack_index = TRUE;
   }  /* if */
   return result_pedep;
@@ -43204,19 +43219,20 @@ can probe for a following "::" in nested-name-specifier contexts.
 */
 {
   a_pack_expansion_stack_entry_ptr
-                         outer_pesep, pesep = NULL;
+                          outer_pesep, pesep = NULL;
   a_pack_expansion_descr_ptr
-                         pedep = NULL;
-  a_constant             index_constant;
-  a_host_large_unsigned  index_value;
-  a_symbol_ptr           sym = NULL;
-  a_type_ptr             first_pack_type = NULL;
-  a_source_position      start_position, id_position = null_source_position;
-  a_boolean              err = FALSE, any_more = FALSE, is_prototype = FALSE,
-                         owns_pack_context = FALSE,
-                         pack_from_enclosing_inst = FALSE,
-                         index_is_dependent = FALSE;
-  a_type_ptr             result = error_type();
+                          pedep = NULL;
+  a_constant              index_constant;
+  a_host_large_unsigned   index_value;
+  a_token_sequence_number first_token;
+  a_symbol_ptr            sym = NULL;
+  a_type_ptr              first_pack_type = NULL;
+  a_source_position       start_position, id_position = null_source_position;
+  a_boolean               err = FALSE, any_more = FALSE, is_prototype = FALSE,
+                          owns_pack_context = FALSE,
+                          pack_from_enclosing_inst = FALSE,
+                          index_is_dependent = FALSE;
+  a_type_ptr              result = error_type();
 
   db_enter(4, "scan_pack_index_type_specifier");
   if (!pack_indexing_enabled) {
@@ -43224,6 +43240,7 @@ can probe for a following "::" in nested-name-specifier contexts.
     pos_warning(ec_pack_indexing_is_cpp26, &pos_curr_token);
   }  /* if */
   start_position = pos_curr_token;
+  first_token = curr_token_sequence_number;
   outer_pesep = pack_expansion_stack;
   any_more = begin_potential_pack_expansion_context_full(
                                              &pesep,
@@ -43275,7 +43292,7 @@ can probe for a following "::" in nested-name-specifier contexts.
       }  /* if */
       pedep = consume_pack_index_ellipsis(owns_pack_context, &pesep,
                                           &id_position, &err);
-      pedep = claim_pack_index_descriptor(pesep, pedep, owns_pack_context);
+      pedep = claim_pack_index_descriptor(pesep, pedep, first_token);
     }  /* if */
   }  /* if */
   if (!err && !is_prototype &&
@@ -43424,18 +43441,19 @@ replayed identifier to build the result operand.
   a_source_position      end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_pack_expansion_stack_entry_ptr
-                         outer_pesep, pesep = NULL, suppression_pesep = NULL;
+                          outer_pesep, pesep = NULL, suppression_pesep = NULL;
   a_pack_expansion_descr_ptr
-                         pedep = NULL;
-  a_constant             index_constant;
-  a_host_large_unsigned  index_value;
-  a_symbol_ptr           sym = NULL;
-  a_source_position      start_position, id_position = null_source_position;
-  a_boolean              err = FALSE, any_more = FALSE, is_prototype = FALSE,
-                         owns_pack_context = FALSE,
-                         pack_from_enclosing_inst = FALSE,
-                         index_is_dependent = FALSE;
-  an_operand             id_operand;
+                          pedep = NULL;
+  a_constant              index_constant;
+  a_host_large_unsigned   index_value;
+  a_token_sequence_number first_token;
+  a_symbol_ptr            sym = NULL;
+  a_source_position       start_position, id_position = null_source_position;
+  a_boolean               err = FALSE, any_more = FALSE, is_prototype = FALSE,
+                          owns_pack_context = FALSE,
+                          pack_from_enclosing_inst = FALSE,
+                          index_is_dependent = FALSE;
+  an_operand              id_operand;
 
   db_enter(4, "scan_pack_index_expr");
   if (!pack_indexing_enabled) {
@@ -43443,6 +43461,7 @@ replayed identifier to build the result operand.
     pos_warning(ec_pack_indexing_is_cpp26, &pos_curr_token);
   }  /* if */
   start_position = pos_curr_token;
+  first_token = curr_token_sequence_number;
   outer_pesep = pack_expansion_stack;
   any_more = begin_potential_pack_expansion_context_full(
                                              &pesep,
@@ -43497,7 +43516,7 @@ replayed identifier to build the result operand.
       }  /* if */
       pedep = consume_pack_index_ellipsis(owns_pack_context, &pesep,
                                           &id_position, &err);
-      pedep = claim_pack_index_descriptor(pesep, pedep, owns_pack_context);
+      pedep = claim_pack_index_descriptor(pesep, pedep, first_token);
     }  /* if */
   }  /* if */
   if (!err && !is_prototype &&
