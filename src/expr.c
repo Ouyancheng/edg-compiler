@@ -43216,10 +43216,7 @@ can probe for a following "::" in nested-name-specifier contexts.
   a_type_ptr             result = error_type();
 
   db_enter(4, "scan_pack_index_type_specifier");
-  if (!is_variadic_template_context()) {
-    expr_pos_error(ec_pack_indexing_in_non_variadic_context, &pos_curr_token);
-    err = TRUE;
-  } else if (!pack_indexing_enabled) {
+  if (!pack_indexing_enabled) {
     /* Pack indexing is allowed by GCC/Clang in pre-C++26 modes. */
     pos_warning(ec_pack_indexing_is_cpp26, &pos_curr_token);
   }  /* if */
@@ -43443,10 +43440,7 @@ replayed identifier to build the result operand.
   an_operand             id_operand;
 
   db_enter(4, "scan_pack_index_expr");
-  if (!is_variadic_template_context()) {
-    expr_pos_error(ec_pack_indexing_in_non_variadic_context, &pos_curr_token);
-    err = TRUE;
-  } else if (!pack_indexing_enabled) {
+  if (!pack_indexing_enabled) {
     /* Pack indexing is allowed by GCC/Clang in pre-C++26 modes. */
     pos_warning(ec_pack_indexing_is_cpp26, &pos_curr_token);
   }  /* if */
