@@ -21048,18 +21048,18 @@ more elements remain.  For a C++26 pack-index argument not followed by "...",
 the pack context is abandoned and FALSE is returned to stop list iteration.
 Otherwise, the argument's pack_expansion_descr is finalized, *p_first_pack is
 set to arg_ptr if this is the first pack argument (when p_first_pack is
-non-NULL), and the pack expansion is advanced.  Return TRUE if more elements
-remain, or FALSE if this was the last element.  use_builtin_pack_elem indicates
-whether builtin pack elements drive the iteration.
+non-NULL), and any active pack expansion is advanced.  Return TRUE if more
+elements remain, or FALSE if this was the last element.  use_builtin_pack_elem
+indicates whether builtin pack elements drive the iteration.
 is_secondary_builtin_pack_elem indicates this is a secondary element from such
 a pack.
 */
 {
   a_pack_expansion_stack_entry_ptr pesep = *p_pesep;
+  a_boolean                        stop_iteration = FALSE;
 
   if (!is_secondary_builtin_pack_elem) {
     a_boolean pack_index_context = pesep != NULL &&
-                                   pesep->expansion_descr != NULL &&
                                    pesep->expansion_descr->is_pack_index;
     if (pack_index_context && curr_token != tok_ellipsis) {
       /* A standalone pack-index argument (e.g., T...[I]) contributes a
@@ -21067,16 +21067,18 @@ a pack.
       arg_ptr->pack_expansion_descr = NULL;
       abandon_potential_pack_expansion_context(pesep);
       *p_pesep = NULL;
-      return FALSE;
-    }  /* if */
-    arg_ptr->pack_expansion_descr = end_potential_pack_expansion_context(
+      stop_iteration = TRUE;
+    } else {
+      arg_ptr->pack_expansion_descr = end_potential_pack_expansion_context(
                                                pesep, /*is_declarator=*/FALSE);
-    if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
-    if (p_first_pack != NULL && arg_ptr->is_pack && *p_first_pack == NULL) {
-      *p_first_pack = arg_ptr;
+      if (arg_ptr->pack_expansion_descr != NULL) arg_ptr->is_pack = TRUE;
+      if (p_first_pack != NULL && arg_ptr->is_pack && *p_first_pack == NULL) {
+        *p_first_pack = arg_ptr;
+      }  /* if */
     }  /* if */
   }  /* if */
-  return use_builtin_pack_elem || advance_to_next_pack_element(pesep);
+  return !stop_iteration &&
+         (use_builtin_pack_elem || advance_to_next_pack_element(pesep));
 }  /* complete_template_arg_pack_element */
 
 
