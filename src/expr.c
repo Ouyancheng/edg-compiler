@@ -43159,13 +43159,15 @@ TRUE, advance past the trailing "]"; otherwise leave curr_token at "]".
 
 
 static a_boolean advance_pack_index_to_element(
-                          a_pack_expansion_stack_entry_ptr  pesep,
-                          a_host_large_unsigned             target_index)
+                               a_pack_expansion_stack_entry_ptr  pesep,
+                               a_host_large_unsigned             target_index,
+                               a_boolean                         *has_advanced)
 /*
-During real instantiation of a pack-index construct, advance through pack
-expansion elements until the target_index element is reached.  pesep is the
-pack expansion stack entry that controls the advancement.  Return TRUE if the
-target element was found.
+During real instantiation of a pack-index construct, advance through replayed
+pack expansion elements until the target_index element is reached.  pesep is
+the pack expansion stack entry that controls the advancement.  *has_advanced is
+set to TRUE if scanning moved past the first expansion element.  Return TRUE if
+the target element was found.
 */
 {
   a_host_large_unsigned  current_index = 0;
@@ -43177,6 +43179,7 @@ target element was found.
       found = TRUE;
     }  /* if */
   }  /* while */
+  if (current_index != 0) *has_advanced = TRUE;
   return found;
 }  /* advance_pack_index_to_element */
 
@@ -43351,41 +43354,36 @@ can probe for a following "::" in nested-name-specifier contexts.
     }  /* if */
     if (err) {
       result = error_type();
-      if (owns_pack_context) {
-        abandon_potential_pack_expansion_context(pesep);
-      }  /* if */
+      abandon_potential_pack_expansion_context(pesep);
+    } else if (index_value == 0) {
+      result = first_pack_type;
+      abandon_potential_pack_expansion_context(pesep);
     } else {
-      found = advance_pack_index_to_element(pesep, index_value);
+      a_boolean  has_advanced = FALSE;
+      found = advance_pack_index_to_element(pesep, index_value, &has_advanced);
       if (found) {
-        if (index_value == 0) {
-          result = first_pack_type;
+        a_symbol_ptr  selected_sym;
+        selected_sym = curr_type_symbol(is_new_type_name,
+                                        /*in_prescan=*/FALSE,
+                                        /*in_type_check=*/FALSE,
+                                        is_implicit_type_context,
+                                        /*is_sizeof_context=*/FALSE,
+                                        concept_okay);
+        if (selected_sym == NULL || !is_type_symbol(selected_sym)) {
+          result = error_type();
         } else {
-          if (curr_token != tok_identifier) {
-            expr_syntax_error(ec_exp_identifier);
-            result = error_type();
-          } else {
-            a_symbol_ptr selected_sym;
-            selected_sym = curr_type_symbol(is_new_type_name,
-                                            /*in_prescan=*/FALSE,
-                                            /*in_type_check=*/FALSE,
-                                            is_implicit_type_context,
-                                            /*is_sizeof_context=*/FALSE,
-                                            concept_okay);
-            if (selected_sym == NULL || !is_type_symbol(selected_sym)) {
-              result = error_type();
-            } else {
-              result = type_symbol_type(selected_sym);
-            }  /* if */
-            (void)get_token();
-          }  /* if */
-          (void)end_potential_pack_expansion_context(pesep,
-                                                     /*is_declarator=*/FALSE);
-          consume_replayed_pack_index_tokens(!might_be_id_start);
+          result = type_symbol_type(selected_sym);
         }  /* if */
+        (void)get_token();
+        (void)end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
         abandon_potential_pack_expansion_context(pesep);
       } else {
         expr_pos_error(ec_pack_index_out_of_bounds, &start_position);
         result = error_type();
+      }  /* if */
+      if (has_advanced) {
+        consume_replayed_pack_index_tokens(!might_be_id_start);
       }  /* if */
     }  /* if */
   } else {
@@ -43579,32 +43577,31 @@ replayed identifier to build the result operand.
     }  /* if */
     if (err) {
       make_error_operand(result);
-      if (owns_pack_context) {
-        abandon_potential_pack_expansion_context(pesep);
-      }  /* if */
+      abandon_potential_pack_expansion_context(pesep);
+    } else if (index_value == 0) {
+      copy_operand(&id_operand, result);
+      abandon_potential_pack_expansion_context(pesep);
     } else {
-      found = advance_pack_index_to_element(pesep, index_value);
+      a_boolean  has_advanced = FALSE;
+      found = advance_pack_index_to_element(pesep, index_value, &has_advanced);
       if (found) {
-        /* Create the result for the selected element. */
-        if (index_value == 0) {
-          copy_operand(&id_operand, result);
-        } else {
-          /* For replayed elements, scan the identifier directly to build the
-             selected-element operand (including normal identifier side
-             effects). */
-          scan_identifier(result, EOPT_NO_OPTIONS, PREC_LOWEST,
-                          (a_rescan_control_block *)NULL, (a_symbol *)NULL,
-                          (an_operand *)NULL, /*rescan_is_template_id=*/FALSE,
-                          (a_template_arg *)NULL, (a_symbol_ptr *)NULL,
-                          (a_boolean *)NULL);
-          (void)end_potential_pack_expansion_context(pesep,
-                                                     /*is_declarator=*/FALSE);
-          consume_replayed_pack_index_tokens(/*consume_rbracket=*/TRUE);
-        }  /* if */
+        /* For replayed elements, scan the identifier directly to build the
+           selected-element operand (including normal identifier side
+           effects). */
+        scan_identifier(result, EOPT_NO_OPTIONS, PREC_LOWEST,
+                        (a_rescan_control_block *)NULL, (a_symbol *)NULL,
+                        (an_operand *)NULL, /*rescan_is_template_id=*/FALSE,
+                        (a_template_arg *)NULL, (a_symbol_ptr *)NULL,
+                        (a_boolean *)NULL);
+        (void)end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
         abandon_potential_pack_expansion_context(pesep);
       } else {
         expr_pos_error(ec_pack_index_out_of_bounds, &start_position);
         make_error_operand(result);
+      }  /* if */
+      if (has_advanced) {
+        consume_replayed_pack_index_tokens(/*consume_rbracket=*/TRUE);
       }  /* if */
     }  /* if */
   } else {
@@ -54239,6 +54236,7 @@ element operand.
       subst_fail(rcblock->error_detected);
     }  /* if */
     if (!err) {
+      a_boolean  has_advanced = FALSE;
       make_rescan_operand(expr->variant.pack_index.index_expr, rcblock,
                           &index_operand);
       if (rcblock->error_detected || is_error_operand(&index_operand)) {
@@ -54248,7 +54246,8 @@ element operand.
                                                       &index_value)) {
         err = TRUE;
         subst_fail(rcblock->error_detected);
-      } else if (!advance_pack_index_to_element(pesep, index_value)) {
+      } else if (!advance_pack_index_to_element(pesep, index_value,
+                                                &has_advanced)) {
         err = TRUE;
         subst_fail(rcblock->error_detected);
       } else {
