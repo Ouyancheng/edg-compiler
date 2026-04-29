@@ -43272,7 +43272,7 @@ can probe for a following "::" in nested-name-specifier contexts.
         if (pesep != NULL && pesep->instantiation_descr == NULL) {
           if (!type_is_pack(skip_typerefs(first_pack_type))) {
             if (in_generic_lambda_in_prototype_instantiation()) {
-              /* In generic-lambda prototype instantiation nested in a real
+              /* In a generic-lambda prototype instantiation nested in a real
                  instantiation, the operand may already denote a selected
                  outer-pack element while still requiring deferred
                  pack-indexing; keep the construct dependent here. */
@@ -43426,7 +43426,7 @@ separately.
 
 The first expansion element is processed to validate the pack and record
 pack references, and its scanned operand is preserved.  The index
-"[constant-expression]" is then scanned.  For real instantiation,
+"[constant-expression]" is then scanned.  For a real instantiation,
 advance_to_next_pack_element is called to skip to the desired element:
 index 0 reuses the scanned operand, while other indices scan the selected
 replayed identifier to build the result operand.
@@ -43497,7 +43497,7 @@ replayed identifier to build the result operand.
       } else if (pesep != NULL && pesep->instantiation_descr == NULL) {
         if (!symbol_is_pack(sym)) {
           if (in_generic_lambda_in_prototype_instantiation()) {
-            /* In generic-lambda prototype instantiation nested in a real
+            /* In a generic-lambda prototype instantiation nested in a real
                instantiation, the operand may already denote a selected
                outer-pack element while still requiring deferred pack-indexing;
                keep the construct dependent here. */

@@ -13196,11 +13196,11 @@ pack-index scanner.
     } else {
       /* This is a real instantiation.  See if there is a corresponding
          parameter pack from the template definition.  Get the template
-         parameter list and template argument associated with the current
+         parameter list and template argument list associated with the current
          instantiation. */
-      a_template_param_ptr	templ_param_list;
-      a_template_arg_ptr		templ_arg_list;
-      a_boolean			err;
+      a_template_param_ptr  templ_param_list;
+      a_template_arg_ptr    templ_arg_list;
+      a_boolean             err;
       get_curr_template_params_and_args(&templ_param_list, &templ_arg_list);
       pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
                                       /*is_rescan=*/FALSE,

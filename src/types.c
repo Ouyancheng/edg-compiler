@@ -7466,18 +7466,17 @@ operators (decltype, typeof-with-expression, or pack-index-specifier forms),
 return TRUE if those constructs can be considered distinct.  itf_flags is a
 set of option flags that specify options for type comparisons.  The C++
 standard defines notions of "equivalent" and "functionally equivalent"
-expressions.  When decltype is applied to
-"equivalent expressions" (which implies identical syntax), the resulting types
-are also equivalent (and this routine returns FALSE).  When decltype is
-applied to "expressions that are not functionally equivalent", the resulting
-types are distinct (and this routine returns TRUE).  In between there is a
-gray area of expressions that are functionally equivalent but not equivalent:
-This routine may return TRUE or FALSE for such cases.  For a return value
-of TRUE, the caller immediately concludes that the types are not identical
-or compatible.  For a result value of FALSE, the caller continues on to the
-normal (underlying) type comparison.
+expressions.  When decltype is applied to "equivalent expressions" (which
+implies identical syntax), the resulting types are also equivalent (and this
+routine returns FALSE).  When decltype is applied to "expressions that are not
+functionally equivalent", the resulting types are distinct (and this routine
+returns TRUE).  In between there is a gray area of expressions that are
+functionally equivalent but not equivalent: This routine may return TRUE or
+FALSE for such cases.  For a return value of TRUE, the caller immediately
+concludes that the types are not identical or compatible.  For a result value
+of FALSE, the caller continues on to the normal (underlying) type comparison.
 */
-{ 
+{
   a_boolean result = FALSE;
   a_boolean check_expr_1, check_expr_2;
 

@@ -9636,8 +9636,8 @@ enum a_typeref_kind : a_byte {
                            template argument list. */
   trk_name_qualifier,   /* A typeref representing the nested name specifier of
                            the type as written. */
-  trk_pack_index,       /* A type entry representing a C++26
-                           pack-index-specifier (T...[N]). */
+  trk_pack_index,       /* A typeref representing a C++26 pack-index-specifier
+                           (T...[N]). */
 };
 
 /*
@@ -13530,7 +13530,7 @@ enum an_expr_node_kind : a_bit_field {
   enk_token_sequence,	/* A token sequence (a reflection feature). */
   enk_reclaimed,	/* Used to represent a node that's been reclaimed and
 			   is part of the avail_fs_nodes list. */
-  enk_pack_index,       /* A C++26 pack index expression. */
+  enk_pack_index,	/* A C++26 pack index expression. */
   enk_last
 };
 
