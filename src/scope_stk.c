@@ -11039,6 +11039,29 @@ scope or template instantiation scope for a prototype instantiation.
 }  /* get_outermost_template_dependent_context */
 
 
+static a_scope_stack_entry_ptr get_scope_for_pack_references(void)
+/*
+Return the scope stack entry on which pack references in the current context
+should be recorded.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+
+  if (scope_stack_top().in_nonreal_instantiation &&
+      scope_stack_top().is_default_template_arg &&
+      enclosing_scope_is_prototype_instantiation_context()) {
+    /* Keep references introduced while rescanning a default template argument
+       local to that rescan.  They may be expanded by an enclosing context, but
+       their token sequence numbers come from the default argument declaration
+       and should not leak into the enclosing prototype instantiation. */
+    ssep = &scope_stack_top();
+  } else {
+    ssep = get_outermost_template_dependent_context();
+  }  /* if */
+  return ssep;
+}  /* get_scope_for_pack_references */
+
+
 a_template_decl_info_ptr get_specified_template_decl_info(
 					a_boolean	innermost)
 /*
@@ -13486,7 +13509,7 @@ that list to pedp.
   /* Set this to TRUE now -- it will be cleared later if we extract a
      reference to a non-enclosing pack. */
   pedp->uses_only_enclosing_packs = TRUE;
-  ssep = get_outermost_template_dependent_context();
+  ssep = get_scope_for_pack_references();
   p_first_prp = &ssep->packs_referenced;
   /* Find the first pack reference, if any, of the expansion range. */
   for (prp = ssep->packs_referenced; prp != NULL; prp = prp->next) {
@@ -13992,7 +14015,7 @@ for more information.
     result = pesep->expansion_descr->packs_referenced != NULL;
     if (!result && is_prototype_instantiation_context()) {
       a_scope_stack_entry_ptr	ssep;
-      ssep = get_outermost_template_dependent_context();
+      ssep = get_scope_for_pack_references();
       result = ssep->packs_referenced != NULL;
     }  /* if */
   }  /* if */
@@ -14071,7 +14094,7 @@ form.
         pack_symbol = symbol_for(tp);
         check_assertion(pack_symbol != NULL);
       }  /* if */
-      ssep = get_outermost_template_dependent_context();
+      ssep = get_scope_for_pack_references();
       p_prp = &ssep->packs_referenced;
       /* Look for an existing expansion of this symbol or type at this
          location. */

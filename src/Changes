@@ -1,5 +1,21 @@
 Version 6.9
 
+4/30/26  [EDGcpfe/28505]
+Spurious pack expansion error for default template argument of member template
+
+Previously, the expansion of a member template with default template arguments
+could result in a spurious pack expansion error.  For example, with --c++11:
+
+  template<typename ... Ts>
+  struct B { };
+  template<typename ... Ts>
+  struct C {
+    template<typename T, typename U = T>  // Previously a spurious error.
+    struct A;                             // Now okay.
+    B<A<Ts> ...> b;
+  };
+
+
 4/27/26  [EDGcpfe/28808]
 cv-qualification in auto(x) and auto{x}
 
