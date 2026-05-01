@@ -1,5 +1,23 @@
 Version 6.9
 
+5/1/26   [EDGcpfe/28823]
+Unsigned comparison warnings in template instantiations
+
+Consider:
+
+  template<unsigned N> bool f(unsigned x) {
+    return x < N;
+  }
+  bool r = f<0>(1);
+
+Previously, the instantiation of f<0> triggered a warning about the comparison
+x < N always being false.  However, such diagnostics are not very helpful
+since they depend on particular template arguments.  The front end therefore
+no longer issues such diagnostics in real template instantiations.  (They are
+still emitted in prototype instantiations: If a comparison would be pointless
+for all instantiations, a warning will then still be emitted.)
+
+
 5/1/26   [EDGcpfe/28825]
 C++-generating back end: volatile-qualified parameter types
 

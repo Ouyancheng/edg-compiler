@@ -31997,7 +31997,8 @@ describe the location of the operator.
         /* Both operands should be arithmetic or enum (we have ruled out all
            the pointer cases above).  We already know that opnd1 is
            arithmetic or enum. */
-        if (check_arithmetic_or_enum_operand(opnd2)) {
+        if (check_arithmetic_or_enum_operand(opnd2) &&
+            !is_real_instantiation_context()) {
           /* Check for comparisons of unsigned integers with zero or negative
              constants.  More below. */
           funny_unsigned_comparison = is_comparison_of_unsigned_with_constant(
@@ -32062,7 +32063,8 @@ describe the location of the operator.
     op = which_binary_operator(operator_token, operation_type);
     /* Convert the operands to a common type. */
     change_binary_operand_types(operation_type, opnd1, opnd2, op);
-    if (funny_unsigned_comparison && !expr_stack->likely_not_evaluated) {
+    if (funny_unsigned_comparison && !expr_stack->likely_not_evaluated &&
+        !is_real_instantiation_context()) {
       /* Check for pointless comparisons of unsigned integers against 0,
          and give a warning.  The pointless cases are
            u >= 0    (always true)
@@ -32072,7 +32074,9 @@ describe the location of the operator.
          There are also similar cases with negative constants.
          The expression is not simplified.  Note that we check the nonconstant
          operand type before any type promotions and the constant value after
-         any type change. */
+         any type change.  Do not issue these warnings in real instantiation
+         contexts since the programmer may not be able to avoid such
+         substitutions. */
       int constant_sign;
       if (get_sign_for_constant_in_unsigned_operation(opnd1, opnd2,
                                                       second_is_constant,
