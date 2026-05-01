@@ -10700,6 +10700,7 @@ for_ctor is TRUE, this is the parameter list of a constructor.
     id_equiv_attribs_as_prefix = TRUE;
   }  /* if */
   for (;;) {
+    a_boolean volatile_qual_suppressed = FALSE;
     gen_attributes(param->attributes, al_prefix, /*primary_only=*/FALSE);
     if (param->is_explicit_this && !octl.type_context) {
       /* An explicit "this" parameter (C++23). */
@@ -10733,6 +10734,15 @@ for_ctor is TRUE, this is the parameter list of a constructor.
         type_operators_suppressed =
                  set_type_operator_suppression(param_var->declared_type, TRUE);
       }  /* if */
+      if (type_is(param_var->declared_type, tk_typeref) &&
+          (param_var->declared_type->variant.typeref.qualifiers & TQ_VOLATILE)
+                                                                        != 0) {
+        /* Top-level volatile qualifiers are deprecated in C++20, per
+           P1152R4, so suppress "volatile" in this declaration, even though
+           it was present in the original source. */
+        param_var->declared_type->variant.typeref.qualifiers &= ~TQ_VOLATILE;
+        volatile_qual_suppressed = TRUE;
+      }  /* if */
       gen_general_declaration_using_type(
                                       param_var->declared_type,
                                       has_name(param_var) ?
@@ -10743,6 +10753,9 @@ for_ctor is TRUE, this is the parameter list of a constructor.
                                       /*suppress_specifiers=*/FALSE,
                                       gdo_flags,
                                       (a_name_reference_ptr)NULL);
+      if (volatile_qual_suppressed) {
+        param_var->declared_type->variant.typeref.qualifiers |= TQ_VOLATILE;
+      }  /* if */
       if (type_operators_suppressed) {
         (void)set_type_operator_suppression(param_var->declared_type, FALSE);
         type_operators_suppressed = FALSE;
@@ -10825,9 +10838,20 @@ for_ctor is TRUE, this is the parameter list of a constructor.
         type_operators_suppressed =
                                set_type_operator_suppression(param_type, TRUE);
       }  /* if */
+      if (type_is(param_type, tk_typeref) &&
+          (param_type->variant.typeref.qualifiers & TQ_VOLATILE) != 0) {
+        /* Top-level volatile qualifiers are deprecated in C++20, per
+           P1152R4, so suppress "volatile" in this declaration, even though
+           it was present in the original source. */
+        param_type->variant.typeref.qualifiers &= ~TQ_VOLATILE;
+        volatile_qual_suppressed = TRUE;
+      }  /* if */
       form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
                            /*need_trailing_space=*/FALSE,
                            extra_qual, FTO_NO_OPTIONS, &octl);
+      if (volatile_qual_suppressed) {
+        param_type->variant.typeref.qualifiers |= TQ_VOLATILE;
+      }  /* if */
       if (id_equiv_attribs_as_prefix) {
         /* Although this is a "prefix" location, we still need to do
            the spacing as if the attribute were in a postfix position

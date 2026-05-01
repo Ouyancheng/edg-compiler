@@ -1,5 +1,22 @@
 Version 6.9
 
+5/1/26   [EDGcpfe/28825]
+C++-generating back end: volatile-qualified parameter types
+
+In general, the C++-generating back end attempts to preserve the source
+form of the program as faithfully as possible in the generated code.  An
+exception has now been made, however, for "volatile" qualifiers in function
+parameter declarations.  WG21 paper P1152R4, adopted for C++20, deprecated
+such declarations, and current compilers issue diagnostics for them.  In
+view of these developments and the fact that the actual type of the
+parameter is unaffected by the presence or absence of top-level
+cv-qualification, the C++-generating back end now suppresses "volatile"
+qualifiers appearing in the source code when generating parameter
+declarations.  For example:
+
+  void f(volatile int);   // Now generates "void f(int);"
+
+
 4/30/26  [EDGcpfe/28505]
 Spurious pack expansion error for default template argument of member template
 
