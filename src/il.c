@@ -11310,7 +11310,7 @@ a scope from the scope stack (i.e., not a file, namespace, or class scope).
          is a namespace member or the file scope otherwise. */
       nsp = scp_parent_namespace_or_null(scp);
       if (nsp == NULL) {
-        check_assertion_or_expect_error(!scp->is_local_to_function);
+        check_assertion_or_expect_error(in_file_scope(scp));
         scope_level = DEPTH_OF_FILE_SCOPE;
       }  /* if */
     }  /* if */
@@ -27542,7 +27542,7 @@ associated innermost_function_scope.  Otherwise, func_scope can be NULL.
 {
   *il_scope = NULL;
   *pointers_block = NULL;
-  if (entity_scp != NULL && !entity_scp->is_local_to_function) {
+  if (entity_scp != NULL && in_file_scope(entity_scp)) {
     /* When an entity source correspondence is present and the entity is not
        function local, use get_scope_for_list to determine an appropriate
        scope. */
