@@ -10740,8 +10740,7 @@ for_ctor is TRUE, this is the parameter list of a constructor.
         /* Top-level volatile qualifiers are deprecated in C++20, per
            P1152R4, so suppress "volatile" in this declaration, even though
            it was present in the original source. */
-        param_var->declared_type->variant.typeref.qualifiers &=
-                                                  (unsigned short)~TQ_VOLATILE;
+        param_var->declared_type->variant.typeref.qualifiers ^= TQ_VOLATILE;
         volatile_qual_suppressed = TRUE;
       }  /* if */
       gen_general_declaration_using_type(
@@ -10844,7 +10843,7 @@ for_ctor is TRUE, this is the parameter list of a constructor.
         /* Top-level volatile qualifiers are deprecated in C++20, per
            P1152R4, so suppress "volatile" in this declaration, even though
            it was present in the original source. */
-        param_type->variant.typeref.qualifiers &= (unsigned short)~TQ_VOLATILE;
+        param_type->variant.typeref.qualifiers ^= TQ_VOLATILE;
         volatile_qual_suppressed = TRUE;
       }  /* if */
       form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
