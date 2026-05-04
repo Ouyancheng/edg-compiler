@@ -1,5 +1,12 @@
 Version 6.9
 
+5/4/26   [EDGcpfe/28826]
+ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING not reported in config dump
+
+Previously, ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING was not included in the
+configuration options dumped by --dump_configuration.  This is now fixed.
+
+
 5/1/26   [EDGcpfe/28823]
 Unsigned comparison warnings in template instantiations
 

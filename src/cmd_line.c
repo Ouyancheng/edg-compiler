@@ -6365,6 +6365,11 @@ file.
   comment_undefined_macro_name(
                              ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C);
 #endif /* defined(ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C) */
+#if defined(ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING)
+  define_numeric_valued_macro(ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING);
+#else /* !defined(ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING) */
+  comment_undefined_macro_name(ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING);
+#endif /* ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING */
 #if defined(ALIAS_DIRECTIVE)
   define_numeric_valued_macro(ALIAS_DIRECTIVE);
 #else /* !defined(ALIAS_DIRECTIVE) */
