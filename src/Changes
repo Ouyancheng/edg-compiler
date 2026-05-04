@@ -35,7 +35,7 @@ declarations.  For example:
   void f(volatile int);   // Now generates "void f(int);"
 
 
-4/30/26  [EDGcpfe/28505]
+4/30/26  [EDGcpfe/24304,EDGcpfe/28505]
 Spurious pack expansion error for default template argument of member template
 
 Previously, a pack expansion where the pattern refers to a member template with
