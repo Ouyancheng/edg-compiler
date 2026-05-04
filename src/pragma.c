@@ -842,10 +842,18 @@ there is additional processing to be done.
 #if EXPENSIVE_CHECKING
       /* Verify that the constructed IL pragma can be found. */
       { a_pragma_ptr npp = NULL;
+        a_scope_ptr  scope_for_function_local;
 
+        if (is_template_declaration_context()) {
+          check_assertion(depth_template_declaration_scope != NO_SCOPE_DEPTH);
+          scope_for_function_local =
+                        scope_stack[depth_template_declaration_scope].il_scope;
+        } else {
+          scope_for_function_local = innermost_function_scope;
+        }  /* if */
         do {
           npp = find_assoc_pragma(entity_ptr, entity_kind,
-                                  innermost_function_scope,
+                                  scope_for_function_local,
                                   npp);
         } while (pp != npp && npp->next != NULL);
         check_assertion(pp == npp);

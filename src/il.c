@@ -27524,20 +27524,22 @@ statement that returns a value).  See change_block_into_statement_expression.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static inline void find_scope_for_entity_pragmas(
-                                 char                          *entity_ptr,
-                                 an_il_entry_kind              entity_kind,
-                                 a_source_correspondence_ptr   entity_scp,
-                                 a_scope_ptr                   func_scope,
-                                 a_scope_ptr                   *il_scope,
-                                 a_scope_pointers_block_ptr    *pointers_block)
+                             char                          *entity_ptr,
+                             an_il_entry_kind              entity_kind,
+                             a_source_correspondence_ptr   entity_scp,
+                             a_scope_ptr                   func_or_templ_scope,
+                             a_scope_ptr                   *il_scope,
+                             a_scope_pointers_block_ptr    *pointers_block)
 /*
 Given an IL entity pointer, kind, and the associated source correspondence for
 the entity: this routine determines the IL scope (*il_scope) and associated
 pointers (*pointers_block) block (if any) that list the pragmas for the given
 entity.
 
-If called with a function-local entity, func_scope must be set to the
-associated innermost_function_scope.  Otherwise, func_scope can be NULL.
+If called with a function-local entity, func_or_templ_scope must be set to the
+associated innermost_function_scope (or in the case of a function prototype,
+the scope associated with depth_template_declaration_scope).  Otherwise,
+func_or_templ_scope scope can be NULL.
 */
 {
   *il_scope = NULL;
@@ -27548,12 +27550,12 @@ associated innermost_function_scope.  Otherwise, func_scope can be NULL.
        scope. */
     *il_scope = get_scope_for_list(NO_SCOPE_DEPTH, entity_scp, pointers_block);
   } else if (entity_kind == iek_statement ||
-             (entity_scp != NULL && entity_scp->is_local_to_function)) {
+             (entity_scp != NULL && !in_file_scope(entity_scp))) {
     /* This is a pragma applied to either a statement or function local entity.
        These pragmas are associated with the innermost associated function
        scoped (which is required to exist). */
-    check_assertion(func_scope != NULL);
-    *il_scope = func_scope;
+    check_assertion(func_or_templ_scope != NULL);
+    *il_scope = func_or_templ_scope;
     if (!scope_is_null_or_placeholder(*il_scope) &&
         (*il_scope)->depth_in_scope_stack != NO_SCOPE_DEPTH) {
       /* There is a corresponding scope stack entry: update the pointers block
@@ -27661,8 +27663,8 @@ pragma), is_microsoft_pragma_operator (if the pragma is a Microsoft pragma
 operator), and associated IL entity.  Then, the constructed pragma is added to
 the appropriate scope so that it can be retrieved by find_assoc_pragma later.
 
-Note that if called with a function-local entity, innermost_function_scope must
-be set appropriately.
+Note that if called with a function-local entity, innermost_function_scope and
+depth_template_declaration_scope must be set appropriately.
 */
 {
   a_boolean                   tu_pushed = FALSE;
@@ -27679,8 +27681,16 @@ be set appropriately.
 
   a_scope_ptr                 il_scope;
   a_scope_pointers_block_ptr  pointers_block;
+  a_scope_ptr                 scope_for_function_local;
+  if (is_template_declaration_context()) {
+    check_assertion(depth_template_declaration_scope != NO_SCOPE_DEPTH);
+    scope_for_function_local =
+                        scope_stack[depth_template_declaration_scope].il_scope;
+  } else {
+    scope_for_function_local = innermost_function_scope;
+  }  /* if */
   find_scope_for_entity_pragmas(entity_ptr, entity_kind, scp,
-                                innermost_function_scope,
+                                scope_for_function_local,
                                 &il_scope, &pointers_block);
   if (il_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
     switch_to_scope_region(il_scope->depth_in_scope_stack,
@@ -27727,7 +27737,7 @@ be set appropriately.
 
 a_pragma_ptr find_assoc_pragma(char             *entity_ptr,
                                an_il_entry_kind entity_kind,
-                               a_scope_ptr      func_scope,
+                               a_scope_ptr      func_or_templ_scope,
                                a_pragma_ptr     prev_assoc_pragma)
 /*
 Return a pointer to a pragma that is bound to IL entity described by entity_ptr
@@ -27738,8 +27748,10 @@ previous (non-NULL) find_assoc_pragma call with the same il_entity).
 
 When prev_assoc_pragma is NULL, the list of pragmas where any new pragmas for
 the given entity would be added is searched.  To search for pragmas associated
-with entities that are function-local, func_scope must be set to the innermost
-function scope that would've been active when the pragma was created.
+with entities that are function-local, func_or_templ_scope must be set to the
+innermost function scope or (if searching for a pragma associated with a
+prototype instantiation) the template declaration scope that would've been
+active when the pragma was created.
 
 When prev_assoc_pragma is non-NULL, search the remainder of the list it belongs
 to.  The front end aborts with a failed assertion if prev_assoc_pragma is NULL
@@ -27761,7 +27773,8 @@ is bound to the il_entity).
     a_scope_pointers_block_ptr  pointers_block;
     a_scope_ptr                 il_scope;
 
-    find_scope_for_entity_pragmas(entity_ptr, entity_kind, scp, func_scope,
+    find_scope_for_entity_pragmas(entity_ptr, entity_kind, scp,
+                                  func_or_templ_scope,
                                   &il_scope, &pointers_block);
     assoc_pragma = il_scope->pragmas;
   }  /* if */
