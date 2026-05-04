@@ -27740,11 +27740,11 @@ a_pragma_ptr find_assoc_pragma(char             *entity_ptr,
                                a_scope_ptr      func_or_templ_scope,
                                a_pragma_ptr     prev_assoc_pragma)
 /*
-Return a pointer to a pragma that is bound to IL entity described by entity_ptr
-and entity_kind.  prev_assoc_pragma is a (possibly NULL) pointer to another
-pragma that is bound to the same IL entity and has already been located (used
-for iterative calls to find_assoc_pragma and is typically the result of the
-previous (non-NULL) find_assoc_pragma call with the same il_entity).
+Return a pointer to a pragma that is bound to the IL entity described by
+entity_ptr and entity_kind.  prev_assoc_pragma is a (possibly NULL) pointer to
+another pragma that is bound to the same IL entity and has already been located
+(used for iterative calls to find_assoc_pragma and is typically the result of
+the previous (non-NULL) find_assoc_pragma call with the same il_entity).
 
 When prev_assoc_pragma is NULL, the list of pragmas where any new pragmas for
 the given entity would be added is searched.  To search for pragmas associated
