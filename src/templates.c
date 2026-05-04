@@ -27538,32 +27538,6 @@ parameter in the parameter list.
 }  /* prescan_function_template_default_arg_expr */
 
 
-static a_boolean type_uses_enclosing_pack(
-				a_type_ptr			type,
-				a_template_nesting_depth	nesting_depth)
-/*
-Determine whether type has a bottom type that is a template parameter from
-a parameter list whose depth is not nesting_depth.
-*/
-{
-  a_boolean	result = FALSE;
-
-  type = find_bottom_of_type(type);
-  if (type_is(type, tk_template_param) &&
-      type->variant.template_param.kind ==
-                                     (a_template_param_type_kind)tptk_param &&
-      type->variant.template_param.is_pack) {
-    a_template_param_type_supplement_ptr	tptsp;
-    tptsp = type->variant.template_param.extra_info;
-    /* An "auto" template parameter is indicated by its nesting depth,
-       and should not be considered "enclosing". */
-    result = tptsp->coordinates.depth > NO_NESTING_DEPTH &&
-             tptsp->coordinates.depth != nesting_depth;
-  }  /* if */
-  return result;
-}  /* type_uses_enclosing_pack */
-
-
 static void update_auto_template_param_type(a_type_ptr	param_type)
 /*
 Update the "auto" or "decltype(auto)" type of param_type to record that it
@@ -27595,7 +27569,6 @@ static void scan_a_template_parameter_declaration(
 			a_boolean			*is_pack,
 			a_boolean			*is_pack_element,
 			a_boolean			*uses_auto,
-			a_template_nesting_depth	nesting_depth,
 			a_decl_pos_block_ptr		decl_pos_block)
 /*
 Scan the declaration of a single template nontype parameter.  If the
@@ -27606,11 +27579,9 @@ depends on a template parameter type, return TRUE in *template_dependent
 ellipsis, return TRUE in *is_pack.  If this is a declaration of a pack whose
 type is an expansion of another pack, return TRUE in *is_pack_expansion.
 If the template parameter is declared with "auto" or "decltype(auto)",
-return TRUE in *uses_auto (if it is not NULL).  nesting_depth is the nesting
-depth of the current template parameter list, or NO_NESTING_DEPTH when this
-routine is called to to rescan a dependent template parameter type.
-decl_pos_block is used to return additional position information about
-the components of the declaration.
+return TRUE in *uses_auto (if it is not NULL).  decl_pos_block is used to
+return additional position information about the components of the
+declaration.
 */
 {
   a_decl_parse_state	state;
@@ -27639,7 +27610,7 @@ the components of the declaration.
   }  /* if */
   di_flags = DI_REAL_DECLARATOR_ALLOWED | DI_ABSTRACT_DECLARATOR_ALLOWED |
              DI_IS_TEMPLATE_PARAM_DECL;
-  is_pack_expansion = type_uses_enclosing_pack(state.type, nesting_depth);
+  is_pack_expansion = any_packs_referenced_in_curr_context();
   if (is_pack_expansion) di_flags |= DI_IS_TEMPLATE_PARAM_PACK_EXPANSION;
   if (is_pack_element != NULL) *is_pack_element = is_pack_expansion;
   /* Scan the declarator. */
@@ -28514,7 +28485,6 @@ depends on a template parameter.
                                         &is_pack,
                                         &is_pack_expansion,
                                         &uses_auto,
-                                        decl_state->nesting_depth,
                                         &decl_pos_block);
   decl_state->is_pack_element = is_pack_element;
   decl_state->is_pack_expansion = is_pack_expansion;
@@ -29245,7 +29215,6 @@ the resulting constant is stored in the pointer pointed to by "constant".
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL,
                                             (a_boolean*)NULL,
-                                            NO_NESTING_DEPTH,
                                             &decl_pos_block);
       /* Skip past any tokens remaining in the cache.  Extra tokens will
          be present under certain error conditions and when a default argument
