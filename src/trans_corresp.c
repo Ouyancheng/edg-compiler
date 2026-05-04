@@ -1978,8 +1978,8 @@ its corresponding primary template supplement will be used instead.
 }  /* add_instantiation */
 
 
-static void clear_instantation_correspondences(a_template_ptr  templ,
-                                               a_boolean       visited)
+static void clear_instantiation_correspondences(a_template_ptr  templ,
+                                                a_boolean       visited)
 /*
 Mark all instantiations associated with the given template as having no
 correspondences.  If visited is TRUE, also record those instantiations on the
@@ -2071,7 +2071,7 @@ all_instantiations list of the associated template symbol supplement.
     clear_trans_unit_corresp(iek_routine, tssp->variant.function.routine,
                              visited);
   }  /* if */
-}  /* clear_instantation_correspondences */
+}  /* clear_instantiation_correspondences */
 
 
 static void clear_enum_type_correspondence(a_type_ptr  type,
@@ -2222,7 +2222,7 @@ visited; otherwise, they may yet be set to correspond to another entry.
       if (!templ->is_friend_template) {
         /* Avoid traversing friend template entries because that could lead to
            unbounded recursion in some cases. */
-        clear_instantation_correspondences(templ, visited);
+        clear_instantiation_correspondences(templ, visited);
       }  /* for */
     }  /* for */
   }
@@ -4776,7 +4776,7 @@ are not checked.
               error_issued = TRUE;
             }  /* if */
             set_no_trans_unit_corresp(iek_template, templ);
-            clear_instantation_correspondences(templ, /*visited=*/TRUE);
+            clear_instantiation_correspondences(templ, /*visited=*/TRUE);
           } else {
             an_il_entry_kind  entry_kind = (an_il_entry_kind)iek_template;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
@@ -6818,7 +6818,7 @@ entities.
       set_no_trans_unit_corresp(iek_template, templ);
       /* Mark all instantiations as visited and record them for later lookup.
          */
-      clear_instantation_correspondences(templ, /*visited=*/TRUE);
+      clear_instantiation_correspondences(templ, /*visited=*/TRUE);
     }  /* if */
   }  /* if */
 }  /* find_template_correspondence */
