@@ -2369,6 +2369,7 @@ STATIC_THREAD a_flag_name
 #endif /* DEBUG */
   { "use_nonstd_partial_ordering", &use_nonstd_partial_ordering },
   { "no_checking_pragmas", &no_checking_pragmas },
+  { "no_find_pragma_validation", &no_find_pragma_validation },
   { "warn_on_try_statement", &warn_on_try_statement },
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   { "generate_portable_assemblies", &generate_portable_assemblies },
@@ -13407,6 +13408,7 @@ variables declared in cmd_line.h.
 #endif /* EXPENSIVE_CHECKING */
   use_nonstd_partial_ordering = FALSE;
   no_checking_pragmas = FALSE;
+  no_find_pragma_validation = FALSE;
 #if DEBUG
   display_space_used = FALSE;
 #endif /* DEBUG */

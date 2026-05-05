@@ -2525,6 +2525,12 @@ EXTERN_THREAD a_boolean
 			   suppressed. */
 
 EXTERN_THREAD a_boolean
+		no_find_pragma_validation;
+			/* TRUE if, when using EXPENSIVE_CHECKING, pragmas
+			   added by add_entity_pragma_to_list should not be
+			   verified discoverable by find_assoc_pragma. */
+
+EXTERN_THREAD a_boolean
 		no_very_expensive_checking;
 			/* Disable certain EXPENSIVE_CHECKING tests that
 			   can take a prohibitive amount of time on large
