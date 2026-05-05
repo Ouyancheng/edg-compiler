@@ -1,6 +1,34 @@
 Version 6.9
 
 5/4/26   [EDGcpfe/28826]
+C++-generating back end: extraneous class keyword in explicit temporary
+
+The C++-generating back end sometimes incorrectly added a class keyword in
+an explicit temporary expression.  This is now fixed.  For example, with
+--c++23:
+
+  namespace N1 {}
+  namespace N2 {
+  using namespace N1;
+  }
+  namespace N1 {
+  class C {
+  public:
+    enum E { e0 };
+    C(E, int);
+  };
+  } // namespace N1
+  namespace N2 {
+  using C = struct {
+    int f();
+    // Previously added "class" keyword at the beginning of the initializer:
+    //        ... = class N1::C(...
+    N1::C stream_ = N1::C(N1::C::E::e0, f());
+  };
+  }
+
+
+5/4/26   [EDGcpfe/28826]
 ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING not reported in config dump
 
 Previously, ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING was not included in the
