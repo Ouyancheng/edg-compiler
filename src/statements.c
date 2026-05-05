@@ -1787,6 +1787,19 @@ this leads to undefined behavior when executed.)
 #define check_for_return_in_upc_forall(stmt_pos)  /* Nothing */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+
+a_boolean in_gnu_stmt_expression()
+/*
+Return TRUE if currently parsing a GNU statement expression; otherwise, return
+FALSE.
+*/
+{
+  return (depth_stmt_stack != NO_SCOPE_DEPTH &&
+          struct_stmt_stack[depth_stmt_stack].inside_statement_expr);
+}  /* in_gnu_stmt_expression */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_statement_ptr add_statement_at_stmt_pos(a_statement_kind  kind,
                                           a_source_position *stmt_pos,

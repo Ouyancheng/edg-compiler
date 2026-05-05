@@ -122,6 +122,16 @@ STATIC_THREAD a_type_ptr
 STATIC_THREAD a_type_ptr
                 il_modal_8bit_floating_point_type;
 
+/*
+Forward declare in_gnu_stmt_expression so that statements.h does not need to be
+included directly for this one function.
+*/
+#if GNU_EXTENSIONS_ALLOWED && CHECKING
+extern a_boolean in_gnu_stmt_expression();
+#else /* !(GNU_EXTENSIONS_ALLOWED && CHECKING) */
+#define in_gnu_stmt_expression() (FALSE)
+#endif /* GNU_EXTENSIONS_ALLOWED && CHECKING */
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
@@ -27553,9 +27563,20 @@ func_or_templ_scope scope can be NULL.
              (entity_scp != NULL && !in_file_scope(entity_scp))) {
     /* This is a pragma applied to either a statement or function local entity.
        These pragmas are associated with the innermost associated function
-       scoped (which is required to exist). */
-    check_assertion(func_or_templ_scope != NULL);
-    *il_scope = func_or_templ_scope;
+       scoped. */
+    if (func_or_templ_scope == NULL) {
+      /* GNU statement expressions in file or namespace scopes are stored in
+         the file scope.  All other statements and entities should have a scope
+         set.  The presence of a GNU statement expression is only checked in
+         the front end as a sanity check (when find_scope_for_entity_pragmas is
+         called as part of add_entity_pragma_to_list).  */
+#if !STANDALONE_UTILITY_PROGRAM
+      check_assertion(!in_front_end || in_gnu_stmt_expression());
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+      *il_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
+    } else {
+      *il_scope = func_or_templ_scope;
+    }  /* if */
     if (!scope_is_null_or_placeholder(*il_scope) &&
         (*il_scope)->depth_in_scope_stack != NO_SCOPE_DEPTH) {
       /* There is a corresponding scope stack entry: update the pointers block
@@ -27682,7 +27703,8 @@ depth_template_declaration_scope must be set appropriately.
   a_scope_ptr                 il_scope;
   a_scope_pointers_block_ptr  pointers_block;
   a_scope_ptr                 scope_for_function_local;
-  if (is_template_declaration_context()) {
+  if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+      is_template_declaration_context()) {
     check_assertion(depth_template_declaration_scope != NO_SCOPE_DEPTH);
     scope_for_function_local =
                         scope_stack[depth_template_declaration_scope].il_scope;
@@ -27777,6 +27799,12 @@ is bound to the il_entity).
                                   func_or_templ_scope,
                                   &il_scope, &pointers_block);
     assoc_pragma = il_scope->pragmas;
+#if EXPENSIVE_CHECKING
+    /* This is the first time observing the list; verify it doesn't have a
+       cycle (if it does, something went wrong with the management of IL
+       scope's pragma list). */
+    check_assertion(!simple_list_has_cycle(assoc_pragma));
+#endif /* EXPENSIVE_CHECKING */
   }  /* if */
   for (; assoc_pragma != NULL; assoc_pragma = assoc_pragma->next) {
     if (assoc_pragma->entity.ptr == entity_ptr) break;

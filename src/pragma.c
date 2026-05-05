@@ -841,10 +841,19 @@ there is additional processing to be done.
                                      entity_kind);
 #if EXPENSIVE_CHECKING
       /* Verify that the constructed IL pragma can be found. */
-      { a_pragma_ptr npp = NULL;
-        a_scope_ptr  scope_for_function_local;
+      { a_pragma_ptr                npp = NULL;
+        a_boolean                   tu_pushed = FALSE;
+        a_scope_ptr                 scope_for_function_local;
+        a_source_correspondence_ptr scp =
+                                       source_corresp_for_il_entry(entity_ptr,
+                                                                  entity_kind);
+        if (scp != NULL) {
+          a_symbol_ptr sym = (a_symbol_ptr)scp->assoc_info;
 
-        if (is_template_declaration_context()) {
+          tu_pushed = push_translation_unit_if_needed(sym);
+        }  /* if */
+        if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
+            is_template_declaration_context()) {
           check_assertion(depth_template_declaration_scope != NO_SCOPE_DEPTH);
           scope_for_function_local =
                         scope_stack[depth_template_declaration_scope].il_scope;
@@ -857,6 +866,9 @@ there is additional processing to be done.
                                   npp);
         } while (pp != npp && npp->next != NULL);
         check_assertion(pp == npp);
+        if (tu_pushed) {
+          pop_translation_unit_stack();
+        }  /* if */
       }
 #endif /* EXPENSIVE_CHECKING */
     }  /* if */

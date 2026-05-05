@@ -500,6 +500,12 @@ EXTERN_THREAD int
 
 #define struct_stmt_stack_top()  (struct_stmt_stack[depth_stmt_stack])
 
+#if GNU_EXTENSIONS_ALLOWED
+
+extern a_boolean in_gnu_stmt_expression();
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 extern a_statement_ptr add_statement_at_stmt_pos(
                                          a_statement_kind  kind,
                                          a_source_position *stmt_pos,
