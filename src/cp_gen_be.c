@@ -9704,7 +9704,7 @@ elaborated-type-specifier, even if it would be required in some contexts.
               }  /* while */
               qual_scope = nsp->variant.assoc_scope;
             }  /* if */
-            if (qual_scope != NULL) {
+            if (qual_scope != NULL && !suppress_elab_type_spec) {
               use_elab_type_spec =
                               elab_type_spec_needed_in_scope(refp, qual_scope);
             }  /* if */
@@ -9742,7 +9742,7 @@ elaborated-type-specifier, even if it would be required in some contexts.
           } else {
             qual_scope = refp->source_corresp.parent_scope;
           }  /* if */
-          if (is_tag_type(refp) &&
+          if (is_tag_type(refp) && !suppress_elab_type_spec &&
               (is_declaration ||
                elab_type_spec_needed_in_scope(refp, qual_scope))) {
             write_tok_str(tag_keyword(refp));
@@ -9780,7 +9780,7 @@ elaborated-type-specifier, even if it would be required in some contexts.
           if (suppress_typename_kwd || typename_kwd_emitted) {
             noqual_options |= GN_SUPPRESS_TYPENAME_KEYWORD;
           }  /* if */
-          if (is_tag_type(refp) &&
+          if (is_tag_type(refp) && !suppress_elab_type_spec &&
               (is_declaration ||
                elab_type_spec_needed_in_scope(
                                    refp, refp->source_corresp.parent_scope))) {
