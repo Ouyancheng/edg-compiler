@@ -1,5 +1,29 @@
 Version 6.9
 
+5/5/26   [EDGcpfe/28824]
+C++-generating back end drops explicit cast needed for deduction
+
+Consider:
+
+  template<typename ...Ts> struct Seq {
+    Seq() = default;
+    explicit Seq(Ts...);
+    Seq(Seq const&) = default;
+    Seq(Seq&&) = default;
+  };
+  int main() {
+    using S = Seq<void*, int>;
+    Seq seq(S(nullptr, 42));
+  }
+
+Here, the initialization of seq and the cast to S correspond to a single
+initialization due to copy elision.  As a consequence, the C++-generating back
+end previously rendered the initialization as "Seq seq(nullptr, 42);", which
+deduces a type for seq that is Seq<nullptr_t, int> instead of the intended
+type S (i.e., Seq<void*, int>).  This is now fixed by recording the presence
+of the cast in the variable initialization entry.
+
+
 5/4/26   [EDGcpfe/28826]
 C++-generating back end: extraneous class keyword in explicit temporary
 

@@ -4279,9 +4279,19 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
            elision can be done.  In this case the dynamic init entry already
            present is reused. */
         /* Clear the explicit cast flag.  The caller will set it if this
-           top-level operation is an explicit cast.  We've optimized
-           away the explicit cast one level down. */
-        if (init_list_ctor_arg_list == NULL) {
+           top-level operation is an explicit cast.  We've optimized away the
+           explicit cast one level down.  However, don't clear the flag when
+           initializing a variable: The C++-generating back end uses it to
+           reproduce the source form, which may be needed with deduced types.
+           E.g.:
+             using X = std::tuple<int*, int>;
+             std::tuple x(X(nullptr, 42));
+           The cast here must be rendered to deduce the correct type for x;
+           if it were rendered
+             std::tuple x(nullptr, 42);
+           it deduced type std::tuple<nullptr_t, int> instead. */
+        if (init_list_ctor_arg_list == NULL &&
+            !(conv_context & CCO_INITIALIZING_VARIABLE)) {
           dip->is_explicit_cast = FALSE;
         }  /* if */
         handle_elided_copy_constructor(source_type, routine, source_pos);

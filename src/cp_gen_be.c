@@ -23071,13 +23071,18 @@ and the output of the type name.
       { a_routine_ptr    ctor = dip->variant.constructor.ptr;
         an_expr_node_ptr args = dip->variant.constructor.args;
         a_boolean        no_args = FALSE;
-        a_boolean        is_deduced_type_var_init;
+        a_boolean        var_init_with_elided_cast;
         a_boolean        processed = FALSE;
         a_boolean        ctad_init;
-
-        is_deduced_type_var_init =
-                           (dip->is_explicit_cast && dip->variable != NULL &&
-                            var_declared_with_placeholder_type(dip->variable));
+        /* dip->is_explicit_cast is TRUE on a variable initialization only
+           when a cast was elided (copy elision) and absorbed into this
+           initialization.  Render a cast in that case: It may be needed to
+           ensure proper type deduction in an example like
+             using X = std::tuple<int*, int>;
+             std::tuple x(X(nullptr, 42));
+        */
+        var_init_with_elided_cast =
+                           (dip->is_explicit_cast && dip->variable != NULL);
         ctad_init =
                (type_is(init_entity_type, tk_template_param) &&
                 tptk_is(init_entity_type, tptk_param) &&
@@ -23155,16 +23160,17 @@ and the output of the type name.
               a_dynamic_init_ptr arg_dip = arg_init->variant.init.dynamic_init;
               if (arg_dip->kind == (a_dynamic_init_kind)dik_constructor &&
                   arg_dip->is_creation_of_initializer_list_object &&
-                  !is_deduced_type_var_init) {
+                  !var_init_with_elided_cast) {
                 /* The generated code will have an aggregate as the
                    argument to the std::initializer_list constructor, which
                    would ordinarily be enclosed in braces.  However, we put
                    out the braces for this initializer here, so we need to
                    suppress the aggregate braces to prevent incorrect
-                   double braces.  If this is the initializer for a variable
-                   for which the type is deduced, however, we will put out
-                   the initializer as a function-style cast and we need the
-                   braces for the operand in that case, e.g., something like
+                   double braces.  If this initializer absorbed an explicit
+                   cast through copy-elision, however, we will put out the
+                   initializer as a function-style cast (which may be needed
+                   to ensure proper deduction).  We need the braces for the
+                   operand in that case.  E.g., something like
                      T v{T<int>({1, 2, 3})};
                    where T is a class template with an initializer-list
                    constructor. */
@@ -23173,11 +23179,16 @@ and the output of the type name.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (!processed && is_deduced_type_var_init && !ctad_init &&
+        if (!processed && var_init_with_elided_cast && !ctad_init &&
             has_name_before_mangling(
                                skip_typerefs_not_typedefs(init_entity_type))) {
-          /* We need to put out the class type, not just the constructor
-             arguments, to allow deduction of the variable type. */
+          /* Put out the class type before the constructor arguments to
+             reproduce the elided functional-notation cast in the source.
+             E.g., with
+               using X = std::tuple<int*, int>;
+               std::tuple x(X(nullptr, 42));
+             the cast is needed to ensure correct template argument
+             deduction. */
           a_boolean need_closing_paren;
           if (paren_form && args != NULL && args->next == NULL &&
               (gcc_is_generated_code_target ||

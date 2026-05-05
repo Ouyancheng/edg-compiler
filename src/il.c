@@ -17238,7 +17238,7 @@ constant; otherwise, return NULL.
            expression for a template parameter constant. */
         expr = alloc_temp_init_node(skip_typerefs(var->type), init->dynamic,
                                     /*is_lvalue=*/FALSE,
-                                    /*is_explicit_cast=*/TRUE);
+                                    /*is_explicit_cast=*/FALSE);
       }  /* if */
       if (expr != NULL) {
         /* Make a constant that refers to the dependent expression. */
