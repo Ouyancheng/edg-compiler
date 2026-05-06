@@ -4286,10 +4286,10 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
            E.g.:
              using X = std::tuple<int*, int>;
              std::tuple x(X(nullptr, 42));
-           The cast here must be rendered to deduce the correct type for x;
-           if it were rendered
+           The cast here must be rendered to deduce the correct type for x
+           (i.e., std::tuple<int*, int>); if it were rendered
              std::tuple x(nullptr, 42);
-           it deduced type std::tuple<nullptr_t, int> instead. */
+           the deduced type would be std::tuple<nullptr_t, int>. */
         if (init_list_ctor_arg_list == NULL &&
             !(conv_context & CCO_INITIALIZING_VARIABLE)) {
           dip->is_explicit_cast = FALSE;
