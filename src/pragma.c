@@ -841,7 +841,8 @@ there is additional processing to be done.
                                      entity_kind);
 #if EXPENSIVE_CHECKING
       /* Verify that the constructed IL pragma can be found. */
-      { a_pragma_ptr                npp = NULL;
+      if (!no_find_pragma_validation) {
+        a_pragma_ptr                npp = NULL;
         a_boolean                   tu_pushed = FALSE;
         a_scope_ptr                 scope_for_function_local = NULL;
         a_source_correspondence_ptr scp =
@@ -870,7 +871,7 @@ there is additional processing to be done.
         if (tu_pushed) {
           pop_translation_unit_stack();
         }  /* if */
-      }
+      }  /* if */
 #endif /* EXPENSIVE_CHECKING */
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
