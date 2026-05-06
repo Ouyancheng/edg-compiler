@@ -3004,6 +3004,7 @@ it's the initializer for an aggregate.
             }
             break;
           case tpck_address:
+          case tpck_dependent_constant:
             traverse_constant(constant->
                                        variant.template_param.variant.constant,
                               tblock);

@@ -7363,6 +7363,10 @@ precedence confusion.  Do the output in the way described by octl.
             form_expression(expr_node_from_tpck_expression(constant), octl);
           }  /* if */
           break;
+        case tpck_dependent_constant:
+          form_constant(constant->variant.template_param.variant.constant,
+                        need_parens, octl);
+          break;
         case tpck_address:
           if (need_parens) octl->output_str("(", octl);
           octl->output_str("&", octl);

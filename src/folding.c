@@ -187,6 +187,21 @@ expression.
 }  /* make_template_param_expr_constant */
 
 
+void force_constant_to_be_dependent(a_constant  *constant)
+/*
+Force the indicated constant to appear template-dependent by wrapping it in a
+ck_template_param constant.
+*/
+{
+  a_constant_ptr  wrapped_constant = alloc_shareable_constant(constant);
+
+  clear_constant(constant, ck_template_param);
+  set_template_param_constant_kind(constant, tpck_dependent_constant);
+  constant->variant.template_param.variant.constant = wrapped_constant;
+  constant->type = wrapped_constant->type;
+}  /* force_constant_to_be_dependent */
+
+
 void make_template_param_cast_constant(a_constant  *old_constant,
                                        a_constant  *new_constant,
                                        a_type_ptr  new_type,

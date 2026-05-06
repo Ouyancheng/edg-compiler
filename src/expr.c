@@ -41655,8 +41655,9 @@ subsequent string literals.
 #if BACK_END_IS_CP_GEN_BE
   if (is_prototype_instantiation_context()) {
     /* Indicate that this is the spelling of the function name token, not
-       the function name. */
+       the function name, and treat it as template-dependent. */
     const_for_curr_token.variant.string.func_name_tok = TRUE;
+    force_constant_to_be_dependent(&const_for_curr_token);
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (do_concat) {

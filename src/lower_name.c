@@ -4622,7 +4622,7 @@ operator on some template constants when suppress_address_of is TRUE
      constants also have a non-NULL expression pointer if they were
      given an explicit value in their definitions, but that
      expression shouldn't be put out. */
-  if (con->kind == (a_constant_repr_kind)ck_template_param) {
+  if (constant_is(con, ck_template_param)) {
     in_dependent_expr = TRUE;
   }  /* if */
   if (in_dependent_expr && con->expr != NULL &&
@@ -4663,8 +4663,7 @@ operator on some template constants when suppress_address_of is TRUE
     case ck_address:
       /* Address.  Put out the name of the entity whose address is involved. */
       if ((con->variant.address.kind == (an_address_base_kind)abk_constant &&
-           con->variant.address.variant.constant->kind ==
-                                            (a_constant_repr_kind)ck_string) ||
+           constant_is(con->variant.address.variant.constant, ck_string)) ||
           con->variant.address.kind == (an_address_base_kind)abk_temporary) {
         /* Mangle the string constant or temporary representation of a
            constant. */
@@ -4749,6 +4748,13 @@ do_unknown_function:
                                    /*add_address_of=*/FALSE, mctl);
 #endif /* !IA64_ABI */
           break;
+        case tpck_dependent_constant:
+          literal_representation(con->variant.template_param.variant.constant,
+                                 old_form,
+                                 /*in_dependent_expr=*/TRUE,
+                                 suppress_address_of,
+                                 mctl);
+          break;
         case tpck_address:
 #if !IA64_ABI
           /* For an address, just mangle the member name. */
@@ -4759,10 +4765,8 @@ do_unknown_function:
                                  mctl);
 #else /* IA64_ABI */
           con = con->variant.template_param.variant.constant;
-          check_assertion(con->kind == 
-                                   (a_constant_repr_kind)ck_template_param &&
-                          con->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_member);
+          check_assertion(constant_is(con, ck_template_param) &&
+                          tpck_is(con, tpck_member));
           mangled_entity_reference(&con->source_corresp, iek_constant,
                                    (a_routine_info_block *)NULL, 
                                    /*add_address_of=*/TRUE, mctl);
@@ -5445,18 +5449,18 @@ subexpressions when considering whether or not the top level expression is
 dependent.
 */
 {
-  if (con->kind == (a_constant_repr_kind)ck_template_param &&
-      (con->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_sizeof ||
-       con->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_alignof ||
-       con->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_typeid ||
-       con->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_noexcept)
-                                                                            ) {
+  if (constant_is(con, ck_template_param) &&
+      (tpck_is(con, tpck_sizeof) ||
+       tpck_is(con, tpck_alignof) ||
+       tpck_is(con, tpck_typeid) ||
+       tpck_is(con, tpck_noexcept))) {
     /* Don't look under a sizeof, alignof, typeid, or noexcept. */
     tblock->suppress_subtree_walk = TRUE;
+  } else if (constant_is(con, ck_template_param) &&
+             tpck_is(con, tpck_dependent_constant)) {
+    /* This wrapper explicitly makes the constant dependent. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
   } else if (is_template_dependent_type(con->type)) {
     /* Found a dependent type, terminate the search and return TRUE. */
     tblock->result = TRUE;

@@ -17243,22 +17243,6 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
 }  /* expr_to_record_for_variable */
 
 
-static void force_constant_to_be_dependent(a_constant *constant)
-/*
-Force the indicated constant to appear template-dependent by adding a
-do-nothing ck_template_param cast on top of it.
-*/
-{
-  a_constant_ptr constant_copy = local_constant();
-
-  copy_constant(constant, constant_copy);
-  make_template_param_cast_constant(constant_copy,
-                                    constant,
-                                    constant->type,
-                                    /*is_explicit=*/FALSE);
-  release_local_constant(&constant_copy);
-}  /* force_constant_to_be_dependent */
-
 #if GNU_EXTENSIONS_ALLOWED
 
 a_boolean operand_is_address_of_label(an_operand  *op)

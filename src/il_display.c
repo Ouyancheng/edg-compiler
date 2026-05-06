@@ -1143,6 +1143,12 @@ Display a ck_template_param constant.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* unknown_function.symbol is front-end-only and is not printed. */
       break;
+    case tpck_dependent_constant:
+      (void)fprintf(f_display, "tpck_dependent_constant\n");
+      disp_ptr("constant",
+               (char *)ptr->variant.template_param.variant.constant,
+               iek_constant);
+      break;
     case tpck_address:
       (void)fprintf(f_display, "tpck_address\n");
       disp_ptr("constant",

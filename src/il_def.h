@@ -4437,8 +4437,12 @@ enum a_template_param_constant_kind : a_byte {
 			   to either tpck_unknown_function or tpck_member. */
   tpck_integer_pack,	/* The template param constant represents a dependent
 			   "__integer_pack(N)..." construct. */
-  tpck_destructor	/* The template param constant represents a destructor
+  tpck_destructor,	/* The template param constant represents a destructor
 			   of a nonreal class. */
+  tpck_dependent_constant
+			/* The template param constant wraps a non-dependent
+			   constant to cause it to be treated as template-
+			   dependent. */
 };
 
 
@@ -5412,11 +5416,13 @@ typedef struct a_constant {
 			   otherwise. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } unknown_function;
-        /* When template param constant kind == tpck_address: */
+        /* When template param constant kind == tpck_address or
+           tpck_dependent_constant: */
         a_constant_ptr
 		constant;
-			/* The member whose address is being taken by the
-			   tpck_address constant. */
+			/* For tpck_address, the member whose address is being
+			   taken.  For tpck_dependent_constant, the
+			   non-dependent constant being wrapped. */
         /* When template param constant kind == tpck_sizeof, tpck_datasizeof,
            tpck_alignof, tpck_uuidof, tpck_typeid, or tpck_noexcept: */
         struct {

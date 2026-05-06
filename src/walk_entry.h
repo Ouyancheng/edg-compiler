@@ -995,6 +995,7 @@ handle_next_entry:
                                               variant.unknown_function.symbol);
                 break;
               case tpck_address:
+              case tpck_dependent_constant:
                 walk_ptr(eptr->variant.template_param.variant.constant,
                          a_constant_ptr, iek_constant);
                 break;

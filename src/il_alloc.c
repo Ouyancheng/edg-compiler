@@ -749,6 +749,7 @@ ck_template_param constant.
       cp->variant.template_param.variant.unknown_function.opname_kind =
                                                       (an_opname_kind)onk_none;
       break;
+    case tpck_dependent_constant:
     case tpck_address:
       cp->variant.template_param.variant.constant = NULL;
       break;

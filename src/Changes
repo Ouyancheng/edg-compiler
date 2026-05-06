@@ -1,5 +1,29 @@
 Version 6.9
 
+5/6/26   [EDGcpfe/28831]
+Spurious error on use of __FUNCSIG__ in template
+
+Consider, in Microsoft C++ mode:
+
+  namespace Envir {
+    namespace N {
+      struct E {};
+      template<typename T> constexpr E f() {
+        static_assert(__FUNCSIG__[13] != 'X', "");
+        return {};
+      }
+    }
+  }
+  namespace NN { struct Tag; }
+  constexpr auto r = Envir::N::f<NN::Tag>();
+
+Previously, this elicited a constant-evaluation error in some configurations
+with a C++-generating back end because __FUNCSIG__ records the string
+"__FUNCSIG__" during prototype instantiations and subscripting that string
+with index 13 reaches outside the bounds of the string.  That is now fixed:
+The string is treated as template-dependent in that context.
+
+
 5/5/26   [EDGcpfe/28824]
 C++-generating back end drops explicit cast needed for deduction
 

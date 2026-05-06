@@ -2012,6 +2012,8 @@ Dump the contents of the indicated constant, for debug purposes.
        (unsigned long)cp->variant.template_param.variant.coordinates.position);
       } else if (tpck_is(cp, tpck_expression)) {
         fprintf(f_debug, "tpck_expression ");
+      } else if (tpck_is(cp, tpck_dependent_constant)) {
+        fprintf(f_debug, "tpck_dependent_constant ");
       }  /* if */
     }  /* if */
 
@@ -6086,16 +6088,25 @@ pointer to its first element is ignored in the determination.
 {
   a_boolean is_exact_addr = FALSE;
 
-  while (constant_is(con, ck_template_param) &&
-         tpck_is(con, tpck_expression)) {
-    /* Eliminate do-nothing template parameter casts added to force
-       a constant to be template-dependent.  These come up in prototype
-       instantiations. */
-    a_constant_ptr  base_con;
-    a_boolean       explicit_cast;
-    if (is_template_param_cast_constant(con, &base_con, &explicit_cast) &&
-        con->type == base_con->type) {
-      con = base_con;
+  while (constant_is(con, ck_template_param)) {
+    /* Eliminate wrappers added to force a constant to be template-dependent.
+       These come up in prototype instantiations. */
+    if (tpck_is(con, tpck_expression)) {
+      a_constant_ptr  base_con;
+      a_boolean       explicit_cast;
+      if (is_template_param_cast_constant(con, &base_con, &explicit_cast) &&
+          con->type == base_con->type) {
+        con = base_con;
+      } else {
+        break;
+      }  /* if */
+    } else if (tpck_is(con, tpck_dependent_constant)) {
+      a_constant_ptr  base_con = con->variant.template_param.variant.constant;
+      if (con->type == base_con->type) {
+        con = base_con;
+      } else {
+        break;
+      }  /* if */
     } else {
       break;
     }  /* if */
@@ -6795,7 +6806,7 @@ copy_constant_full should be called to start a copy.
                                             CE_COPIED_CONSTANTS_MAY_BE_SHARED);
   /* Here, the target constant has been allocated and a shallow copy has
      been done into it.  Copy the subtree as necessary. */
-  if (new_constant->kind == (a_constant_repr_kind)ck_aggregate) {
+  if (constant_is(new_constant, ck_aggregate)) {
     /* For aggregate constants, copy the subtree also. */
     old_aggr_con = old_constant->variant.aggregate.first_constant;
     new_constant->variant.aggregate.first_constant = NULL;
@@ -6807,18 +6818,18 @@ copy_constant_full should be called to start a copy.
       add_constant_to_aggregate(new_aggr_con, new_constant,
                                 (a_base_class_ptr)NULL, (a_field_ptr)NULL);
     }  /* for */
-  } else if (new_constant->kind == (a_constant_repr_kind)ck_init_repeat) {
+  } else if (constant_is(new_constant, ck_init_repeat)) {
     /* For ck_init_repeat constants, copy the subtree also. */
     new_constant->variant.init_repeat.constant =
                i_copy_constant_full(old_constant->variant.init_repeat.constant,
                                     (a_constant *)NULL,
                                     options_unshared, cblock);
-  } else if (new_constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
+  } else if (constant_is(new_constant, ck_dynamic_init)) {
     /* For ck_dynamic_init constants, copy the subtree also. */
     new_constant->variant.dynamic_init.ptr =
                     i_copy_dynamic_init(old_constant->variant.dynamic_init.ptr,
                                         options_unshared, cblock);
-  } else if (new_constant->kind == (a_constant_repr_kind)ck_address) {
+  } else if (constant_is(new_constant, ck_address)) {
     if (new_constant->variant.address.kind ==
                                          (an_address_base_kind)abk_constant ||
         new_constant->variant.address.kind ==
@@ -6839,7 +6850,7 @@ copy_constant_full should be called to start a copy.
            from one function scope memory region to another. */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
         if ((options & CE_REPLACE_STRINGS_BY_VARIABLES) &&
-            old_constant_pointed_to->kind == (a_constant_repr_kind)ck_string &&
+            constant_is(old_constant_pointed_to, ck_string) &&
             old_constant_pointed_to->variant.string.sequence_number != 0) {
           /* Rewrite a string literal with sequence_number != 0 as a
              static variable. */
@@ -6875,7 +6886,7 @@ copy_constant_full should be called to start a copy.
       new_constant->variant.address.subobject_path =
             copy_subobject_path(old_constant->variant.address.subobject_path);
     }  /* if */
-  } else if (new_constant->kind == (a_constant_repr_kind)ck_template_param) {
+  } else if (constant_is(new_constant, ck_template_param)) {
     switch (new_constant->variant.template_param.kind) {
       case tpck_param:
       case tpck_member:
@@ -6912,6 +6923,7 @@ copy_constant_full should be called to start a copy.
         }
         break;
       case tpck_address:
+      case tpck_dependent_constant:
         new_constant->variant.template_param.variant.constant =
                i_copy_constant_full(
                          old_constant->variant.template_param.variant.constant,
@@ -7822,6 +7834,10 @@ Return the hash value for the indicated constant.
           hash_value += hash_constant(
                                   cp->variant.template_param.variant.constant);
           break;
+        case tpck_dependent_constant:
+          hash_value += 17 + hash_constant(
+                                  cp->variant.template_param.variant.constant);
+          break;
         case tpck_sizeof:
         case tpck_datasizeof:
         case tpck_alignof:
@@ -7893,10 +7909,10 @@ Return the hash value for the indicated constant.
       hash_value = (a_hash_value)(200 + cp->kind);
       break;
   }  /* switch */
-  if (cp->kind == (a_constant_repr_kind)ck_integer ||
-      cp->kind == (a_constant_repr_kind)ck_address ||
-      cp->kind == (a_constant_repr_kind)ck_ptr_to_member ||
-      cp->kind == (a_constant_repr_kind)ck_template_param) {
+  if (constant_is(cp, ck_integer) ||
+      constant_is(cp, ck_address) ||
+      constant_is(cp, ck_ptr_to_member) ||
+      constant_is(cp, ck_template_param)) {
     /* Work the type into the hash.  This is important when you have lots of
        NULL pointer constants for a lot of different types. */
     hash_value += hash_type(cp->type);
@@ -8807,7 +8823,7 @@ definition of the CC flags in il.h for more information.
     same_types = (cp1_type == cp2_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (
-         cli_or_cx_enabled && cp1->kind == (a_constant_repr_kind)ck_address &&
+         cli_or_cx_enabled && constant_is(cp1, ck_address) &&
          (cp1->variant.address.kind == (an_address_base_kind)abk_cli_array ||
           cp2->variant.address.kind == (an_address_base_kind)abk_cli_array)) {
     /* C++/CLI array constants, which are only valid in C++/CLI custom
@@ -8826,7 +8842,7 @@ definition of the CC flags in il.h for more information.
     /* For address constants, compare the types underneath the pointer
        types so that address of a[] and address of a[3] are considered
        compatible. */
-    if (cp1->kind == (a_constant_repr_kind)ck_address &&
+    if (constant_is(cp1, ck_address) &&
         cp1->variant.address.kind == (an_address_base_kind)abk_variable &&
         cp2->variant.address.kind == (an_address_base_kind)abk_variable &&
         !cp1->implicit_cast &&
@@ -8882,7 +8898,7 @@ definition of the CC flags in il.h for more information.
     /* strictly_identical is TRUE. */
     /* The types must be pointer-identical. */
     same_types = same_entities(cp1_type, cp2_type);
-    if (!same_types && cp1->kind == (a_constant_repr_kind)ck_string &&
+    if (!same_types && constant_is(cp1, ck_string) &&
         identical_types_full(cp1_type, cp2_type, itf_options)) {
       /* ... except that for string constants we allow type equivalence,
          because for strings with length greater than
@@ -9165,10 +9181,11 @@ definition of the CC flags in il.h for more information.
               }  /* if */
               break;
             case tpck_address:
-              eq = compare_constants(cp1->variant.template_param.variant.
-                                                                      constant,
-                                     cp2->variant.template_param.variant.
-                                                                      constant,
+            case tpck_dependent_constant:
+              eq = compare_constants(cp1->variant.template_param
+                                         .variant.constant,
+                                     cp2->variant.template_param
+                                         .variant.constant,
                                      options);
               break;
             case tpck_sizeof:
@@ -9619,8 +9636,9 @@ at the file scope (it would contain a pointer down into a function scope).
                        !in_file_scope(cp->variant.template_param.variant.expr);
           break;
         case tpck_address:
-          has_nfs_ref =
-           has_non_file_scope_ref(cp->variant.template_param.variant.constant);
+        case tpck_dependent_constant:
+          has_nfs_ref = has_non_file_scope_ref(cp->variant.template_param
+                                                  .variant.constant);
           break;
         case tpck_sizeof:
         case tpck_datasizeof:
@@ -22247,13 +22265,24 @@ options.
             if (bound_copy == NULL) {
               bound_copy = alloc_unshared_constant(constant);
             }  /* if */
-            con_copy = fs_constant((a_constant_repr_kind)ck_template_param);
+            con_copy = fs_constant(ck_template_param);
             set_template_param_constant_kind(
-                  con_copy, (a_template_param_constant_kind)tpck_integer_pack);
+                  con_copy, tpck_integer_pack);
             con_copy->type = bound_copy->type;
             con_copy->variant.template_param.variant.bound = bound_copy;
           }  /* if */
         }
+        break;
+      case tpck_dependent_constant:
+        /* The wrapper is only present to force the constant to be treated as
+           dependent before substitution.  Once substitution is requested, use
+           the wrapped constant, applying any substitutions needed by its
+           type. */
+        con_copy = copy_template_param_con(
+                                 con->variant.template_param.variant.constant,
+                                 template_arg_list, template_param_list,
+                                 guide_type, source_pos, options, copy_error,
+                                 ctws_state, constant);
         break;
       default:
         unexpected_condition_str("copy_template_param_con: unexpected kind");
