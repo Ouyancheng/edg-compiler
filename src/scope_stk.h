@@ -2191,16 +2191,28 @@ EXTERN_THREAD a_scope_depth
 		depth_innermost_function_scope;
 			/* Level in the scope stack that contains the innermost
 			   function scope, or NO_SCOPE_DEPTH if there isn't
-			   one. */
+			   one.
+
+			   Note that this is reset when entering local
+			   classes; code that needs to observe the true
+			   innermost function scope should instead use
+			   get_depth_innermost_function_scope(). */
 EXTERN_THREAD a_scope_ptr
 		innermost_function_scope;
 			/* The innermost function scope, or NULL if there isn't
-			   one.  Usually matches
-			   depth_innermost_function_scope, but can be
-			   different in situations where a function is being
-			   processed where no scope stack entry exists
-			   (e.g., in IL lowering, when routines are
-			   generated). */
+			   one.
+
+			   Typically, this matches
+			   depth_innermost_function_scope, but can be different
+			   in situations where a function is being processed
+			   where no scope stack entry exists (e.g., in IL
+			   lowering, when routines are generated).
+
+			   Like depth_innermost_function_scope, this is reset
+			   when entering local classes; code that needs to
+			   observe the true innermost function scope must use
+			   get_innermost_function_scope() and access the scope
+			   stack directly.  */
 EXTERN_THREAD a_scope_depth
 		depth_innermost_instantiation_scope;
 			/* If there are template instantiation scopes on the

@@ -843,7 +843,7 @@ there is additional processing to be done.
       /* Verify that the constructed IL pragma can be found. */
       { a_pragma_ptr                npp = NULL;
         a_boolean                   tu_pushed = FALSE;
-        a_scope_ptr                 scope_for_function_local;
+        a_scope_ptr                 scope_for_function_local = NULL;
         a_source_correspondence_ptr scp =
                                        source_corresp_for_il_entry(entity_ptr,
                                                                   entity_kind);
@@ -852,13 +852,14 @@ there is additional processing to be done.
 
           tu_pushed = push_translation_unit_if_needed(sym);
         }  /* if */
-        if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-            is_template_declaration_context()) {
+
+        a_scope_depth func_scope_depth = get_depth_innermost_function_scope();
+        if (func_scope_depth != NO_SCOPE_DEPTH) {
+          scope_for_function_local = scope_stack[func_scope_depth].il_scope;
+        } else if (is_template_declaration_context()) {
           check_assertion(depth_template_declaration_scope != NO_SCOPE_DEPTH);
           scope_for_function_local =
                         scope_stack[depth_template_declaration_scope].il_scope;
-        } else {
-          scope_for_function_local = innermost_function_scope;
         }  /* if */
         do {
           npp = find_assoc_pragma(entity_ptr, entity_kind,

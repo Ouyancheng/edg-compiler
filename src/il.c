@@ -27684,8 +27684,9 @@ pragma), is_microsoft_pragma_operator (if the pragma is a Microsoft pragma
 operator), and associated IL entity.  Then, the constructed pragma is added to
 the appropriate scope so that it can be retrieved by find_assoc_pragma later.
 
-Note that if called with a function-local entity, innermost_function_scope and
-depth_template_declaration_scope must be set appropriately.
+Note that if called with a function-local entity, the scope stack for
+get_depth_innermost_function_scope() and depth_template_declaration_scope must
+be set appropriately.
 */
 {
   a_boolean                   tu_pushed = FALSE;
@@ -27700,16 +27701,17 @@ depth_template_declaration_scope must be set appropriately.
     tu_pushed = push_translation_unit_if_needed(sym);
   }  /* if */
 
-  a_scope_ptr                 il_scope;
-  a_scope_pointers_block_ptr  pointers_block;
-  a_scope_ptr                 scope_for_function_local;
-  if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-      is_template_declaration_context()) {
+  a_scope_ptr                il_scope;
+  a_scope_pointers_block_ptr pointers_block;
+  a_scope_ptr                scope_for_function_local = NULL;
+  a_scope_depth              func_scope_depth =
+                                          get_depth_innermost_function_scope();
+  if (func_scope_depth != NO_SCOPE_DEPTH) {
+    scope_for_function_local = scope_stack[func_scope_depth].il_scope;
+  } else if (is_template_declaration_context()) {
     check_assertion(depth_template_declaration_scope != NO_SCOPE_DEPTH);
     scope_for_function_local =
                         scope_stack[depth_template_declaration_scope].il_scope;
-  } else {
-    scope_for_function_local = innermost_function_scope;
   }  /* if */
   find_scope_for_entity_pragmas(entity_ptr, entity_kind, scp,
                                 scope_for_function_local,
