@@ -1,5 +1,12 @@
 Version 6.9
 
+5/7/26   [EDGcpfe/28835]
+GNU compatibility: GCC 16.1 builtins
+
+The front end has been updated with the latest builtin signatures from GCC
+version 16.1.
+
+
 5/6/26   [EDGcpfe/28831]
 Spurious error on use of __FUNCSIG__ in template
 
