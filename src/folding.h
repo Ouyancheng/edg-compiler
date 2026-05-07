@@ -60,7 +60,7 @@ extern a_boolean constant_bool_value_known_at_compile_time(a_constant_ptr con);
 extern void make_template_param_expr_constant(an_expr_node_ptr node,
                                               a_constant       *con);
 
-extern void force_constant_to_be_dependent(a_constant  *constant);
+extern void force_constant_to_be_dependent(a_constant  *con);
 
 extern void make_template_param_cast_constant(a_constant  *old_constant,
                                               a_constant  *new_constant,

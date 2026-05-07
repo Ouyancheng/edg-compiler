@@ -187,20 +187,20 @@ expression.
 }  /* make_template_param_expr_constant */
 
 
-void force_constant_to_be_dependent(a_constant  *constant)
+void force_constant_to_be_dependent(a_constant  *con)
 /*
 Force the indicated constant to appear template-dependent by wrapping it in a
 ck_template_param constant.
 */
 {
-  a_constant_ptr    wrapped_constant = alloc_shareable_constant(constant);
-  a_character_kind  character_kind = constant->character_kind;
+  a_constant_ptr    wrapped_constant = alloc_shareable_constant(con);
+  a_character_kind  character_kind = (a_character_kind)con->character_kind;
 
-  clear_constant(constant, ck_template_param);
-  set_template_param_constant_kind(constant, tpck_dependent_constant);
-  constant->variant.template_param.variant.constant = wrapped_constant;
-  constant->type = wrapped_constant->type;
-  constant->character_kind = character_kind;
+  clear_constant(con, ck_template_param);
+  set_template_param_constant_kind(con, tpck_dependent_constant);
+  con->variant.template_param.variant.constant = wrapped_constant;
+  con->type = wrapped_constant->type;
+  con->character_kind = character_kind;
 }  /* force_constant_to_be_dependent */
 
 
