@@ -8487,6 +8487,37 @@ tail padding in the allocation, mark the field accordingly.
 
 #endif /* IA64_ABI */
 
+a_field_ptr corresponding_subobject_au_field(a_type_ptr  subobject_type,
+                                             a_field_ptr complete_au_field)
+/*
+Given a subobject class (subobject_type) return the field in that class that
+corresponds to the complete_au_field (a field in the complete class).
+*/
+{
+  a_field_ptr complete_field, subobject_field, result = NULL;
+  a_type_ptr  complete_type =
+                       orig_class_for_potential_subobject_type(subobject_type);
+
+  for (complete_field = complete_type->variant.class_struct_union.field_list,
+       subobject_field = subobject_type->variant.class_struct_union.field_list;
+       complete_field != NULL;
+       complete_field = complete_field->next,
+       subobject_field = subobject_field->next) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (field_is_nontrivial_property_or_event(complete_field)) {
+      /* These were skipped when the subobject type was created. */
+      continue;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (complete_field == complete_au_field) {
+      result = subobject_field;
+    }  /* if */
+  }  /* for */
+  check_assertion(result != NULL && result->source_corresp.name == NULL);
+  return result;
+}  /* corresponding_subobject_au_field */
+
+
 static void make_subobject_class_type(a_type_ptr class_type)
 /*
 Make a version of the indicated class type that is suitable for use when

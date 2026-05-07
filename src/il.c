@@ -24577,26 +24577,37 @@ rest.
   op2 = op1->next;
   /* Determine the underlying class type for the first operand so we can
      know what qualifiers to add to the intermediate result. */
-  if (op == (an_expr_operator_kind)eok_dot_field) {
+  if (op == eok_dot_field) {
     new_selection_type = op1->type;
   } else {
-    check_assertion(op == (an_expr_operator_kind)eok_points_to_field);
+    check_assertion(op == eok_points_to_field);
     if (is_pointer_type(op1->type)) {
       new_selection_type = type_pointed_to(op1->type);
     } else {
       new_selection_type = error_type();
     }  /* if */
   }  /* if */
-  new_selection_type = type_plus_qualifiers_from_second_type(
-                                           au_field->type, new_selection_type);
-  au_field_node = alloc_expr_node((an_expr_node_kind)enk_field);
+#if DO_IL_LOWERING
+  if (il_lowering_underway &&
+      is_a_unique_subobject_type(skip_typerefs(new_selection_type))) {
+    /* If we're selecting a field from a subobject type, make sure we use
+       the correct field in the subobject (au_field currently specifies the
+       field in the complete type). */
+    au_field = corresponding_subobject_au_field(
+                                             skip_typerefs(new_selection_type),
+                                             au_field);
+  }  /* if */
+#endif /* DO_IL_LOWERING */
+  new_selection_type = type_plus_qualifiers_from_second_type(au_field->type,
+                                                           new_selection_type);
+  au_field_node = alloc_expr_node(enk_field);
   au_field_node->type = au_field->type;
   node_field(au_field_node) = au_field;
   op1->next = au_field_node;
   new_op1 = make_operator_node(node->variant.operation.kind,
                                new_selection_type, op1);
   /* Assign the appropriate value category to the new node. */
-  if (op == (an_expr_operator_kind)eok_dot_field) {
+  if (op == eok_dot_field) {
     copy_node_value_category(op1, new_op1);
   } else {
     new_op1->is_lvalue = TRUE;
@@ -24605,7 +24616,7 @@ rest.
   /* Attach the new selection to the original selection. */
   new_op1->next = op2;
   node->variant.operation.operands = new_op1;
-  node->variant.operation.kind = (an_expr_operator_kind)eok_dot_field;
+  node->variant.operation.kind = eok_dot_field;
 }  /* adjust_anonymous_union_field_selection */
 
 

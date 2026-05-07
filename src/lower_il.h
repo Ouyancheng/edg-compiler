@@ -878,6 +878,18 @@ type that was generated during pre-lowering.
                                    ->subobject_partner)->has_subobject_type), \
        class_type_supp((class))->subobject_partner)))
 
+/*
+Returns TRUE if the specified class is a subobject type (and is not a "trivial"
+subobject type -- i.e., it differs from the complete class type).
+*/
+#define is_a_unique_subobject_type(class)                                     \
+  (!class_type_supp(class)->has_subobject_type &&                             \
+   class_type_supp(class)->subobject_partner != NULL &&                       \
+   class_type_supp(class)->subobject_partner != (class))
+
+extern a_field_ptr corresponding_subobject_au_field(
+                                                a_type_ptr  subobject_type,
+                                                a_field_ptr complete_au_field);
 
 extern a_boolean il_lowering_needed(void);
 
