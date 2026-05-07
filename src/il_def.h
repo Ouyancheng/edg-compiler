@@ -4439,10 +4439,14 @@ enum a_template_param_constant_kind : a_byte {
 			   "__integer_pack(N)..." construct. */
   tpck_destructor,	/* The template param constant represents a destructor
 			   of a nonreal class. */
-  tpck_dependent_constant
+  tpck_dependent_constant,
 			/* The template param constant wraps a non-dependent
 			   constant to cause it to be treated as template-
 			   dependent. */
+  tpck_concat_string_literals
+			/* The template param constant represents the
+			   concatenation of string literal constants, at least
+			   one of which is dependent. */
 };
 
 
@@ -5423,6 +5427,13 @@ typedef struct a_constant {
 			/* For tpck_address, the member whose address is being
 			   taken.  For tpck_dependent_constant, the
 			   non-dependent constant being wrapped. */
+        /* When template param constant kind == tpck_concat_string_literals: */
+        a_constant_ptr
+		string_literal_list;
+			/* A list of constants representing the string literals
+			   being concatenated.  Each entry is a ck_string or a
+			   ck_template_param/tpck_dependent_constant wrapping a
+			   ck_string. */
         /* When template param constant kind == tpck_sizeof, tpck_datasizeof,
            tpck_alignof, tpck_uuidof, tpck_typeid, or tpck_noexcept: */
         struct {

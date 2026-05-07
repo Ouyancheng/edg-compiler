@@ -2424,6 +2424,25 @@ is finally known.)
 }  /* conv_string_literal */
 
 
+static void add_string_literal_concat_part(a_constant     *con,
+                                           a_constant_ptr *p_first_con,
+                                           a_constant_ptr *p_last_con)
+/*
+Add a copy of con to the list of constants for a dependent string literal
+concatenation.
+*/
+{
+  a_constant_ptr new_con = alloc_unshared_constant(con);
+
+  if (*p_last_con == NULL) {
+    *p_first_con = new_con;
+  } else {
+    (*p_last_con)->next = new_con;
+  }  /* if */
+  *p_last_con = new_con;
+}  /* add_string_literal_concat_part */
+
+
 void concat_string_literals(a_token_cache_ptr      cache,
                             a_character_kind       character_kind,
           /* Defaulted: */  a_token_cache_iterator *first_token)
@@ -2451,6 +2470,7 @@ a mix of the given kind and chk_char.
   char                          *new_str;
   a_const_char                  *saved_curr_char_loc = curr_char_loc;
   a_string_or_char_literal_kind lit_kind;
+  a_boolean                     dependent_concat = FALSE;
 
   db_enter(4, "concat_string_literals");
   if (character_kind != chk_char) {
@@ -2486,7 +2506,7 @@ a mix of the given kind and chk_char.
       first_string_token = tok_it;
     }  /* if */
 
-    const a_constant *con = tok->get_constant();
+    const a_constant *con = tok->get_constant(), *str_con = con;
     if (is_error_constant(con)) {
       /* If any constant is an error constant, the overall concatenation
          will be an error constant. */
@@ -2494,12 +2514,17 @@ a mix of the given kind and chk_char.
       break;
     } else {
       /* String constant. */
-      check_assertion_str(con->kind == (a_constant_repr_kind)ck_string,
+      if (constant_is(con, ck_template_param) &&
+          tpck_is(con, tpck_dependent_constant)) {
+        dependent_concat = TRUE;
+        str_con = con->variant.template_param.variant.constant;
+      }  /* if */
+      check_assertion_str(constant_is(str_con, ck_string),
                           "concat_string_literals: constant not ck_string");
       /* Determine the length of this string literal. */
-      str_len = con->variant.string.length;
-      if (con->character_kind != character_kind) {
-        if (con->character_kind != (a_character_kind)chk_char) {
+      str_len = str_con->variant.string.length;
+      if (str_con->character_kind != character_kind) {
+        if (str_con->character_kind != chk_char) {
           /* An attempt to concatenate two different string kinds, neither of
              which is a plain (narrow) string.  This is an error. */
           produce_error_constant = TRUE;
@@ -2530,6 +2555,21 @@ a mix of the given kind and chk_char.
        strings were of incompatible kinds (e.g., L"a" U"b"), so return
        an error constant. */
     set_error_constant(concat_con);
+  } else if (dependent_concat) {
+    a_constant_ptr first_con = NULL, last_con = NULL;
+    a_token_cache_iterator con_tok_it = first_string_token;
+    for (; con_tok_it != tok_it_end; ++con_tok_it) {
+      const a_shared_token &tok = *con_tok_it;
+
+      if (tok->is_pragma()) continue;
+      add_string_literal_concat_part(tok->get_constant(),
+                                     &first_con, &last_con);
+    }  /* for */
+    clear_constant(concat_con, ck_template_param);
+    set_template_param_constant_kind(concat_con, tpck_concat_string_literals);
+    concat_con->type = string_literal_type(character_kind, total_len/null_len);
+    concat_con->character_kind = character_kind;
+    concat_con->variant.template_param.variant.string_literal_list = first_con;
   } else {
     /* No error constants, so do the concatenation. */
     /* Allocate enough space for the concatenation. */

@@ -753,6 +753,9 @@ ck_template_param constant.
     case tpck_address:
       cp->variant.template_param.variant.constant = NULL;
       break;
+    case tpck_concat_string_literals:
+      cp->variant.template_param.variant.string_literal_list = NULL;
+      break;
     case tpck_sizeof:
     case tpck_datasizeof:
     case tpck_alignof:

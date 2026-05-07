@@ -2014,6 +2014,8 @@ Dump the contents of the indicated constant, for debug purposes.
         fprintf(f_debug, "tpck_expression ");
       } else if (tpck_is(cp, tpck_dependent_constant)) {
         fprintf(f_debug, "tpck_dependent_constant ");
+      } else if (tpck_is(cp, tpck_concat_string_literals)) {
+        fprintf(f_debug, "tpck_concat_string_literals ");
       }  /* if */
     }  /* if */
 
@@ -6930,6 +6932,24 @@ copy_constant_full should be called to start a copy.
                          (a_constant *)NULL,
                          options, cblock);
         break;
+      case tpck_concat_string_literals:
+        { a_constant_ptr  old_list = old_constant->variant.template_param
+                                                  .variant.string_literal_list,
+                          new_list = NULL, last_con = NULL, new_con;
+          for (; old_list != NULL; old_list = old_list->next) {
+            new_con = i_copy_constant_full(old_list, (a_constant*)NULL,
+                                           options, cblock);
+            if (last_con == NULL) {
+              new_list = new_con;
+            } else {
+              last_con->next = new_con;
+            }  /* if */
+            last_con = new_con;
+          }  /* for */
+          new_constant->variant.template_param.variant.string_literal_list =
+                                                                     new_list;
+        }
+        break;
       case tpck_sizeof:
       case tpck_datasizeof:
       case tpck_alignof:
@@ -7837,6 +7857,15 @@ Return the hash value for the indicated constant.
         case tpck_dependent_constant:
           hash_value += 17 + hash_constant(
                                   cp->variant.template_param.variant.constant);
+          break;
+        case tpck_concat_string_literals:
+          { a_constant_ptr  elem_cp = cp->variant.template_param
+                                         .variant.string_literal_list;
+            hash_value += 23;
+            for (; elem_cp != NULL; elem_cp = elem_cp->next) {
+              hash_value = 37*hash_value + hash_constant(elem_cp);
+            }  /* for */
+          }
           break;
         case tpck_sizeof:
         case tpck_datasizeof:
@@ -9188,6 +9217,13 @@ definition of the CC flags in il.h for more information.
                                          .variant.constant,
                                      options);
               break;
+            case tpck_concat_string_literals:
+              eq = compare_constants_list(cp1->variant.template_param
+                                              .variant.string_literal_list,
+                                          cp2->variant.template_param
+                                              .variant.string_literal_list,
+                                          options);
+              break;
             case tpck_sizeof:
             case tpck_datasizeof:
             case tpck_alignof:
@@ -9639,6 +9675,17 @@ at the file scope (it would contain a pointer down into a function scope).
         case tpck_dependent_constant:
           has_nfs_ref = has_non_file_scope_ref(cp->variant.template_param
                                                   .variant.constant);
+          break;
+        case tpck_concat_string_literals:
+          { a_constant_ptr  elem_cp = cp->variant.template_param
+                                         .variant.string_literal_list;
+            for (; elem_cp != NULL; elem_cp = elem_cp->next) {
+              if (has_non_file_scope_ref(elem_cp)) {
+                has_nfs_ref = TRUE;
+                break;
+              }  /* if */
+            }  /* for */
+          }
           break;
         case tpck_sizeof:
         case tpck_datasizeof:
@@ -22283,6 +22330,44 @@ options.
                                  template_arg_list, template_param_list,
                                  guide_type, source_pos, options, copy_error,
                                  ctws_state, constant);
+        break;
+      case tpck_concat_string_literals:
+        { a_constant_ptr  old_con = con->variant.template_param
+                                        .variant.string_literal_list,
+                          new_list = NULL, last_con = NULL;
+          for (; old_con != NULL && !*copy_error; old_con = old_con->next) {
+            a_constant_ptr  new_con;
+            if (constant_is(old_con, ck_template_param)) {
+              new_con = copy_template_param_con(old_con, template_arg_list,
+                                                template_param_list,
+                                                guide_type, source_pos,
+                                                options, copy_error,
+                                                ctws_state, constant);
+              if (!*copy_error && new_con == NULL) {
+                new_con = alloc_unshared_constant(constant);
+              }  /* if */
+            } else {
+              new_con = alloc_unshared_constant(old_con);
+            }  /* if */
+            if (!*copy_error) {
+              if (last_con == NULL) {
+                new_list = new_con;
+              } else {
+                last_con->next = new_con;
+              }  /* if */
+              last_con = new_con;
+            }  /* if */
+          }  /* for */
+          if (!*copy_error) {
+            con_copy = fs_constant(ck_template_param);
+            set_template_param_constant_kind(con_copy,
+                                             tpck_concat_string_literals);
+            con_copy->type = con->type;
+            con_copy->character_kind = con->character_kind;
+            con_copy->variant.template_param.variant.string_literal_list =
+                                                                     new_list;
+          }  /* if */
+        }
         break;
       default:
         unexpected_condition_str("copy_template_param_con: unexpected kind");

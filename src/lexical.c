@@ -15883,8 +15883,12 @@ tok_ud_literal; otherwise, return tok_string_literal.
       check_assertion(function_name_case);
       lit_kind = SCLK_ORDINARY_STRING_LITERAL;
     }  /* if */
-  } else {
+  } else if (constant_is(&const_for_curr_token, ck_string)) {
     lit_kind = const_for_curr_token.variant.string.literal_kind;
+  } else {
+    check_assertion(function_name_case &&
+                    constant_is(&const_for_curr_token, ck_template_param));
+    lit_kind = SCLK_ORDINARY_STRING_LITERAL;
   }  /* if */
   encoding = literal_encoding_prefix(lit_kind);
   raw_string_seen = (lit_kind & SCLK_RAW_STRING_LITERAL) != 0;
@@ -15965,7 +15969,9 @@ tok_ud_literal; otherwise, return tok_string_literal.
     }  /* if */
     /* Save the current token (a string literal) by adding it to the token
        cache. */
-    const_for_curr_token.variant.string.literal_kind = lit_kind;
+    if (constant_is(&const_for_curr_token, ck_string)) {
+      const_for_curr_token.variant.string.literal_kind = lit_kind;
+    }  /* if */
     cache_curr_token(cache.ptr());
     /* Clear the current token's pragmas so that they don't get processed by
        the get_token call below. */
@@ -16003,6 +16009,12 @@ tok_ud_literal; otherwise, return tok_string_literal.
     }  /* if */
     if (start_of_curr_token != NULL) {
       lit_kind = scan_encoding_prefix(start_of_curr_token);
+      if (lit_kind == SCLK_NOT_A_LITERAL) {
+        /* This must be one of the function name identifiers.  Treat it as
+           an ordinary character string literal. */
+        check_assertion(function_name_case);
+        lit_kind = SCLK_ORDINARY_STRING_LITERAL;
+      }  /* if */
       next_encoding = literal_encoding_prefix(lit_kind);
       if (lit_kind & SCLK_RAW_STRING_LITERAL) {
         raw_string_seen = TRUE;
@@ -16068,9 +16080,11 @@ tok_ud_literal; otherwise, return tok_string_literal.
   /* Pop the lexical state pushed by this routine. */
   pop_lexical_state_stack();
   if (!is_error_constant(&const_for_curr_token)) {
-    const_for_curr_token.variant.string.literal_kind =
+    if (constant_is(&const_for_curr_token, ck_string)) {
+      const_for_curr_token.variant.string.literal_kind =
                                                 encoding | SCLK_STRING_LITERAL;
-    if (raw_string_seen) {
+    }  /* if */
+    if (raw_string_seen && constant_is(&const_for_curr_token, ck_string)) {
       /* Although whether any of the literals was raw does not affect the
          final value of the constant, we need to recall whether a raw string
          was seen in order to exclude something like

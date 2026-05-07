@@ -7367,6 +7367,15 @@ precedence confusion.  Do the output in the way described by octl.
           form_constant(constant->variant.template_param.variant.constant,
                         need_parens, octl);
           break;
+        case tpck_concat_string_literals:
+          { a_constant_ptr  elem_cp = constant->variant.template_param
+                                               .variant.string_literal_list;
+            for (; elem_cp != NULL; elem_cp = elem_cp->next) {
+              form_constant(elem_cp, /*need_parens=*/FALSE, octl);
+              if (elem_cp->next != NULL) octl->output_str(" ", octl);
+            }  /* for */
+          }
+          break;
         case tpck_address:
           if (need_parens) octl->output_str("(", octl);
           octl->output_str("&", octl);

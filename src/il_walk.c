@@ -3005,9 +3005,18 @@ it's the initializer for an aggregate.
             break;
           case tpck_address:
           case tpck_dependent_constant:
-            traverse_constant(constant->
-                                       variant.template_param.variant.constant,
+            traverse_constant(constant->variant.template_param
+                                       .variant.constant,
                               tblock);
+            break;
+          case tpck_concat_string_literals:
+            { a_constant_ptr  elem_cp = constant->variant.template_param
+                                                 .variant.string_literal_list;
+              for (; elem_cp != NULL; elem_cp = elem_cp->next) {
+                traverse_constant(elem_cp, tblock);
+                if (tblock->terminate) goto end_of_routine;
+              }  /* for */
+            }
             break;
           case tpck_template_ref:
             traverse_constant(constant->

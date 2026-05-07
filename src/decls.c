@@ -15416,6 +15416,7 @@ final token.
       syntax_error(ec_exp_string_literal);
       err = TRUE;
     } else {
+      (void)do_expression_level_string_literal_concatenation();
       error_string = alloc_shareable_constant(&const_for_curr_token);
       (void)get_token();
     }  /* if */

@@ -1,5 +1,19 @@
 Version 6.9
 
+5/7/26   [EDGcpfe/26684,EDGcpfe/27846]
+Microsoft compatibility: Concatenation with __FUNCSIG__
+
+In Microsoft mode, the front end now accepts code such as
+
+  int main() {
+    static_assert(true, " " __FUNCSIG__);
+  }
+
+where __FUNCSIG__ is handled as a string literal that can be concatenated
+similarly to ordinary preprocessing string literals (however, that
+concatenation is handled at the expression level).
+
+
 5/7/26   [EDGcpfe/13839,EDGcpfe/22461,EDGcpfe/28774]
 Incorrect field used for anonymous unions in lowered subobject classes
 

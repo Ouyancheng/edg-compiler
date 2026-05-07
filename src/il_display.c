@@ -1149,6 +1149,15 @@ Display a ck_template_param constant.
                (char *)ptr->variant.template_param.variant.constant,
                iek_constant);
       break;
+    case tpck_concat_string_literals:
+      (void)fprintf(f_display, "tpck_concat_string_literals\n");
+      { a_constant_ptr list_con =
+              ptr->variant.template_param.variant.string_literal_list;
+        for (; list_con != NULL; list_con = list_con->next) {
+          disp_ptr("string_literal", (char *)list_con, iek_constant);
+        }  /* for */
+      }
+      break;
     case tpck_address:
       (void)fprintf(f_display, "tpck_address\n");
       disp_ptr("constant",

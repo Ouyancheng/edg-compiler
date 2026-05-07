@@ -4755,6 +4755,16 @@ do_unknown_function:
                                  suppress_address_of,
                                  mctl);
           break;
+        case tpck_concat_string_literals:
+          { a_constant_ptr  elem_cp = con->variant.template_param
+                                          .variant.string_literal_list;
+            for (; elem_cp != NULL; elem_cp = elem_cp->next) {
+              literal_representation(elem_cp, old_form,
+                                     /*in_dependent_expr=*/TRUE,
+                                     suppress_address_of, mctl);
+            }  /* for */
+          }
+          break;
         case tpck_address:
 #if !IA64_ABI
           /* For an address, just mangle the member name. */
@@ -5457,8 +5467,9 @@ dependent.
     /* Don't look under a sizeof, alignof, typeid, or noexcept. */
     tblock->suppress_subtree_walk = TRUE;
   } else if (constant_is(con, ck_template_param) &&
-             tpck_is(con, tpck_dependent_constant)) {
-    /* This wrapper explicitly makes the constant dependent. */
+             (tpck_is(con, tpck_dependent_constant) ||
+              tpck_is(con, tpck_concat_string_literals))) {
+    /* These wrappers explicitly make the constant dependent. */
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   } else if (is_template_dependent_type(con->type)) {

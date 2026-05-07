@@ -999,6 +999,11 @@ handle_next_entry:
                 walk_ptr(eptr->variant.template_param.variant.constant,
                          a_constant_ptr, iek_constant);
                 break;
+              case tpck_concat_string_literals:
+                walk_list(eptr->variant.template_param
+                               .variant.string_literal_list,
+                          a_constant_ptr, iek_constant);
+                break;
               case tpck_sizeof:
               case tpck_datasizeof:
               case tpck_alignof:
