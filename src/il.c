@@ -20088,6 +20088,37 @@ done:
 }  /* is_valid_object_for_nontype_arg */
 
 
+static a_constant_ptr nontype_arg_base_constant(a_constant_ptr con)
+/*
+If con is a template parameter constant used as a template argument but an
+underlying ("base") constant should be used to check if it is valid as a
+template argument, return that underlying constant.  Otherwise return con.
+*/
+{
+  a_constant_ptr  base_con = con;
+
+  if (constant_is(con, ck_template_param)) {
+    a_boolean  explicit_cast;
+    if (tpck_is(con, tpck_expression) &&
+        !is_template_param_cast_constant(con, &base_con, &explicit_cast)) {
+      an_expr_node_ptr  expr = expr_node_from_tpck_expression(con);
+      if (expr != NULL && is_operation_node(expr) &&
+          node_operator_is(expr, eok_array_to_pointer)) {
+        an_expr_node_ptr  opnd = expr->variant.operation.operands;
+        if (is_constant_node(opnd)) {
+          base_con = node_constant(opnd);
+        }  /* if */
+      }  /* if */
+    } else if (tpck_is(con, tpck_dependent_constant)) {
+      base_con = con->variant.template_param.variant.constant;
+    } else if (tpck_is(con, tpck_concat_string_literals)) {
+      base_con = con->variant.template_param.variant.string_literal_list;
+    }  /* if */
+  }  /* if */
+  return base_con;
+}  /* nontype_arg_base_constant */
+
+
 a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(a_constant_ptr  con)
 /*
 Return TRUE if the given constant represents a valid pointer or pointer-to-
@@ -20103,6 +20134,11 @@ member template argument.
      generally, "null pointer values" (which can result from casting a null
      pointer constant to a pointer type).  Microsoft compilers also allow
      things like "&typeid(X)" and "&__uuidof(X)". */
+  while (constant_is(con, ck_template_param)) {
+    a_constant_ptr  base_con = nontype_arg_base_constant(con);
+    if (base_con == con) break;
+    con = base_con;
+  }  /* while */
   if (constant_is(con, ck_template_param)) {
     result = TRUE;
   } else if (is_null_pointer_constant(con)) {
