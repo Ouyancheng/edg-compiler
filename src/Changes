@@ -1,5 +1,28 @@
 Version 6.9
 
+5/8/26   [EDGcpfe/28295]
+Class template argument deduction from default template argument
+
+Consider, in C++20 mode:
+
+  template<int N> struct CTStr {
+    constexpr CTStr(char const (&)[N]) {}
+    void func() const {}
+  };
+  template<CTStr Name = ""> struct S {
+    void f() const {
+      Name.func();
+    }
+  };
+  int main(){
+    S{}.f();
+  }
+
+Previously, the front end mistakenly deduced a type char const* instead of
+CTStr<1> for the deduced template argument of S in S{}.  In turn, this
+triggered a spurious error on the call Name.func().  That is now fixed.
+
+
 5/7/26   [EDGcpfe/26684,EDGcpfe/27846]
 Microsoft compatibility: Concatenation with __FUNCSIG__
 

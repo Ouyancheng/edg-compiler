@@ -28275,18 +28275,19 @@ represents the associated concept template.
 }  /* scan_type_template_param */
 
 
-static void scan_nontype_template_param_default_arg(
-						a_template_param_ptr	tpp)
+static void scan_nontype_template_param_default_arg(a_template_param_ptr  tpp)
 /*
 Scan the default argument of the nontype template parameter specified by tpp.
 */
 {
-  a_constant_ptr	default_arg_constant;
-  a_type_ptr		param_type_ptr;
+  a_constant_ptr  default_arg_constant;
+  a_type_ptr      param_type_ptr;
 
   /* Get the type of the template argument. */
   param_type_ptr = tpp->param_symbol->variant.constant->type;
   if (is_template_dependent_type(param_type_ptr) &&
+      !is_class_template_placeholder_type(
+                                       find_bottom_of_type(param_type_ptr)) &&
       (!strict_ansi_mode ||
        is_auto_template_param_type(skip_typerefs(param_type_ptr)))) {
     /* Don't check default template arguments against dependent parameter types
@@ -28299,7 +28300,7 @@ Scan the default argument of the nontype template parameter specified by tpp.
     */
     param_type_ptr = NULL;
   }  /* if */
-  default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
+  default_arg_constant = fs_constant(ck_error);
   scan_template_argument_constant_expression(param_type_ptr,
                                              default_arg_constant);
   /* If the constant has an associated expression, eliminate it so
