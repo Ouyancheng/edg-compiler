@@ -67,7 +67,8 @@ version 16.1.
 5/6/26   [EDGcpfe/28831]
 Spurious error on use of __FUNCSIG__ in template
 
-Consider, in Microsoft C++ mode:
+Consider, in Microsoft C++ mode with --parse_templates (or other options
+forcing the parsing of function templates in their generic form):
 
   namespace Envir {
     namespace N {
