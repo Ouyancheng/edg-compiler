@@ -41946,8 +41946,12 @@ token following the operator, and should not be discarded.
       (void)get_token();
       err = TRUE;
     } else {
-      check_assertion(const_for_curr_token.kind ==
-                                              (a_constant_repr_kind)ck_string);
+      check_assertion(constant_is(&const_for_curr_token, ck_string) ||
+                      (constant_is(&const_for_curr_token, ck_template_param) &&
+                       (tpck_is(&const_for_curr_token,
+                                tpck_dependent_constant) ||
+                        tpck_is(&const_for_curr_token,
+                                tpck_concat_string_literals))));
       if (next_token() == tok_rparen && !err) {
         /* Everything looks good. */
         /* Save the string literal token so we can restore it below. */
