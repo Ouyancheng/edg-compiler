@@ -1,5 +1,32 @@
 Version 6.9
 
+5/9/26   [EDGcpfe/28837]
+C++-generating back end: invalid qualification of member function as nontype
+template argument
+
+As noted in the entry for EDGcpfe/12641, early versions of g++ had a bug
+that required a member function name used in a nontype template argument to
+be written as a qualified-id, and the C++-generating back end was modified
+always to use a qualified name in such contexts.  However, it is not always
+possible to produce a valid qualified-id for member functions of class
+templates; for example, given
+
+  template<int> struct A { };
+  template<class> struct B {    // template parameter is unnamed
+    static constexpr int f() { return 0; }
+    void g(int B) {  // Function parameter B hides the injected-class-name B
+      A<f()>{};      // Previously generated as A<::B::f()>, since the template
+                     // parameter for B cannot be named
+    }
+  };
+
+with --c++17 --clang_version=190100, the generated code could not be
+compiled.  Since the g++ bug requiring use of a qualified-id was fixed in
+gcc version 6.1, the C++-generating back end now only forces generation of
+a qualified-id when gcc_is_generated_code_target and
+gnu_target_version_number is less than 60000.
+
+
 5/8/26   [EDGcpfe/28295]
 Class template argument deduction from default template argument
 

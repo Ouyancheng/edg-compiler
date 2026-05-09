@@ -6862,6 +6862,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         }  /* if */
         if (!global_qual_emitted && !is_templ_param_instance) {
           write_tok_str("::");
+          used_qualified_name = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9984,18 +9985,18 @@ Routine to be called by the il_to_str routines to output a name.
       options |= GN_FORCE_QUALIFIED_NAME;
       octl.force_qualified_name = FALSE;
     }  /* if */
-    if (gcc_or_clang_is_generated_code_target && kind == iek_routine &&
-        octl.processing_nontype_template_argument &&
-        scp->is_class_member &&
-        scp_parent_class(scp)->
+    if (gcc_is_generated_code_target && gnu_target_version_number < 60000 &&
+        kind == iek_routine && octl.processing_nontype_template_argument &&
+        scp->is_class_member && scp_parent_class(scp)->
                        variant.class_struct_union.is_prototype_instantiation &&
         class_is_in_name_context_stack(
                                   scp_parent_class(scp),
                                   /*include_base_classes=*/FALSE,
                                   /*ignore_field_selection_contexts=*/FALSE)) {
-      /* g++ has a bug that requires use of a qualified name when a member
-         function of a class template is used as a nontype template argument
-         within the scope of the class template. */
+      /* Early versions of g++ had a bug that required use of a qualified
+         name when a member function of a class template is used as a
+         nontype template argument within the scope of the class
+         template. */
       scp->qualification_needed = TRUE;
     }  /* if */
     gen_name((a_source_correspondence *)entry, kind, options,
