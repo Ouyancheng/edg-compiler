@@ -2193,9 +2193,9 @@ EXTERN_THREAD a_scope_depth
 			   function scope, or NO_SCOPE_DEPTH if there isn't
 			   one.
 
-			   Note that this is reset when entering local
-			   classes; code that needs to observe the true
-			   innermost function scope should instead use
+			   Note that this is reset when entering local classes;
+			   code that needs to observe the true innermost
+			   function scope should instead use
 			   get_depth_innermost_function_scope(). */
 EXTERN_THREAD a_scope_ptr
 		innermost_function_scope;

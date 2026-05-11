@@ -27724,7 +27724,7 @@ func_or_templ_scope scope can be NULL.
              (entity_scp != NULL && !in_file_scope(entity_scp))) {
     /* This is a pragma applied to either a statement or function local entity.
        These pragmas are associated with the innermost associated function
-       scoped. */
+       scope. */
     if (func_or_templ_scope == NULL) {
       /* GNU statement expressions in file or namespace scopes are stored in
          the file scope.  All other statements and entities should have a scope
