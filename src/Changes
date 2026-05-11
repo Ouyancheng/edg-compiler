@@ -22,29 +22,29 @@ constructors has its is_deduction_guide_from_inheriting_ctor flag set to TRUE.
 
 
 5/9/26   [EDGcpfe/28837]
-C++-generating back end: invalid qualification of member function as nontype
+C++-generating back end: invalid qualification of member function in nontype
 template argument
 
 As noted in the entry for EDGcpfe/12641, early versions of g++ had a bug
-that required a member function name used in a nontype template argument to
-be written as a qualified-id, and the C++-generating back end was modified
-always to use a qualified name in such contexts.  However, it is not always
-possible to produce a valid qualified-id for member functions of class
-templates; for example, given
+that required that a member function name used in a nontype template
+argument be written as a qualified-id, and the C++-generating back end was
+modified to use a qualified name in such contexts.  However, it is not
+always possible to produce a valid qualified-id for a member function of a
+class template.  For example, consider
 
   template<int> struct A { };
   template<class> struct B {    // template parameter is unnamed
     static constexpr int f() { return 0; }
     void g(int B) {  // Function parameter B hides the injected-class-name B
       A<f()>{};      // Previously generated as A<::B::f()>, since the template
-                     // parameter for B cannot be named
+                     // parameter for ::B cannot be named
     }
   };
 
-with --c++17 --clang_version=190100, the generated code could not be
-compiled.  Since the g++ bug requiring use of a qualified-id was fixed in
-gcc version 6.1, the C++-generating back end now only forces generation of
-a qualified-id when gcc_is_generated_code_target and
+When compiled with --c++17 --clang_version=190100, the generated code could
+not be compiled.  Since the g++ bug requiring use of a qualified-id was
+fixed in gcc version 6.1, the C++-generating back end now only forces
+generation of a qualified-id when gcc_is_generated_code_target is TRUE and
 gnu_target_version_number is less than 60000.
 
 
