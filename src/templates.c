@@ -44568,7 +44568,8 @@ Enumeration used to distinguish deduction guide transformations for alias
 templates and inheriting constructors.
 */
 enum an_alias_ctad_transform_kind {
-  actck_alias_template, /* Deduction guide transformation for an alias
+  actck_alias_template,
+			/* Deduction guide transformation for an alias
 			   template. */
   actck_inheriting_constructor
 			/* Deduction guide transformation for an
