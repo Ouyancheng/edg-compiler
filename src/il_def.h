@@ -12367,6 +12367,9 @@ typedef struct a_routine {
 			/* TRUE if is_inheriting_ctor is TRUE and the inherited
 			   constructor comes from a virtual base class of the
 			   class that owns this constructor. */
+  a_bit_field	is_deduction_guide_from_inheriting_ctor:1;
+			/* TRUE if this routine is a deduction guide generated
+			   from an inheriting constructor. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)

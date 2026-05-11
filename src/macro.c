@@ -12157,7 +12157,9 @@ command line -D options.
       }  /* if */
       if (class_template_arg_deduction_enabled) {
         a_const_char *value;
-        if (cpp20_mode) {
+        if (inheriting_ctor_ctad_enabled) {
+          value = "202207L";
+        } else if (cpp20_mode) {
           value = "201907L";
         } else {
           value = "201703L";

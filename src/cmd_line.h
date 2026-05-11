@@ -762,6 +762,11 @@ EXTERN_THREAD a_boolean
 			   for alias templates is enabled. */
 
 EXTERN_THREAD a_boolean
+		inheriting_ctor_ctad_enabled;
+			/* TRUE if C++23 class template argument deduction
+			   for inheriting constructors is enabled. */
+
+EXTERN_THREAD a_boolean
 		struct_bindings_enabled;
 			/* TRUE if structured bindings (a C++17 feature) are
 			   accepted. */

@@ -2967,6 +2967,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_delegating_ctor          = FALSE;
   rp->is_inheriting_ctor          = FALSE;
   rp->inherits_virtually          = FALSE;
+  rp->is_deduction_guide_from_inheriting_ctor = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done     = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */

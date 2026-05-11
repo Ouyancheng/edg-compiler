@@ -7189,6 +7189,7 @@ set).  Add new_guide to this set.
 {
   a_symbol_ptr  guide_set = *p_guide_set;
 
+  check_assertion(new_guide->decl_seq != NO_DECL_SEQUENCE_NUMBER);
   if (guide_set == NULL) {
     *p_guide_set = new_guide;
   } else if (symbol_is(guide_set, sk_overloaded_function)) {

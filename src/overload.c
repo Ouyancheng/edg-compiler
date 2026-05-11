@@ -5207,6 +5207,7 @@ point of call, FALSE otherwise.
       is_nonspecialized_instantiation_context() &&
       !function_symbol->is_class_member &&
       !is_local_symbol(function_symbol) &&
+      !is_deduction_guide_symbol(function_symbol) &&
       !in_code_from_module() &&
       (function_symbol->decl_seq >
                              (effective_decl_seq = get_effective_decl_seq()) &&
@@ -9158,36 +9159,51 @@ template is more specialized than the other.
 }  /* compare_function_templates_for_ovl_res */
 
 
-static a_boolean compare_inheriting_ctors_for_ovl_res(
+static a_boolean explicit_arg_param_types_are_identical(
                                                  a_candidate_function_ptr cfp1,
                                                  a_candidate_function_ptr cfp2)
+/*
+Return TRUE if, for each paired explicit argument in cfp1 and cfp2, the
+corresponding parameter types are identical or both correspond to an ellipsis
+parameter.
+*/
+{
+  a_boolean                result = FALSE;
+  an_arg_match_summary_ptr match1 = NULL, match2 = NULL;
+
+  match1 = cfp1->arg_matches;
+  match2 = cfp2->arg_matches;
+  for (; match1 != NULL && match2 != NULL;
+       match1 = match1->next, match2 = match2->next) {
+    if (match1->param_type == NULL || match2->param_type == NULL) {
+      if (match1->param_type != match2->param_type) break;
+    } else if (!identical_types(match1->param_type, match2->param_type)) {
+      break;
+    }  /* if */
+  }  /* for */
+  if (match1 == NULL && match2 == NULL) result = TRUE;
+  return result;
+}  /* explicit_arg_param_types_are_identical */
+
+
+static int compare_inheriting_ctors_for_ovl_res(a_candidate_function_ptr cfp1,
+                                                a_candidate_function_ptr cfp2)
 /*
 Helper function for compare_candidate_functions to check if the inheriting
 constructor tiebreaker applies.
 */
 {
-  int                      result = 0;
-  an_arg_match_summary_ptr match1 = NULL, match2 = NULL;
+  int  result = 0;
 
-  if (!clang_version_is(any_version)) {
-    /* Clang doesn't apply the type check and simply prefers non-inheriting
-       constructors to inheriting ones. */
-    match1 = cfp1->arg_matches;
-    match2 = cfp2->arg_matches;
-    for (; match1 != NULL && match2 != NULL;
-         match1 = match1->next, match2 = match2->next) {
-      if (!identical_types(match1->param_type, match2->param_type)) {
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  if (match1 != NULL || match2 != NULL) {
-    /* At least one of the parameters is a different type - we can't use the
-       inheriting constructor tiebreaker. */
-  } else if (cfp1->is_inheriting_ctor) {
-    result = -1;
-  } else {
-    result = 1;
+  /* Clang doesn't apply the type check and simply prefers non-inheriting
+     constructors to inheriting ones. */
+  if (clang_version_is(any_version) ||
+      explicit_arg_param_types_are_identical(cfp1, cfp2)) {
+    if (cfp1->is_inheriting_ctor) {
+      result = -1;
+    } else {
+      result = 1;
+    }  /* if */
   }  /* if */
   return result;
 }  /* compare_inheriting_ctors_for_ovl_res */
@@ -9249,7 +9265,14 @@ deduction guides and check if one is preferred over the other.
       goto done;
     }  /* if */
     check_assertion(special_kind_is(rp2, sfk_deduction_guide));
-    if (rp1->compiler_generated != rp2->compiler_generated) {
+    if (rp1->variant.class_template == rp2->variant.class_template &&
+        rp1->is_deduction_guide_from_inheriting_ctor !=
+                                rp2->is_deduction_guide_from_inheriting_ctor &&
+        explicit_arg_param_types_are_identical(cfp1, cfp2)) {
+      /* A deduction guide not generated from an inheriting constructor is
+         preferred over one that is. */
+      result = rp1->is_deduction_guide_from_inheriting_ctor ? -1 : 1;
+    } else if (rp1->compiler_generated != rp2->compiler_generated) {
       /* A user-declared guide is preferred over a generated one. */
       result = rp2->compiler_generated ? 1 : -1;
     } else if (rp1->compiler_generated) {
@@ -30399,10 +30422,14 @@ set to TRUE and FALSE is returned.
   ct_tssp = ct_sym->variant.template_info;
   if (!ct_tssp->variant.class_template.implicit_deduction_guides_added ||
       (prototype_template_of(ct_sym)->defined &&
-       ct_tssp->variant.class_template.interim_implicit_deduction_guides)) {
+       (ct_tssp->variant.class_template.interim_implicit_deduction_guides ||
+        (inheriting_ctor_ctad_enabled &&
+         !ct_tssp->variant.class_template.is_alias_template)))) {
     /* Either the implicit guides have not yet been generated, or they are
        outdated because they were generated when the class template was not
-       defined, but now it is defined. */
+       defined, but now it is defined.  When CTAD for inheriting constructors
+       is enabled for a non-alias class template, regeneration also picks up
+       deduction guides transformed from base-class guides. */
     update_implicit_deduction_guides(ct_sym);
   }  /* if */
   if (aggregate_ctad_enabled &&

@@ -3874,6 +3874,9 @@ Display the indicated routine.
   if (ptr->is_inheriting_ctor) {
     disp_boolean("is_inheriting_ctor", TRUE);
   }  /* if */
+  if (ptr->is_deduction_guide_from_inheriting_ctor) {
+    disp_boolean("is_deduction_guide_from_inheriting_ctor", TRUE);
+  }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->assignment_to_this_done) {
     disp_boolean("assignment_to_this_done", TRUE);

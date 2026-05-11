@@ -3284,6 +3284,11 @@ option values if they were not already set by a command line option.
           auto_cast_enabled = TRUE;
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 1951) {
+        if (ms_cpp23_mode) {
+          inheriting_ctor_ctad_enabled = TRUE;
+        }  /* if */
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
@@ -4302,6 +4307,7 @@ default mode (e.g., exception handling).
     }  /* if */
     static_call_operator_enabled = TRUE;
     auto_cast_enabled = TRUE;
+    inheriting_ctor_ctad_enabled = TRUE;
   }  /* if */
   if (cpp26_mode) {
     embed_enabled = TRUE;
@@ -13068,6 +13074,7 @@ variables declared in cmd_line.h.
   using_enum_enabled = FALSE;
   aggregate_ctad_enabled = FALSE;
   alias_ctad_enabled = FALSE;
+  inheriting_ctor_ctad_enabled = FALSE;
   user_defined_literals_enabled = FALSE;
   macro_preempts_udl_suffix = FALSE;
   raw_string_literals_enabled = FALSE;

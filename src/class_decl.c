@@ -26279,6 +26279,27 @@ Otherwise, *result will be NULL.
   for (; bcp != NULL; bcp = bcp->next_direct) {
     if (identical_types(bcp->type, parent_class)) break;
   }  /* for */
+  if (bcp == NULL && parent_class->source_corresp.member_of_unknown_base) {
+    /* The base class may be named via an injected class name.  In that case,
+       find the direct base that uniquely matches that name. */
+    a_symbol_ptr  parent_sym = symbol_for(parent_class);
+    for (a_base_class_ptr  candidate_bcp = direct_base_classes_of(class_type);
+         candidate_bcp != NULL;
+         candidate_bcp = candidate_bcp->next_direct) {
+      a_type_ptr    base_type = skip_typerefs(candidate_bcp->type);
+      if (is_immediate_class_type(base_type)) {
+        a_symbol_ptr  base_sym = symbol_for(base_type);
+        if (base_sym->header == parent_sym->header) {
+          if (bcp != NULL) {
+            /* The base class name is ambiguous. */
+            bcp = NULL;
+            break;
+          }  /* if */
+          bcp = candidate_bcp;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
   if (bcp == NULL && !is_nonreal_instantiation_context()) {
     /* Inheriting constructors can only be constructed from direct base class
        constructors.  GCC appears to allow naming indirect base classes, but
@@ -26292,9 +26313,13 @@ Otherwise, *result will be NULL.
   } else {
     a_using_decl_ptr  udp = scope_stack_top().il_scope->using_declarations;
     for (; udp != NULL; udp = udp->next) {
-      if (udp->is_inheriting_ctor &&
-          identical_types(udp->qualifier.class_type, parent_class)) {
-        break;
+      if (udp->is_inheriting_ctor) {
+        if (udp->entity.kind == iek_base_class &&
+            udp->entity.ptr == (char*)bcp) {
+          break;
+        } else if (identical_types(udp->qualifier.class_type, parent_class)) {
+          break;
+        }  /* if */
       }  /* if */
     }  /* for */
     if (udp != NULL) {
