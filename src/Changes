@@ -1,5 +1,18 @@
 Version 6.9
 
+5/11/26  [EDGcpfe/28841]
+Regression resulting in rare loss of a preceding-pragma
+
+With the changes for EDGcpfe/28636, a rare situation could arise if customers
+added a new immediate pragma that does not fetch pp-tokens and accepts a string
+argument, e.g.:
+
+  #pragma warning(push) // previously would go missing
+  #pragma test_immediate "x"
+
+This is now fixed.
+
+
 5/11/26  [EDGcpfe/25516]
 C++23: CTAD for inheriting constructors
 

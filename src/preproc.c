@@ -2826,12 +2826,13 @@ based on the information specified in the pragma description entry.
 is_microsoft_pragma_operator is TRUE when the pragma being scanned is a
 Microsoft __pragma operator.*/
 {
-  a_boolean	save_expand_macros;
-  a_boolean	save_caching_pragma_tokens;
-  a_boolean	save_do_string_literal_concatenation;
-  a_boolean	save_fetch_pp_tokens;
-  a_boolean     save_recognize_keywords_in_pragma;
-  a_boolean	save_in_preprocessing_directive;
+  a_boolean             save_expand_macros;
+  a_boolean             save_caching_pragma_tokens;
+  a_boolean             save_do_string_literal_concatenation;
+  a_boolean             save_fetch_pp_tokens;
+  a_boolean             save_recognize_keywords_in_pragma;
+  a_boolean             save_in_preprocessing_directive;
+  a_pending_pragma_list *save_curr_token_pragmas;
 
   /* Cache the pragma identifier. */
   cache_curr_token(token_cache);
@@ -2845,6 +2846,12 @@ Microsoft __pragma operator.*/
   /* We need to set in_preprocessing_directive in case this is called to
      process a _Pragma operator. */
   in_preprocessing_directive = TRUE;
+  /* Due to the fact that we're in a preprocessing directive, the normal logic
+     for saving and restoring the pragma state associated with the current
+     token will not be disabled.  Instead, manually save and restore the
+     pragmas associated with the current token. */
+  save_curr_token_pragmas = curr_token_pragmas;
+  curr_token_pragmas = new_fe<a_pending_pragma_list>();
   /* Set the new values. */
   expand_macros = pkdp->expand_macros;
   caching_pragma_tokens = TRUE;
@@ -2874,6 +2881,10 @@ Microsoft __pragma operator.*/
   }  /* if */
   /* Terminate the token cache. */
   terminate_token_cache(token_cache);
+  /* Restore the previous pending pragma state. */
+  check_assertion(curr_token_pragmas->is_empty());
+  delete_fe(&curr_token_pragmas);
+  curr_token_pragmas = save_curr_token_pragmas;
   /* Restore the previous values. */
   expand_macros = save_expand_macros;
   caching_pragma_tokens = save_caching_pragma_tokens;
@@ -2953,7 +2964,7 @@ or __pragma, but not #pragma).
   } else {
     a_scanning_token_cache scanning_cache(/*reusable=*/TRUE);
 
-    { Value_saver<a_boolean> saed_expr_header_name(&exp_header_name);
+    { Value_saver<a_boolean> saved_expr_header_name(&exp_header_name);
 
       /* Cache the tokens that make up the pragma directive. */
       if (pkdp->read_string_as_header_name) {
