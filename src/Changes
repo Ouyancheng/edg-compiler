@@ -112,7 +112,7 @@ The front end has been updated with the latest builtin signatures from GCC
 version 16.1.
 
 
-5/6/26   [EDGcpfe/28831]
+5/6/26   [EDGcpfe/26684,EDGcpfe/27846,EDGcpfe/28831]
 Spurious error on use of __FUNCSIG__ in template
 
 Consider, in Microsoft C++ mode with --parse_templates (or other options
