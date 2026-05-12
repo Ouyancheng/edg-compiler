@@ -6976,17 +6976,8 @@ is from a trk_name_qualifier typeref.
 {
   if (nqp != NULL) {
     a_source_correspondence_ptr scp;
-    if (nqp->previous_qualifier == NULL) {
-      if (nqp->is_class && from_name_qual_typeref &&
-          type_is(nqp->qualifier.class_type, tk_typeref) &&
-          nqp->qualifier.class_type->
-                                  variant.typeref.is_dependent_type_operator) {
-        write_tok_str("typename ");
-      }  /* if */
-    } else {
-      /* Do a recursive call to put out the parent qualifier. */
-      gen_name_qualifier_list(nqp->previous_qualifier, from_name_qual_typeref);
-    }  /* if */
+    /* Do a recursive call to put out the parent qualifier. */
+    gen_name_qualifier_list(nqp->previous_qualifier, from_name_qual_typeref);
     if (nqp->is_class) {
       /* A class qualifier. */
       a_type_ptr                  class_type = nqp->qualifier.class_type;
@@ -9591,10 +9582,13 @@ elaborated-type-specifier, even if it would be required in some contexts.
   } else if (type_is(type, tk_typeref) &&
              is_typeref_kind(type, trk_name_qualifier)) {
     nqp = type->variant.typeref.extra_info->name_qualifier;
-    if (nqp != NULL && nqp->is_class &&
-        is_template_param_or_nonreal_class_type(skip_lexical_typerefs(
-                                                 nqp->qualifier.class_type))) {
-      poss_dep_type = nqp->qualifier.class_type;
+    if (nqp != NULL && nqp->is_class) {
+      a_type_ptr qt = nqp->qualifier.class_type;
+      if (is_template_param_or_nonreal_class_type(qt) ||
+          (type_is(qt, tk_typeref) &&
+           qt->variant.typeref.is_dependent_type_operator)) {
+        poss_dep_type = qt;
+      }  /* if */
     }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
   }  /* if */
