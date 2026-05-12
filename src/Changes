@@ -1,5 +1,23 @@
 Version 6.9
 
+5/11/26  [EDGcpfe/28840]
+C++-generating back end: missing "typename" keyword for dependent decltype
+
+In some cases, the changes for EDGcpfe/26294 in version 6.8 could result in
+the C++-generating back end failing to emit a necessary "typename" keyword
+preceding a dependent decltype used as a name qualifier.  This is now fixed.
+For example, with --c++17 --gnu_version=130300:
+
+  struct Inner { typedef int tp; };
+  template <class T> struct Outer {
+    Inner m;
+    void f() {
+      static_cast<typename decltype(m)::tp>(0);  // Previously omitted
+                                                 // "typename"
+    }
+  };
+
+
 5/11/26  [EDGcpfe/28841]
 Regression resulting in rare loss of a preceding pragma
 

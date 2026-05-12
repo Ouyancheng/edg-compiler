@@ -6976,8 +6976,17 @@ is from a trk_name_qualifier typeref.
 {
   if (nqp != NULL) {
     a_source_correspondence_ptr scp;
-    /* Do a recursive call to put out the parent qualifier. */
-    gen_name_qualifier_list(nqp->previous_qualifier, from_name_qual_typeref);
+    if (nqp->previous_qualifier == NULL) {
+      if (nqp->is_class && from_name_qual_typeref &&
+          type_is(nqp->qualifier.class_type, tk_typeref) &&
+          nqp->qualifier.class_type->
+                                  variant.typeref.is_dependent_type_operator) {
+        write_tok_str("typename ");
+      }  /* if */
+    } else {
+      /* Do a recursive call to put out the parent qualifier. */
+      gen_name_qualifier_list(nqp->previous_qualifier, from_name_qual_typeref);
+    }  /* if */
     if (nqp->is_class) {
       /* A class qualifier. */
       a_type_ptr                  class_type = nqp->qualifier.class_type;
