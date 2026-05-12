@@ -44324,6 +44324,7 @@ identical).
                                             ->il_template_entry;
   rout->compiler_generated = TRUE;
   rout->is_deduction_guide_from_inheriting_ctor =ctor_rout->is_inheriting_ctor;
+  rout->is_explicit_constructor = ctor_rout->is_explicit_constructor;
   rout->source_corresp.decl_position = ctor_rout->source_corresp.decl_position;
   /* The routine uses nonreal types, so consider it a prototype
      instantiation. */
@@ -45182,6 +45183,7 @@ symbol for the new guide; otherwise return NULL.
     rout->is_deduction_guide_from_inheriting_ctor =
                               (kind == actck_inheriting_constructor ||
                                guide->is_deduction_guide_from_inheriting_ctor);
+    rout->is_explicit_constructor = guide->is_explicit_constructor;
     rout->compiler_generated = guide->compiler_generated;
     add_to_routines_list(rout, NO_SCOPE_DEPTH);
 #if DEBUG
