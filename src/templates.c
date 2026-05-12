@@ -45344,15 +45344,17 @@ associated with ct_sym.
                     orig_tssp = template_supplement_for_symbol(orig_ct_sym);
   a_symbol_ptr      existing_guides;
   a_decl_sequence_number
-                    prior_max_decl_seq;
+                    prior_max_decl_seq = NO_DECL_SEQUENCE_NUMBER;
   a_using_decl_ptr  udp;
 
   existing_guides = orig_tssp->variant.class_template.deduction_guides;
-  check_assertion(class_scope != NULL && existing_guides != NULL);
-  if (symbol_is(existing_guides, sk_overloaded_function)) {
-    existing_guides = existing_guides->variant.overloaded_function.symbols;
+  check_assertion(class_scope != NULL);
+  if (existing_guides != NULL) {
+    if (symbol_is(existing_guides, sk_overloaded_function)) {
+      existing_guides = existing_guides->variant.overloaded_function.symbols;
+    }  /* if */
+    prior_max_decl_seq = max_inherited_guide_decl_seq(existing_guides);
   }  /* if */
-  prior_max_decl_seq = max_inherited_guide_decl_seq(existing_guides);
   for (udp = class_scope->using_declarations; udp != NULL; udp = udp->next) {
     if (udp->is_inheriting_ctor && udp->entity.kind == iek_base_class) {
       a_base_class_ptr  bcp = (a_base_class_ptr)udp->entity.ptr;
