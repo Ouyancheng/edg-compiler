@@ -2848,8 +2848,8 @@ Microsoft __pragma operator.*/
   in_preprocessing_directive = TRUE;
   /* Due to the fact that we're in a preprocessing directive, the normal logic
      for saving and restoring the pragma state associated with the current
-     token will not be disabled.  Instead, manually save and restore the
-     pragmas associated with the current token. */
+     token will be disabled.  Instead, manually save and restore the pragmas
+     associated with the current token.  */
   save_curr_token_pragmas = curr_token_pragmas;
   curr_token_pragmas = new_fe<a_pending_pragma_list>();
   /* Set the new values. */
