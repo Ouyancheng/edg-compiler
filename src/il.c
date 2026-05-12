@@ -10238,11 +10238,20 @@ caller is responsible for sorting that out.)
       /* Set the parent scope. */
       ssep->il_scope->parent = parent_ssep->il_scope;
       /* Add it to the scopes list for the scope enclosing the scope indicated
-         by ssep.  Don't do this if the parent scope is in file-scope memory
-         (possible when GNU statement expressions appear in unevaluated
-         contexts). */
+         by ssep.  If the lexical parent scope is in file-scope memory but
+         this scope is in a function memory region (possible when GNU
+         statement expressions appear in unevaluated contexts in a local
+         class), add it to the enclosing function's scope list instead.  That
+         keeps function-scope entries reachable without creating a file-scope
+         to function-scope pointer. */
       if (is_local_scope_kind(parent_ssep->kind)) {
         add_to_scopes_list(sp, ssep-1);
+      } else if (ssep->il_memory_region != file_scope_region_number &&
+                 ssep->depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        a_scope_stack_entry_ptr  func_ssep =
+                           &scope_stack[ssep->depth_innermost_function_scope];
+        ssep->il_scope->parent = func_ssep->il_scope;
+        add_to_scopes_list(sp, func_ssep);
       }  /* if */
       if (!C_mode()) {
         /* An object lifetime will have been created for this scope in
