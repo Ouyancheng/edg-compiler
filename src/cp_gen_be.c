@@ -9583,11 +9583,11 @@ elaborated-type-specifier, even if it would be required in some contexts.
              is_typeref_kind(type, trk_name_qualifier)) {
     nqp = type->variant.typeref.extra_info->name_qualifier;
     if (nqp != NULL && nqp->is_class) {
-      a_type_ptr qt = nqp->qualifier.class_type;
+      a_type_ptr qt = skip_lexical_typerefs(nqp->qualifier.class_type);
       if (is_template_param_or_nonreal_class_type(qt) ||
           (type_is(qt, tk_typeref) &&
            qt->variant.typeref.is_dependent_type_operator)) {
-        poss_dep_type = qt;
+        poss_dep_type = nqp->qualifier.class_type;
       }  /* if */
     }  /* if */
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
