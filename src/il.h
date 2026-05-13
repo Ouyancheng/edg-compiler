@@ -1982,6 +1982,10 @@ extern a_boolean expr_calls_nontrivial_ctor(an_expr_node_ptr expr);
 
 extern a_boolean has_statement_expression(an_expr_node_ptr expr);
 
+#if !STANDALONE_UTILITY_PROGRAM
+extern void eliminate_statement_expr_pragmas(an_expr_node_ptr  expr);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 extern void eliminate_statement_expr_src_seq_entries(an_expr_node_ptr  expr);
 
 extern a_boolean expr_is_dep_static_member_of_current_instantiation(

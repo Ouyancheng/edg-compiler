@@ -26705,6 +26705,100 @@ Return whether expr contains a statement expression (a GNU extension).
   return result;
 }  /* has_statement_expression */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+static inline void find_scope_for_entity_pragmas(
+                             char                          *entity_ptr,
+                             an_il_entry_kind              entity_kind,
+                             a_source_correspondence_ptr   entity_scp,
+                             a_scope_ptr                   func_or_templ_scope,
+                             a_scope_ptr                   *il_scope,
+                             a_scope_pointers_block_ptr    *pointers_block);
+
+static void remove_pragmas_associated_with_statement(
+                        a_statement_ptr                                 stmt,
+                        ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock)
+/*
+Called from traverse_statement to remove pragmas associated with the given
+statement, which is being eliminated from the IL.  tblock is ignored.
+*/
+{
+  if (stmt->has_associated_pragma && innermost_function_scope != NULL) {
+    a_scope_ptr                 il_scope;
+    a_scope_pointers_block_ptr  pointers_block;
+    a_pragma_ptr                pp, prev_pp = NULL, next_pp;
+    find_scope_for_entity_pragmas((char*)stmt, iek_statement,
+                                  (a_source_correspondence_ptr)NULL,
+                                  innermost_function_scope,
+                                  &il_scope, &pointers_block);
+    for (pp = il_scope->pragmas; pp != NULL; pp = next_pp) {
+      next_pp = pp->next;
+      if (pp->entity.kind == iek_statement && pp->entity.ptr == (char*)stmt) {
+        /* Unlink the pragma and break its reference to the eliminated
+           statement.  The pragma entry itself may still be reachable through
+           a source sequence entry that has not yet been removed. */
+        if (prev_pp == NULL) {
+          il_scope->pragmas = next_pp;
+        } else {
+          prev_pp->next = next_pp;
+        }  /* if */
+        if (next_pp == NULL && pointers_block != NULL) {
+          pointers_block->last_pragma = prev_pp;
+        }  /* if */
+        pp->next = NULL;
+        pp->entity.kind = iek_none;
+        pp->entity.ptr = NULL;
+      } else {
+        prev_pp = pp;
+      }  /* if */
+    }  /* for */
+    stmt->has_associated_pragma = FALSE;
+  }  /* if */
+}  /* remove_pragmas_associated_with_statement */
+
+
+static void remove_statement_expr_pragmas(a_statement_ptr  stmt)
+/*
+Remove any pragmas associated with statements in the indicated GNU statement
+expression, which is being eliminated from the IL.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_statement = remove_pragmas_associated_with_statement;
+  traverse_statement(stmt, &tblock);
+}  /* remove_statement_expr_pragmas */
+
+
+static void remove_statement_expr_pragmas_from_expr(
+                       an_expr_node_ptr                                expr,
+                       ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock)
+/*
+Called from traverse_expr to remove pragmas associated with statements in GNU
+statement expressions.  tblock is ignored.
+*/
+{
+  if (expr->kind == enk_statement) {
+    remove_statement_expr_pragmas(expr->variant.statement);
+  }  /* if */
+}  /* remove_statement_expr_pragmas_from_expr */
+
+
+void eliminate_statement_expr_pragmas(an_expr_node_ptr expr)
+/*
+Traverse expr looking for GNU statement expressions and remove any pragmas
+associated with statements they point to.  tblock is ignored.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = remove_statement_expr_pragmas_from_expr;
+  traverse_expr(expr, &tblock);
+}  /* eliminate_statement_expr_pragmas */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static void remove_statement_expr_src_seq_entries(
@@ -26728,6 +26822,9 @@ with any statement expression.
       a_scope_ptr      scope = block->assoc_scope, last_scope = NULL,
                        parent = scope != NULL ? scope->parent : NULL;
       a_boolean        update_last_scope = FALSE;
+#if !STANDALONE_UTILITY_PROGRAM
+      remove_statement_expr_pragmas(stmt);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
       if (parent != NULL) {
         a_scope_ptr  *p_sp = &parent->scopes;
         if (*p_sp == NULL && parent->depth_in_scope_stack != NO_SCOPE_DEPTH) {
