@@ -11402,9 +11402,9 @@ a scope from the scope stack (i.e., not a file, namespace, or class scope).
   if (class_type != NULL) {
     check_assertion_str(!C_mode(),
                         "get_scope_for_list: class scope in C mode");
-    sp = class_type_supp(scp_parent_class(scp))->assoc_scope;
 #if !STANDALONE_UTILITY_PROGRAM
     if (in_front_end) {
+      sp = class_type_supp(scp_parent_class(scp))->assoc_scope;
       if (!scope_is_null_or_placeholder(sp)) {
         scope_level = sp->depth_in_scope_stack;
       }  /* if */
@@ -11421,6 +11421,14 @@ a scope from the scope stack (i.e., not a file, namespace, or class scope).
     } else
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     {
+#if DO_IL_LOWERING
+      /* When doing IL-lowering and not in the front end, class scope members
+         are promoted to file scope (see promote_class_members in lower_il.c
+         for more information). */
+      sp = il_header.primary_scope;
+#else /* !DO_IL_LOWERING */
+      sp = class_type_supp(scp_parent_class(scp))->assoc_scope;
+#endif /* DO_IL_LOWERING */
       *pointers_block = NULL;
     }  /* if */
   } else if (nsp != NULL) {
@@ -11432,8 +11440,15 @@ a scope from the scope stack (i.e., not a file, namespace, or class scope).
        deal with some cases where the file scope is not on the stack.
        It works fine also for the cases where the file scope is on the
        scope stack. */
-    sp = curr_translation_unit->primary_scope;
-    *pointers_block = &curr_translation_unit->file_scope_pointers_block;
+    if (curr_translation_unit != NULL) {
+      /* This is the path taken when in the front end. */
+      sp = curr_translation_unit->primary_scope;
+      *pointers_block = &curr_translation_unit->file_scope_pointers_block;
+    } else {
+      /* This is the path taken when in the back end. */
+      sp = il_header.primary_scope;
+    }  /* if */
+    check_assertion(sp != NULL && sp->kind == sck_file);
   } else {
 #if !STANDALONE_UTILITY_PROGRAM
     if (in_front_end) {
@@ -27898,10 +27913,10 @@ be set appropriately.
   } else {
     switch_to_file_scope_region(&region_to_switch_back_to);
   }  /* if */
-  if (entity_kind == iek_statement) {
-    /* Pragmas bound to statements are in local memory and are attached to
-       the current scope. */
-    /* Set the has_associated_pragma field. */
+  /* Set the has_associated_pragma field. */
+  if (scp != NULL) {
+    scp->has_associated_pragma = TRUE;
+  } else if (entity_kind == iek_statement) {
     ((a_statement_ptr)entity_ptr)->has_associated_pragma = TRUE;
   }  /* if */
 
