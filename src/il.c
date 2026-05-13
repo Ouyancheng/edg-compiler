@@ -27731,8 +27731,12 @@ func_or_templ_scope scope can be NULL.
        function local, use get_scope_for_list to determine an appropriate
        scope. */
     *il_scope = get_scope_for_list(NO_SCOPE_DEPTH, entity_scp, pointers_block);
-  } else if (entity_kind == iek_statement ||
-             (entity_scp != NULL && !in_file_scope(entity_scp))) {
+  } else if (entity_kind == iek_statement && in_file_scope(entity_ptr)) {
+    /* Statement expressions in unevaluated contexts can produce statements
+       allocated in file-scope memory even while a function scope is active.
+       Currently, this is only known to occur in C mode. */
+    *il_scope = scope_stack[depth_innermost_namespace_scope].il_scope;
+  } else if (entity_kind == iek_statement || entity_scp != NULL) {
     /* This is a pragma applied to either a statement or function local entity.
        These pragmas are associated with the innermost associated function
        scope. */
