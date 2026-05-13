@@ -142,6 +142,9 @@ extern void remove_src_seq_entry(a_source_sequence_entry_ptr  ssep);
 extern void remove_src_seq_list(a_source_sequence_entry_ptr  head,
                                 a_source_sequence_entry_ptr  tail);
 
+extern void clear_src_seq_list_segment(a_source_sequence_entry_ptr  ss_start,
+                                       a_source_sequence_entry_ptr  ss_end);
+
 extern void prune_src_seq_list(a_source_sequence_entry_ptr  *head,
                                a_source_sequence_entry_ptr  *tail);
 

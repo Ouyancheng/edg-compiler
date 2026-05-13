@@ -26704,6 +26704,7 @@ with any statement expression.
     a_source_sequence_entry_ptr
                         head = expr->variant.statement->source_sequence_entry;
     if (head != NULL) {
+      a_source_sequence_entry_ptr tail = matching_end_of_construct(head);
       /* Remove the statement expression's block scope from its parent's scopes
          list, since otherwise IL traversal will find the source sequence
          entries even though they were removed from the main list. */
@@ -26737,9 +26738,10 @@ with any statement expression.
           scope_stack[parent->depth_in_scope_stack].last_scope = last_scope;
         }  /* if */
       }  /* if */
+      clear_src_seq_list_segment(head, tail->next);
       /* Remove the list of source sequence entries spanning this statement
          expression. */
-      remove_src_seq_list(head, matching_end_of_construct(head));
+      remove_src_seq_list(head, tail);
     }  /* if */
   }  /* if */
 }  /* remove_statement_expr_src_seq_entries */

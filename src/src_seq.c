@@ -1395,6 +1395,55 @@ to tail.
 }  /* remove_src_seq_list */
 
 
+void clear_src_seq_list_segment(a_source_sequence_entry_ptr  ss_start,
+                                a_source_sequence_entry_ptr  ss_end)
+/*
+For source sequence entries in the half-open range [ss_start, ss_end), clear
+any back-pointers from associated IL entries and clear the entries' tagged
+entity pointers.
+*/
+{
+  a_source_sequence_entry_ptr  ss_ptr;
+
+  for (ss_ptr = ss_start; ss_ptr != ss_end; ss_ptr = ss_ptr->next) {
+    char              *entity_ptr = ss_ptr->entity.ptr;
+    an_il_entry_kind  entity_kind = ss_entry_kind(ss_ptr);
+
+    if (entity_kind == iek_src_seq_secondary_decl) {
+      a_src_seq_secondary_decl_ptr  sssdp =
+                            ss_entry_ptr(ss_ptr, a_src_seq_secondary_decl_ptr);
+      entity_ptr = sssdp->entity.ptr;
+      entity_kind = sssdp->entity.kind;
+    }  /* if */
+    if (entity_ptr != NULL) {
+      if (entity_kind == iek_statement) {
+        a_statement_ptr  statement = (a_statement_ptr)entity_ptr;
+        if (statement->source_sequence_entry == ss_ptr) {
+          statement->source_sequence_entry = NULL;
+        }  /* if */
+      } else if (entity_kind == iek_pragma) {
+        a_pragma_ptr  pragma = (a_pragma_ptr)entity_ptr;
+        if (pragma->source_sequence_entry == ss_ptr) {
+          pragma->source_sequence_entry = NULL;
+        }  /* if */
+      } else if (entity_kind == iek_using_decl) {
+        a_using_decl_ptr  udp = (a_using_decl_ptr)entity_ptr;
+        if (udp->source_sequence_entry == ss_ptr) {
+          udp->source_sequence_entry = NULL;
+        }  /* if */
+      } else {
+        a_source_correspondence  *scp;
+	scp = source_corresp_for_il_entry(entity_ptr, entity_kind);
+        if (scp != NULL && scp->source_sequence_entry == ss_ptr) {
+          scp->source_sequence_entry = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    clear_tagged_ptr(ss_ptr->entity);
+  }  /* for */
+}  /* clear_src_seq_list_segment */
+
+
 void prune_src_seq_list(a_source_sequence_entry_ptr  *head,
                         a_source_sequence_entry_ptr  *tail)
 /*
