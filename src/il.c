@@ -11403,11 +11403,7 @@ a scope from the scope stack (i.e., not a file, namespace, or class scope).
     check_assertion_str(!C_mode(),
                         "get_scope_for_list: class scope in C mode");
 #if !STANDALONE_UTILITY_PROGRAM
-    if (in_front_end
-#if DO_IL_LOWERING
-        && !il_lowering_underway
-#endif /* DO_IL_LOWERING */
-        ) {
+    if (in_front_end) {
       sp = class_type_supp(scp_parent_class(scp))->assoc_scope;
       if (!scope_is_null_or_placeholder(sp)) {
         scope_level = sp->depth_in_scope_stack;
@@ -11426,10 +11422,9 @@ a scope from the scope stack (i.e., not a file, namespace, or class scope).
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     {
 #if DO_IL_LOWERING
-      /* When IL lowering is performed, class scope members are promoted to
+      /* After IL lowering is performed, class scope members are promoted to
          file scope (see promote_class_members in lower_il.c for more
-         information).  Thus, during and after IL lowering return the file
-         scope. */
+         information).  Thus, after IL lowering return the file scope. */
       sp = il_header.primary_scope;
 #else /* !DO_IL_LOWERING */
       sp = class_type_supp(scp_parent_class(scp))->assoc_scope;
