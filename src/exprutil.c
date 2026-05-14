@@ -7012,14 +7012,33 @@ statements in GNU statement expressions in expr.  (Currently, this includes
 only source sequence entries and pragmas.)
 */
 {
-  if (expr_stack->statement_expression_seen &&
-      expr != NULL && con->expr == NULL) {
+  if (expr != NULL && con->expr == NULL &&
+      (con->folded_statement_expression ||
+       expr_stack->statement_expression_seen)) {
     eliminate_statement_expr_pragmas(expr);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     eliminate_statement_expr_src_seq_entries(expr);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 }  /* eliminate_stmt_expr_refs_if_backing_expr_dropped */
+
+
+static void eliminate_stmt_expr_refs_if_constant_dropped(a_constant_ptr con)
+/*
+con is a constant operand whose expression is being folded into a larger
+constant without preserving the operand's backing expression.  If that backing
+expression came from a folded GNU statement expression, eliminate any IL
+entries that refer to statements in that dropped expression.
+*/
+{
+  if (con != NULL && con->expr != NULL && con->folded_statement_expression) {
+    eliminate_statement_expr_pragmas(con->expr);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    eliminate_statement_expr_src_seq_entries(con->expr);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
+}  /* eliminate_stmt_expr_refs_if_constant_dropped */
+
 
 static a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
                                           a_routine_ptr     *p_rout,
@@ -15628,6 +15647,15 @@ of a subscript operation).
       if (!is_error_operand(&result_expr)) {
         check_assertion(is_expression_operand(&result_expr));
         result->variant.constant.expr = result_expr.variant.expression;
+      }  /* if */
+    } else {
+      if (is_constant_operand(operand_1)) {
+        eliminate_stmt_expr_refs_if_constant_dropped(
+                                                &operand_1->variant.constant);
+      }  /* if */
+      if (is_constant_operand(operand_2)) {
+        eliminate_stmt_expr_refs_if_constant_dropped(
+                                                &operand_2->variant.constant);
       }  /* if */
     }  /* if */
   }  /* if */

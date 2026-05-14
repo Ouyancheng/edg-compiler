@@ -14972,6 +14972,14 @@ scanned sizeof or __datasizeof expression, and return the result in *result
 
   if (operand_was_created && !operand_was_used) {
     /* The expression was discarded. */
+    if (expr_stack->statement_expression_seen) {
+      if (is_expression_operand(&operand)) {
+        eliminate_statement_expr_pragmas(operand.variant.expression);
+      } else if (is_constant_operand(&operand) &&
+                 operand.variant.constant.expr != NULL) {
+        eliminate_statement_expr_pragmas(operand.variant.constant.expr);
+      }  /* if */
+    }  /* if */
     undo_side_effects_for_discarded_unevaluated_expression();
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
@@ -29334,6 +29342,28 @@ in *rcblock).
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && GNU_EXTENSIONS_ALLOWED */
 
+static inline void record_file_scope_statement_expr(a_statement_ptr stmt)
+/*
+Add stmt to il_header.file_scope_statements if it is allocated in file-scope
+memory.  This is used for the top-level compound statement of a GNU statement
+expression; stmt has just been allocated, so it cannot already be on the list.
+*/
+{
+  if (in_file_scope(stmt)) {
+    an_il_entity_list_entry_ptr  entry;
+    a_memory_region_number       region_to_switch_back_to;
+
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    entry = alloc_il_entity_list_entry();
+    entry->entity.kind = iek_statement;
+    entry->entity.ptr = (char*)stmt;
+    entry->next = il_header.file_scope_statements;
+    il_header.file_scope_statements = entry;
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
+}  /* record_file_scope_statement_expr */
+
+
 static void scan_gnu_statement_expression(an_operand        *result,
                                           a_source_position *start_position)
 /*
@@ -29351,6 +29381,7 @@ already been consumed.
   a_statement_ptr   sp = NULL;
   a_source_position left_brace_position;
   a_type_ptr        expr_type;
+  a_boolean         stmt_expr_not_kept_in_il = FALSE;
 
   left_brace_position = pos_curr_token;
   if (gnu_version_is(< 50100) && curr_expr_kind_is_traditional_const()) {
@@ -29402,14 +29433,17 @@ already been consumed.
     save_expr_stack(&saved_expr_stack);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     saved_sses_disallowed = source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (!saved_expr_stack->potentially_evaluated &&
         !saved_expr_stack->unevaluated_expr_will_be_kept_in_il) {
+      stmt_expr_not_kept_in_il = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
       /* This statement expression is in a not-evaluated context like a
          sizeof.  Prevent the generation of source sequence entries for the
          statements. */
       source_sequence_entries_disallowed = TRUE;
-    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
     /* Scan the compound statement. */
     sp = compound_statement_full(/*at_function_level=*/FALSE,
                                  /*explicit_return_type=*/FALSE,
@@ -29421,6 +29455,7 @@ already been consumed.
         sp->variant.block.extra_info->assoc_scope != NULL) {
       sp->variant.block.extra_info->assoc_scope->is_stmt_expr_block = TRUE;
     }  /* if */
+    record_file_scope_statement_expr(sp);
     restore_expr_stack(saved_expr_stack);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed = saved_sses_disallowed;
@@ -29490,13 +29525,20 @@ already been consumed.
         /* Folding succeeded.  Unconditionally record the backing
            expression. */
         con->expr = expr;
+        con->folded_statement_expression = TRUE;
         /* Treat the evaluation of the statement expression as a kind of
            "call result".  That avoids warnings about a statement expression
            having no effect (GCC does not issue such warnings either). */
         con->is_result_of_constexpr_call = TRUE;
+        if (stmt_expr_not_kept_in_il) {
+          eliminate_statement_expr_pragmas(expr);
+        }  /* if */
         make_constant_operand(con, result);
       } else {
         make_expression_operand(expr, result);
+        if (stmt_expr_not_kept_in_il) {
+          eliminate_statement_expr_pragmas(expr);
+        }  /* if */
       }  /* if */
       release_local_constant(&con);
       if (innermost_function_scope != NULL) {

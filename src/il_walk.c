@@ -266,6 +266,8 @@ That is what the remap function does.
                   !walking_secondary_trans_unit);
   /* Walk the main body of the IL. */
   walk_entry_and_subtree((char *)scope, iek_scope);
+  walk_list(il_header.file_scope_statements, an_il_entity_list_entry_ptr,
+            iek_il_entity_list_entry);
   walk_list(il_header.primary_source_file, a_source_file_ptr, iek_source_file);
   remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
   walk_string_ptr(il_header.compiler_version, iek_other_text, 0);
@@ -2537,6 +2539,8 @@ pointers.  The subtree is not processed.
   remap_list_ptr(il_header.primary_source_file, a_source_file_ptr,
                  iek_source_file);
   remap_ptr(il_header.primary_scope, a_scope_ptr, iek_scope);
+  remap_list_ptr(il_header.file_scope_statements,
+                 an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
   remap_ptr(il_header.main_routine, a_routine_ptr, iek_routine);
   remap_ptr(il_header.compiler_version, a_char_ptr, iek_other_text);
   remap_ptr(il_header.time_of_compilation, a_char_ptr, iek_other_text);

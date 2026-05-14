@@ -1346,6 +1346,9 @@ Display the indicated constant entry.
   if (ptr->local_expr_ref) {
     disp_boolean("local_expr_ref", TRUE);
   }  /* if */
+  if (ptr->folded_statement_expression) {
+    disp_boolean("folded_statement_expression", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:
@@ -8564,6 +8567,8 @@ Display the IL for the file scope in human-readable form.
   disp_ptr("primary_source_file", (char *)il_header.primary_source_file,
            iek_source_file);
   disp_ptr("primary_scope", (char *)il_header.primary_scope, iek_scope);
+  disp_ptr("file_scope_statements", (char *)il_header.file_scope_statements,
+           iek_il_entity_list_entry);
   disp_ptr("main_routine", (char *)il_header.main_routine, iek_routine);
   disp_string_ptr("compiler_version", il_header.compiler_version,
                   iek_other_text, (sizeof_t)0);
