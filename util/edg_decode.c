@@ -141,10 +141,17 @@ is the one following the identifier.
     }  /* if */
 #if IA64_ABI
     /* An IA-64 mangled name begins with "_Z". */
-    if (id[0] == '_' && id[1] == 'Z') {
+    if (orig_id_len > 2 && id[0] == '_' && id[1] == 'Z') {
       is_mangled_name = TRUE;
     }  /* if */
 #endif /* IA64_ABI */
+    if (orig_id_len > 4 &&
+        id[0] == '_' && id[1] == '_' &&
+        (id[2] == 'b' || id[2] == 'v') &&
+        id[3] == '_') {
+      /* Also demangle fabricated field names (that start with __b_ or __v_).*/
+      is_mangled_name = TRUE;
+    }  /* if */
     if (is_mangled_name) {
       a_boolean err, buffer_overflow_err;
       sizeof_t  required_buffer_size;

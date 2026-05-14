@@ -4306,6 +4306,15 @@ length returned the second time will be correct).
     /* Local variable mangled by the C-generating back end: __nn_mm_name,
        where "nn" and "mm" are decimal integers. */
     end_ptr = demangle_local_name(id, dctl);
+  } else if (start_of_id_is("__b_", id, dctl)) {
+    write_id_str("base of type ", dctl);
+    end_ptr = demangle_identifier(id+4, dctl);
+  } else if (start_of_id_is("__v_", id, dctl)) {
+    write_id_str("virtual base of type ", dctl);
+    end_ptr = demangle_identifier(id+4, dctl);
+  } else if (start_of_id_is("__p_", id, dctl)) {
+    write_id_str("pointer to virtual base of type ", dctl);
+    end_ptr = demangle_identifier(id+4, dctl);
   } else {
     /* Normal case: function name, static data member name, or
        name of type or variable promoted out of function. */
@@ -8569,6 +8578,12 @@ length returned the second time will be correct).
     if (start_of_id_is("_Z", id)) {
       /* A mangled name, beginning with "_Z". */
       end_ptr = demangle_encoding(id+2, /*include_func_params=*/TRUE, dctl);
+    } else if (start_of_id_is("__b_", id)) {
+      write_id_str("base of type ", dctl);
+      end_ptr = demangle_encoding(id+4, /*include_func_params=*/TRUE, dctl);
+    } else if (start_of_id_is("__v_", id)) {
+      write_id_str("virtual base of type ", dctl);
+      end_ptr = demangle_encoding(id+4, /*include_func_params=*/TRUE, dctl);
     } else {
       /* A non-external name, assumed to be a mangled type name. */
       end_ptr = demangle_type(id, dctl);

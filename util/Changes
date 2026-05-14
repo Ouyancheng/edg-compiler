@@ -1,5 +1,13 @@
 Version 6.9
 
+5/14/26  [EDGcpfe/28833]
+Demangled names for fabricated field names of base objects
+
+The front end creates fabricated names for some field names in lowered
+classes.  The demangler has been updated to provide demangled names for
+such fields.  This change is for both the IA-64 and Cfront ABIs.
+
+
 3/4/26   [EDGcpfe/28581]
 reStructuredText output from mk_errinfo
 
