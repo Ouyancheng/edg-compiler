@@ -28305,9 +28305,6 @@ Scan the default argument of the nontype template parameter specified by tpp.
   default_arg_constant = fs_constant(ck_error);
   scan_template_argument_constant_expression(param_type_ptr,
                                              default_arg_constant);
-  /* If the constant has an associated expression, eliminate it so
-     we do not end up pointing to it from different places. */
-  default_arg_constant->expr = NULL;
   /* If the default argument type is dependent, update the flag in the
      template parameter.  Note that it could already have been set
      for other cases that force the re-evaluation of the default
