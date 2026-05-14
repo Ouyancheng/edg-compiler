@@ -11445,12 +11445,11 @@ a scope from the scope stack (i.e., not a file, namespace, or class scope).
        deal with some cases where the file scope is not on the stack.
        It works fine also for the cases where the file scope is on the
        scope stack. */
-    if (curr_translation_unit != NULL) {
-      /* This is the path taken when in the front end. */
+    if (in_front_end) {
+      check_assertion(curr_translation_unit != NULL);
       sp = curr_translation_unit->primary_scope;
       *pointers_block = &curr_translation_unit->file_scope_pointers_block;
     } else {
-      /* This is the path taken when in the back end. */
       sp = il_header.primary_scope;
     }  /* if */
     check_assertion(sp != NULL && sp->kind == sck_file);
