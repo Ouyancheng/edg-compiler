@@ -345,17 +345,8 @@ depth_in_scope_stack field of any scopes on the scope stack that have
 associated IL scopes.
 */
 {
-  a_scope_stack_entry_ptr  ssep;
-
-  for (ssep = &scope_stack[depth_scope_stack]; ssep != NULL;
-       ssep = ssep->kind == (a_scope_kind)sck_file ? NULL : ssep - 1) {
-    a_scope_ptr	scope = ssep->il_scope;
-    /* Note that if a scope is on the stack more than once, this will have
-       the effect of setting it to the outermost scope depth. */
-    if (scope != NULL) {
-      scope->depth_in_scope_stack = scope_depth_of(ssep);
-    }  /* if */
-  }  /* for */
+  /* Refresh the scope stack so it's up to date with the current IL state. */
+  refresh_scope_stack();
   /* Reset the active using list flags to the values. */
   set_active_using_list_scope_depths(depth_scope_stack,
                                      /*set_value=*/TRUE,

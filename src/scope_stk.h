@@ -2371,6 +2371,8 @@ extern void reactivate_local_context(
 			a_routine_ptr			assoc_routine,
 			a_push_scope_options_set	options);
 
+extern void refresh_scope_stack();
+
 extern void pop_namespace_scope(void);
 
 extern void inject_tokens_in_namespace(a_token_cache  *tokens,

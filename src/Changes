@@ -1,5 +1,12 @@
 Version 6.9
 
+5/15/26  [EDGcpfe/28853]
+Multi-TU IL scope list corruption
+
+In rare cases the IL scope's list of associated IL entities could become
+corrupted in multi-translation unit mode.  This is now fixed.
+
+
 5/11/26  [EDGcpfe/28840]
 C++-generating back end: missing "typename" keyword for dependent decltype
 

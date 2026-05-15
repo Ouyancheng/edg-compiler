@@ -2727,6 +2727,65 @@ Ensure the scope stack is large enough to accommodate one more entry.
 }  /* expand_scope_stack_if_needed */
 
 
+template<a_boolean is_check = FALSE>
+static INLINE void sync_pointers_block_to_il(
+                                    a_scope_pointers_block_ptr scope_ptr_block,
+                                    a_scope_ptr                il_scope)
+/*
+Update the pointer block to ensure that it matches the IL list state (it's
+possible the IL was manipulated while the scope was not activated).  If
+is_check is TRUE this function is expected not to do any corrections.
+*/
+{
+#define SYNC_PB_LIST(pb_list_name, il_list_name)                              \
+  {                                                                           \
+    auto end_of_list = il_scope->il_list_name;                                \
+    auto orig_end_of_list = scope_ptr_block->pb_list_name;                    \
+    if (scope_ptr_block->pb_list_name != NULL) {                              \
+      /* Update the tail pointer from the previously stored tail. */          \
+      orig_end_of_list = end_of_list = scope_ptr_block->pb_list_name;         \
+      while (end_of_list->next != NULL) {                                     \
+        end_of_list = end_of_list->next;                                      \
+      }  /* while */                                                          \
+    } else if (il_scope->il_list_name != NULL) {                              \
+      /* This is a "cold start", find the list from the IL list. */           \
+      while (end_of_list->next != NULL) {                                     \
+        end_of_list = end_of_list->next;                                      \
+      }  /* while */                                                          \
+      scope_ptr_block->pb_list_name = end_of_list;                            \
+    }  /* if */                                                               \
+    if (is_check) {                                                           \
+      /* If this assertion fails, the front end's book keeping for this has   \
+         gone out of sync in an unexpected way. */                            \
+      check_assertion(end_of_list == orig_end_of_list ||                      \
+                      orig_end_of_list == NULL);                              \
+    } else {                                                                  \
+      scope_ptr_block->pb_list_name = end_of_list;                            \
+    }  /* if */                                                               \
+  }
+  SYNC_PB_LIST(last_constant, constants);
+  SYNC_PB_LIST(last_type, types);
+  SYNC_PB_LIST(last_variable, variables);
+  SYNC_PB_LIST(last_routine, routines);
+  SYNC_PB_LIST(last_asm_entry, asm_entries);
+  SYNC_PB_LIST(last_dynamic_init, dynamic_inits);
+  SYNC_PB_LIST(last_namespace, namespaces);
+  SYNC_PB_LIST(last_using_declaration, using_declarations);
+  SYNC_PB_LIST(last_using_directive, using_directives);
+  SYNC_PB_LIST(last_pragma, pragmas);
+#if RECORD_HIDDEN_NAMES_IN_IL
+  SYNC_PB_LIST(last_hidden_name, hidden_names);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
+  SYNC_PB_LIST(last_template, templates);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  SYNC_PB_LIST(last_ms_attribute, ms_attributes);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  SYNC_PB_LIST(last_ms_if_exists, ms_if_exists);
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+}  /* sync_pointers_block_to_il */
+
+
 static a_scope_ptr push_scope_full(
 			a_scope_kind			kind,
 			a_scope_number			scope_number_to_reuse,
@@ -3580,6 +3639,25 @@ the scope being pushed.
      cases in which it would not be used. */
   check_assertion(pointers_block == NULL ||
                   ssep->assoc_pointers_block == pointers_block);
+#if EXPENSIVE_CHECKING
+  /* Check that the pointer blocks of an IL-scope aren't behind the IL list
+     (i.e., haven't had any elements added to them while this scope was not on
+     the list).  This check has relatively-low anticipated cost; however,
+     problems have not been observed of this nature (outside of reactivating
+     the scope stack in multi-translation unit configurations).  Thus, to
+     minimize any potential performance impact, this is disabled outside of
+     EXPENSIVE_CHECKING and serves only as a development IL sanity check. */
+  if (ssep->il_scope != NULL) {
+    if (ssep->assoc_pointers_block != NULL) {
+      sync_pointers_block_to_il</*check_only=*/TRUE>(
+                                                    ssep->assoc_pointers_block,
+                                                    ssep->il_scope);
+    } else {
+      sync_pointers_block_to_il</*check_only=*/TRUE>(&ssep->pointers_block,
+                                                     ssep->il_scope);
+    }  /* if */
+  }  /* if */
+#endif /* EXPENSIVE_CHECKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* The creation of source sequence entries is suppressed in certain
      contexts. */
@@ -4289,6 +4367,33 @@ prev_scope.
 {
   return push_namespace_scope_full(kind, assoc_namespace, NO_SCOPE_DEPTH);
 }  /* push_namespace_scope */
+
+
+void refresh_scope_stack()
+/*
+Refresh the scope stack state for any changes to information with caches
+managed by the scope stack.  This is typically called by multi-translation unit
+code to bring the scope stack back into sync with the current translation unit
+state.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+
+  for (ssep = &scope_stack[depth_scope_stack]; ssep != NULL;
+       ssep = ssep->kind == (a_scope_kind)sck_file ? NULL : ssep - 1) {
+    if (ssep->il_scope != NULL) {
+      /* Refresh the pointer blocks in case anything has changed. */
+      if (ssep->assoc_pointers_block != NULL) {
+        sync_pointers_block_to_il(ssep->assoc_pointers_block, ssep->il_scope);
+      } else {
+        sync_pointers_block_to_il(&ssep->pointers_block, ssep->il_scope);
+      }  /* if */
+      /* Note that if a scope is on the stack more than once, this will have
+         the effect of setting it to the outermost scope depth. */
+      ssep->il_scope->depth_in_scope_stack = scope_depth_of(ssep);
+    }  /* if */
+  }  /* for */
+}  /* refresh_scope_stack */
 
 
 void pop_namespace_scope(void)
