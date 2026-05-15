@@ -2739,8 +2739,8 @@ is_check is TRUE this function is expected not to do any corrections.
 {
 #define SYNC_PB_LIST(pb_list_name, il_list_name)                              \
   {                                                                           \
-    auto end_of_list = il_scope->il_list_name;                                \
-    auto orig_end_of_list = scope_ptr_block->pb_list_name;                    \
+    auto              end_of_list = il_scope->il_list_name;                   \
+    LOCAL_UNUSED auto orig_end_of_list = scope_ptr_block->pb_list_name;       \
     if (scope_ptr_block->pb_list_name != NULL) {                              \
       /* Update the tail pointer from the previously stored tail. */          \
       orig_end_of_list = end_of_list = scope_ptr_block->pb_list_name;         \
