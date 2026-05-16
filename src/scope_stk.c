@@ -2727,41 +2727,32 @@ Ensure the scope stack is large enough to accommodate one more entry.
 }  /* expand_scope_stack_if_needed */
 
 
-template<a_boolean is_check = FALSE>
 static INLINE void sync_pointers_block_to_il(
                                     a_scope_pointers_block_ptr scope_ptr_block,
                                     a_scope_ptr                il_scope)
 /*
-Update the pointer block to ensure that it matches the IL list state (it's
-possible the IL was manipulated while the scope was not activated).  If
-is_check is TRUE this function is expected not to do any corrections.
+Update the pointers block to ensure that it matches the IL list state (as one
+or more lists may have been manipulated while the scope -- and thus its
+pointers block -- was not active on the scope stack).
 */
 {
 #define SYNC_PB_LIST(pb_list_name, il_list_name)                              \
   {                                                                           \
-    auto              end_of_list = il_scope->il_list_name;                   \
-    LOCAL_UNUSED auto orig_end_of_list = scope_ptr_block->pb_list_name;       \
+    auto end_of_list = il_scope->il_list_name;                                \
     if (scope_ptr_block->pb_list_name != NULL) {                              \
       /* Update the tail pointer from the previously stored tail. */          \
-      orig_end_of_list = end_of_list = scope_ptr_block->pb_list_name;         \
+      end_of_list = scope_ptr_block->pb_list_name;                            \
       while (end_of_list->next != NULL) {                                     \
         end_of_list = end_of_list->next;                                      \
       }  /* while */                                                          \
     } else if (il_scope->il_list_name != NULL) {                              \
-      /* This is a "cold start", find the list from the IL list. */           \
+      /* This is a "cold start"; find the list from the IL list. */           \
       while (end_of_list->next != NULL) {                                     \
         end_of_list = end_of_list->next;                                      \
       }  /* while */                                                          \
       scope_ptr_block->pb_list_name = end_of_list;                            \
     }  /* if */                                                               \
-    if (is_check) {                                                           \
-      /* If this assertion fails, the front end's book keeping for this has   \
-         gone out of sync in an unexpected way. */                            \
-      check_assertion(end_of_list == orig_end_of_list ||                      \
-                      orig_end_of_list == NULL);                              \
-    } else {                                                                  \
-      scope_ptr_block->pb_list_name = end_of_list;                            \
-    }  /* if */                                                               \
+    scope_ptr_block->pb_list_name = end_of_list;                              \
   }
   SYNC_PB_LIST(last_constant, constants);
   SYNC_PB_LIST(last_type, types);
@@ -2783,6 +2774,7 @@ is_check is TRUE this function is expected not to do any corrections.
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   SYNC_PB_LIST(last_ms_if_exists, ms_if_exists);
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+#undef SYNC_PB_LIST
 }  /* sync_pointers_block_to_il */
 
 
@@ -3639,25 +3631,15 @@ the scope being pushed.
      cases in which it would not be used. */
   check_assertion(pointers_block == NULL ||
                   ssep->assoc_pointers_block == pointers_block);
-#if EXPENSIVE_CHECKING
-  /* Check that the pointer blocks of an IL-scope aren't behind the IL list
-     (i.e., haven't had any elements added to them while this scope was not on
-     the list).  This check has relatively-low anticipated cost; however,
-     problems have not been observed of this nature (outside of reactivating
-     the scope stack in multi-translation unit configurations).  Thus, to
-     minimize any potential performance impact, this is disabled outside of
-     EXPENSIVE_CHECKING and serves only as a development IL sanity check. */
+  /* Correct the pointer blocks associated with the IL scope for any elements
+     added to them while this scope was not on the scope stack. */
   if (ssep->il_scope != NULL) {
     if (ssep->assoc_pointers_block != NULL) {
-      sync_pointers_block_to_il</*check_only=*/TRUE>(
-                                                    ssep->assoc_pointers_block,
-                                                    ssep->il_scope);
+      sync_pointers_block_to_il(ssep->assoc_pointers_block, ssep->il_scope);
     } else {
-      sync_pointers_block_to_il</*check_only=*/TRUE>(&ssep->pointers_block,
-                                                     ssep->il_scope);
+      sync_pointers_block_to_il(&ssep->pointers_block, ssep->il_scope);
     }  /* if */
   }  /* if */
-#endif /* EXPENSIVE_CHECKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* The creation of source sequence entries is suppressed in certain
      contexts. */
