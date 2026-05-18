@@ -5457,15 +5457,16 @@ by subsequent calls.
   if (ns_id_ptr != NULL) {
     *ns_id_ptr = NULL;
   }  /* if */
-  if (clang_mode && clang_version < 30300) {
-    /* Clang versions before 3.3 macro-expand the argument. */
-    p = macro_arg->expanded_text;
-    end_of_arg = p + macro_arg->expanded_len;
-  } else {
-    /* Clang versions 3.3 and later, as well as non-clang mode, do not
-       macro-expand the argument. */
+  if (clang_version_is(>= 30300) && clang_version_is(<140000)) {
+    /* Clang versions from 3.3 through 13.0.x did not macro-expand the
+       argument. */
     p = macro_arg->raw_text;
     end_of_arg = p + macro_arg->raw_len;
+  } else {
+    /* Clang versions beginning with 14.0, as well as other emulations and
+       strict mode, do macro-expand the argument. */
+    p = macro_arg->expanded_text;
+    end_of_arg = p + macro_arg->expanded_len;
   }  /* if */
   while (p != end_of_arg) {
     if (is_identifier_char(p, &char_len, start_of_id == NULL)) {
