@@ -9574,7 +9574,15 @@ elaborated-type-specifier, even if it would be required in some contexts.
   }  /* if */
   orig_type = type;
   if (is_template_param_or_nonreal_class_type(type)) {
-    poss_dep_type = type;
+    a_type_ptr tp = skip_typerefs(type);
+    if (gcc_is_generated_code_target && type_is(tp, tk_template_param) &&
+        tptk_is(tp, tptk_param)) {
+      /* g++ has a bug that causes it to report an error if "typename" is
+         applied to a type alias that resolves to a template parameter, so
+         do not consider such a type to be dependent. */
+    } else {
+      poss_dep_type = type;
+    }  /* if */
   } else if (type->source_corresp.is_class_member &&
              is_template_param_or_nonreal_class_type(parent_class_of(type))) {
     poss_dep_type = parent_class_of(type);
