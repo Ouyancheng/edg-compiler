@@ -7003,8 +7003,8 @@ diagnostic if appropriate.
 }  /* consteval_failure */
 
 static void eliminate_stmt_expr_refs_if_backing_expr_dropped(
-                                                        an_expr_node_ptr  expr,
-                                                        a_constant_ptr    con)
+                                                       an_expr_node_ptr  expr,
+                                                       a_constant_ptr    con)
 /*
 expr is an expression that was folded to con.  If con dropped the backing
 expression (con->expr == NULL), eliminate any IL entries that refer to
@@ -16531,6 +16531,9 @@ token sequence number of the operator.
         an_operand  result_expr;
         build_unary_result_operand(operand, op, result_type, &result_expr);
         result_constant->expr = result_expr.variant.expression;
+      } else if (is_constant_operand(operand)) {
+        eliminate_stmt_expr_refs_if_constant_dropped(
+                                                  &operand->variant.constant);
       }  /* if */
       make_constant_operand(result_constant, result);
     }  /* if */

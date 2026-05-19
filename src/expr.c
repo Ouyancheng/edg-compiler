@@ -5324,13 +5324,25 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
         /* Replace the call with a constant result. */
         an_operand orig_op;
         copy_operand(op, &orig_op);
+        if (expr_stack->statement_expression_seen) {
+          result->folded_statement_expression = TRUE;
+        }  /* if */
         make_constant_operand(result, op);
         restore_operand_details(op, &orig_op);
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
-            result->kind != (a_constant_repr_kind)ck_template_param) {
+            !constant_is(result, ck_template_param)) {
           /* Record the call as a backing expression, but not when the
              call was put into a template parameter constant result. */
           op->variant.constant.expr = call;
+        } else if (result->folded_statement_expression) {
+          /* If we are not recording the backing expression, but the call
+             contained a GNU statement expression, be sure to also drop
+             auxiliary structures for the associated statements (pragmas and
+             source sequence entries). */
+          eliminate_statement_expr_pragmas(call);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          eliminate_statement_expr_src_seq_entries(call);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
       }  /* if */
       release_local_constant(&result);
@@ -14416,6 +14428,33 @@ region.  For example:
 }  /* scope_depth_to_allocate_unevaluated_operand */
 
 
+static void unevaluated_operand_dropped(an_operand  *opnd)
+/*
+The given operand is the unevaluated operand of something like a sizeof-
+expression, and its representation is not going to be kept around.  Perform
+any adjustments needed due to discarding the expression.
+*/
+{
+  if (expr_stack->statement_expression_seen) {
+    /* Statement expressions may have associated pragma and source sequence
+       entries that need discarding as well. */
+    if (is_expression_operand(opnd)) {
+      eliminate_statement_expr_pragmas(opnd->variant.expression);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      eliminate_statement_expr_src_seq_entries(opnd->variant.expression);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else if (is_constant_operand(opnd) &&
+               opnd->variant.constant.expr != NULL) {
+      eliminate_statement_expr_pragmas(opnd->variant.constant.expr);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      eliminate_statement_expr_src_seq_entries(opnd->variant.constant.expr);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
+  }  /* if */
+  undo_side_effects_for_discarded_unevaluated_expression();
+}  /* unevaluated_operand_dropped */
+
+
 static void scan_sizeof_operator(a_rescan_control_block *rcblock,
                                  an_operand             *result)
 /*
@@ -14972,15 +15011,7 @@ scanned sizeof or __datasizeof expression, and return the result in *result
 
   if (operand_was_created && !operand_was_used) {
     /* The expression was discarded. */
-    if (expr_stack->statement_expression_seen) {
-      if (is_expression_operand(&operand)) {
-        eliminate_statement_expr_pragmas(operand.variant.expression);
-      } else if (is_constant_operand(&operand) &&
-                 operand.variant.constant.expr != NULL) {
-        eliminate_statement_expr_pragmas(operand.variant.constant.expr);
-      }  /* if */
-    }  /* if */
-    undo_side_effects_for_discarded_unevaluated_expression();
+    unevaluated_operand_dropped(&operand);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
@@ -15265,7 +15296,7 @@ standard headers (e.g., to implement <stdarg.h>).
   make_constant_operand(constant, result);
   if (operand_was_created && !operand_was_used) {
     /* The expression was discarded. */
-    undo_side_effects_for_discarded_unevaluated_expression();
+    unevaluated_operand_dropped(&operand);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);

@@ -26801,6 +26801,14 @@ statement, which is being eliminated from the IL.  tblock is ignored.
 }  /* remove_pragmas_associated_with_statement */
 
 
+static void remove_statement_expr_pragmas_from_expr(
+                      an_expr_node_ptr                                expr,
+                      ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock);
+
+static void remove_statement_expr_pragmas_from_constant(
+                     a_constant_ptr                                  con,
+                     ARG_UNUSED an_expr_or_stmt_traversal_block_ptr   tblock);
+
 static void remove_statement_expr_pragmas(a_statement_ptr  stmt)
 /*
 Remove any pragmas associated with statements in the indicated GNU statement
@@ -26811,22 +26819,40 @@ expression, which is being eliminated from the IL.
 
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_statement = remove_pragmas_associated_with_statement;
+  tblock.process_expr = remove_statement_expr_pragmas_from_expr;
+  tblock.process_constant = remove_statement_expr_pragmas_from_constant;
+  tblock.process_non_dynamic_constants = TRUE;
   traverse_statement(stmt, &tblock);
 }  /* remove_statement_expr_pragmas */
 
 
 static void remove_statement_expr_pragmas_from_expr(
-                       an_expr_node_ptr                                expr,
-                       ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock)
+                                  an_expr_node_ptr                     expr,
+                                  an_expr_or_stmt_traversal_block_ptr  tblock)
 /*
 Called from traverse_expr to remove pragmas associated with statements in GNU
-statement expressions.  tblock is ignored.
+statement expressions.
 */
 {
   if (expr->kind == enk_statement) {
     remove_statement_expr_pragmas(expr->variant.statement);
+    tblock->suppress_subtree_walk = TRUE;
   }  /* if */
 }  /* remove_statement_expr_pragmas_from_expr */
+
+
+static void remove_statement_expr_pragmas_from_constant(
+                       a_constant_ptr                                  con,
+                       ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock)
+/*
+Called from traverse_constant to remove pragmas associated with statements in
+GNU statement expressions in a folded constant's backing expression.
+*/
+{
+  if (con->expr != NULL && con->folded_statement_expression) {
+    eliminate_statement_expr_pragmas(con->expr);
+  }  /* if */
+}  /* remove_statement_expr_pragmas_from_constant */
 
 
 void eliminate_statement_expr_pragmas(an_expr_node_ptr expr)
@@ -26839,15 +26865,21 @@ associated with statements they point to.  tblock is ignored.
 
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = remove_statement_expr_pragmas_from_expr;
+  tblock.process_constant = remove_statement_expr_pragmas_from_constant;
+  tblock.process_non_dynamic_constants = TRUE;
   traverse_expr(expr, &tblock);
 }  /* eliminate_statement_expr_pragmas */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
+static void remove_statement_expr_src_seq_entries_from_constant(
+                      a_constant_ptr                                  con,
+                      ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock);
+
 static void remove_statement_expr_src_seq_entries(
-                        an_expr_node_ptr                               expr,
-                        ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
+                       an_expr_node_ptr                                expr,
+                       ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock)
 /*
 Called from traverse_expr to remove the source sequence entries associated
 with any statement expression.
@@ -26932,6 +26964,20 @@ with any statement expression.
 }  /* remove_statement_expr_src_seq_entries */
 
 
+static void remove_statement_expr_src_seq_entries_from_constant(
+                       a_constant_ptr                                  con,
+                       ARG_UNUSED an_expr_or_stmt_traversal_block_ptr   tblock)
+/*
+Called from traverse_constant to remove source sequence entries associated
+with statement expressions in a folded constant's backing expression.
+*/
+{
+  if (con->expr != NULL && con->folded_statement_expression) {
+    eliminate_statement_expr_src_seq_entries(con->expr);
+  }  /* if */
+}  /* remove_statement_expr_src_seq_entries_from_constant */
+
+
 void eliminate_statement_expr_src_seq_entries(an_expr_node_ptr  expr)
 /*
 Traverse expr for GNU statement expressions (which are about to be dropped
@@ -26944,6 +26990,9 @@ associated with the statement expression from its parent's scopes list.
 
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = remove_statement_expr_src_seq_entries;
+  tblock.process_constant =
+                          remove_statement_expr_src_seq_entries_from_constant;
+  tblock.process_non_dynamic_constants = TRUE;
   traverse_expr(expr, &tblock);
 }  /* eliminate_statement_expr_src_seq_entries */
 
