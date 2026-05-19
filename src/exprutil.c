@@ -15500,6 +15500,11 @@ of a subscript operation).
                               result_type, &result->variant.constant,
                               &did_not_fold, &template_constant,
                               operator_position);
+        if (!did_not_fold) {
+          result->variant.constant.folded_statement_expression =
+                    operand_1->variant.constant.folded_statement_expression ||
+                    operand_2->variant.constant.folded_statement_expression;
+        }  /* if */
       }  /* if */
     } else if (op == eok_lor && constexpr_enabled &&
                !expr_stack->possible_rescan_context &&
@@ -15552,6 +15557,11 @@ of a subscript operation).
                             result_type, &result->variant.constant,
                             &did_not_fold, &template_constant,
                             operator_position);
+      if (!did_not_fold) {
+        result->variant.constant.folded_statement_expression =
+                                         con_1->folded_statement_expression ||
+                                         con_2->folded_statement_expression;
+      }  /* if */
     } else if ((op == eok_eq || op == eok_ne) &&
                (gcc_version_is(any_version) ||
                 (gpp_version_is(<60000) && constexpr_enabled)) &&
@@ -16488,6 +16498,10 @@ token sequence number of the operator.
                              result_type, result_constant,
                              &did_not_fold, &template_constant,
                              start_position);
+        if (!did_not_fold) {
+          result_constant->folded_statement_expression =
+                        operand->variant.constant.folded_statement_expression;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (did_not_fold) {
@@ -16938,6 +16952,15 @@ position of the "?" and ":".
         check_assertion(is_expression_operand(&result_expr) &&
                         is_an_lvalue(&result_expr) == is_an_lvalue(result));
         result->variant.constant.expr = result_expr.variant.expression;
+      } else {
+        if (is_constant_operand(discarded_operand)) {
+          eliminate_stmt_expr_refs_if_constant_dropped(
+                                      &discarded_operand->variant.constant);
+        }  /* if */
+        if (is_constant_operand(operand_1)) {
+          eliminate_stmt_expr_refs_if_constant_dropped(
+                                                &operand_1->variant.constant);
+        }  /* if */
       }  /* if */
 #if BACK_END_IS_CP_GEN_BE
     } else if (is_expression_operand(result)) {

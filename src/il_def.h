@@ -4981,7 +4981,9 @@ typedef struct a_constant {
 			   can be found using find_local_expr_node instead. */
   a_bit_field	folded_statement_expression:1;
 			/* TRUE if this constant resulted from folding an
-			   expression containing a GNU statement expression. */
+			   expression containing a GNU statement expression,
+			   or from a constant-folded operation on entries that
+			   have this flag set to TRUE. */
   a_bit_field	formed_from_promoted_storage:1;
 			/* TRUE if this is a constant that was originally
 			   created from an interpreter object with dynamic

@@ -26714,9 +26714,10 @@ static inline void find_scope_for_entity_pragmas(
                              a_scope_ptr                   *il_scope,
                              a_scope_pointers_block_ptr    *pointers_block);
 
+
 static void remove_pragmas_associated_with_statement(
-                        a_statement_ptr                                 stmt,
-                        ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock)
+                       a_statement_ptr                                 stmt,
+                       ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock)
 /*
 Called from traverse_statement to remove pragmas associated with the given
 statement, which is being eliminated from the IL.  tblock is ignored.
@@ -26752,6 +26753,50 @@ statement, which is being eliminated from the IL.  tblock is ignored.
       }  /* if */
     }  /* for */
     stmt->has_associated_pragma = FALSE;
+  }  /* if */
+  if (stmt->kind == stmk_label && stmt->variant.label.ptr != NULL &&
+      !is_at_least_one_error()) {
+    /* Once an error has been issued, label and control-flow descriptors may
+       still be needed for error recovery.  Leave those structures intact in
+       that case. */
+    a_label_ptr   label = stmt->variant.label.ptr;
+    a_scope_ptr   scope = label->source_corresp.parent_scope;
+    a_symbol_ptr  sym = symbol_for(label);
+    /* A discarded statement expression can contain label definitions.  Labels
+       are also reachable from the containing scope's label list, so remove the
+       label from that list before dropping the statement subtree. */
+    if (scope != NULL) {
+      a_label_ptr  prev_label = NULL, curr_label;
+      for (curr_label = scope->labels;
+           curr_label != NULL;
+           curr_label = curr_label->next) {
+        if (curr_label == label) {
+          if (prev_label == NULL) {
+            scope->labels = curr_label->next;
+          } else {
+            prev_label->next = curr_label->next;
+          }  /* if */
+          if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH &&
+              scope_stack[scope->depth_in_scope_stack].last_label == label) {
+            scope_stack[scope->depth_in_scope_stack].last_label = prev_label;
+          }  /* if */
+          break;
+        }  /* if */
+        prev_label = curr_label;
+      }  /* for */
+    }  /* if */
+    /* The symbol table can keep the label IL entry alive, and the label
+       statement can keep a block-after-label lifetime alive.  Break both
+       links since the enclosing statement-expression tree is being
+       discarded. */
+    if (sym != NULL) remove_symbol(sym);
+    label->exec_stmt = NULL;
+    label->next = NULL;
+    stmt->variant.label.ptr = NULL;
+    if (stmt->variant.label.lifetime != NULL) {
+      unlink_object_lifetime(stmt->variant.label.lifetime);
+      stmt->variant.label.lifetime = NULL;
+    }  /* if */
   }  /* if */
 }  /* remove_pragmas_associated_with_statement */
 
@@ -26808,15 +26853,14 @@ Called from traverse_expr to remove the source sequence entries associated
 with any statement expression.
 */
 {
-  if (expr->kind == enk_statement) {
+  if (node_is(expr, enk_statement)) {
+    a_statement_ptr  stmt = expr->variant.statement;
     a_source_sequence_entry_ptr
-                        head = expr->variant.statement->source_sequence_entry;
-    if (head != NULL) {
-      a_source_sequence_entry_ptr tail = matching_end_of_construct(head);
-      /* Remove the statement expression's block scope from its parent's scopes
-         list, since otherwise IL traversal will find the source sequence
-         entries even though they were removed from the main list. */
-      a_statement_ptr  stmt = expr->variant.statement;
+                     head = stmt->source_sequence_entry;
+    /* Remove the statement expression's block scope from its parent's scopes
+       list, since otherwise IL traversal will find the source sequence
+       entries even though they were removed from the main list. */
+    if (stmt->kind == stmk_block) {
       a_block_ptr      block = stmt->variant.block.extra_info;
       a_scope_ptr      scope = block->assoc_scope, last_scope = NULL,
                        parent = scope != NULL ? scope->parent : NULL;
@@ -26824,18 +26868,14 @@ with any statement expression.
 #if !STANDALONE_UTILITY_PROGRAM
       remove_statement_expr_pragmas(stmt);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+      if (scope->lifetime != NULL && !is_at_least_one_error()) {
+        /* Error recovery may still need this lifetime while closing the
+           enclosing control-flow blocks. */
+        unlink_object_lifetime(scope->lifetime);
+        scope->lifetime = NULL;
+      }  /* if */
       if (parent != NULL) {
         a_scope_ptr  *p_sp = &parent->scopes;
-        if (*p_sp == NULL && parent->depth_in_scope_stack != NO_SCOPE_DEPTH) {
-          /* In most cases, the scopes list is still pointed to by the scope
-             stack instead of by the IL scope entry. */
-          p_sp = &scope_stack[parent->depth_in_scope_stack].first_scope;
-          /* The scope_stack also has a last_scope pointer that needs to be
-             updated if it points to the scope that will be removed. */
-          if (scope_stack[parent->depth_in_scope_stack].last_scope == scope) {
-            update_last_scope = TRUE;
-          }  /* if */
-        }  /* if */
         while (*p_sp != NULL) {
           if (*p_sp == scope) {
             *p_sp = scope->next;
@@ -26845,14 +26885,48 @@ with any statement expression.
             p_sp = &last_scope->next;
           }  /* if */
         }  /* while */
-        if (update_last_scope) {
-          scope_stack[parent->depth_in_scope_stack].last_scope = last_scope;
+        if (parent->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+          /* In most cases, the scopes list is still pointed to by the scope
+             stack instead of by the IL scope entry. */
+          last_scope = NULL;
+          p_sp = &scope_stack[parent->depth_in_scope_stack].first_scope;
+          /* The scope_stack also has a last_scope pointer that needs to be
+             updated if it points to the scope that will be removed. */
+          if (scope_stack[parent->depth_in_scope_stack].last_scope == scope) {
+            update_last_scope = TRUE;
+          }  /* if */
+          while (*p_sp != NULL) {
+            if (*p_sp == scope) {
+              *p_sp = scope->next;
+              break;
+            } else {
+              last_scope = *p_sp;
+              p_sp = &last_scope->next;
+            }  /* if */
+          }  /* while */
+          if (update_last_scope) {
+            scope_stack[parent->depth_in_scope_stack].last_scope = last_scope;
+          }  /* if */
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (head != NULL) {
+      a_source_sequence_entry_ptr tail = matching_end_of_construct(head);
       clear_src_seq_list_segment(head, tail->next);
       /* Remove the list of source sequence entries spanning this statement
          expression. */
       remove_src_seq_list(head, tail);
+    } else {
+      an_expr_or_stmt_traversal_block statement_tblock;
+      clear_expr_or_stmt_traversal_block(&statement_tblock);
+      statement_tblock.process_statement =
+                [](a_statement_ptr                                 local_stmt,
+                   ARG_UNUSED an_expr_or_stmt_traversal_block_ptr) {
+                  if (local_stmt->source_sequence_entry != NULL) {
+                    remove_src_seq_entry(local_stmt->source_sequence_entry);
+                  }  /* if */
+                };
+      traverse_statement(stmt, &statement_tblock);
     }  /* if */
   }  /* if */
 }  /* remove_statement_expr_src_seq_entries */
