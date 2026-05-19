@@ -2769,6 +2769,9 @@ done_with_folding:
   } else {
     new_constant->expr = NULL;
   }  /* if */
+  if (constant->folded_statement_expression) {
+    new_constant->folded_statement_expression = TRUE;
+  }  /* if */
   /* Return the new constant value. */
   copy_constant(new_constant, constant);
   release_local_constant(&new_constant);
