@@ -2350,9 +2350,9 @@ argument checking.
 
 
 static a_symbol_ptr make_invented_class_template(
-				a_template_param_ptr	templ_param_list,
-				a_symbol_header_ptr	sym_header = NULL,
-				a_source_position	*position = NULL)
+                                       a_template_param_ptr  templ_param_list,
+                                       a_symbol_header_ptr   sym_header = NULL,
+                                       a_source_position     *position = NULL)
 /*
 Create a class template based on the template parameter list specified
 by templ_param_list, named by sym_header at position.  If sym_header is NULL,
@@ -45245,7 +45245,7 @@ On success, return the symbol for the new guide; otherwise return NULL.
          templates and for type template template parameters. */
       if (kind == actck_alias_template &&
           !is_template_deducible_from(alias_tssp->il_template_entry,
-                                        ret_type)) {
+                                      ret_type)) {
         goto done;
       }  /* if */
       if (kind == actck_template_template_param &&

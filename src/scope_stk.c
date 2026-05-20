@@ -2074,9 +2074,9 @@ void update_template_param_symbols(a_template_param_ptr param_list,
 Bind template parameter symbols to arg_list.  When partial_argument_list is
 FALSE (the usual case, including for template instantiation scopes on
 push_scope and pop_scope), mark every parameter not visible, apply arguments,
-coerce missing slots to errors, and clear not_visible per parameter.  When TRUE
-the list is incomplete for this parameter list: skip the initial not_visible
-pass and error coercion.
+coerce missing slots to errors, and clear not_visible per parameter.  When
+partial_argument_list is TRUE, the list is incomplete for this parameter list:
+skip the initial not_visible pass and error coercion.
 */
 {
   a_template_arg_ptr    tap = arg_list;
