@@ -51,24 +51,24 @@ gcc_is_generated_code_target is TRUE, thus suppressing the "typename" and
 "template" keywords that would otherwise be present.
 
 
-5/18/25  [EDGcpfe/22563,EDGcpfe/28133,EDGcpfe/28800]
+5/18/26  [EDGcpfe/22563,EDGcpfe/28133,EDGcpfe/28800]
 Operands of feature-test macro operators
 
 At the time feature-test macro operators like __has_attribute were
 implemented in the front end, clang did not macro-expand the operands, and
 the front end followed suit for all emulations, including for the C++
 standard __has_cpp_attribute operator, as the Standard originally did not
-specify the behavior.  However, core issue 2390, whose resolution was
-adopted as a Defect Report and thus applies to all versions of the
-Standard, resolved this omission by requiring the operand to be
+specify whether the operand was macro-expanded or not.  However, core issue
+2390, which was adopted as a Defect Report and thus applies to all versions
+of the Standard, resolved this omission by requiring the operand to be
 macro-expanded.  Furthermore, beginning with version 14.0, clang now
 macro-expands these operands, as gcc has done since it originally
 implemented them.  The front end has now been changed to use the unexpanded
 version of such operands only in clang mode with clang_version at least
 30300 and less than 140000; in all other cases, it macro-expands the
-operand before processing it.  For example, with --gnu_version=120300,
-the following code compiles without error, while it fails with the #error
-with --clang_version=130000:
+operand before processing it.  For example, with --gnu_version=120300, the
+following code compiles without error, while it fails with the #error
+report with --clang_version=130000:
 
   #define A noreturn
   #define B A
