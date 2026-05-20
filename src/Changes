@@ -1,5 +1,18 @@
 Version 6.9
 
+5/20/26  [EDGcpfe/28859]
+Spurious parsing error on parenthesized lambda in template declaration
+
+Consider, in C++17 mode:
+
+  template<int I = ([]{ if constexpr (true) return 42; } )()>
+  int f() { return I; }
+
+The front end attempted to cache the tokens of the default template argument,
+but did so incorrectly and issued a number of spurious errors as a result of
+the incorrect caching.  That is now fixed.
+
+
 5/20/26  [EDGcpfe/28857]
 CTAD for type template template parameters
 

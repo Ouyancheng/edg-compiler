@@ -4202,9 +4202,8 @@ not NULL, any fetched tokens will be added to cache.
         case tok_rbrace:    if (brace_count > 0) brace_count--;   break;
         default:;
       }  /* switch */
-    } else if (stop_on_statement_end &&
-               (curr_token == tok_semicolon ||
-                (curr_token == tok_rbrace && brace_count == 0))) {
+    } else if (stop_on_statement_end && brace_count == 0 &&
+               (curr_token == tok_semicolon || curr_token == tok_rbrace)) {
       /* We are in a mode where we want to limit caching in error cases.
          Stop when we hit a semicolon or unmatched right brace. */
       err = TRUE;
