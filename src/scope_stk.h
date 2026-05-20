@@ -2441,8 +2441,10 @@ extern void push_instantiation_scope_for_templ_param_rescan(
 
 extern void pop_template_instantiation_scope(void);
 
-extern void update_template_param_symbols(a_template_param_ptr param_list,
-                                          a_template_arg_ptr   arg_list);
+extern void update_template_param_symbols(
+                          a_template_param_ptr param_list,
+                          a_template_arg_ptr   arg_list,
+                          a_boolean            partial_argument_list = FALSE);
 
 extern void finish_function_processing_for_function_def(
                                             a_function_def_number n,

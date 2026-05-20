@@ -1143,8 +1143,6 @@ return the symbol representing that template.
              the class template reference.  This is not done for a template-id
              because a template argument list already exists in that case. */
           a_type_ptr	placeholder;
-          assoc_symbol =
-                    template_argument_if_template_template_param(assoc_symbol);
           placeholder = make_class_template_placeholder(assoc_symbol,
                                                         &pos_curr_token);
           assoc_symbol = symbol_for(placeholder);

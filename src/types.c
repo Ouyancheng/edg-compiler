@@ -3508,28 +3508,6 @@ typeref entries representing typedefs or type operators.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-a_type_ptr normalized_class_template_placeholder_type(a_type_ptr         tp,
-                                                      a_source_position  *pos)
-/*
-The given type is a class template placeholder type.  If the associated
-template is a template template parameter that itself has an associated
-template template argument, return a class template placeholder type based on
-the template template argument.  Otherwise, return tp.
-*/
-{
-  a_symbol_ptr  orig_ct_sym = skip_typerefs_not_typedefs_or_type_operators(tp)
-                                            ->variant.template_param.extra_info
-                                            ->constraint.class_template_symbol,
-                new_ct_sym;
-
-  new_ct_sym = template_argument_if_template_template_param(orig_ct_sym);
-  if (new_ct_sym != orig_ct_sym) {
-    tp = make_class_template_placeholder(new_ct_sym, pos);
-  }  /* if */
-  return tp;
-}  /* normalized_class_template_placeholder_type */
-
-
 a_type_ptr apply_type_transforming_intrinsic(
                             a_type_ptr             tp,
                             a_typeref_kind         kind,

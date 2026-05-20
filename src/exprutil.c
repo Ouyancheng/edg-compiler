@@ -26610,10 +26610,12 @@ block pointer.
         }  /* if */
         push_instantiation_scope_for_rescan(symbol_for(templ));
         scope_stack_top().in_concept_rescan = TRUE;
+        update_template_param_symbols(params, args);
         result = constraint_satisfied(expr, args, params,
                                       (diag_list != NULL) ? diag_list
                                                           : &concept_diag_list,
                                       options, ctws_state, p_fatal);
+        restore_default_template_params(params, /*packs_only=*/FALSE);
         pop_instantiation_scope_for_rescan();
         if (diag_list == NULL) {
           discard_more_info_list(&concept_diag_list);

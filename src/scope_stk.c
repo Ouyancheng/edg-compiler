@@ -2010,6 +2010,29 @@ Update param_symbol to reflect the value specified by tap.
 }  /* update_template_param_symbol */
 
 
+static a_boolean template_arg_can_update_param_symbol(a_template_arg_ptr  tap)
+/*
+Return TRUE if tap has a value that can be used to update a template parameter
+symbol.  Missing entries can occur in deduction and partial-ordering argument
+lists that are not complete instantiation argument lists.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (is_type_templ_arg(tap)) {
+    result = tap->variant.type != NULL;
+  } else if (is_nontype_templ_arg(tap)) {
+    result = tap->is_array_bound_of_unknown_type ||
+             tap->variant.constant != NULL;
+  } else if (is_template_templ_arg(tap)) {
+    result = tap->variant.templ.ptr != NULL;
+  } else {
+    check_assertion(is_start_of_pack_expansion_templ_arg(tap));
+  }  /* if */
+  return result;
+}  /* template_arg_can_update_param_symbol */
+
+
 static void set_template_param_symbol_to_error(a_symbol_ptr	param_symbol)
 /*
 Set param_symbol to refer to an error value.
@@ -2044,14 +2067,16 @@ Set param_symbol to refer to an error value.
 }  /* set_template_param_symbol_to_error */
 
 
-void update_template_param_symbols(a_template_param_ptr  param_list,
-                                   a_template_arg_ptr    arg_list)
+void update_template_param_symbols(a_template_param_ptr param_list,
+                                   a_template_arg_ptr   arg_list,
+                /* Defaulted: */   a_boolean            partial_argument_list)
 /*
-Update the symbol entries for template formal parameters to reflect the
-values to be used for a given instantiation.  This routine is called by
-push_scope to update the parameters for a new instantiation and is called
-by pop_scope in the case of a recursive instantiation to recreate the
-values needed for the previous call.
+Bind template parameter symbols to arg_list.  When partial_argument_list is
+FALSE (the usual case, including for template instantiation scopes on
+push_scope and pop_scope), mark every parameter not visible, apply arguments,
+coerce missing slots to errors, and clear not_visible per parameter.  When TRUE
+the list is incomplete for this parameter list: skip the initial not_visible
+pass and error coercion.
 */
 {
   a_template_arg_ptr    tap = arg_list;
@@ -2059,10 +2084,12 @@ values needed for the previous call.
 
   db_enter(4, "update_template_param_symbols");
 
-  /* Initially mark all of the parameters as not visible. */
-  for (tpp = param_list; tpp != NULL; tpp = tpp->next) {
-    tpp->param_symbol->template_param_not_visible = TRUE;
-  }  /* for */
+  if (!partial_argument_list) {
+    /* Initially mark all of the parameters as not visible. */
+    for (tpp = param_list; tpp != NULL; tpp = tpp->next) {
+      tpp->param_symbol->template_param_not_visible = TRUE;
+    }  /* for */
+  }  /* if */
   /* Loop through the parameters and arguments.  There may be fewer
      template arguments than parameters when push_scope is done while
      scanning the template argument list of a template class reference.
@@ -2085,7 +2112,9 @@ values needed for the previous call.
            symbol to point to an error value. */
         tap_to_update = NULL;
         if (tpp == NULL) break;
-        set_template_param_symbol_to_error(tpp->param_symbol);
+        if (!partial_argument_list) {
+          set_template_param_symbol_to_error(tpp->param_symbol);
+        }  /* if */
       } else {
         /* The argument is a placeholder but the parameter is not a pack.
            Unless this is a placeholder, advance "tap" so that we will skip
@@ -2101,11 +2130,17 @@ values needed for the previous call.
       expect_error();
       break;
     }  /* if */
+    if (tap_to_update != NULL && partial_argument_list &&
+        !template_arg_can_update_param_symbol(tap_to_update)) {
+      tap_to_update = NULL;
+    }  /* if */
     if (tap_to_update != NULL) {
       /* A template argument exists for this parameter. */
       update_template_param_symbol(tpp->param_symbol, tap_to_update);
+      tpp->param_symbol->template_param_not_visible = FALSE;
+    } else if (!partial_argument_list) {
+      tpp->param_symbol->template_param_not_visible = FALSE;
     }  /* if */
-    tpp->param_symbol->template_param_not_visible = FALSE;
   }  /* for */
   db_exit();
 }  /* update_template_param_symbols */

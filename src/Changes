@@ -1,5 +1,25 @@
 Version 6.9
 
+5/20/26  [EDGcpfe/28857]
+CTAD for type template template parameters
+
+The front end now supports class template argument deduction (CTAD) when the
+placeholder for a deduced class type designates a type template template
+parameter, as specified in WG21 paper P3865R3.  Because the paper was adopted
+as a Defect Report, this change applies in all modes that support class
+template argument deduction.  For example, with --c++17:
+
+  template<typename ... Ts>
+  struct C {
+    C(int = 0);
+  };
+  template<template<typename T = int> class TT>
+  void f() {
+    TT t = 1;  // Previously deduced as C<>, now deduced as C<int>
+  }
+  template void f<C>();
+
+
 5/19/26  [EDGcpfe/28855]
 C++-generating back end, GNU compatibility: template alias designating a
 template parameter

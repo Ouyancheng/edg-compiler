@@ -2350,11 +2350,15 @@ argument checking.
 
 
 static a_symbol_ptr make_invented_class_template(
-				a_template_param_ptr	templ_param_list)
+				a_template_param_ptr	templ_param_list,
+				a_symbol_header_ptr	sym_header = NULL,
+				a_source_position	*position = NULL)
 /*
 Create a class template based on the template parameter list specified
-by templ_param_list.  This is used for template template argument
-compatibility checking.
+by templ_param_list, named by sym_header at position.  If sym_header is NULL,
+use the common "<invented>" symbol header.  This is used for template template
+argument compatibility checking and for alias-like CTAD through type template
+template parameters.
 */
 {
   a_template_decl_info_ptr		tdip;
@@ -2363,9 +2367,11 @@ compatibility checking.
   a_decl_parse_state			dps;
   a_tmpl_decl_state			decl_state;
 
-  sym = alloc_symbol((a_symbol_kind)sk_class_template,
-                     make_symbol_header_for_invented_template(),
-                     &null_source_position);
+  if (sym_header == NULL) {
+    sym_header = make_symbol_header_for_invented_template();
+  }  /* if */
+  if (position == NULL) position = &null_source_position;
+  sym = alloc_symbol(sk_class_template, sym_header, position);
   sym->decl_scope = il_header.primary_scope->number;
   tssp = sym->variant.template_info;
   tdip = alloc_template_decl_info();
@@ -11488,6 +11494,11 @@ is added to the substitution state.
     get_all_class_subst_pairs(template_sym->parent.class_type, &subst_pairs);
   }  /* if */
   subst_pairs.push_back({ params, args, FALSE, FALSE, FALSE, FALSE });
+  /* Bind template parameter symbols to args for the duration of this check.
+     Constraint satisfaction can read them via ordinary lookup, including for
+     class template argument deduction through a type template template
+     parameter. */
+  update_template_param_symbols(params, args);
   if (!constraint_satisfied_full(constraint, subst_pairs, &diag_list,
                                  CTWS_NO_OPTIONS, &ctws_state, &fatal)) {
     if (!is_empty_diag_list(&diag_list)) {
@@ -11510,6 +11521,7 @@ is added to the substitution state.
     result = FALSE;
   }  /* if */
   free_list_of_variadic_param_info(ctws_state.variadic_param_info);
+  restore_default_template_params(params, FALSE);
   if (scope_pushed) {
     pop_instantiation_scope_for_rescan();
   }  /* if */
@@ -15794,7 +15806,13 @@ If there is an error in the copying, set *copy_error to TRUE.
         }  /* if */
       }  /* if */
       new_tap = alloc_template_arg(tap->kind);
-      new_tap->is_pack_element = have_params && tpp->is_pack;
+      if (have_params) {
+        new_tap->is_pack_element = tpp->is_pack;
+      } else {
+        /* Preserve existing pack element markers when there is no known
+           parameter list for the argument copy. */
+        new_tap->is_pack_element = tap->is_pack_element;
+      }  /* if */
       new_tap->is_pack = tap->is_pack;
       new_tap->explicitly_specified = tap->explicitly_specified;
       /* Copy the unsubstituted value to the new argument. */
@@ -16948,7 +16966,15 @@ copy_type_with_substitution for the meaning of the parameters.
                                           templ_param_list, source_pos,
                                           options, copy_error, ctws_state);
   if (!*copy_error && templ != orig_templ) {
-    result = make_class_template_placeholder(symbol_for(templ), source_pos);
+    a_symbol_ptr  new_ct_sym = symbol_for(templ);
+
+    if (is_template_template_param_symbol(ct_sym) &&
+        !is_template_template_param_symbol(new_ct_sym)) {
+      /* Keep the type template template parameter as the placeholder target;
+         CTAD still needs its parameter list and default arguments. */
+      new_ct_sym = ct_sym;
+    }  /* if */
+    result = make_class_template_placeholder(new_ct_sym, source_pos);
   }  /* if */
   return result;
 }  /* copy_class_template_placeholder_with_substitution */
@@ -44563,15 +44589,18 @@ template when dealing with nested class templates.
 
 /*
 Enumeration used to distinguish deduction guide transformations for alias
-templates and inheriting constructors.
+templates, type template template parameters, and inheriting constructors.
 */
 enum an_alias_ctad_transform_kind {
   actck_alias_template,
 			/* Deduction guide transformation for an alias
 			   template. */
-  actck_inheriting_constructor
+  actck_inheriting_constructor,
 			/* Deduction guide transformation for an
 			   inheriting constructor. */
+  actck_template_template_param
+			/* Deduction guide transformation for a type template
+			   template parameter. */
 };
 
 
@@ -44630,6 +44659,51 @@ FALSE.
   }  /* if */
   return result;
 }  /* deduce_template_args_from_type_deduction_pair */
+
+
+static a_boolean template_param_list_contains_symbol(
+                                                  a_template_param_ptr  params,
+                                                  a_symbol_ptr          sym)
+/*
+Return TRUE if params includes the template parameter whose symbol is sym.
+*/
+{
+  a_boolean  result = FALSE;
+
+  for (; !result && params != NULL; params = params->next) {
+    if (params->param_symbol == sym) result = TRUE;
+  }  /* for */
+  return result;
+}  /* template_param_list_contains_symbol */
+
+
+static a_type_ptr make_tttp_ctad_defining_type(
+                                            a_symbol_ptr          tttp_sym,
+                                            a_template_param_ptr  tttp_params,
+                                            a_symbol_ptr          arg_sym)
+/*
+Create the defining-type-id for class template argument deduction through the
+type template template parameter tttp_sym with parameter list tttp_params and
+current argument arg_sym.  The result is the type represented by
+arg_sym<args...>, where args... are the prototype arguments built from
+tttp_params.  Return NULL if that type cannot be formed.
+*/
+{
+  a_template_arg_ptr  proto_args;
+  a_symbol_ptr        inst_sym;
+  a_type_ptr          result = NULL;
+
+  proto_args = create_prototype_arg_list(tttp_sym, tttp_params,
+                                         /*add_pack_descr=*/TRUE);
+  push_instantiation_scope_for_rescan(arg_sym);
+  inst_sym = find_template_class_simple(arg_sym, &proto_args);
+  pop_instantiation_scope_for_rescan();
+  if (inst_sym != NULL && is_type_symbol(inst_sym)) {
+    result = type_symbol_type(inst_sym);
+  }  /* if */
+  if (proto_args != NULL) free_template_arg_list(proto_args);
+  return result;
+}  /* make_tttp_ctad_defining_type */
 
 
 static a_boolean determine_inheriting_ctor_guide_return_type(
@@ -44708,16 +44782,21 @@ static a_symbol_ptr create_transformed_deduction_guide(
                             a_symbol_ptr                   alias_like_template,
                             a_type_ptr                     defining_type,
                             a_symbol_ptr                   result_ct_sym,
-                            a_symbol_ptr                   guide_sym)
+                            a_symbol_ptr                   guide_sym,
+                            a_symbol_ptr                   *p_guide_set)
 /*
 Transform the deduction guide guide_sym for alias-like class template argument
 deduction.  kind selects alias template transformation versus inheriting
-constructor transformation.  alias_like_template is the alias template symbol
+constructor transformation versus CTAD through a type template template
+parameter.  alias_like_template is the alias template symbol
 or the class template symbol for the derived class when transforming an
-inheriting constructor guide.  defining_type is the defining-type-id in the
-(potentially invented) alias template.  result_ct_sym is the class or alias
-template symbol that receives the transformed guide.  On success, return the
-symbol for the new guide; otherwise return NULL.
+inheriting constructor guide, or an invented class template when transforming
+for a type template template parameter.  defining_type is the defining-type-id
+in the (potentially invented) alias template.  result_ct_sym is the class or
+alias template used for guide ownership and deducible checks, or the type
+template template parameter when kind is actck_template_template_param.
+p_guide_set identifies the overload set that receives the transformed guide.
+On success, return the symbol for the new guide; otherwise return NULL.
 */
 {
   a_symbol_ptr           new_guide = NULL;
@@ -44732,6 +44811,7 @@ symbol for the new guide; otherwise return NULL.
   a_template_param_ptr   guide_template_params = NULL;
   a_source_position_ptr  alias_position = &alias_like_template->decl_position;
 
+  check_assertion(p_guide_set != NULL);
   alias_tssp = template_supplement_for_symbol(alias_like_template);
   proto_sym = alias_tssp->variant.class_template.prototype_instantiation;
   proto_type = type_symbol_type(proto_sym);
@@ -44974,7 +45054,7 @@ symbol for the new guide; otherwise return NULL.
         /* Adjust any constraints and default arguments in the new template
            parameter list to refer to template parameters from within that
            list. */
-        substitute_template_param_list(alias_like_template, nondeduced_tpp,
+        substitute_template_param_list(guide_sym, nondeduced_tpp,
                                        guide_template_params,
                                        deduced_guide_args,
                                        CTWS_ADJUST_COORDINATES,
@@ -45059,10 +45139,11 @@ symbol for the new guide; otherwise return NULL.
       an_expr_node_ptr         is_deducible_expr = NULL;
 
       ctor_sym = guide_tssp->variant.function.constructor_symbol_for_guide;
-      new_guide = make_implicit_deduction_guide_template(alias_like_template,
-                                                         proto_type, guide_sym,
-                                                         ctor_sym,
-                                                         result_ct_sym);
+      new_guide = make_implicit_deduction_guide_template(
+                                        alias_like_template, proto_type,
+                                        guide_sym, ctor_sym,
+                                        kind == actck_template_template_param ?
+                                          alias_like_template : result_ct_sym);
       new_guide->decl_position = *alias_position;
       new_guide->decl_seq = guide_sym->decl_seq;
       new_tssp = new_guide->variant.template_info;
@@ -45073,6 +45154,11 @@ symbol for the new guide; otherwise return NULL.
         is_deducible_expr = make_builtin_edg_is_deducible_expr(
                                                  alias_tssp->il_template_entry,
                                                  ret_type);
+      } else if (kind == actck_template_template_param) {
+        a_template_ptr  result_ct_templ =
+              template_supplement_for_symbol(result_ct_sym)->il_template_entry;
+        is_deducible_expr = make_builtin_edg_is_deducible_expr(result_ct_templ,
+                                                               ret_type);
       }  /* if */
       guide_template_decl = guide_tssp->variant.function.decl_cache->
                                                       decl_info->template_decl;
@@ -45156,14 +45242,24 @@ symbol for the new guide; otherwise return NULL.
       new_tssp->il_template_entry->prototype_instantiation.routine = rout;
     } else {
       /* For the non-template case, perform the deducible-from check for alias
-         templates. */
+         templates and for type template template parameters. */
       if (kind == actck_alias_template &&
           !is_template_deducible_from(alias_tssp->il_template_entry,
-                                      ret_type)) {
+                                        ret_type)) {
         goto done;
       }  /* if */
-      new_guide = alloc_symbol(sk_routine, result_ct_sym->header,
+      if (kind == actck_template_template_param &&
+          !is_template_deducible_from(
+              template_supplement_for_symbol(result_ct_sym)->il_template_entry,
+              ret_type)) {
+        goto done;
+      }  /* if */
+      new_guide = alloc_symbol(sk_routine,
+                               (kind == actck_template_template_param ?
+                                                  alias_like_template->header :
+                                                  result_ct_sym->header),
                                alias_position);
+      set_source_corresp(&rout->source_corresp, new_guide);
       new_guide->variant.routine.ptr = rout;
       new_guide->decl_seq = guide_sym->decl_seq;
     }  /* if */
@@ -45188,8 +45284,7 @@ symbol for the new guide; otherwise return NULL.
       db_symbol(new_guide, "transformed guide: ", 2);
     }  /* if */
 #endif /* DEBUG */
-    add_deduction_guide(new_guide,
-                        &result_tssp->variant.class_template.deduction_guides);
+    add_deduction_guide(new_guide, p_guide_set);
   }
 done:
   pop_instantiation_scope_for_rescan();
@@ -45206,7 +45301,7 @@ according to the rules in N4868 [over.match.class.deduct]/2.  Each transformed
 guide is recorded in the template symbol supplement associated with alias_sym.
 */
 {
-  a_symbol_ptr  proto_sym;
+  a_symbol_ptr  proto_sym, *p_guide_set;
   a_type_ptr    proto_type;
   a_template_symbol_supplement_ptr
                 alias_tssp;
@@ -45214,10 +45309,54 @@ guide is recorded in the template symbol supplement associated with alias_sym.
   alias_tssp = template_supplement_for_symbol(alias_sym);
   proto_sym = alias_tssp->variant.class_template.prototype_instantiation;
   proto_type = type_symbol_type(proto_sym);
+  p_guide_set = &alias_tssp->variant.class_template.deduction_guides;
   return create_transformed_deduction_guide(actck_alias_template, alias_sym,
                                             proto_type->variant.typeref.type,
-                                            alias_sym, guide_sym);
+                                            alias_sym, guide_sym, p_guide_set);
 }  /* create_transformed_deduction_guide_for_alias_template */
+
+
+void create_deduction_guides_for_template_template_param(
+                                              a_symbol_ptr  tttp_sym,
+                                              a_symbol_ptr  arg_sym,
+                                              a_symbol_ptr  *result_guide_list)
+/*
+Create temporary deduction guides used for CTAD through the type template
+template parameter tttp_sym.  arg_sym is the class or alias template bound to
+tttp_sym; its implicit deduction guides must already be up to date.
+Transformed guides are stored in *result_guide_list.
+*/
+{
+  a_symbol_ptr           guide_set, guide_sym, invented_alias_sym;
+  a_template_param_ptr   tttp_params;
+  a_type_ptr             defining_type;
+  a_boolean              is_list = FALSE;
+
+  if (result_guide_list == NULL) goto done;
+  tttp_params = template_supplement_for_symbol(tttp_sym)
+                    ->cache->decl_info->parameters;
+  defining_type = make_tttp_ctad_defining_type(tttp_sym, tttp_params, arg_sym);
+  if (defining_type == NULL) goto done;
+  invented_alias_sym = make_invented_class_template(tttp_params,
+                                                    tttp_sym->header,
+                                                    &tttp_sym->decl_position);
+  guide_set = template_supplement_for_symbol(arg_sym)
+                  ->variant.class_template.deduction_guides;
+  if (guide_set == NULL) goto done;
+  if (symbol_is(guide_set, sk_overloaded_function)) {
+    is_list = TRUE;
+    guide_sym = guide_set->variant.overloaded_function.symbols;
+  } else {
+    guide_sym = guide_set;
+  }  /* if */
+  for (; guide_sym != NULL; guide_sym = is_list ? guide_sym->next : NULL) {
+    (void)create_transformed_deduction_guide(actck_template_template_param,
+                                             invented_alias_sym,
+                                             defining_type, tttp_sym,
+                                             guide_sym, result_guide_list);
+  }  /* for */
+done:;
+}  /* create_deduction_guides_for_template_template_param */
 
 
 static a_symbol_ptr deducible_template_for_type(a_type_ptr  type)
@@ -45242,6 +45381,66 @@ type does not name a deducible template.
   }  /* if */
   return result;
 }  /* deducible_template_for_type */
+
+
+static a_boolean is_deducible_template_symbol(a_symbol_ptr sym)
+/*
+Return TRUE if sym names a deducible template: a class template, or an alias
+template whose defining-type-id names a deducible template other than a type
+template template parameter of that alias.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (sym != NULL && !sym->is_error && !sym->is_nonreal_member &&
+      is_class_template_symbol(sym)) {
+    if (is_alias_template_symbol(sym)) {
+      a_template_symbol_supplement_ptr  tssp;
+      a_symbol_ptr                      proto_sym, def_sym;
+      a_type_ptr                        proto_type;
+
+      tssp = template_supplement_for_symbol(sym);
+      proto_sym = tssp->variant.class_template.prototype_instantiation;
+      proto_type = type_symbol_type(proto_sym);
+      def_sym = deducible_template_for_type(proto_type->variant.typeref.type);
+      if (def_sym != NULL && !def_sym->is_nonreal_member &&
+          !(is_template_template_param_symbol(def_sym) &&
+            template_param_list_contains_symbol(
+                               tssp->cache->decl_info->parameters, def_sym))) {
+        result = !is_alias_template_symbol(def_sym) ||
+                 is_deducible_template_symbol(def_sym);
+      }  /* if */
+    } else if (!is_template_template_param_symbol(sym)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_deducible_template_symbol */
+
+
+a_symbol_ptr bound_template_template_argument(
+                                          a_symbol_ptr  tttp_sym,
+                                          a_boolean     *is_deducible_template)
+/*
+Return the template template argument bound to the type template template
+parameter tttp_sym and set *is_deducible_template to indicate whether it is a
+deducible template when the binding is non-dependent, or NULL otherwise.
+*/
+{
+  a_symbol_ptr  result = NULL;
+
+  *is_deducible_template = FALSE;
+  if (is_template_template_param_symbol(tttp_sym)) {
+    a_symbol_ptr  bound = tttp_sym->variant.template_info
+                                  ->variant.class_template.argument_template;
+    if (bound != NULL && !bound->is_error &&
+        !is_template_template_param_symbol(bound)) {
+      *is_deducible_template = is_deducible_template_symbol(bound);
+      result = bound;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* bound_template_template_argument */
 
 
 static a_routine_ptr deduction_guide_routine_for_symbol(a_symbol_ptr guide_sym)
@@ -45301,11 +45500,12 @@ there are none yet.
 */
 {
   a_template_symbol_supplement_ptr
-                base_tssp;
+                base_tssp, orig_tssp;
   a_symbol_ptr  guide_set, guide_sym;
   a_boolean     is_list = FALSE;
 
   update_implicit_deduction_guides(base_template_sym);
+  orig_tssp = template_supplement_for_symbol(orig_ct_sym);
   base_tssp = template_supplement_for_symbol(base_template_sym);
   guide_set = base_tssp->variant.class_template.deduction_guides;
   if (symbol_is(guide_set, sk_overloaded_function)) {
@@ -45316,9 +45516,11 @@ there are none yet.
   }  /* if */
   for (; guide_sym != NULL; guide_sym = is_list ? guide_sym->next : NULL) {
     if (guide_sym->decl_seq > prior_max_guide_seq) {
+      a_symbol_ptr  *p_guide_set = &orig_tssp->variant.class_template
+                                                             .deduction_guides;
       (void)create_transformed_deduction_guide(actck_inheriting_constructor,
                                                ct_sym, base_type, orig_ct_sym,
-                                               guide_sym);
+                                               guide_sym, p_guide_set);
     }  /* if */
   }  /* for */
 }  /* transform_guides_for_inherited_base */
@@ -45386,13 +45588,13 @@ transformed for the alias template.
   alias_tssp = template_supplement_for_symbol(alias_sym);
   proto_sym = alias_tssp->variant.class_template.prototype_instantiation;
   proto_type = type_symbol_type(proto_sym);
-  def_sym = deducible_template_for_type(proto_type->variant.typeref.type);
-  if (def_sym != NULL && !def_sym->is_nonreal_member) {
+  if (is_deducible_template_symbol(alias_sym)) {
     a_template_symbol_supplement_ptr
                      def_tssp;
     a_symbol_ptr     guide_set, guide_sym;
     a_boolean        is_list = FALSE, interim_implicit_guides_added;
 
+    def_sym = deducible_template_for_type(proto_type->variant.typeref.type);
     /* Ensure the implicit deduction guides of the aliased symbol have been
        created. */
     update_implicit_deduction_guides(def_sym);
@@ -45516,12 +45718,35 @@ deduction succeeds and results in the same type "A<T>".
 {
   a_symbol_ptr        template_sym = symbol_for(templ);
   a_template_arg_ptr  tap = NULL;
-  a_boolean           result;
+  a_boolean           result = FALSE;
 
-  result = deduce_template_args_from_type_deduction_pair(
-                                           template_sym, type,
-                                           templ->prototype_instantiation.type,
-                                           &tap);
+  if (templ->kind == templk_template_template_param) {
+    a_template_param_ptr  template_params =
+                        template_supplement_for_symbol(template_sym)
+                            ->cache->decl_info->parameters;
+    a_boolean           is_deducible_template = FALSE;
+    a_symbol_ptr        arg_sym = bound_template_template_argument(
+                                         template_sym, &is_deducible_template);
+    a_type_ptr          defining_type;
+
+    if (is_deducible_template) {
+      defining_type = make_tttp_ctad_defining_type(template_sym,
+                                                   template_params,
+                                                   arg_sym);
+      if (defining_type != NULL) {
+        result = deduce_template_args_from_type_deduction_pair(template_sym,
+                                                               type,
+                                                               defining_type,
+                                                               &tap);
+      }  /* if */
+    }  /* if */
+  } else {
+    result = deduce_template_args_from_type_deduction_pair(
+                                             template_sym, type,
+                                             templ->prototype_instantiation
+                                               .type,
+                                             &tap);
+  }  /* if */
   if (result) {
     free_template_arg_list(tap);
   }  /* if */

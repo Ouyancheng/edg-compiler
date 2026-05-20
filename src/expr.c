@@ -18530,6 +18530,34 @@ used for the stack entry to be pushed.
 }  /* push_expr_stack_for_expr_rescan */
 
 
+static void restore_template_param_symbols_after_expr_rescan(
+                                      a_template_param_ptr template_param_list)
+/*
+Restore the template parameter symbols for template_param_list after a
+temporary update for an expression rescan.  If an enclosing instantiation for
+the same parameter list is active, restore those argument values; otherwise
+restore the default template parameter values.
+*/
+{
+  a_scope_depth  scope_depth;
+
+  for (scope_depth = depth_scope_stack; scope_depth >= 0; --scope_depth) {
+    if (scope_is(&scope_stack[scope_depth], sck_template_instantiation) &&
+        scope_stack[scope_depth].template_decl_info != NULL &&
+        scope_stack[scope_depth].template_decl_info->parameters ==
+                                                         template_param_list) {
+      break;
+    }  /* if */
+  }  /* for */
+  if (scope_depth != NO_SCOPE_DEPTH) {
+    update_template_param_symbols(template_param_list,
+                                  scope_stack[scope_depth].template_arg_list);
+  } else {
+    restore_default_template_params(template_param_list, FALSE);
+  }  /* if */
+}  /* restore_template_param_symbols_after_expr_rescan */
+
+
 a_type_ptr decltype_of_expr_with_substitution(
                                   a_type_ptr               type,
                                   an_expr_node_ptr         expr,
@@ -18554,6 +18582,7 @@ expression-processing routines.
   a_saved_expr_rescan_context saved_context;
   an_expr_stack_entry         expr_stack_entry;
   a_boolean                   is_typeof = FALSE, is_splice = FALSE;
+  a_boolean                   updated_template_params = FALSE;
 
   /* __underlying_type constructs don't allow expression arguments. */
   check_assertion(type_is(type , tk_typeref) &&
@@ -18572,6 +18601,13 @@ expression-processing routines.
   rcblock.options = options;
   rcblock.ctws_state = ctws_state;
   rcblock.expr = expr;
+  if (template_param_list != NULL && template_arg_list != NULL) {
+    /* Some rescan paths, notably CTAD for a type template template parameter,
+       consult the template parameter symbols. */
+    update_template_param_symbols(template_param_list, template_arg_list,
+                                  /*partial_argument_list=*/TRUE);
+    updated_template_params = TRUE;
+  }  /* if */
   push_expr_rescan_context_if_necessary(&rcblock, &saved_context);
   push_expr_stack_for_expr_rescan((an_expression_kind)ek_sizeof,
                                   &rcblock,
@@ -18585,6 +18621,9 @@ expression-processing routines.
   }  /* if */
   pop_expr_stack();
   pop_expr_rescan_context_if_necessary(&saved_context);
+  if (updated_template_params) {
+    restore_template_param_symbols_after_expr_rescan(template_param_list);
+  }  /* if */
   if (rcblock.error_detected || is_error_type(new_type)) {
     *copy_error = TRUE;
   }  /* if */
@@ -30466,8 +30505,6 @@ freed by this routine.
     uses_class_templ_arg_deduction = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
     init_decl_parse_state(&dps);
-    type_cast_to = normalized_class_template_placeholder_type(type_cast_to,
-                                                              &type_position);
     /* Note that although dps is seemingly only referenced in this block, it
        might get referenced by the expression stack (see the potential call to
        set_up_initializer_rescan below).  Therefore, dps must be defined at the

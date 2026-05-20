@@ -30228,6 +30228,21 @@ otherwise it is set to FALSE.
 }  /* update_param_list_for_aggr_candidate */
 
 
+static void remove_aggregate_deduction_candidate(
+                           a_template_symbol_supplement_ptr  ct_tssp,
+                           a_symbol_ptr                      aggr_candidate)
+/*
+aggr_candidate is an "aggregate deduction candidate" (see N4885
+[over.match.class.deduct]/1) currently associated with the class template
+described by ct_tssp: Remove that guide from the set of deduction guides for
+that class template.
+*/
+{
+  remove_deduction_guide(aggr_candidate,
+                         &ct_tssp->variant.class_template.deduction_guides);
+}  /* remove_aggregate_deduction_candidate */
+
+
 static a_symbol_ptr add_aggregate_deduction_candidate_if_needed(
                                           a_symbol_ptr       orig_ct_sym,
                                           an_arg_list_elem   *initializer_alep,
@@ -30273,19 +30288,32 @@ appropriate, produce the "aggregate deduction candidate" (see N4885
       ttsp = defining_type->variant.typeref.extra_info;
       dealiased_sym = symbol_for(ttsp->assoc_template);
     }  /* if */
-    if ((dealiased_sym != NULL) && (dealiased_sym->defined)) {
-      a_template_symbol_supplement_ptr  dealiased_tssp;
-      dealiased_tssp = dealiased_sym->variant.template_info;
-      if (!dealiased_tssp
+    if (dealiased_sym != NULL) {
+      a_template_symbol_supplement_ptr
+                    aggr_ct_tssp;
+      a_symbol_ptr  aggr_ct_sym = dealiased_sym;
+      a_boolean     is_deducible_template = TRUE;
+      if (is_template_template_param_symbol(dealiased_sym)) {
+        aggr_ct_sym = bound_template_template_argument(dealiased_sym,
+                                                       &is_deducible_template);
+      }  /* if */
+      if (aggr_ct_sym == NULL || !is_deducible_template ||
+          !aggr_ct_sym->defined) {
+        goto done;
+      }  /* if */
+      aggr_ct_tssp = aggr_ct_sym->variant.template_info;
+      if (!aggr_ct_tssp
                     ->variant.class_template.explicit_deduction_guides_added) {
         a_symbol_ptr  guide;
-        guide = add_aggregate_deduction_candidate_if_needed(dealiased_sym,
+        guide = add_aggregate_deduction_candidate_if_needed(aggr_ct_sym,
                                                             initializer_alep,
                                                             pos);
         if (guide != NULL) {
           aggr_candidate =
-                  create_transformed_deduction_guide_for_alias_template(ct_sym,
-                                                                        guide);
+                  create_transformed_deduction_guide_for_alias_template(
+                                                               orig_ct_sym,
+                                                               guide);
+          remove_aggregate_deduction_candidate(aggr_ct_tssp, guide);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -30327,21 +30355,6 @@ done:
 }  /* add_aggregate_deduction_candidate_if_needed */
 
 
-static void remove_aggregate_deduction_candidate(
-                           a_template_symbol_supplement_ptr  ct_tssp,
-                           a_symbol_ptr                      aggr_candidate)
-/*
-aggr_candidate is an "aggregate deduction candidate" (see N4885
-[over.match.class.deduct]/1) currently associated with the class template
-described by ct_tssp: Remove that guide from the set of deduction guides for
-that class template.
-*/
-{
-  remove_deduction_guide(aggr_candidate, 
-                         &ct_tssp->variant.class_template.deduction_guides);
-}  /* remove_aggregate_deduction_candidate */
-
-
 a_boolean deduce_class_template_args(a_type_ptr        placeholder_type,
                                      a_boolean         is_direct_init,
                                      a_boolean         parenthesized_init,
@@ -30367,8 +30380,9 @@ set to TRUE and FALSE is returned.
 {
   a_boolean     result = TRUE;
   a_symbol_ptr  ct_sym, guide_set, aggr_candidate = NULL, selected_sym = NULL;
+  a_symbol_ptr  tttp_guide_set = NULL;
   a_template_symbol_supplement_ptr
-                ct_tssp = NULL;
+                ct_tssp = NULL, aggr_candidate_tssp = NULL;
   an_arg_list_elem_ptr
                 init_list_ctor_arg_list = NULL;
   an_arg_match_summary_ptr
@@ -30407,40 +30421,82 @@ set to TRUE and FALSE is returned.
   }  /* if */
   ct_sym = placeholder_type->variant.template_param.extra_info
                            ->constraint.class_template_symbol;
-  if (ct_sym->is_template_param ||
-      (ct_sym->is_class_member &&
-       is_template_dependent_type(sym_parent_class(ct_sym)))) {
-    /* If the class template represented by ct_sym is still dependent, don't
-       attempt deduction until a real instantiation is performed.  That can
-       happen when the placeholder class template is actually a template
-       template parameter or when it is a member class template of a dependent
-       parent class. */
+  if (is_template_template_param_symbol(ct_sym)) {
+    /* Class template argument deduction for a template template parameter: use
+       guides synthesized from the class or alias template argument. */
+    a_symbol_ptr  bound_tttp_arg_sym;
+    a_boolean     is_deducible_template;
+
+    bound_tttp_arg_sym = bound_template_template_argument(
+                                               ct_sym, &is_deducible_template);
+    if (bound_tttp_arg_sym == NULL) {
+      /* Still dependent. */
+      *still_dependent = TRUE;
+      result = FALSE;
+      goto done;
+    } else if (!is_deducible_template || bound_tttp_arg_sym->is_error) {
+      /* Template argument does not name a deducible template. */
+      pos_sy_error(ec_no_class_template_guide, source_pos, bound_tttp_arg_sym);
+      *still_dependent = FALSE;
+      result = FALSE;
+      goto done;
+    }  /* if */
+    ct_tssp = template_supplement_for_symbol(bound_tttp_arg_sym);
+    if (!ct_tssp->variant.class_template.implicit_deduction_guides_added ||
+        (prototype_template_of(bound_tttp_arg_sym)->defined &&
+         (ct_tssp->variant.class_template.interim_implicit_deduction_guides ||
+          (inheriting_ctor_ctad_enabled &&
+           !ct_tssp->variant.class_template.is_alias_template)))) {
+      update_implicit_deduction_guides(bound_tttp_arg_sym);
+    }  /* if */
+    if (aggregate_ctad_enabled &&
+        prototype_template_of(bound_tttp_arg_sym)->defined &&
+        !ct_tssp->variant.class_template.explicit_deduction_guides_added &&
+        (init_list_ctor_arg_list != NULL ||
+         (allow_parenthesized_aggregate_init && parenthesized_init))) {
+      aggr_candidate = add_aggregate_deduction_candidate_if_needed(
+                                      bound_tttp_arg_sym, initializer_alep,
+                                      source_pos);
+      aggr_candidate_tssp = ct_tssp;
+    }  /* if */
+    /* Create deduction guides for an invented alias template. */
+    create_deduction_guides_for_template_template_param(ct_sym,
+                                                        bound_tttp_arg_sym,
+                                                        &tttp_guide_set);
+    guide_set = tttp_guide_set;
+  } else if (ct_sym->is_class_member &&
+             is_template_dependent_type(sym_parent_class(ct_sym))) {
+    /* Defer deduction until instantiation when the placeholder names a class
+       template that is still dependent (e.g., a nested member template while
+       the enclosing class is dependent). */
     *still_dependent = TRUE;
     result = FALSE;
     goto done;
+  } else {
+    ct_tssp = ct_sym->variant.template_info;
+    if (!ct_tssp->variant.class_template.implicit_deduction_guides_added ||
+        (prototype_template_of(ct_sym)->defined &&
+         (ct_tssp->variant.class_template.interim_implicit_deduction_guides ||
+          (inheriting_ctor_ctad_enabled &&
+           !ct_tssp->variant.class_template.is_alias_template)))) {
+      /* Either the implicit guides have not yet been generated, or they are
+         outdated because they were generated when the class template was not
+         defined, but now it is defined.  When CTAD for inheriting constructors
+         is enabled for a non-alias class template, regeneration also picks up
+         deduction guides transformed from base-class guides. */
+      update_implicit_deduction_guides(ct_sym);
+    }  /* if */
+    if (aggregate_ctad_enabled &&
+        prototype_template_of(ct_sym)->defined &&
+        !ct_tssp->variant.class_template.explicit_deduction_guides_added &&
+        (init_list_ctor_arg_list != NULL ||
+         (allow_parenthesized_aggregate_init && parenthesized_init))) {
+      aggr_candidate = add_aggregate_deduction_candidate_if_needed(
+                                         ct_sym, initializer_alep, source_pos);
+      aggr_candidate_tssp = ct_tssp;
+    }  /* if */
+    guide_set = ct_tssp->variant.class_template.deduction_guides;
   }  /* if */
-  ct_tssp = ct_sym->variant.template_info;
-  if (!ct_tssp->variant.class_template.implicit_deduction_guides_added ||
-      (prototype_template_of(ct_sym)->defined &&
-       (ct_tssp->variant.class_template.interim_implicit_deduction_guides ||
-        (inheriting_ctor_ctad_enabled &&
-         !ct_tssp->variant.class_template.is_alias_template)))) {
-    /* Either the implicit guides have not yet been generated, or they are
-       outdated because they were generated when the class template was not
-       defined, but now it is defined.  When CTAD for inheriting constructors
-       is enabled for a non-alias class template, regeneration also picks up
-       deduction guides transformed from base-class guides. */
-    update_implicit_deduction_guides(ct_sym);
-  }  /* if */
-  if (aggregate_ctad_enabled &&
-      prototype_template_of(ct_sym)->defined &&
-      !ct_tssp->variant.class_template.explicit_deduction_guides_added &&
-      (init_list_ctor_arg_list != NULL ||
-       (allow_parenthesized_aggregate_init && parenthesized_init))) {
-    aggr_candidate = add_aggregate_deduction_candidate_if_needed(
-                                       ct_sym, initializer_alep , source_pos);
-  }  /* if */
-  guide_set = ct_tssp->variant.class_template.deduction_guides;
   if (guide_set == NULL) {
     pos_sy_error(ec_no_class_template_guide, source_pos, ct_sym);
   } else {
@@ -30521,8 +30577,8 @@ set to TRUE and FALSE is returned.
   }  /* if */
 done:
   if (aggr_candidate != NULL) {
-    check_assertion(ct_tssp != NULL);
-    remove_aggregate_deduction_candidate(ct_tssp, aggr_candidate);
+    check_assertion(aggr_candidate_tssp != NULL);
+    remove_aggregate_deduction_candidate(aggr_candidate_tssp, aggr_candidate);
   }  /* if */
   return result;
 }  /* deduce_class_template_args */

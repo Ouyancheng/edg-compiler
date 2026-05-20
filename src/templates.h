@@ -1572,6 +1572,15 @@ extern a_symbol_ptr create_transformed_deduction_guide_for_alias_template(
                                                       a_symbol_ptr  alias_sym,
                                                       a_symbol_ptr  guide_sym);
 
+extern void create_deduction_guides_for_template_template_param(
+                                             a_symbol_ptr  tttp_sym,
+                                             a_symbol_ptr  arg_sym,
+                                             a_symbol_ptr  *result_guide_list);
+
+extern a_symbol_ptr bound_template_template_argument(
+                                         a_symbol_ptr  tttp_sym,
+                                         a_boolean     *is_deducible_template);
+
 extern a_symbol_ptr make_aggregate_deduction_candidate(
                                                      a_symbol_ptr      ct_sym,
                                                      a_param_type_ptr  params);

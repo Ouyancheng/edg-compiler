@@ -7220,7 +7220,6 @@ or NULL in other contexts such as using-declarations.
            the class template reference.  This is not done for a template-id
            because a template argument list already exists in that case. */
         a_type_ptr	placeholder;
-        fund_sym = template_argument_if_template_template_param(fund_sym);
         placeholder = make_class_template_placeholder(fund_sym,
                                                       &pos_curr_token);
         fund_sym = symbol_for(placeholder);

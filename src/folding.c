@@ -9966,6 +9966,7 @@ tpck_expression variant and will point to the given expression.
                     arg2 = arg1->next;
   a_template_ptr    tmpl;
   a_type_ptr        type;
+  a_boolean         is_deducible_template = FALSE;
 
   /* eok_parens shouldn't appear here, since the construct is generated. */
   check_assertion(arg2 != NULL && arg2->next == NULL &&
@@ -9973,9 +9974,12 @@ tpck_expression variant and will point to the given expression.
                   arg2->kind == enk_type_operand);
   tmpl = arg1->variant.template_name;
   type = arg2->variant.type_operand.type;
-  if (tmpl->kind == templk_template_template_param ||
+  if (is_template_dependent_type(type) ||
       is_nonreal_template_symbol(symbol_for(tmpl)) ||
-      is_template_dependent_type(type)) {
+      (tmpl->kind == templk_template_template_param &&
+       bound_template_template_argument(symbol_for(tmpl),
+                                        &is_deducible_template) == NULL)) {
+    /* The type or template operand is still dependent for deduction. */
     clear_constant(constant, ck_template_param);
     set_template_param_constant_kind(constant, tpck_expression);
     constant->variant.template_param.variant.expr = expr;
