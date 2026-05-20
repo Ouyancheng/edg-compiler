@@ -26715,6 +26715,33 @@ static inline void find_scope_for_entity_pragmas(
                              a_scope_pointers_block_ptr    *pointers_block);
 
 
+static a_boolean symbol_is_in_symbol_table(a_symbol_ptr  symbol)
+/*
+Return TRUE if symbol is still linked into one of its symbol header's lists.
+*/
+{
+  a_symbol_header_ptr  hdr = symbol->header;
+  a_symbol_ptr         sym;
+  a_boolean            result = FALSE;
+
+  for (sym = hdr->symbol; sym != NULL; sym = sym->next) {
+    if (sym == symbol) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (!result) {
+    for (sym = hdr->inactive_symbols; sym != NULL; sym = sym->next) {
+      if (sym == symbol) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* symbol_is_in_symbol_table */
+
+
 static void remove_pragmas_associated_with_statement(
                        a_statement_ptr                                 stmt,
                        ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock)
@@ -26789,7 +26816,9 @@ statement, which is being eliminated from the IL.  tblock is ignored.
        statement can keep a block-after-label lifetime alive.  Break both
        links since the enclosing statement-expression tree is being
        discarded. */
-    if (sym != NULL) remove_symbol(sym);
+    if (sym != NULL && symbol_is_in_symbol_table(sym)) {
+     remove_symbol(sym);
+    }  /* if */
     label->exec_stmt = NULL;
     label->next = NULL;
     stmt->variant.label.ptr = NULL;
