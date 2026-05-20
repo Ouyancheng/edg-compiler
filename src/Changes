@@ -1,5 +1,36 @@
 Version 6.9
 
+5/19/26  [EDGcpfe/28855]
+C++-generating back end, GNU compatibility: template alias designating a
+template parameter
+
+G++ has a bug that causes it to report spurious errors when the "typename"
+keyword is used with an alias template specialization that resolves to a
+template parameter when the alias template is a member of a non-dependent
+class type.  For example, with --gnu_version=140200 --c++17:
+
+  template <typename T> using A = T;
+  template <typename> struct B {
+    template <typename T> using C = T;
+  };
+  template <typename> struct D {
+    template <typename T,
+              int (*)(A<D<B<int>::C<T>>>)>
+    void f();
+  };
+
+The C++-generating back end previously put out the second template parameter
+of D::f as:
+
+    int (*)(A<D<typename B<int>::template C<T>>>)
+
+triggering the g++ bug, since B<int> is not dependent and B<int>::C<T> is
+simply T, a template parameter.  The C++-generating back end has now been
+modified to treat such types as non-dependent when
+gcc_is_generated_code_target is TRUE, thus suppressing the "typename" and
+"template" keywords that would otherwise be present.
+
+
 5/18/25  [EDGcpfe/22563,EDGcpfe/28133,EDGcpfe/28800]
 Operands of feature-test macro operators
 
