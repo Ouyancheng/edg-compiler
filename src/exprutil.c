@@ -7040,6 +7040,26 @@ entries that refer to statements in that dropped expression.
 }  /* eliminate_stmt_expr_refs_if_constant_dropped */
 
 
+static void eliminate_stmt_expr_refs_if_operand_dropped(an_operand  *operand)
+/*
+operand is being discarded without preserving its expression tree.  If that
+tree contains GNU statement expressions, eliminate any IL entries that refer to
+statements in the dropped expression.
+*/
+{
+  if (is_expression_operand(operand)) {
+    if (expr_stack->statement_expression_seen) {
+      eliminate_statement_expr_pragmas(operand->variant.expression);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      eliminate_statement_expr_src_seq_entries(operand->variant.expression);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
+  } else if (is_constant_operand(operand)) {
+    eliminate_stmt_expr_refs_if_constant_dropped(&operand->variant.constant);
+  }  /* if */
+}  /* eliminate_stmt_expr_refs_if_operand_dropped */
+
+
 static a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
                                           a_routine_ptr     *p_rout,
                                           an_operand        *result,
@@ -15513,6 +15533,7 @@ of a subscript operation).
                                                &operand_1->variant.constant) &&
                !op_is_false_constant(operand_1)) {
       /* (1 || nonconstant) produces true in C++11. */
+      eliminate_stmt_expr_refs_if_operand_dropped(operand_2);
       discard_operand(operand_2);
       make_integer_constant_operand(result, (a_host_large_integer)1);
       cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
@@ -15524,6 +15545,7 @@ of a subscript operation).
                                                &operand_1->variant.constant) &&
                op_is_false_constant(operand_1)) {
       /* (0 && nonconstant) produces false in C++11. */
+      eliminate_stmt_expr_refs_if_operand_dropped(operand_2);
       discard_operand(operand_2);
       make_integer_constant_operand(result, (a_host_large_integer)0);
       cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);

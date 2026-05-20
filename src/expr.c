@@ -14428,11 +14428,11 @@ region.  For example:
 }  /* scope_depth_to_allocate_unevaluated_operand */
 
 
-static void unevaluated_operand_dropped(an_operand  *opnd)
+static void discard_statement_expr_refs_in_operand(an_operand  *opnd)
 /*
-The given operand is the unevaluated operand of something like a sizeof-
-expression, and its representation is not going to be kept around.  Perform
-any adjustments needed due to discarding the expression.
+opnd is being discarded without preserving its expression tree.  If it contains
+GNU statement expressions, eliminate any IL entries that refer to statements in
+the dropped expression.
 */
 {
   if (expr_stack->statement_expression_seen) {
@@ -14451,6 +14451,17 @@ any adjustments needed due to discarding the expression.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
+}  /* discard_statement_expr_refs_in_operand */
+
+
+static void unevaluated_operand_dropped(an_operand  *opnd)
+/*
+The given operand is the unevaluated operand of something like a sizeof-
+expression, and its representation is not going to be kept around.  Perform
+any adjustments needed due to discarding the expression.
+*/
+{
+  discard_statement_expr_refs_in_operand(opnd);
   undo_side_effects_for_discarded_unevaluated_expression();
 }  /* unevaluated_operand_dropped */
 
@@ -35002,6 +35013,9 @@ and whether the operator appears at the top level of a requires clause.
         build_binary_result_operand(operand_1, &operand_2, op,
                                     result_type, &temp_operand);
         result->variant.constant.expr = make_node_from_operand(&temp_operand);
+      } else {
+        discard_statement_expr_refs_in_operand(operand_1);
+        discard_statement_expr_refs_in_operand(&operand_2);
       }  /* if */
     }  /* if */
   }  /* if */
