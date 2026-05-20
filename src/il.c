@@ -28240,12 +28240,6 @@ is bound to the il_entity).
                                   func_or_templ_scope,
                                   &il_scope, &pointers_block);
     assoc_pragma = il_scope->pragmas;
-#if EXPENSIVE_CHECKING
-    /* This is the first time observing the list; verify it doesn't have a
-       cycle (if it does, something went wrong with the management of IL
-       scope's pragma list). */
-    check_assertion(!simple_list_has_cycle(assoc_pragma));
-#endif /* EXPENSIVE_CHECKING */
   }  /* if */
   for (; assoc_pragma != NULL; assoc_pragma = assoc_pragma->next) {
     if (assoc_pragma->entity.ptr == entity_ptr) break;

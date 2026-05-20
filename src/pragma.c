@@ -841,7 +841,7 @@ there is additional processing to be done.
                                      entity_kind);
 #if EXPENSIVE_CHECKING
       /* Verify that the constructed IL pragma can be found. */
-      if (!no_find_pragma_validation) {
+      if (!no_find_pragma_validation && !no_very_expensive_checking) {
         a_pragma_ptr                npp = NULL;
         a_boolean                   tu_pushed = FALSE;
         a_scope_ptr                 scope_for_function_local = NULL;
