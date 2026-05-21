@@ -7271,8 +7271,10 @@ curr_routine points to the routine entry; otherwise, it is NULL.
     case sk_label:
       /* Label. */
       if (sym->variant.label.ptr->exec_stmt == NULL) {
-        /* A label that was used but never defined. */
-        pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+        if (!sym->defined) {
+          /* A label that was used but never defined. */
+          pos_sy_error(ec_never_defined, &sym->decl_position, sym);
+        }  /* if */
       } else if (!sym->referenced) {
         /* An unreferenced label. */
         if (sym->variant.label.ptr->source_corresp.maybe_unused) {

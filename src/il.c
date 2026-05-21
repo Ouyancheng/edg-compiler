@@ -26720,33 +26720,6 @@ static inline void find_scope_for_entity_pragmas(
                              a_scope_pointers_block_ptr    *pointers_block);
 
 
-static a_boolean symbol_is_in_symbol_table(a_symbol_ptr  symbol)
-/*
-Return TRUE if symbol is still linked into one of its symbol header's lists.
-*/
-{
-  a_symbol_header_ptr  hdr = symbol->header;
-  a_symbol_ptr         sym;
-  a_boolean            result = FALSE;
-
-  for (sym = hdr->symbol; sym != NULL; sym = sym->next) {
-    if (sym == symbol) {
-      result = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  if (!result) {
-    for (sym = hdr->inactive_symbols; sym != NULL; sym = sym->next) {
-      if (sym == symbol) {
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return result;
-}  /* symbol_is_in_symbol_table */
-
-
 static void remove_pragmas_associated_with_statement(
                        a_statement_ptr                                 stmt,
                        ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock)
@@ -26793,7 +26766,6 @@ statement, which is being eliminated from the IL.  tblock is ignored.
        that case. */
     a_label_ptr   label = stmt->variant.label.ptr;
     a_scope_ptr   scope = label->source_corresp.parent_scope;
-    a_symbol_ptr  sym = symbol_for(label);
     /* A discarded statement expression can contain label definitions.  Labels
        are also reachable from the containing scope's label list, so remove the
        label from that list before dropping the statement subtree. */
@@ -26817,13 +26789,11 @@ statement, which is being eliminated from the IL.  tblock is ignored.
         prev_label = curr_label;
       }  /* for */
     }  /* if */
-    /* The symbol table can keep the label IL entry alive, and the label
-       statement can keep a block-after-label lifetime alive.  Break both
-       links since the enclosing statement-expression tree is being
-       discarded. */
-    if (sym != NULL && symbol_is_in_symbol_table(sym)) {
-     remove_symbol(sym);
-    }  /* if */
+    /* The symbol table entry may be needed by a later goto so that branching
+       into the statement expression is diagnosed correctly.  Leave it in
+       place as a defined-but-eliminated label, but break the links from the
+       label entry to the discarded statement subtree and from the label
+       statement to its block-after-label lifetime. */
     label->exec_stmt = NULL;
     label->next = NULL;
     stmt->variant.label.ptr = NULL;
