@@ -11104,6 +11104,11 @@ entry.  pos is used to establish the type entry's position information.
   a_template_symbol_supplement_ptr
                 tssp = template_supplement_for_symbol(class_template);
 
+  if (!alias_ctad_enabled && alias_ctad_allowed &&
+      is_alias_template_symbol(class_template)) {
+    /* Alias-template CTAD is allowed by GCC/Clang in pre-C++20 modes. */
+    pos_warning(ec_alias_ctad_is_cpp20, pos);
+  }  /* if */
   /* Use the class template name as the placeholder name. */
   sym = alloc_symbol((a_symbol_kind)sk_type, class_template->header, pos);
   /* If the class template symbol is an error symbol, the class template

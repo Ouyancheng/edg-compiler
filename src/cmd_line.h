@@ -2978,6 +2978,16 @@ EXTERN_THREAD a_boolean
 			/* TRUE if C++26 pack indexing is supported. */
 
 /*
+Macro that determines whether CTAD for alias templates should be accepted.
+Alias-template CTAD is a standard feature in C++20 mode (and the global
+variable alias_ctad_enabled is TRUE in that case) that is also accepted with
+a warning in recent GNU and Clang C++ modes.
+*/
+#define alias_ctad_allowed                                                   \
+  (alias_ctad_enabled ||                                                     \
+   gpp_version_is(>=100000) || clangcpp_version_is(>=190000))
+
+/*
 Macro that determines whether pack indexing should be accepted.  Pack indexing
 is a standard feature in C++26 mode (and the global variable
 pack_indexing_enabled is TRUE in that case) that is also accepted with a

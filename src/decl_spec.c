@@ -7213,7 +7213,7 @@ or NULL in other contexts such as using-declarations.
       orig_fund_sym = fund_sym;
       if (class_template_allowed &&
           !locator_for_curr_id.is_template_id &&
-          (alias_ctad_enabled ? is_class_template_symbol(fund_sym)
+          (alias_ctad_allowed ? is_class_template_symbol(fund_sym)
                          : is_class_template_but_not_alias_symbol(fund_sym))) {
         /* We found a class or alias template and we are doing class template
            argument deduction.  Create a placeholder type to represent

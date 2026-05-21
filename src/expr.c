@@ -40619,7 +40619,7 @@ overloaded_function:
                function-style cast. */
             a_token_kind  next_tok = next_token();
             if ((next_tok == tok_lparen || next_tok == tok_lbrace) &&
-                (alias_ctad_enabled ? is_class_template_symbol(sym_ptr)
+                (alias_ctad_allowed ? is_class_template_symbol(sym_ptr)
                           : is_class_template_but_not_alias_symbol(sym_ptr))) {
               a_type_ptr  placeholder;
               check_assertion(class_template_arg_deduction_enabled);

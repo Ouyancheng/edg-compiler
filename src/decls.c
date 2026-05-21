@@ -1136,7 +1136,7 @@ return the symbol representing that template.
       if (assoc_symbol != NULL) {
         if (!in_prescan && class_template_arg_deduction_enabled &&
             !locator_for_curr_id.is_template_id &&
-            (alias_ctad_enabled ? is_class_template_symbol(assoc_symbol)
+            (alias_ctad_allowed ? is_class_template_symbol(assoc_symbol)
                      : is_class_template_but_not_alias_symbol(assoc_symbol))) {
           /* We found a class template and we are doing class template
              argument deduction.  Create a placeholder type to represent
