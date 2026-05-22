@@ -3,9 +3,10 @@ Version 6.9
 5/21/26  [EDGcpfe/28849]
 GCC/Clang compatibility: CTAD for alias templates in pre-C++20 modes
 
-In GNU C++ 10.x+ and Clang 19.x+ modes, the front end now accepts the C++20
-class template argument deduction (CTAD) for alias templates feature with a
-warning in pre-C++20 modes.
+In Clang 19+ modes, the front end now accepts the C++20 class template argument
+deduction (CTAD) for alias templates feature with a warning in pre-C++20 modes.
+In GCC 10+ modes, the feature is accepted only for simple alias templates (see
+the entry for EDGcpfe/28073).
 
 
 5/20/26  [EDGcpfe/28859]
