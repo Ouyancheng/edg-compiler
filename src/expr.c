@@ -39281,8 +39281,12 @@ a capture).
            know that here, except for the special case of constant
            expressions).  For non-constant-expression contexts, lambdas have
            to be treated differently (below) because of the possibility of
-           capturing. */
-        if (rvalue_only != NULL) {
+           capturing.  However, in a lambda header (e.g., a default template
+           argument or a default function argument of the lambda's call
+           operator), the variable is still in the lexical scope of the
+           enclosing function and capture is not required.  Do not force the
+           variable to be converted to an rvalue in that case. */
+        if (rvalue_only != NULL && !in_lambda_header()) {
           *rvalue_only = TRUE;
         }  /* if */
       } else if (in_lambda_body()) {
@@ -52697,19 +52701,56 @@ memory region).  Do various error checks.
             }  /* if */
           }  /* if */
         }  /* if */
+        if (scope_for_local_ref == NULL && expr != NULL &&
+            expr_has_reference_to_routine_scope_variable(expr)) {
+          /* When parsing a default template argument in a lambda header,
+             innermost_function_scope is NULL because the closure class scope
+             is on top of the scope stack (it clears innermost_function_scope).
+             However, the expression may still reference a constexpr local
+             variable of the enclosing function.  Search the scope stack for
+             an enclosing function scope so the local-expr-node-ref mechanism
+             can anchor the expression there. */
+          an_expr_node_ptr  vnode = get_routine_scope_variable_node_found();
+          a_routine_ptr     rp = node_variable(vnode)
+                                           ->source_corresp.enclosing_routine;
+          if (rp != NULL) {
+            scope_for_local_ref = scope_for_routine_or_null(rp);
+          }  /* if */
+        }  /* if */
         do_fs_constant_fixup(constant);
-        if (expr != NULL && !in_file_scope(expr) &&
+        if (expr != NULL &&
 #if GENERATE_SOURCE_SEQUENCE_LISTS
             !expr_stack->statement_expression_seen &&
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-            scope_for_local_ref != NULL) {
+            scope_for_local_ref != NULL &&
+            (!in_file_scope(expr) ||
+             expr_has_reference_to_routine_scope_variable(expr))) {
           /* Refer to the underlying expression indirectly since it lives in
-             function scope memory.  (Discard the expression if a statement
-             expression and source sequence entries are recorded, because no
-             source sequence entries could be recorded for a template
-             argument.) */
+             function scope memory, or because it contains a reference to a
+             function-scope variable that cannot be reached from file-scope
+             IL.  (Discard the expression if a statement expression and source
+             sequence entries are recorded, because no source sequence
+             entries could be recorded for a template argument.)  In the
+             case where the expression tree is in file scope but contains a
+             reference to a function-scope variable (e.g., a default template
+             argument of a lambda that names a constexpr local variable of
+             the enclosing function), copy the tree into the function-scope
+             region first so the local-expr-node-ref mechanism can find it.
+             Clear the direct backing-expression pointer in the constant,
+             since the file-scope constant cannot retain a pointer into
+             function-scope memory; the expression will be reached via the
+             local-expr-node-ref mechanism. */
+          if (in_file_scope(expr)) {
+            a_routine_ptr  rp = scope_for_local_ref->variant.routine.ptr;
+            a_memory_region_number
+                           region_to_switch_back_to = curr_il_region_number;
+            switch_il_region(mem_region_for_routine(rp));
+            expr = copy_expr_tree(expr, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
+            switch_il_region(region_to_switch_back_to);
+          }  /* if */
           make_local_expr_node_ref(expr, lerk_constant_expr, (char*)constant,
                                    scope_for_local_ref);
+          constant->expr = NULL;
         }  /* if */
       }  /* if */
     }  /* if */
