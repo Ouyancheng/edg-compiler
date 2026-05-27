@@ -11076,7 +11076,7 @@ vk_ext, ...) and, for vk_ext, its size_constant.
   a_type_ptr            tp = *p_type, utp = skip_typerefs(tp);
 
   if (type_is(utp, tk_vector) && utp->variant.vector.is_boolean_vector) {
-    a_vector_kind         vkind = utp->vriant.vector.kind;
+    a_vector_kind         vkind = utp->variant.vector.kind;
     a_type_qualifier_set  tqs = get_type_qualifiers(tp);
     a_type_ptr new_type = make_vector_type(utp->variant.vector.element_type,
                                            num_vector_elements(utp), vkind);
