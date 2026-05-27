@@ -1,5 +1,35 @@
 Version 6.9
 
+5/27/26  [EDGcpfe/28365,EDGcpfe/28690]
+Spurious ADL failure in a generic lambda in a friend definition
+
+The changes for EDGcpfe/27707 (in version 6.8) introduced a regression when
+--defer_parse_function_templates is enabled (as is usually the case in GNU C++
+modes).  A call inside a generic lambda in a function defined in a friend
+function declaration of a class template could fail to find a friend function
+by argument-dependent lookup (ADL).  For example, with --c++14
+--defer_parse_function_templates:
+
+  template<typename> struct D1;
+  template<typename> struct D2;
+  template<typename T> struct B { using type = int; };
+  template<typename T> using A = B<D2<T>>;
+  template<typename T> struct C { using type = typename T::type; };
+  template<typename T> struct C<D1<T>> : C<A<T>> {};
+  template<typename T> struct S1 {
+    using type = typename C<D1<T>>::type;
+    friend int g(S1);
+  };
+  template<typename T> struct S2 {
+    friend int f(S2) {
+      return [] (auto) {
+        return g(S1<T>{});  // Previously a spurious error, now okay.
+      } (1);
+    }
+  };
+  int i = f(S2<int>{});
+
+
 5/21/26  [EDGcpfe/28849]
 GCC/Clang compatibility: CTAD for alias templates in pre-C++20 modes
 

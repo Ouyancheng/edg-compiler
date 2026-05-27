@@ -13070,6 +13070,121 @@ Return TRUE if we are within the prototype instantiation of a generic lambda.
 }  /* in_generic_lambda_in_prototype_instantiation */
 
 
+a_routine_ptr enclosing_nonlambda_routine_for_lambda_class(
+                                                   a_type_ptr  *p_lambda_class)
+/*
+Skip outward from the lambda closure class indicated by *p_lambda_class through
+enclosing lambda call operators and update *p_lambda_class to the outermost
+lambda closure class reached.  Return the first enclosing non-lambda routine,
+or NULL if there is no such routine or if reaching it would cross a non-lambda
+class.
+*/
+{
+  a_type_ptr     lambda_class = *p_lambda_class;
+  a_routine_ptr  encl_rout;
+
+  check_assertion(lambda_class != NULL &&
+                  type_is_lambda_closure(lambda_class));
+  encl_rout = lambda_class->source_corresp.enclosing_routine;
+  while (encl_rout != NULL && encl_rout->is_lambda_body) {
+    if (lambda_class->source_corresp.is_class_member &&
+        !type_is_lambda_closure(parent_class_of(lambda_class))) {
+      break;
+    }  /* if */
+    lambda_class = parent_class_of(encl_rout);
+    encl_rout = lambda_class->source_corresp.enclosing_routine;
+  }  /* while */
+  if (encl_rout != NULL && lambda_class->source_corresp.is_class_member &&
+      !type_is_lambda_closure(parent_class_of(lambda_class))) {
+    encl_rout = NULL;
+  }  /* if */
+  *p_lambda_class = lambda_class;
+  return encl_rout;
+}  /* enclosing_nonlambda_routine_for_lambda_class */
+
+
+static a_boolean template_instantiation_for_class_is_on_stack(
+                                           a_type_ptr               class_type,
+                                           a_scope_stack_entry_ptr  ssep)
+/*
+Return TRUE if a real instantiation scope for class_type appears at or before
+ssep in the current scope stack.
+*/
+{
+  a_boolean  result = FALSE;
+
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    if (scope_is(ssep, sck_template_instantiation) &&
+        !ssep->in_prototype_instantiation &&
+        !ssep->in_nonreal_instantiation && ssep->assoc_type != NULL &&
+        same_entities(ssep->assoc_type, class_type)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* template_instantiation_for_class_is_on_stack */
+
+
+static a_boolean class_template_friend_instantiation_is_on_stack(
+                                            a_routine_ptr            friend_rp,
+                                            a_scope_stack_entry_ptr  ssep)
+/*
+Return TRUE if friend_rp is on the current scope stack as a function defined
+in a class template whose corresponding real instantiation scope is also on
+the stack.
+*/
+{
+  a_boolean  found_friend_scope = FALSE, result = FALSE;
+
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    if (!found_friend_scope) {
+      if (scope_is(ssep, sck_function) && ssep->assoc_routine == friend_rp) {
+        found_friend_scope = TRUE;
+      }  /* if */
+    } else if (scope_is(ssep, sck_class_struct_union) ||
+               scope_is(ssep, sck_class_reactivation)) {
+      if (is_template_class_type(ssep->assoc_type)) {
+        result = template_instantiation_for_class_is_on_stack(
+                                                      ssep->assoc_type,
+                                                      previous_scope_of(ssep));
+      }  /* if */
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* class_template_friend_instantiation_is_on_stack */
+
+
+a_boolean in_generic_lambda_in_class_template_friend(void)
+/*
+Return TRUE if the innermost instantiation scope is a generic lambda call
+operator whose lambda is lexically inside a function defined in a friend
+declaration of a class template that is being instantiated.  In that situation
+the friend definition, and therefore the lambda, is instantiated as part of the
+class template instantiation, and ADL inside the lambda body must continue to
+see friend declarations introduced by sibling class template instantiations
+performed during the same instantiation chain.
+*/
+{
+  a_boolean                result = FALSE;
+  a_scope_stack_entry_ptr  ssep;
+
+  ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
+  if (ssep != NULL && ssep->is_generic_lambda) {
+    a_type_ptr     lambda_class = sym_parent_class(ssep->template_sym);
+    a_routine_ptr  enclosing_rp =
+                   enclosing_nonlambda_routine_for_lambda_class(&lambda_class);
+    if (enclosing_rp != NULL && enclosing_rp->defined_in_friend_decl) {
+      result = class_template_friend_instantiation_is_on_stack(
+                                                      enclosing_rp,
+                                                      previous_scope_of(ssep));
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* in_generic_lambda_in_class_template_friend */
+
+
 a_boolean is_nested_in_real_instantiation(void)
 /*
 Return TRUE if we are nested within a real instantiation.

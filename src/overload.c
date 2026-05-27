@@ -5164,6 +5164,7 @@ point of call, FALSE otherwise.
 */
 {
   a_boolean                visible = TRUE, function_template_case;
+  a_boolean                is_namespace_projection;
   a_routine_ptr            routine;
   a_decl_sequence_number   effective_decl_seq;
 
@@ -5181,6 +5182,8 @@ point of call, FALSE otherwise.
     visible = FALSE;
     goto end_of_function;
   }  /* if */
+  is_namespace_projection = symbol_is(function_symbol,
+                                      sk_namespace_projection);
   /* Remove projection, if any. */
   function_symbol = fundamental_symbol_of(function_symbol);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5201,10 +5204,12 @@ point of call, FALSE otherwise.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   function_template_case = symbol_is(function_symbol, sk_function_template);
   if (do_dependent_name_processing &&
+      is_nonspecialized_instantiation_context() &&
       (!from_arg_dep_lookup ||
        (defer_function_prototype_instantiations &&
-        is_prototype_instantiation_context())) &&
-      is_nonspecialized_instantiation_context() &&
+        is_prototype_instantiation_context() &&
+        !(is_namespace_projection &&
+          in_generic_lambda_in_class_template_friend()))) &&
       !function_symbol->is_class_member &&
       !is_local_symbol(function_symbol) &&
       !is_deduction_guide_symbol(function_symbol) &&
@@ -5212,12 +5217,17 @@ point of call, FALSE otherwise.
       (function_symbol->decl_seq >
                              (effective_decl_seq = get_effective_decl_seq()) &&
        effective_decl_seq != NO_DECL_SEQUENCE_NUMBER)) {
- 
     /* This symbol is not visible in this template instantiation (it
        was declared after the template definition).  The test done when
        deferring prototype instantiations is used to apply the decl_seq
        check to functions found by argument dependent lookup during the
-       prototype instantiation. */
+       prototype instantiation.  An exception is made when the current
+       instantiation is a generic lambda call operator inside a function
+       defined in a friend declaration of a class template that is being
+       instantiated: friends introduced by sibling class template
+       instantiations performed during the same instantiation chain are
+       not "later" declarations and ADL on namespace projections must
+       continue to see them. */
     if (dependent_call && gpp_mode &&
         (gnu_version >= 30400 && gnu_version < 40100)) {
       /* g++ 3.4 has a bug and considers such symbols visible. */
@@ -12995,24 +13005,11 @@ implicit "this" is available, e.g., during overload resolution.
          it's used only to access the fields of the closure class to fetch
          captured values. */
       a_type_ptr    closure_class = parent_class_of(curr_rout);
-      a_routine_ptr encl_rout= closure_class->source_corresp.enclosing_routine;
+      a_routine_ptr encl_rout = enclosing_nonlambda_routine_for_lambda_class(
+                                                               &closure_class);
       a_class_type_supplement_ptr
-                    ctsp;
-      while (encl_rout != NULL && encl_rout->is_lambda_body) {
-        /* We can reach out past intermediate lambdas, but we don't want to
-           reach out past an enclosing class if the intermediate lambda happens
-           to contain one. */
-        if (closure_class->source_corresp.is_class_member &&
-            !type_is_lambda_closure(parent_class_of(closure_class))) {
-          break;
-        }  /* if */
-        closure_class = parent_class_of(encl_rout);
-        encl_rout = closure_class->source_corresp.enclosing_routine;
-      }  /* while */
-      ctsp = class_type_supp(closure_class);
-      if (encl_rout != NULL && 
-          !(closure_class->source_corresp.is_class_member &&
-            !type_is_lambda_closure(parent_class_of(closure_class)))) {
+                    ctsp = class_type_supp(closure_class);
+      if (encl_rout != NULL) {
         /* There is a routine that encloses the lambda.  See if it is a
             nonstatic member function. */
         if (routine_type_is_nonstatic_member_function(encl_rout->type)) {

@@ -7729,6 +7729,29 @@ current scope.
   } else {
     decl_seq_number = ssep->template_decl_info->decl_seq;
   }  /* if */
+  if (decl_seq_number != NO_DECL_SEQUENCE_NUMBER && ssep->is_generic_lambda) {
+    /* The innermost instantiation is the call operator of a generic lambda.
+       The call operator's own decl_seq is not always the right one for lookups
+       inside the lambda body: in deferred prototype instantiation contexts the
+       call operator's decl_seq can be assigned later than the lexically
+       enclosing template's, so the visibility filter would treat declarations
+       that appear after the lambda as if they were visible.  When the
+       enclosing real template instantiation has a smaller decl_seq, use that
+       value instead. */
+    a_scope_stack_entry_ptr  encl = previous_scope_of(ssep);
+    while (encl != NULL) {
+      if (scope_is(encl, sck_template_instantiation) &&
+          !encl->in_nonreal_instantiation) {
+        if (encl->template_decl_info != NULL &&
+            encl->template_decl_info->decl_seq != NO_DECL_SEQUENCE_NUMBER &&
+            encl->template_decl_info->decl_seq < decl_seq_number) {
+          decl_seq_number = encl->template_decl_info->decl_seq;
+        }  /* if */
+        break;
+      }  /* if */
+      encl = previous_scope_of(encl);
+    }  /* while */
+  }  /* if */
   return decl_seq_number;
 }  /* f_get_effective_decl_seq */
 
