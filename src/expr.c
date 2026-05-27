@@ -58329,6 +58329,8 @@ function operand: The selector is then returned in *bound_function_selector.
 */
 {
   a_boolean          unary, left_associative = FALSE, generic = FALSE;
+  a_boolean          scan_right_operand = FALSE, defer_pack_check = FALSE;
+  a_boolean          pack_processing_suppressed = FALSE;
   a_boolean          pack_seen = empty_pack, err = FALSE;
   a_token_kind       op_token;
   an_initializer_cache
@@ -58338,6 +58340,7 @@ function operand: The selector is then returned in *bound_function_selector.
   clear_initializer_cache(&opnd_list);
   if (curr_token == tok_ellipsis && left_pesep == NULL) {
     unary = TRUE;
+    scan_right_operand = TRUE;
     left_associative = TRUE;
     ellipsis_pos = pos_curr_token;
     (void)get_token();
@@ -58355,6 +58358,9 @@ function operand: The selector is then returned in *bound_function_selector.
                   pedp;
     a_token_sequence_number
                   op_tsn = curr_token_sequence_number;
+    if (left_pesep != NULL && left_pesep->is_suppression) {
+      pack_processing_suppressed = TRUE;
+    }  /* if */
     /* Skip over the operator and the ellipsis. */
     op_token = curr_token;
     op_pos = pos_curr_token;
@@ -58408,6 +58414,8 @@ function operand: The selector is then returned in *bound_function_selector.
         /* We're scanning a pack in its generic form (i.e., without expansion
            going on). */
         generic = TRUE;
+        pack_seen = TRUE;
+        left_associative = FALSE;
         mark_arg_list_elem_as_pack_expansion(opnd_list.last_init, pedp);
         if (!scope_stack_top().alias_in_template_decl) {
           pedp->last_token = op_tsn;
@@ -58435,11 +58443,14 @@ function operand: The selector is then returned in *bound_function_selector.
       in_ms_nonreal_class_instantiation()) {
     generic = TRUE;
     pack_seen = TRUE;
-  } else if (!unary || left_associative) {
+  } else if (!unary || scan_right_operand) {
     a_pack_expansion_stack_entry_ptr right_pesep;
     a_boolean                        any_more;
     a_boolean                        first_in_rhs = TRUE;
     any_more = begin_potential_pack_expansion_context(&right_pesep);
+    if (right_pesep != NULL && right_pesep->is_suppression) {
+      pack_processing_suppressed = TRUE;
+    }  /* if */
     record_pack_expansion_ellipsis_position(&ellipsis_pos);
     if (!unary && !left_associative && right_pesep != NULL) {
       /* Prevent an error from being issued if this is not a pack, since we
@@ -58490,12 +58501,19 @@ function operand: The selector is then returned in *bound_function_selector.
       pack_seen = TRUE;
     }  /* if */
   }  /* if */
+  if (!pack_seen && !err && pack_processing_suppressed) {
+    /* During the initial scan of a dependent template declaration, pack
+       references may not be recorded yet.  Preserve a generic fold so the
+       later prototype instantiation can make the pack/no-pack decision. */
+    generic = TRUE;
+    defer_pack_check = TRUE;
+  }  /* if */
   assemble_fold_expression_operand(result, bound_function_selector,
                                    start_pos, &op_pos,
                                    end_position_or_null(&end_pos_curr_token),
                                    opnd_list.first_init, op_token, unary,
                                    left_associative, generic);
-  if (!pack_seen && !err) {
+  if (!pack_seen && !defer_pack_check && !err) {
     pos_error(ec_no_pack_in_fold_expression, &ellipsis_pos);
     make_error_operand(result);
   }  /*  */

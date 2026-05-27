@@ -1,5 +1,16 @@
 Version 6.9
 
+5/27/26  [EDGcpfe/28423]
+Spurious error on fold expression in disambiguating prescan
+
+Previously, a unary right fold could result in a spurious error during a
+disambiguating prescan.  For example, with --c++17:
+
+  template<auto ... Is>
+  decltype((Is + ...)) f();  // Previously a spurious error, now okay.
+  int i = f<1>();
+
+
 5/27/26  [EDGcpfe/28365,EDGcpfe/28690]
 Spurious ADL failure in a generic lambda in a friend definition
 
