@@ -26911,7 +26911,8 @@ with any statement expression.
 #if !STANDALONE_UTILITY_PROGRAM
       remove_statement_expr_pragmas(stmt);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-      if (scope->lifetime != NULL && !is_at_least_one_error()) {
+      if (scope != NULL && scope->lifetime != NULL &&
+          !is_at_least_one_error()) {
         /* Error recovery may still need this lifetime while closing the
            enclosing control-flow blocks. */
         unlink_object_lifetime(scope->lifetime);
