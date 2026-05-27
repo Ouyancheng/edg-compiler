@@ -26727,27 +26727,28 @@ static inline void find_scope_for_entity_pragmas(
                              a_scope_pointers_block_ptr    *pointers_block);
 
 
-static void remove_pragmas_associated_with_statement(
-                       a_statement_ptr                                 stmt,
-                       ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock)
+static void remove_pragmas_associated_with_entity(
+                                            char                         *ptr,
+                                            an_il_entry_kind             kind,
+                                            a_source_correspondence_ptr  scp)
 /*
-Called from traverse_statement to remove pragmas associated with the given
-statement, which is being eliminated from the IL.  tblock is ignored.
+Remove pragmas associated with the given entity, which is being eliminated
+from the IL.  If the entity has an associated source_correspondence, scp
+points to it.
 */
 {
-  if (stmt->has_associated_pragma && innermost_function_scope != NULL) {
+  if ((scp == NULL || scp->has_associated_pragma) &&
+      innermost_function_scope != NULL) {
     a_scope_ptr                 il_scope;
     a_scope_pointers_block_ptr  pointers_block;
     a_pragma_ptr                pp, prev_pp = NULL, next_pp;
-    find_scope_for_entity_pragmas((char*)stmt, iek_statement,
-                                  (a_source_correspondence_ptr)NULL,
-                                  innermost_function_scope,
+    find_scope_for_entity_pragmas(ptr, kind, scp, innermost_function_scope,
                                   &il_scope, &pointers_block);
     for (pp = il_scope->pragmas; pp != NULL; pp = next_pp) {
       next_pp = pp->next;
-      if (pp->entity.kind == iek_statement && pp->entity.ptr == (char*)stmt) {
+      if (pp->entity.kind == kind && pp->entity.ptr == ptr) {
         /* Unlink the pragma and break its reference to the eliminated
-           statement.  The pragma entry itself may still be reachable through
+           entity.  The pragma entry itself may still be reachable through
            a source sequence entry that has not yet been removed. */
         if (prev_pp == NULL) {
           il_scope->pragmas = next_pp;
@@ -26764,7 +26765,35 @@ statement, which is being eliminated from the IL.  tblock is ignored.
         prev_pp = pp;
       }  /* if */
     }  /* for */
+    if (scp != NULL) scp->has_associated_pragma = FALSE;
+  }  /* if */
+}  /* remove_pragmas_associated_with_entity */
+
+
+static void remove_pragmas_associated_with_statement(
+                       a_statement_ptr                                 stmt,
+                       ARG_UNUSED an_expr_or_stmt_traversal_block_ptr  tblock)
+/*
+Called from traverse_statement to remove pragmas associated with the given
+statement, which is being eliminated from the IL.  tblock is ignored.
+*/
+{
+  if (stmt->has_associated_pragma) {
+    remove_pragmas_associated_with_entity((char*)stmt, iek_statement,
+                                          (a_source_correspondence_ptr)NULL);
     stmt->has_associated_pragma = FALSE;
+  }  /* if */
+  if (stmt->kind == stmk_decl) {
+    an_il_entity_list_entry_ptr  entry = stmt->variant.decl.entities;
+    for (; entry != NULL; entry = entry->next) {
+      a_source_correspondence_ptr
+        scp = source_corresp_for_il_entry(entry->entity.ptr,
+                                          entry->entity.kind);
+      if (scp != NULL && scp->has_associated_pragma) {
+        remove_pragmas_associated_with_entity(entry->entity.ptr,
+                                              entry->entity.kind, scp);
+      }  /* if */
+    }  /* for */
   }  /* if */
   if (stmt->kind == stmk_label && stmt->variant.label.ptr != NULL &&
       !is_at_least_one_error()) {
