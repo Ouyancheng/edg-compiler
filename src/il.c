@@ -11069,19 +11069,23 @@ void eliminate_boolean_vector(a_type_ptr  *p_type)
 /*
 If *p_type (p_type is assumed non-NULL) is a (possibly cv-qualified) GNU vector
 type marked as a boolean vector, replace *p_type by a corresponding vector type
-that is not so marked.
+that is not so marked.  The replacement preserves the vector's kind (vk_gnu,
+vk_ext, ...) and, for vk_ext, its size_constant.
 */
 {
-  a_type  *type = *p_type;
+  a_type_ptr            tp = *p_type, utp = skip_typerefs(tp);
 
-  if (is_vector_type(type) &&
-      skip_typerefs(type)->variant.vector.is_boolean_vector) {
-    a_type_qualifier_set  tqs = get_type_qualifiers(type);
-    type = skip_typerefs(type);
-    type = make_vector_type(type->variant.vector.element_type,
-                            num_vector_elements(type));
-    type = make_qualified_type(type, tqs);
-    *p_type = type;
+  if (type_is(utp, tk_vector) && utp->variant.vector.is_boolean_vector) {
+    a_vector_kind         vkind = utp->vriant.vector.kind;
+    a_type_qualifier_set  tqs = get_type_qualifiers(tp);
+    a_type_ptr new_type = make_vector_type(utp->variant.vector.element_type,
+                                           num_vector_elements(utp), vkind);
+    if (vkind == vk_ext) {
+      /* The element count (and hence size_constant) is unchanged. */
+      new_type->variant.vector.size_constant =
+                                            utp->variant.vector.size_constant;
+    }  /* if */
+    *p_type = make_qualified_type(new_type, tqs);
   }  /* if */
 }  /* eliminate_boolean_vector */
 

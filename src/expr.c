@@ -17320,9 +17320,23 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
            as the first vector. */
         check_assertion(!op1_is_dependent && !op2_is_dependent &&
                         is_vector_type(p_op1->type));
-        result_type = make_vector_type(
-                       skip_typerefs(p_op1->type)->variant.vector.element_type,
-                       int_args);
+        /* Preserve the input vector's kind.  In particular, a shufflevector
+           on Clang ext_vector_type operands produces another ext_vector_type
+           result.  For vk_ext we also have to supply a size_constant matching
+           the new element count (int_args). */
+        a_type_ptr     arg1_unq  = skip_typerefs(p_op1->type);
+        a_vector_kind  arg1_kind = arg1_unq->variant.vector.kind;
+        result_type = make_vector_type(arg1_unq->variant.vector.element_type,
+                                       int_args, arg1_kind);
+        if (arg1_kind == vk_ext) {
+          a_constant_ptr  size_con = local_constant();
+          set_integer_constant(size_con,
+                               (a_host_large_integer)int_args,
+                               targ_size_t_int_kind);
+          result_type->variant.vector.size_constant =
+                                          alloc_shareable_constant(size_con);
+          release_local_constant(&size_con);
+        }  /* if */
       } else {
         /* The result type is that of the first operand. */
         result_type = p_op1->type;
@@ -36348,11 +36362,23 @@ to implement __builtin_common_type).
       if (!err) {
         change_binary_operand_types(result_type, &operand_2, &operand_3, op);
 #if GNU_VECTOR_TYPES_ALLOWED
-        if (op == (an_expr_operator_kind)eok_vector_question) {
+        if (op == eok_vector_question) {
           if (!is_vector_type(result_type)) {
-            /* For "vec ? scal1 : scal2", promote the scalars to vectors. */
+            /* For "vec ? scal1 : scal2", promote the scalars to vectors.
+               Mirror the condition vector's kind (and size_constant for
+               vk_ext) so that the promoted result type belongs to the same
+               vector family as the condition.  The element count is unchanged
+               from the condition vector, so its size_constant is correct
+               here. */
+            a_type_ptr     cond_unq  = skip_typerefs(operand_1->type);
+            a_vector_kind  cond_kind = cond_unq->variant.vector.kind;
             result_type = make_vector_type(
-                           result_type, num_vector_elements(operand_1->type));
+                            result_type, num_vector_elements(operand_1->type),
+                            cond_kind);
+            if (cond_kind == vk_ext) {
+              result_type->variant.vector.size_constant =
+                                       cond_unq->variant.vector.size_constant;
+            }  /* if */
             make_vector_fill_operand(&operand_2, result_type);
             make_vector_fill_operand(&operand_3, result_type);
           }  /* if */

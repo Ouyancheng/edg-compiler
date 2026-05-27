@@ -12370,7 +12370,10 @@ Returns the type to be used for GNU vector operations that return "a vector of
 the same width and number of elements as the comparison operands with a signed
 integral element type."  Used for relational and logical operators.  It appears
 that the integer type used for the elements is a signed integer whose size
-matches that of the operand vector elements.
+matches that of the operand vector elements.  The resulting type mirrors the
+operand's vector kind (vk_gnu, vk_ext, ...).  Clang in particular keeps a
+comparison of two ext_vector_type operands as another ext_vector_type vector.
+For vk_ext operands we additionally carry over the size_constant.
 */
 {
   an_integer_kind int_kind;
@@ -12379,8 +12382,8 @@ matches that of the operand vector elements.
   if (is_error_type(operand_type)) {
     result = error_type();
   } else {
-    check_assertion(is_vector_type(operand_type));
     operand_type = skip_typerefs(operand_type);
+    check_assertion(type_is(operand_type, tk_vector));
     elem_type = skip_typerefs(operand_type->variant.vector.element_type);
     int_kind = int_kind_for_size_and_alignment(elem_type->size,
                                                elem_type->alignment,
@@ -12390,8 +12393,13 @@ matches that of the operand vector elements.
                    operand_type);
       result = error_type();
     } else {
+      a_vector_kind  vkind = operand_type->variant.vector.kind;
       result = make_vector_type(integer_type(int_kind),
-                                num_vector_elements(operand_type));
+                                num_vector_elements(operand_type), vkind);
+      if (vkind == vk_ext) {
+        result->variant.vector.size_constant =
+                                   operand_type->variant.vector.size_constant;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
