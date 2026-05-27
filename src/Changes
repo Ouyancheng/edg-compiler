@@ -13,7 +13,7 @@ Consider, in Clang C++ mode:
 
 Previously, this resulted in a spurious error due to deduction failure.
 There were multiple causes for that failure (including incorrect handling
-of the result of v == v, which is a "boolean vector): All the causes are
+of the result of v == v, which is a "boolean vector"): All the causes are
 now fixed and the example is now accepted.
 
 
