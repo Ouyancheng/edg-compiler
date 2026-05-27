@@ -698,7 +698,7 @@ information.
 
   saved_pos_curr_token = pos_curr_token;
   saved_error_position = error_position;
-  /* Set the flag that indicate that we are build the file prefix
+  /* Set the flag that indicates that we are building the file prefix
      information.  This affects the way in which preprocessing directives
      are handled and the way end-of-file is processed. */
   building_pch_prefix = TRUE;
