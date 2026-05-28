@@ -26933,14 +26933,16 @@ with any statement expression.
     a_statement_ptr  stmt = expr->variant.statement;
     a_source_sequence_entry_ptr
                      head = stmt->source_sequence_entry;
-    /* Remove the statement expression's block scope from its parent's scopes
-       list, since otherwise IL traversal will find the source sequence
-       entries even though they were removed from the main list. */
+    /* The statement expression's block scope is left on its parent's scopes
+       list so that any IL entries reachable only through it (e.g., local
+       class types or scopes in file-scope memory referenced via
+       a_local_scope_ref entries) remain reachable for IL write/read.  The
+       source sequence entries spanning the statement expression are removed
+       below, and the block scope itself does not have its own
+       source_sequence_list. */
     if (stmt->kind == stmk_block) {
       a_block_ptr      block = stmt->variant.block.extra_info;
-      a_scope_ptr      scope = block->assoc_scope, last_scope = NULL,
-                       parent = scope != NULL ? scope->parent : NULL;
-      a_boolean        update_last_scope = FALSE;
+      a_scope_ptr      scope = block->assoc_scope;
 #if !STANDALONE_UTILITY_PROGRAM
       remove_statement_expr_pragmas(stmt);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -26950,41 +26952,6 @@ with any statement expression.
            enclosing control-flow blocks. */
         unlink_object_lifetime(scope->lifetime);
         scope->lifetime = NULL;
-      }  /* if */
-      if (parent != NULL) {
-        a_scope_ptr  *p_sp = &parent->scopes;
-        while (*p_sp != NULL) {
-          if (*p_sp == scope) {
-            *p_sp = scope->next;
-            break;
-          } else {
-            last_scope = *p_sp;
-            p_sp = &last_scope->next;
-          }  /* if */
-        }  /* while */
-        if (parent->depth_in_scope_stack != NO_SCOPE_DEPTH) {
-          /* In most cases, the scopes list is still pointed to by the scope
-             stack instead of by the IL scope entry. */
-          last_scope = NULL;
-          p_sp = &scope_stack[parent->depth_in_scope_stack].first_scope;
-          /* The scope_stack also has a last_scope pointer that needs to be
-             updated if it points to the scope that will be removed. */
-          if (scope_stack[parent->depth_in_scope_stack].last_scope == scope) {
-            update_last_scope = TRUE;
-          }  /* if */
-          while (*p_sp != NULL) {
-            if (*p_sp == scope) {
-              *p_sp = scope->next;
-              break;
-            } else {
-              last_scope = *p_sp;
-              p_sp = &last_scope->next;
-            }  /* if */
-          }  /* while */
-          if (update_last_scope) {
-            scope_stack[parent->depth_in_scope_stack].last_scope = last_scope;
-          }  /* if */
-        }  /* if */
       }  /* if */
     }  /* if */
     if (head != NULL) {
