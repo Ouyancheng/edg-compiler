@@ -12051,11 +12051,17 @@ use the current global value of the template template parameter.
     }  /* if */
   }  /* if */
   if (sym == NULL) {
-    a_symbol_ptr	*hash_table_sym = NULL;
-    /* Look for a previously created instantiation. */
-    hash_table_sym = find_instantiation(template_sym, tssp,
-                                        list_for_instantiation,
-                                        /*create=*/FALSE);
+    a_symbol_ptr  *hash_table_sym = NULL;
+    /* Look for a previously created instantiation.  A dependent class
+       instantiation in an alias-in-template-decl context can differ from
+       another with the same template arguments because enclosing pack
+       bindings are not part of the instantiation hash key. */
+    if (!dependent_arg_list || is_alias_template ||
+        !is_alias_in_template_decl_context()) {
+      hash_table_sym = find_instantiation(template_sym, tssp,
+                                          list_for_instantiation,
+                                          /*create=*/FALSE);
+    }  /* if */
     /* hash_table_sym will be NULL if no entry is found, otherwise it will
        point to the symbol in the hash table. */
     sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
