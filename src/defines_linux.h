@@ -87,6 +87,14 @@ architecture from the host compiler.
 #define BUILTIN_FUNCTIONS_ENABLED 1
 #endif /* ifndef BUILTIN_FUNCTIONS_ENABLED */
 
+#ifndef RISCV_VECTOR_BUILTINS_ENABLED
+#if BUILTIN_FUNCTIONS_ENABLED
+#define RISCV_VECTOR_BUILTINS_ENABLED 1
+#else /* !BUILTIN_FUNCTIONS_ENABLED */
+#define RISCV_VECTOR_BUILTINS_ENABLED 0
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+#endif /* ifndef RISCV_VECTOR_BUILTINS_ENABLED */
+
 /*
 Earlier versions of this file did not define some flags needed for
 compatibility with newer versions of the g++ header files.  This

@@ -14169,6 +14169,7 @@ enum a_builtin_function_type_index {
   bfti_fff1f49676,
   bfti_fff6afc397,
   bfti_fff96f9d65,
+#if RISCV_VECTOR_BUILTINS_ENABLED
   /* RISC-V vector builtins. */
   bfti_000b88aea9,
   bfti_000be7c936,
@@ -40567,6 +40568,7 @@ enum a_builtin_function_type_index {
   bfti_fffc55f1ed,
   bfti_fffdc9d370,
   bfti_fffdd06faf,
+#endif /* RISCV_VECTOR_BUILTINS_ENABLED */
   bfti_last /* final entry */
 };
 
@@ -54718,6 +54720,7 @@ static constexpr a_builtin_type_string
   /* bfti_fff1f49676 */ "__edg_scalable_vector_type__(signed char,1) (__edg_scalable_vector_type__(__edg_bool_type__,1),__edg_scalable_vector_type__(signed char,1),__edg_scalable_vector_type__(signed char,1),signed char) __edg_throw__()",
   /* bfti_fff6afc397 */ "__edg_scalable_vector_type__(float,1) (__edg_scalable_vector_type__(__edg_bool_type__,1),const float*,__edg_scalable_vector_type__(long,1))",
   /* bfti_fff96f9d65 */ "__edg_scalable_vector_type__(__bf16,3) (__edg_scalable_vector_type__(unsigned char,3))",
+#if RISCV_VECTOR_BUILTINS_ENABLED
   /* RISC-V vector builtins. */
   /* bfti_000b88aea9 */ "__rvv_uint16m8_t (__rvv_uint16m8_t,__rvv_uint16m8_t,__edg_size_type__,__edg_size_type__,__edg_size_type__)",
   /* bfti_000be7c936 */ "void (int*,__rvv_int32m2x3_t,__edg_size_type__)",
@@ -81116,6 +81119,7 @@ static constexpr a_builtin_type_string
   /* bfti_fffc55f1ed */ "void (__rvv_bool64_t,int*,__rvv_uint64m1_t,__rvv_int32mf2x6_t,__edg_size_type__)",
   /* bfti_fffdc9d370 */ "__rvv_uint32mf2x4_t (__rvv_uint32mf2x4_t,const unsigned*,__rvv_uint32mf2_t,__edg_size_type__)",
   /* bfti_fffdd06faf */ "__rvv_int32m1_t (__rvv_int32m1_t,__rvv_float32m1_t,__edg_size_type__,__edg_size_type__)",
+#endif /* RISCV_VECTOR_BUILTINS_ENABLED */
 };
 
 /* An enumeration used to map a builtin to a particular condition string.
@@ -148406,6 +148410,7 @@ static constexpr a_builtin_descr
 /* Entries for automatically-generated riscv (vector) builtin functions. */
 static constexpr a_builtin_descr
                 builtin_riscv_vector_table[] = {
+#if RISCV_VECTOR_BUILTINS_ENABLED
   { "__riscv_nds_vd4dots_vv_i32m1@2", bfci_b41faae28e, bfti_8bbf3f8c40, bfk___riscv_nds_vd4dots },
   { "#0_m@3", bfci_b41faae28e, bfti_5e9b3cb48c, bfk___riscv_nds_vd4dots },
   { "#1_mu@32", bfci_b41faae28e, bfti_5e9b3cb48c, bfk___riscv_nds_vd4dots },
@@ -208149,6 +208154,7 @@ static constexpr a_builtin_descr
   { "#1_tu@21", bfci_853ea7768d, bfti_8cee080c07, bfk___riscv_vzext_vf8 },
   { "#1_tum@21", bfci_853ea7768d, bfti_03f3420c43, bfk___riscv_vzext_vf8 },
   { "#1_tumu@21", bfci_853ea7768d, bfti_03f3420c43, bfk___riscv_vzext_vf8 },
+#endif /* RISCV_VECTOR_BUILTINS_ENABLED */
   { NULL, 0, 0, bfk_none }   /* end of table marker */
 };
 
@@ -208245,6 +208251,7 @@ static constexpr a_builtin_descr
 /* Entries for automatically-generated riscv 32-bit (vector) builtin functions. */
 static constexpr a_builtin_descr
                 builtin_riscv_32_vector_table[] = {
+#if RISCV_VECTOR_BUILTINS_ENABLED
   { "__riscv_nds_vfncvt_bf16_s_bf16m1_rm@3", bfci_863cf0cc22, bfti_3dbd905676, bfk___riscv_nds_vfncvt_bf16 },
   { "#0_tu@43", bfci_863cf0cc22, bfti_dd7e0ea101, bfk___riscv_nds_vfncvt_bf16 },
   { "#3_bf16m2_rm@3", bfci_863cf0cc22, bfti_404354a7d1, bfk___riscv_nds_vfncvt_bf16 },
@@ -222601,6 +222608,7 @@ static constexpr a_builtin_descr
   { "#1_tu@32", bfci_d321ac277e, bfti_bf89e10605, bfk___riscv_vxor },
   { "#1_tum@32", bfci_d321ac277e, bfti_27fb30caa3, bfk___riscv_vxor },
   { "#1_tumu@32", bfci_d321ac277e, bfti_27fb30caa3, bfk___riscv_vxor },
+#endif /* RISCV_VECTOR_BUILTINS_ENABLED */
   { NULL, 0, 0, bfk_none }   /* end of table marker */
 };
 
@@ -222705,6 +222713,7 @@ static constexpr a_builtin_descr
 /* Entries for automatically-generated riscv 64-bit (vector) builtin functions. */
 static constexpr a_builtin_descr
                 builtin_riscv_64_vector_table[] = {
+#if RISCV_VECTOR_BUILTINS_ENABLED
   { "__riscv_nds_vfncvt_bf16_s_bf16m1_rm@3", bfci_13d3ec2b22, bfti_8dd4106867, bfk___riscv_nds_vfncvt_bf16 },
   { "#0_tu@43", bfci_13d3ec2b22, bfti_9a66ef8761, bfk___riscv_nds_vfncvt_bf16 },
   { "#3_bf16m2_rm@3", bfci_13d3ec2b22, bfti_c44cf75694, bfk___riscv_nds_vfncvt_bf16 },
@@ -237061,6 +237070,7 @@ static constexpr a_builtin_descr
   { "#1_tu@32", bfci_e9bcdc23b4, bfti_5556efbc0a, bfk___riscv_vxor },
   { "#1_tum@32", bfci_e9bcdc23b4, bfti_99c3da7c48, bfk___riscv_vxor },
   { "#1_tumu@32", bfci_e9bcdc23b4, bfti_99c3da7c48, bfk___riscv_vxor },
+#endif /* RISCV_VECTOR_BUILTINS_ENABLED */
   { NULL, 0, 0, bfk_none }   /* end of table marker */
 };
 

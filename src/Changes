@@ -1,5 +1,17 @@
 Version 6.9
 
+5/28/26  [EDGcpfe/28669]
+New configuration macro for RISC-V vector builtins
+
+A new configuration macro, RISCV_VECTOR_BUILTINS_ENABLED, controls whether the
+automatically-generated RISC-V vector builtin tables in builtin_defs.h are
+included in the front end build.  Those tables (introduced for EDGcpfe/28572)
+contain a very large number of entries and can account for a significant
+fraction of the resulting binary size.  When building the front end with the
+Microsoft C++ compiler, including these tables may require the /bigobj option
+because of object file size limits.
+
+
 5/28/26  [EDGcpfe/28661]
 Incorrect reuse of dependent class instantiation during alias instantiation
 

@@ -8888,6 +8888,11 @@ file.
 #else /* !defined(REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING) */
   comment_undefined_macro_name(REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING);
 #endif /* defined(REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING) */
+#if defined(RISCV_VECTOR_BUILTINS_ENABLED)
+  define_string_valued_macro(RISCV_VECTOR_BUILTINS_ENABLED);
+#else /* !defined(RISCV_VECTOR_BUILTINS_ENABLED) */
+  comment_undefined_macro_name(RISCV_VECTOR_BUILTINS_ENABLED);
+#endif /* defined(RISCV_VECTOR_BUILTINS_ENABLED) */
 #if defined(RTTI_ENABLING_POSSIBLE)
   define_numeric_valued_macro(RTTI_ENABLING_POSSIBLE);
 #else /* !defined(RTTI_ENABLING_POSSIBLE) */
