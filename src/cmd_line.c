@@ -5836,6 +5836,17 @@ before this routine is called.
       /* Enabled by default (with a warning if in non-C++20 mode). */
       nested_inline_namespace_definitions_enabled = TRUE;
     }  /* if */
+    if (clang_version >= 90000) {
+      /* Clang 9 enables a number of C++14 and C++17 features in earlier
+         language modes (much like GCC).  A warning will be issued when
+         the corresponding constructs are encountered in those earlier
+         modes. */
+      selection_initializers_enabled = TRUE;
+      constexpr_if_enabled = TRUE;
+      generic_lambdas_enabled = TRUE;
+      generic_lambdas_can_implicitly_capture = TRUE;
+      init_capture_enabled = TRUE;
+    }  /* if */
     if (clang_version >= 130000) {
       /* As of version 13.0.0, clang recognizes the "z" integer suffix. */
       size_suffix_enabled = TRUE;

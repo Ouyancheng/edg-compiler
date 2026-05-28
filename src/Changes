@@ -1,5 +1,19 @@
 Version 6.9
 
+5/28/26  [EDGcpfe/28060,EDGcpfe/28845]
+Clang compatibility: Accept new C++ features in older C++ modes
+
+In Clang mode with clang_version >= 90000, the front end now accepts:
+  - generic lambdas in pre-C++14 modes,
+  - initializers in selection declarations (like "if (int x = 0; x)")
+    in pre-C++17 modes,
+  - "if constexpr" in pre-C++17 modes, and
+  - init-captures in pre-C++17 modes.
+
+In such situations a warning is issued about the feature not being standard
+in that mode.
+
+
 5/28/26  [EDGcpfe/28669]
 New configuration macro for RISC-V vector builtins
 
