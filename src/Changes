@@ -1,5 +1,6 @@
 Version 6.9
 
+<<<<<<< Updated upstream
 5/28/26  [EDGcpfe/28866]
 C++-generating back end: elaborated type specifiers in base specifier lists
 
@@ -16,6 +17,19 @@ now fixed.  For example:
   struct C : public B {
     struct I : public B::I {};  // Previously generated as "class B::I"
   };
+=======
+5/28/26  [EDGcpfe/28861]
+Clang and GCC compatibility: Type of captures in lambda headers
+
+The entry for EDGcpfe/21022,EDGcpfe/21246,EDGcpfe/24784,EDGcpfe/25500 described
+changes implementing support for P2579, which affects the types of captured
+entities in lambda headers.  At the time, it appeared MSVC, GCC, and Clang did
+not implement that Defect Report.  Since then support was added in Clang 17
+and GCC 16: The front end now emulates that in its corresponding modes.
+Moreover, the front end made no exception for Clang, GCC, and Microsoft modes
+when the potentially-captured entity appeared in an unevaluated context.  That
+is now fixed as well.
+>>>>>>> Stashed changes
 
 
 5/28/26  [EDGcpfe/28060,EDGcpfe/28845]

@@ -39238,7 +39238,7 @@ a capture).
     if (in_lambda_header(&func_proto_ssep) &&
         symbol_is(sym_ptr, sk_variable) &&
         !var_has_static_or_thread_storage_duration(var) &&
-        !(gpp_version_is(any_version) || clang_version_is(any_version) ||
+        !(gpp_version_is(<160000) || clang_version_is(<170000) ||
           ms_version_is(any_version))) {
       /* P2579 causes mentions of automatic variables in a lambda header
          after the parameter list (and after any "mutable" qualifier) to be
@@ -40347,24 +40347,28 @@ normal_function:
                  "this" pointer since for init-captures of the current lambda
                  there is no available "this" variable.  If the init-capture
                  is used within a non-mutable lambda, add "const" to the
-                 closure type. */
+                 closure type (a change introduced by P2579). */
               a_type_ptr     closure_type = sym_parent_class(sym_ptr),
                              this_type = closure_type;
               a_scope_depth  sd = depth_scope_stack;
-              for (;;) {
-                a_type_ptr  tp = scope_stack[sd].assoc_type;
-                if (scope_is(&scope_stack[sd], sck_func_prototype)) {
-                  if (tp != NULL && 
-                      (rout_type_supp(tp)->qualifiers & TQ_CONST) != TQ_NONE) {
-                    this_type = make_qualified_type(this_type, TQ_CONST);
+              if (!(gpp_version_is(<160000) || clang_version_is(<170000) ||
+                    ms_version_is(any_version))) {
+                for (;;) {
+                  a_type_ptr  tp = scope_stack[sd].assoc_type;
+                  if (scope_is(&scope_stack[sd], sck_func_prototype)) {
+                    if (tp != NULL && 
+                        (rout_type_supp(tp)->qualifiers & TQ_CONST)
+                                                                 != TQ_NONE) {
+                      this_type = make_qualified_type(this_type, TQ_CONST);
+                      break;
+                    }  /* if */
+                  } else if (tp == closure_type) {
                     break;
                   }  /* if */
-                } else if (tp == closure_type) {
-                  break;
-                }  /* if */
-                sd = scope_stack[sd].previous_scope;
-                check_assertion(sd > 0);
-              }  /* for */
+                  sd = scope_stack[sd].previous_scope;
+                  check_assertion(sd > 0);
+                }  /* for */
+              }  /* if */
               make_abstract_this_operand(&this_pointer_operand,
                                          make_pointer_type(this_type),
                                          &locator.source_position,
