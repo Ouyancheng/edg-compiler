@@ -11933,6 +11933,7 @@ the kind of token.
   a_boolean     is_hex_fp_value = FALSE;
   a_boolean     any_hex_digits = FALSE;
   a_boolean     u_suffix_seen = FALSE;
+  a_boolean     bit_precise_suffix_seen = FALSE;
   a_boolean     local_allow_hex_fp_constants;
   int           l_suffix_seen = 0;
   a_boolean     z_suffix_seen = FALSE;
@@ -12186,7 +12187,23 @@ int_imaginary_suffix:
   possible_start_of_ud_suffix = curr_char_loc;
   for (;; curr_char_loc++) {
     ch = *curr_char_loc;
-    if ((ch == 'u' || ch == 'U') && !u_suffix_seen) {
+    if (bit_precise_int_enabled && !bit_precise_suffix_seen &&
+        l_suffix_seen == 0 && !z_suffix_seen &&
+        (((ch == 'w' && curr_char_loc[1] == 'b') ||
+          (ch == 'W' && curr_char_loc[1] == 'B')) ||
+         ((ch == 'u' || ch == 'U') &&
+          ((curr_char_loc[1] == 'w' && curr_char_loc[2] == 'b') ||
+           (curr_char_loc[1] == 'W' && curr_char_loc[2] == 'B'))))) {
+      if (ch == 'u' || ch == 'U') {
+        curr_char_loc++;
+      }  /* if */
+      curr_char_loc++;
+      bit_precise_suffix_seen = TRUE;
+#if FIXED_POINT_ALLOWED
+      fixed_point_ruled_out = TRUE;
+#endif /* FIXED_POINT_ALLOWED */
+    } else if ((ch == 'u' || ch == 'U') && !u_suffix_seen &&
+               !bit_precise_suffix_seen) {
       u_suffix_seen = TRUE;
       if (l_suffix_seen == 1) {
         /* Don't accept another "l" after "u" ("lul"). */
@@ -12196,7 +12213,7 @@ int_imaginary_suffix:
       l_before_u_suffix = (l_suffix_seen > 0);
 #endif /* FIXED_POINT_ALLOWED */
     } else if ((ch == 'l' || ch == 'L') && !single_l_confirmed &&
-               !z_suffix_seen &&
+               !z_suffix_seen && !bit_precise_suffix_seen &&
 #if LONG_LONG_ALLOWED
                l_suffix_seen < 2
 #else /* !LONG_LONG_ALLOWED */
@@ -12205,7 +12222,8 @@ int_imaginary_suffix:
                                 ) {
       l_suffix_seen++;
     } else if (size_suffix_enabled && (ch == 'z' || ch == 'Z') &&
-               !z_suffix_seen && l_suffix_seen == 0) {
+               !z_suffix_seen && l_suffix_seen == 0 &&
+               !bit_precise_suffix_seen) {
       z_suffix_seen = TRUE;
       if (l_suffix_seen == 1) {
         /* Dont accept another "l" after "z" ("lzl"). */

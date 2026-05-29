@@ -530,6 +530,45 @@ Return a pointer to the associated integer type supplement.
 }  /* integer_type_supp */
 
 
+#define is_bit_precise_kind(kind)                                    \
+  ((kind) == ik_bit_precise || (kind) == ik_unsigned_bit_precise)
+
+
+EXPAND a_boolean is_bit_precise_integer_type(a_type_ptr tp)
+/*
+Return TRUE if tp is a bit-precise integer type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return (type_is(tp, tk_integer) &&
+          is_bit_precise_kind(tp->variant.integer.int_kind));
+}  /* is_bit_precise_integer_type */
+
+
+EXPAND a_targ_size_t bit_precise_integer_width(a_type_ptr tp)
+/*
+Return the width of a bit-precise integer type.
+*/
+{
+  tp = skip_typerefs(tp);
+  check_assertion(type_is(tp, tk_integer) &&
+                  is_bit_precise_kind(tp->variant.integer.int_kind));
+  return integer_type_supp(tp)->bit_width;
+}  /* bit_precise_integer_width */
+
+
+EXPAND a_boolean bit_precise_integer_is_unsigned(a_type_ptr tp)
+/*
+Return TRUE if tp is an unsigned bit-precise integer type.
+*/
+{
+  tp = skip_typerefs(tp);
+  check_assertion(type_is(tp, tk_integer) &&
+                  is_bit_precise_kind(tp->variant.integer.int_kind));
+  return tp->variant.integer.int_kind == ik_unsigned_bit_precise;
+}  /* bit_precise_integer_is_unsigned */
+
+
 /*
 Return TRUE if a type is a direct enum type (i.e., not a typeref on top of
 an enum type).

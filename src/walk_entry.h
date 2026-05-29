@@ -3544,7 +3544,10 @@ handle_class_type_supplement_for_class:
                    iek_generic_constraint);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (eptr->coordinates.depth ==
+        if (eptr->coordinates.depth == BIT_PRECISE_INT_NESTING_DEPTH) {
+          walk_ptr(eptr->constraint.bit_width_constant, a_constant_ptr,
+                   iek_constant);
+        } else if (eptr->coordinates.depth ==
                                    CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
           conditionally_clear_fe_pointer(
                                        eptr->constraint.class_template_symbol);

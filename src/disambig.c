@@ -846,6 +846,20 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_edg_wchar_type:
         type_specifier_seen = TRUE;
         break;
+      case tok_bit_precise_int:
+        type_specifier_seen = TRUE;
+        if (next_token() == tok_lparen) {
+          get_token_and_coalesce_if_identifier(flags);
+          if (curr_token == tok_lparen) {
+            get_token_and_coalesce_if_identifier(flags);
+            cache_tokens_until(tok_rparen, /*coalesce=*/TRUE);
+            if (curr_token == tok_rparen) {
+              get_token_and_coalesce_if_identifier(flags);
+            }  /* if */
+          }  /* if */
+          next_token_fetched = TRUE;
+        }  /* if */
+        break;
       /* Type qualifier. */
       case tok_const:
       case tok_volatile:

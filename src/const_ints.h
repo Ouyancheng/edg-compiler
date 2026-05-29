@@ -216,6 +216,25 @@ extern a_boolean in_range_for_integer_kind(a_constant      *min_con,
                                            a_constant      *max_con,
                                            an_integer_kind ikind);
 
+extern a_targ_size_t integer_value_bit_size_for_type(a_type_ptr type);
+
+extern a_boolean integer_value_can_represent_type_width(a_type_ptr type);
+
+extern void integer_value_range_for_type(a_type_ptr       type,
+                                         an_integer_value *min_value,
+                                         an_integer_value *max_value);
+
+extern a_boolean integer_value_in_range_for_type(an_integer_value *value,
+                                                 a_boolean        is_signed,
+                                                 a_type_ptr       type);
+
+extern a_boolean integer_constant_in_range_for_type(a_constant *min_con,
+                                                    a_constant *max_con,
+                                                    a_type_ptr type);
+
+extern void trim_integer_value_to_type(an_integer_value *value,
+                                       a_type_ptr       type);
+
 extern a_boolean le_max_integer_value_of_kind(an_integer_value *value,
 	                                      a_boolean        is_signed,
 	                                      an_integer_kind  ikind);
@@ -310,6 +329,10 @@ extern void conv_float_string_to_integer_value
 extern void get_integer_size_and_alignment(an_integer_kind  ikind,
                                            a_targ_size_t    *p_size,
                                            a_targ_alignment *p_alignment);
+extern
+void get_bit_precise_integer_size_and_alignment(a_targ_size_t    bit_width,
+                                                a_targ_size_t    *p_size,
+                                                a_targ_alignment *p_alignment);
 
 extern an_integer_kind int_kind_for_size_and_alignment(
                                                 a_targ_size_t    size,

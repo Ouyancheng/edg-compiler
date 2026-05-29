@@ -11552,7 +11552,9 @@ type; otherwise, parent_type is NULL.
   an_expr_node_ptr  constraint = NULL;
 
   if (param_type->variant.template_param.extra_info->coordinates.depth !=
-                                   CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+                                   CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH &&
+      param_type->variant.template_param.extra_info->coordinates.depth !=
+                                   BIT_PRECISE_INT_NESTING_DEPTH) {
     constraint = param_type->variant.template_param.extra_info
                            ->constraint.type_constraint;
   }  /* if */
@@ -14306,6 +14308,23 @@ points to the template parameter list.
               /* Not a match.  Return FALSE. */
             }  /* if */
           }  /* if */
+        }  /* if */
+      } else if (tptk_is(templ_type, tptk_bit_precise_int)) {
+        type = skip_typedefs(type);
+        if (is_bit_precise_integer_type(type) &&
+            bit_precise_integer_is_unsigned(type) ==
+              templ_type->variant.template_param.is_unsigned_bit_precise_int) {
+          a_constant_ptr width_con = local_constant();
+          set_unsigned_integer_constant(
+              width_con,
+              (a_host_large_unsigned)bit_precise_integer_width(type),
+              (an_integer_kind)ik_int);
+          match = matches_template_constant(
+                    width_con,
+                    templ_type->variant.template_param.extra_info
+                              ->constraint.bit_width_constant,
+                    templ_arg_list, templ_param_list, flags);
+          release_local_constant(&width_con);
         }  /* if */
       } else if (tptk_is(templ_type, tptk_unknown)) {
         /* The template type is an unknown dependent type.  This is a
@@ -17593,6 +17612,43 @@ a pointer over a reference type or creating an array of references.
   {
     switch (type->kind) {
       case tk_template_param:
+        if (tptk_is(type, tptk_bit_precise_int)) {
+          a_constant_ptr orig_cp =
+                 type->variant.template_param.extra_info
+                     ->constraint.bit_width_constant;
+          a_boolean      is_unsigned;
+          a_constant_ptr new_cp = copy_template_param_con_with_substitution(
+                                  orig_cp, templ_arg_list, templ_param_list,
+                                  (a_type_ptr)NULL, source_pos, options,
+                                  copy_error, ctws_state);
+          is_unsigned = type->variant.template_param
+                                     .is_unsigned_bit_precise_int;
+          if (*copy_error || new_cp == NULL || is_error_constant(new_cp)) {
+            subst_fail(*copy_error);
+            new_type = error_type();
+          } else if (constant_is(new_cp, ck_template_param)) {
+            new_type = dependent_bit_precise_integer_type(
+                       new_cp, is_unsigned);
+          } else {
+            a_boolean             err = FALSE;
+            a_host_large_integer  width;
+            check_assertion(constant_is(new_cp, ck_integer));
+            conv_integer_value_to_host_large_integer(
+                                            &new_cp->variant.integer_value,
+                                            /*is_signed=*/TRUE, &width, &err);
+            if (err || width <= 0 ||
+                (a_targ_size_t)width > bitint_maxwidth_value ||
+                (width == 1 && !is_unsigned)) {
+              subst_fail(*copy_error);
+              new_type = error_type();
+            } else {
+              new_type = bit_precise_integer_type(
+                                            (a_targ_size_t)width, is_unsigned,
+                                            /*explicitly_signed=*/FALSE);
+            }  /* if */
+          }  /* if */
+          break;
+        }  /* if */
         /* If this template parameter type entry corresponds to the nth
            parameter, the real type to substitute for it is given in the nth
            template argument.  Find the template argument that matches this

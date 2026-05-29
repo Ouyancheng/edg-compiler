@@ -7538,6 +7538,10 @@ to refine the hash value developed in hash_constant.
   switch (type->kind) {
     case tk_integer:
       hash_value += (a_hash_value)((type->variant.integer.int_kind * 13) + 53);
+      if (is_bit_precise_kind(type->variant.integer.int_kind)) {
+        hash_value +=
+          (a_hash_value)(integer_type_supp(type)->bit_width * 31 + 7);
+      }  /* if */
       if (type->variant.integer.enum_type) {
         hash_value += (a_hash_value)(
                                (type->variant.integer.is_scoped_enum * 4) + 2);
@@ -11991,6 +11995,8 @@ return a pointer to it.
 {
   a_type_ptr pit;
 
+  check_assertion_str(!is_bit_precise_kind(kind),
+                      "integer_type: bad bit-precise kind");
   if (int_types[kind] != NULL) {
     /* The type has previously been created, and can be reused. */
     pit = int_types[kind];
@@ -12008,6 +12014,55 @@ return a pointer to it.
   }  /* if */
   return pit;
 }  /* integer_type */
+
+
+a_type_ptr bit_precise_integer_type(a_targ_size_t bit_width,
+                                    a_boolean     is_unsigned,
+                                    a_boolean     explicitly_signed)
+/*
+Create a type entry for a bit-precise integer type of the indicated width and
+signedness.
+*/
+{
+  a_type_ptr pit;
+
+  check_assertion(bit_width != 0);
+  pit = alloc_type(tk_integer);
+  pit->variant.integer.int_kind = is_unsigned ?
+                         ik_unsigned_bit_precise : ik_bit_precise;
+  pit->variant.integer.explicitly_signed = explicitly_signed;
+  integer_type_supp(pit)->bit_width = bit_width;
+  set_type_size(pit);
+#if ORPHAN_PROCESSING_NEEDED
+  /* Record the type entry as an orphan in case it is discarded now
+     and then found again in a later phase (e.g., IL lowering). */
+  add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+  return pit;
+}  /* bit_precise_integer_type */
+
+
+a_type_ptr
+dependent_bit_precise_integer_type(a_constant_ptr bit_width_constant,
+                                   a_boolean      is_unsigned)
+/*
+Create a dependent _BitInt type whose width is represented by
+bit_width_constant.
+*/
+{
+  a_type_ptr  pit;
+
+  check_assertion(bit_width_constant != NULL);
+  pit = alloc_type(tk_template_param);
+  pit->variant.template_param.kind = tptk_bit_precise_int;
+  pit->variant.template_param.is_unsigned_bit_precise_int = is_unsigned;
+  pit->variant.template_param.extra_info->coordinates.depth =
+                                                BIT_PRECISE_INT_NESTING_DEPTH;
+  pit->variant.template_param.extra_info->constraint.bit_width_constant =
+                                                        bit_width_constant;
+  set_type_size(pit);
+  return pit;
+}  /* dependent_bit_precise_integer_type */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

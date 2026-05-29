@@ -9731,22 +9731,14 @@ done:
 
 static a_boolean within_int_bounds(an_integer_value *input_int,
                                    a_boolean        input_signed,
-                                   an_integer_kind  dest_kind,
-                                   a_boolean        dest_signed)
+                                   a_type_ptr       dest_type)
 /*
 Given a (possibly signed) integer value, check to see if it fits within the
-(possibly signed) destination integer kind.  Return TRUE if the input integer
-can be converted without loss, otherwise return FALSE.
+destination integer type.  Return TRUE if the input integer can be converted
+without loss, otherwise return FALSE.
 */
 {
-  a_boolean over = cmp_integer_values(input_int, input_signed,
-                                      &max_integer_value_of_kind[dest_kind],
-                                      dest_signed) > 0;
-  a_boolean under = cmp_integer_values(input_int, input_signed,
-                                       &min_integer_value_of_kind[dest_kind],
-                                       dest_signed) < 0;
-
-  return !over && !under;
+  return integer_value_in_range_for_type(input_int, input_signed, dest_type);
 }  /* within_int_bounds */
 
 
@@ -9768,13 +9760,11 @@ without any integer bounding issues; otherwise, return FALSE.
   /* Then compute the signs and the destination int type. */
   a_boolean        input_value_signed = a_Host_integer_type(-1) <
                                                         a_Host_integer_type(0);
-  a_boolean        result_value_signed = is_signed_integral_type(result_type);
-  an_integer_kind  int_kind = result_type->variant.integer.int_kind;
 
   /* Using the aforementioned information, check that the completed operation
      wasn't lossy. */
   return within_int_bounds((an_integer_value*)result_storage,
-                           input_value_signed, int_kind, result_value_signed);
+                           input_value_signed, result_type);
 }  /* safely_set_host_integer_value */
 
 
@@ -10200,7 +10190,7 @@ the parameters.
         do_constexpr_fail(*p_result);
         goto done;
       }  /* if */
-      if (tp->size * targ_char_bit < BITS_IN_AN_INTEGER_VALUE) {
+      if (integer_value_bit_size_for_type(tp) < BITS_IN_AN_INTEGER_VALUE) {
         /* If the operands have a width smaller than what an_integer_value
            handles, we have to check the result against the destination
            type. */
@@ -10259,9 +10249,13 @@ the parameters.
       an_integer_value  bit_max, bit_min;
       an_integer_value  *p_max = &bit_max, *p_min = &bit_min;
       if (bit_length == -1) {
-        p_max = &max_integer_value_of_kind[int_kind];
-        p_min = &min_integer_value_of_kind[int_kind];
-        bit_length = (int)(int_tp->size * targ_char_bit);
+        bit_length = (int)integer_value_bit_size_for_type(int_tp);
+        if (is_bit_precise_kind(int_kind)) {
+          integer_value_range_for_type(int_tp, p_min, p_max);
+        } else {
+          p_max = &max_integer_value_of_kind[int_kind];
+          p_min = &min_integer_value_of_kind[int_kind];
+        }  /* if */
       } else {
         if (is_signed) {
           a_boolean  err;
@@ -10286,7 +10280,9 @@ the parameters.
         a_constexpr_address  *cap = (a_constexpr_address*)arg_bytes[2];
         /* Truncate the value, possibly with sign extension. */
         if (is_signed) {
-          sign_extend_integer_value(val, (size_t)bit_length);
+          if (bit_length < (int)BITS_IN_AN_INTEGER_VALUE) {
+            sign_extend_integer_value(val, (size_t)bit_length);
+          }  /* if */
         } else {
           and_integer_values(val, p_max);
         }  /* if */
@@ -10359,27 +10355,26 @@ element type.
 }  /* prep_constexpr_array_op */
 
 
-static a_boolean do_int_abs(an_integer_kind   int_kind,
+static a_boolean do_int_abs(a_type_ptr        int_type,
                             an_integer_value  *src,
                             an_integer_value  *dst)
 /*
-Store in *dst the absolute value of the integer value *src of the given kind.
+Store in *dst the absolute value of the integer value *src of the given type.
 Return FALSE if the operation overflows.
 */
 {
   a_boolean  result = TRUE;
 
+  int_type = skip_typerefs(int_type);
   *dst = *src;
-  if (int_kind_is_signed[int_kind] &&
+  if (is_signed_integral_type(int_type) &&
       cmp_integer_values(dst, /*is_signed=*/TRUE,
                          (an_integer_value *)&zero_int,
                          /*is_signed=*/TRUE) < 0) {
     a_boolean  ovfl;
     negate_integer_value(dst, &ovfl);
     if (ovfl ||
-        cmp_integer_values(dst, /*is_signed=*/TRUE,
-                           &max_integer_value_of_kind[int_kind],
-                           /*is_signed=*/TRUE) > 0) {
+        !integer_value_in_range_for_type(dst, /*is_signed=*/TRUE, int_type)) {
       result = FALSE;
     }  /* if */
   }  /* if */
@@ -10437,7 +10432,7 @@ of the parameters.
           switch (kind) {
             case bfk_elementwise_abs:
               if (type_is(tp1, tk_integer)) {
-                if (!do_int_abs(tp1->variant.integer.int_kind, int_value(elem),
+                if (!do_int_abs(tp1, int_value(elem),
                                  int_value(result_storage))) {
                   do_constexpr_fail(*p_result);
                   info_with_pos_type(ec_constexpr_integer_overflow,
@@ -10713,8 +10708,7 @@ to FALSE and the reason for the failure is recorded in *ips.
               !do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             do_constexpr_fail(*p_result);
           } else {
-            if  (!do_int_abs(tp->variant.integer.int_kind,
-                             int_value(arg1_bytes),
+            if  (!do_int_abs(tp, int_value(arg1_bytes),
                              int_value(result_storage))) {
               do_constexpr_fail(*p_result);
               info_with_pos_type(ec_constexpr_integer_overflow,
@@ -18982,9 +18976,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
             }  /* if */
             or_integer_values(&int_val, &byte_val);
           }  /* for */
-          if (int_type_is_signed(tp)) {
-            sign_extend_integer_value(&int_val, tp->size * targ_char_bit);
-          }  /* if */
+          trim_integer_value_to_type(&int_val, tp);
           (void)memcpy(dest_storage, (a_byte*)&int_val, sizeof(int_val));
         }
         break;
@@ -21302,7 +21294,8 @@ pointed to by complete_object).
               info_with_pos(ec_constexpr_negative_shift, &expr->position, ips);
               break;
             } else if (host_int_val >=
-                            (a_host_large_integer)(tp->size * targ_char_bit)) {
+                           (a_host_large_integer)
+                                      integer_value_bit_size_for_type(etp)) {
               do_constexpr_fail(result);
               info_with_pos_num(ec_constexpr_shift_excess, &expr->position,
                                 (int32_t)host_int_val, ips);
@@ -21388,13 +21381,7 @@ pointed to by complete_object).
         default:
           unexpected_condition();
       }  /* switch */
-      if (is_signed) {
-        sign_extend_integer_value((an_integer_value*)dst,
-                                  etp->size * targ_char_bit);
-      } else {
-        and_integer_values((an_integer_value*)dst,
-                           &max_integer_value_of_kind[int_kind]);
-      }  /* if */
+      trim_integer_value_to_type((an_integer_value*)dst, etp);
     } else {
       a_boolean  err = FALSE, depends_on_fp_mode;
       switch (expr->variant.operation.kind) {
@@ -21568,19 +21555,37 @@ the value representation of the integer value.
 */
 #define CHECK_int_range(val, tp)                                              \
 {                                                                             \
-  if (!is_signed) {                                                           \
-    and_integer_values((an_integer_value*)(val),                              \
-                       &max_integer_value_of_kind[int_kind]);                 \
-  } else if (ovfl ||                                                          \
-             cmp_integer_values((an_integer_value*)(val), is_signed,          \
-                                &max_integer_value_of_kind[int_kind],         \
-                                is_signed) > 0 ||                             \
-             cmp_integer_values((an_integer_value*)(val), is_signed,          \
-                                &min_integer_value_of_kind[int_kind],         \
-                                is_signed) < 0) {                             \
-    do_constexpr_fail(result);                                                \
-    info_with_pos_type(ec_constexpr_integer_overflow, &expr->position, tp,    \
-                       ips);                                                  \
+  a_type_ptr check_tp = skip_typerefs(tp);                                    \
+  if (type_is(check_tp, tk_integer)) {                                        \
+    if (!is_signed) {                                                         \
+      if (ovfl && !integer_value_can_represent_type_width(check_tp)) {        \
+        do_constexpr_fail(result);                                            \
+        info_with_pos_type(ec_constexpr_integer_overflow, &expr->position,    \
+                           tp, ips);                                          \
+      }  /* if */                                                             \
+      trim_integer_value_to_type((an_integer_value*)(val), check_tp);         \
+    } else if (ovfl ||                                                        \
+               !integer_value_in_range_for_type((an_integer_value*)(val),     \
+                                                is_signed, check_tp)) {       \
+      do_constexpr_fail(result);                                              \
+      info_with_pos_type(ec_constexpr_integer_overflow, &expr->position, tp,  \
+                         ips);                                                \
+    }  /* if */                                                               \
+  } else {                                                                    \
+    if (!is_signed) {                                                         \
+      and_integer_values((an_integer_value*)(val),                            \
+                         &max_integer_value_of_kind[int_kind]);               \
+    } else if (ovfl ||                                                        \
+               cmp_integer_values((an_integer_value*)(val), is_signed,        \
+                                  &max_integer_value_of_kind[int_kind],       \
+                                  is_signed) > 0 ||                           \
+               cmp_integer_values((an_integer_value*)(val), is_signed,        \
+                                  &min_integer_value_of_kind[int_kind],       \
+                                  is_signed) < 0) {                           \
+      do_constexpr_fail(result);                                              \
+      info_with_pos_type(ec_constexpr_integer_overflow, &expr->position, tp,  \
+                         ips);                                                \
+    }  /* if */                                                               \
   }  /* if */                                                                 \
 }  /* CHECK_int_range */
 
@@ -21693,27 +21698,30 @@ the value representation of the integer value.
                    valid here ("implementation-defined").  So we don't check
                    that the result is in range. */
                 an_integer_value  *r_int = (an_integer_value *)result_storage;
+                a_targ_size_t     opnd1_bit_size, result_bit_size;
+                opnd1_bit_size = integer_value_bit_size_for_type(opnd1_type);
+                result_bit_size = integer_value_bit_size_for_type(tp);
                 *r_int = *(an_integer_value *)opnd1_value;
                 int_kind = tp->variant.integer.int_kind;
                 if (int_kind_is_signed[int_kind]) {
-                  if (tp->size <= opnd1_type->size ||
+                  if (result_bit_size <= opnd1_bit_size ||
                       int_type_is_signed(opnd1_type)) {
                     /* When converting a signed value to another signed value,
                        be sure to sign-extend the result.  This is also needed
                        when converting an unsigned value to a signed value that
                        is no larger than the unsigned value (e.g.,
                        (int)(unsigned)-1 must be negative). */
-                    size_t n_bits = (min_val(size_t_arg(opnd1_type->size),
-                                             size_t_arg(tp->size)) *
-                                     targ_char_bit);
+                    size_t n_bits = size_t_arg(min_val(opnd1_bit_size,
+                                                       result_bit_size));
 
-                    sign_extend_integer_value(r_int, n_bits);
+                    if (n_bits < BITS_IN_AN_INTEGER_VALUE) {
+                      sign_extend_integer_value(r_int, n_bits);
+                    }  /* if */
                   }  /* if */
                 } else {
                   /* Truncate the unsigned result, in case this is a narrowing
                      conversion. */
-                  and_integer_values(r_int,
-                                     &max_integer_value_of_kind[int_kind]);
+                  trim_integer_value_to_type(r_int, tp);
                 }  /* if */
               } else if (type_is_simple_float_like(tp)) {
                 fp_change_kind(fp_value(opnd1_value),
@@ -23686,7 +23694,8 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 break;
               } else if (host_int_val >=
-                            (a_host_large_integer)(tp->size * targ_char_bit)) {
+                         (a_host_large_integer)
+                         integer_value_bit_size_for_type(opnd1_type)) {
                 info_with_pos(ec_shift_count_too_large, &opnd2->position, ips);
                 do_constexpr_fail(result);
                 break;
@@ -23708,14 +23717,24 @@ the value representation of the integer value.
                     break;
                   }  /* if */
                 }  /* if */
+                a_targ_size_t     bit_size =
+                                          integer_value_bit_size_for_type(tp);
+                an_integer_value  mask;
                 shift_left_integer_value((an_integer_value*)opnd1_value,
                                          (int)host_int_val, &ovfl);
+                if (bit_size >= BITS_IN_AN_INTEGER_VALUE && ovfl) {
+                  do_constexpr_fail(result);
+                  info_with_pos_type(ec_constexpr_integer_overflow,
+                                     &expr->position, opnd1_type, ips);
+                  break;
+                }  /* if */
                 *(an_integer_value *)result_storage =
                                              *(an_integer_value *)opnd1_value;
                 /* Discard overflowing bits. */
-                and_integer_values((an_integer_value*)result_storage,
-                                   &max_integer_value_of_kind[
-                                             unsigned_int_kind_of[int_kind]]);
+                if (bit_size < BITS_IN_AN_INTEGER_VALUE) {
+                  make_integer_value_mask(&mask, size_t_arg(bit_size));
+                  and_integer_values((an_integer_value*)result_storage, &mask);
+                }  /* if */
                 if (is_signed) {
                   if (!cpp20_mode && !gpp_version_is(<60000) &&
                       (ovfl ||
@@ -23729,8 +23748,11 @@ the value representation of the integer value.
                     break;
                   }  /* if */
                   /* Sign-extend the result. */
-                  sign_extend_integer_value((an_integer_value*)result_storage,
-                                            tp->size * targ_char_bit);
+                  if (bit_size < BITS_IN_AN_INTEGER_VALUE) {
+                    sign_extend_integer_value(
+                                      (an_integer_value*)result_storage,
+                                      size_t_arg(bit_size));
+                  }  /* if */
                 }  /* if */
               } else {
                 info_with_pos(ec_integer_overflow, &expr->position, ips);
@@ -23764,8 +23786,8 @@ the value representation of the integer value.
                 info_with_pos(ec_negative_shift_count, &opnd2->position, ips);
                 do_constexpr_fail(result);
                 break;
-              } else if (host_int_val >=
-                            (a_host_large_integer)(tp->size * targ_char_bit)) {
+              } else if (host_int_val >= (a_host_large_integer)
+                                 integer_value_bit_size_for_type(opnd1_type)) {
                 info_with_pos(ec_shift_count_too_large, &opnd2->position, ips);
                 do_constexpr_fail(result);
                 break;
@@ -25436,8 +25458,8 @@ the value representation of the integer value.
                 if (ovfl) {
                   do_constexpr_fail(result);
                 } else if (host_int_val < 0 ||
-                           host_int_val >=
-                          (a_host_large_integer)(tp->size * targ_char_bit)) {
+                           host_int_val >= (a_host_large_integer)
+                                        integer_value_bit_size_for_type(tp)) {
                   do_constexpr_fail(result);
                   if (host_int_val < 0) {
                     info_with_pos(ec_constexpr_negative_shift,
@@ -25530,7 +25552,8 @@ the value representation of the integer value.
                   do_constexpr_fail(result);
                 } else if (host_int_val < 0 ||
                            host_int_val >=
-                          (a_host_large_integer)(tp->size * targ_char_bit)) {
+                                  (a_host_large_integer)
+                                  integer_value_bit_size_for_type(tp)) {
                   do_constexpr_fail(result);
                   if (host_int_val < 0) {
                     info_with_pos(ec_constexpr_negative_shift,

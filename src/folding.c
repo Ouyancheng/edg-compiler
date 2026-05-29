@@ -339,20 +339,14 @@ size in bits of the integral type.
 */
 {
   a_type_ptr    int_type = skip_typerefs(cp->type);
-  a_targ_size_t size;
 
-#if CHECKING
-  if (int_type->kind != (a_type_kind)tk_integer) {
-    internal_error("get_integer_attributes: not integral type");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_str(type_is(int_type, tk_integer),
+                      "get_integer_attributes: not integral type");
   *ikind = int_type->variant.integer.int_kind;
   *is_signed = int_kind_is_signed[*ikind];
-  size = int_type->size;
-#if CHECKING
-  if (size == 0) internal_error("get_integer_attributes: zero-sized integer");
-#endif /* CHECKING */
-  *bit_size = size_t_arg(size * targ_char_bit);
+  check_assertion_str(is_bit_precise_kind(*ikind) || int_type->size != 0,
+                      "get_integer_attributes: zero-sized integer");
+  *bit_size = size_t_arg(integer_value_bit_size_for_type(int_type));
 }  /* get_integer_attributes */
 
 
@@ -377,15 +371,15 @@ type.
   an_integer_kind  ikind;
   a_boolean        is_signed;
   size_t           bit_size;
-  an_integer_value mask;
+  an_integer_value mask, min_value, max_value;
 
   /* Put the integer value into the result constant. */
-  set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+  set_constant_kind(result, ck_integer);
   result->variant.integer_value = *result_value;
   get_integer_attributes(result, &ikind, &is_signed, &bit_size);
   /* Do the overflow check if necessary and if there's been no previous
      error. */
-  if (in_range_for_integer_kind(result, result, ikind)) {
+  if (integer_constant_in_range_for_type(result, result, result->type)) {
     /* The value is in the right range.  No truncation is needed. */
     goto after_truncation;
   }  /* if */
@@ -396,13 +390,21 @@ type.
     *err_code = ec_integer_overflow;
     *err_severity = ES_INT_OVERFLOW;
   }  /* if */
+  if (!integer_value_can_represent_type_width(result->type)) {
+    if (*err_code == ec_no_error) {
+      *err_code = ec_integer_overflow;
+      *err_severity = ES_INT_OVERFLOW;
+    }  /* if */
+    goto after_truncation;
+  }  /* if */
   /* Truncate the value to the right size.  When saturate_on_overflow is
      TRUE, return the largest or smallest value that can be represented. */
   if (saturate_on_overflow) {
+    integer_value_range_for_type(result->type, &min_value, &max_value);
     if (sign_of_integer_constant(result) < 0) {
-      result->variant.integer_value = min_integer_value_of_kind[ikind];
+      result->variant.integer_value = min_value;
     } else {
-      result->variant.integer_value = max_integer_value_of_kind[ikind];
+      result->variant.integer_value = max_value;
     }  /* if */
   } else {
     make_integer_value_mask(&mask, bit_size);
@@ -442,7 +444,7 @@ type, but it may be an integer cast to a pointer type.
   /* Copy the old value to the new value. */
   switch (old_constant->kind) {
     case ck_integer:
-      set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
+      set_constant_kind(new_constant, ck_integer);
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case ck_label_difference:
@@ -473,12 +475,17 @@ type, but it may be an integer cast to a pointer type.
   get_integer_attributes(new_constant, &new_ikind, &new_signed, &new_bit_size);
   /* Truncate the new value to the right size. */
   /* Note that the mask created here is used again later in this routine. */
-  make_integer_value_mask(&mask, new_bit_size);
-  and_integer_values(&new_constant->variant.integer_value, &mask);
-  /* Sign-extend the new value if necessary. */
-  if (new_signed) {
-    sign_extend_integer_value(&new_constant->variant.integer_value,
-                              new_bit_size);
+  if (new_bit_size < BITS_IN_AN_INTEGER_VALUE) {
+    make_integer_value_mask(&mask, new_bit_size);
+    and_integer_values(&new_constant->variant.integer_value, &mask);
+    /* Sign-extend the new value if necessary. */
+    if (new_signed) {
+      sign_extend_integer_value(&new_constant->variant.integer_value,
+                                new_bit_size);
+    }  /* if */
+  } else {
+    set_integer_value(&mask, (a_host_large_integer)0);
+    complement_integer_value(&mask);
   }  /* if */
   if (is_implicit_cast) {
     /* If the value changed, a warning is in order. */
@@ -496,6 +503,10 @@ type, but it may be an integer cast to a pointer type.
       if (new_bit_size >= old_bit_size) {
         /* The new size is at least as big as the old size, so no truncation
            is possible.  Therefore, this must be a sign change. */
+        is_sign_change = TRUE;
+      } else if (new_bit_size >= BITS_IN_AN_INTEGER_VALUE) {
+        /* The destination is narrower than the source, but it still includes
+           every value bit that an_integer_value can currently store. */
         is_sign_change = TRUE;
       } else {
         /* The new size is smaller than the old size, which means truncation
@@ -3722,16 +3733,16 @@ if not, return *err_code set to the proper error code.
 
   *err_code = ec_no_error;
 
-  if (shift_count_constant->kind == (a_constant_repr_kind)ck_integer) {
+  if (constant_is(shift_count_constant, ck_integer)) {
     /* Determine the size of the operand being shifted. */
     operand_type = skip_typerefs(operand_type);
 #if CHECKING
-    if (operand_type->kind != (a_type_kind)tk_integer
+    if (!type_is(operand_type, tk_integer)
 #if FIXED_POINT_ALLOWED
-        && operand_type->kind != (a_type_kind)tk_fixed_point
+        && !type_is(operand_type, tk_fixed_point)
 #endif /* FIXED_POINT_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
-        && operand_type->kind != (a_type_kind)tk_vector
+        && !type_is(operand_type, tk_vector)
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
                                                        ) {
       internal_error("check_shift_count: operand_type not integer");
@@ -3740,13 +3751,23 @@ if not, return *err_code set to the proper error code.
     }  /* if */
 #endif /* CHECKING */
 #if GNU_VECTOR_TYPES_ALLOWED
-    if (operand_type->kind == (a_type_kind)tk_vector) {
-      size = operand_type->variant.vector.element_type->size * targ_char_bit;
+    if (type_is(operand_type, tk_vector)) {
+      a_type_ptr element_type = operand_type->variant.vector.element_type;
+      element_type = skip_typerefs(element_type);
+      if (type_is(element_type, tk_integer)) {
+        size = integer_value_bit_size_for_type(element_type);
+      } else {
+        size = element_type->size * targ_char_bit;
+      }  /* if */
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */
     {
-      size = operand_type->size * targ_char_bit;
+      if (type_is(operand_type, tk_integer)) {
+        size = integer_value_bit_size_for_type(operand_type);
+      } else {
+        size = operand_type->size * targ_char_bit;
+      }  /* if */
     }  /* if */
 
     if (sign_of_integer_constant(shift_count_constant) < 0) {
@@ -3758,13 +3779,11 @@ if not, return *err_code set to the proper error code.
       *err_code = ec_shift_count_too_large;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (shift_count_constant->kind ==
-                                  (a_constant_repr_kind)ck_label_difference) {
+  } else if (constant_is(shift_count_constant, ck_label_difference)) {
     /* Unknown value: No check possible. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
-  } else if (shift_count_constant->kind ==
-                                       (a_constant_repr_kind)ck_upc_threads) {
+  } else if (constant_is(shift_count_constant, ck_upc_threads)) {
     /* Unknown value: No check possible. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   } else {
@@ -3818,8 +3837,9 @@ everything went fine.
     result_value = constant_1->variant.integer_value;
     if (too_large) {
       /* Adjust the shift count for a too-large value. */
-      int object_bit_size =
-                  (int)((skip_typerefs(constant_1->type)->size)*targ_char_bit);
+      a_type_ptr object_type = skip_typerefs(constant_1->type);
+      int        object_bit_size =
+                             (int)integer_value_bit_size_for_type(object_type);
       if (targ_too_large_shift_count_is_taken_modulo_size) {
         /* We're supposed to reduce the shift count modulo the bit size
            of the object. */
@@ -3860,8 +3880,10 @@ everything went fine.
         /* Determine attributes (size, signedness) of the new integer kind. */
         get_integer_attributes(result, &tmp_ikind, &tmp_is_signed,
                                &tmp_bit_size);
-        make_integer_value_mask(&mask, tmp_bit_size);
-        and_integer_values(&result_value, &mask);
+        if (tmp_bit_size < BITS_IN_AN_INTEGER_VALUE) {
+          make_integer_value_mask(&mask, tmp_bit_size);
+          and_integer_values(&result_value, &mask);
+        }  /* if */
       }  /* if */
       shift_right_integer_value(&result_value, shift_count, is_signed,
                                /*sign_extend=*/targ_right_shift_is_arithmetic);
@@ -3874,6 +3896,11 @@ everything went fine.
       shift_left_integer_value(&result_value, shift_count, &err);
       if (extra_shift_count != 0) {
         shift_left_integer_value(&result_value, extra_shift_count, &err);
+      }  /* if */
+      if (err && !integer_value_can_represent_type_width(result->type)) {
+        *err_code = ec_integer_overflow;
+        *err_severity = ES_INT_OVERFLOW;
+        goto end_of_folding;
       }  /* if */
     }  /* if */
     trunc_and_set_integer(&result_value, result, /*check_overflow=*/FALSE,
@@ -11568,8 +11595,8 @@ the folding mechanism is used as a way to validate argument values.
               /* Negate a negative value. */
               negate_integer_value(&result->variant.integer_value, &err);
               if (!err &&
-                  !in_range_for_integer_kind(result, result,
-                      skip_typerefs(result->type)->variant.integer.int_kind)) {
+                  !integer_constant_in_range_for_type(result, result,
+                                                     result->type)) {
                 err = TRUE;
               }  /* if */
             }  /* if */

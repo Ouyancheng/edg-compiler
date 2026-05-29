@@ -19626,6 +19626,7 @@ where <typename-or-default> is either a type name or the keyword "default".
   an_operand           operand;
   a_type_ptr           selector_type = NULL, type;
   a_boolean            err = FALSE, default_seen = FALSE;
+  a_boolean            selector_is_type = FALSE;
   a_source_position    start_pos, type_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position    end_pos;
@@ -19647,24 +19648,46 @@ where <typename-or-default> is either a type name or the keyword "default".
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-  /* Scan the selector expression (not evaluated). */
-  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  if (c18_mode || gcc_version_is(any_version) ||
-      clangc_version_is(any_version)) {
-    /* The C11 standard does not specify the usual operand transformations for
-       the selector operand, but GCC and Clang do appear to perform them.  C18,
-       however, clarified that those transformations should be performed
-       (through DR481). */
-    do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-  }  /* if */
-  eliminate_unusual_operand_kinds(&operand);
-  if (is_error_operand(&operand)) {
-    err = TRUE;
-    selector_type = error_type();
+  if (!C_mode() && clang_version_is(any_version) &&
+      (curr_token == tok_bit_precise_int ||
+       ((curr_token == tok_signed || curr_token == tok_unsigned) &&
+        next_token() == tok_bit_precise_int))) {
+    /* Clang accepts a type-name as the selector in C++ _Generic constructs.
+       Handle _BitInt specially here to avoid treating "_BitInt(N)" as a
+       functional-notation cast. */
+    type_pos = pos_curr_token;
+    type_name(&selector_type);
+    selector_is_type = TRUE;
+    if (is_error_type(selector_type)) {
+      err = TRUE;
+    }  /* if */
   } else {
-    selector_type = operand.type;
+    /* Scan the selector expression (not evaluated). */
+    scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    if (c18_mode || gcc_version_is(any_version) ||
+        clangc_version_is(any_version)) {
+      /* The C11 standard does not specify the usual operand transformations
+         for the selector operand, but GCC and Clang do appear to perform them.
+         C18, however, clarified that those transformations should be performed
+         (through DR481). */
+      do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+    }  /* if */
+    eliminate_unusual_operand_kinds(&operand);
+    if (is_error_operand(&operand)) {
+      err = TRUE;
+      selector_type = error_type();
+    } else {
+      selector_type = operand.type;
+    }  /* if */
   }  /* if */
-  arg_list = make_node_from_operand(&operand);
+  if (selector_is_type) {
+    arg_list = alloc_expr_node((an_expr_node_kind)enk_type_operand);
+    arg_list->type = void_type();
+    arg_list->variant.type_operand.type = selector_type;
+    arg_list->position = type_pos;
+  } else {
+    arg_list = make_node_from_operand(&operand);
+  }  /* if */
   /* Scan over the required first comma. */
   if (!required_token(tok_comma, ec_exp_comma)) err = TRUE;
   /* Now scan the <typename-or-default-N> : <expr-N> pairs. */
@@ -45370,6 +45393,7 @@ handle_trapped_left_paren:
     case tok_char:
     case tok_short:
     case tok_int:
+    case tok_bit_precise_int:
     case tok_signed:
     case tok_long:
     case tok_unsigned:

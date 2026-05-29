@@ -2004,7 +2004,11 @@ Display the indicated template parameter type supplement.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_template_param_coordinate(&ptr->coordinates);
-  if (ptr->coordinates.depth != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH &&
+  if (ptr->coordinates.depth == BIT_PRECISE_INT_NESTING_DEPTH) {
+    disp_ptr("constraint.bit_width_constant",
+             (char *)ptr->constraint.bit_width_constant, iek_constant);
+  } else if (ptr->coordinates.depth !=
+                         CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH &&
       ptr->constraint.type_constraint != NULL) {
     disp_ptr("constraint.type_constraint",
              (char *)ptr->constraint.type_constraint, iek_expr_node);

@@ -1499,6 +1499,7 @@ EXTERN_CONSTINIT_ARRAY(an_opname_kind, opname_kind_for_token, tok_last + 1)
    onk_none,          /* tok_goto */
    onk_none,          /* tok_if */
    onk_none,          /* tok_int */
+   onk_none,          /* tok_bit_precise_int */
    onk_none,          /* tok_long */
    onk_none,          /* tok_register */
    onk_none,          /* tok_return */

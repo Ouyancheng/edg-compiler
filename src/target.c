@@ -833,6 +833,8 @@ floating point types.
   int_field_alignments[(int)ik_int128] = targ_int128_field_alignment;
   int_field_alignments[(int)ik_unsigned_int128] = targ_int128_field_alignment;
 #endif /* INT128_EXTENSIONS_ALLOWED */
+  int_field_alignments[ik_bit_precise] = targ_int_field_alignment;
+  int_field_alignments[ik_unsigned_bit_precise] = targ_int_field_alignment;
 #if CHECKING
   for (k = 0; k<(int)ik_last; ++k) {
     if (int_field_alignments[k] == 0) {
@@ -1026,6 +1028,7 @@ header has been read and the target has been determined).
   exc_spec_in_func_type = FALSE;
   targ_minimum_pack_alignment = TARG_MINIMUM_PACK_ALIGNMENT;
   targ_maximum_pack_alignment = TARG_MAXIMUM_PACK_ALIGNMENT;
+  bitint_maxwidth_value = DEFAULT_BITINT_MAXWIDTH_VALUE;
 }  /* target_early_init */
 
 

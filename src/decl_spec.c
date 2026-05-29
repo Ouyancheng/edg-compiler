@@ -5189,6 +5189,9 @@ and *p_base_type is left unchanged.
       } else if (!is_integral_type(base_type)) {
         pos_error(ec_enum_base_type_must_be_integral, pos_type);
         base_type = NULL;
+      } else if (is_bit_precise_integer_type(base_type)) {
+        pos_error(ec_bitint_enum_base_not_allowed, pos_type);
+        base_type = NULL;
       } else if (microsoft_mode && microsoft_version < 1800 && !cpp11_mode &&
                  is_bool_type(base_type)) {
         /* Early Microsoft compilers did not accept bool as the integral type
@@ -7567,6 +7570,7 @@ enum a_basic_type {
   bt_char32_t,
   bt_bool,
   bt_int,
+  bt_bit_precise_int,
 #if FIXED_POINT_ALLOWED
   bt_fract,
   bt_accum,
@@ -7846,14 +7850,16 @@ static a_boolean combine_type_specifiers(
                                   a_basic_type                   basic_type,
                                   a_type_sign                    sign,
                                   a_type_size                    size,
+                                  a_constant_ptr                 bit_width_con,
                                   ARG_UNUSED a_complex_attribute complex_attr,
                                   ARG_UNUSED a_boolean           saturating_fp)
 /*
 Given a basic type, a sign specifier, and a size specifier, return a pointer to
 a type entry in dps->specifiers_type.  This routine is only called from
-decl_specifiers.  complex_attr indicates the kind of complex type involved
-(_Complex or _Imaginary).  saturating_fp is TRUE if the fixed-point modifier
-_Sat was specified.
+decl_specifiers.  bit_width_con is the constant that specifies the bit width of
+the bit-precise integer type (if any), and complex_attr indicates the kind of
+complex type involved (_Complex or _Imaginary).  saturating_fp is TRUE if the
+fixed-point modifier _Sat was specified.
 */
 {
   an_integer_kind  ikind = (an_integer_kind)ik_none;
@@ -7960,6 +7966,50 @@ _Sat was specified.
     case bt_bool:
       if (sign == sign_none && size == size_none) {
         dps->specifiers_type = bool_type();
+      } else {
+        bad_combination = TRUE;
+      }  /* if */
+      break;
+    case bt_bit_precise_int:
+      if (size == size_none && bit_width_con != NULL) {
+        if (is_error_constant(bit_width_con)) {
+          dps->specifiers_type = error_type();
+        } else if (constant_is(bit_width_con, ck_template_param)) {
+          dps->specifiers_type = dependent_bit_precise_integer_type(
+                                        bit_width_con, sign == sign_unsigned);
+        } else {
+          a_boolean             err = FALSE;
+          a_host_large_integer  width;
+          a_source_position     *width_pos =
+                                &bit_width_con->source_corresp.decl_position;
+          check_assertion(constant_is(bit_width_con, ck_integer));
+          conv_integer_value_to_host_large_integer(
+                                        &bit_width_con->variant.integer_value,
+                                        /*is_signed=*/TRUE, &width, &err);
+          if (err || (width > 0 &&
+                      (a_targ_size_t)width > bitint_maxwidth_value)) {
+            int32_t diagnostic_width =
+                          err ? (int32_t)bitint_maxwidth_value + 1 :
+                                (int32_t)width;
+            pos_num2_diagnostic(es_error, ec_bitint_width_too_large,
+                                width_pos, diagnostic_width,
+                                (int32_t)bitint_maxwidth_value);
+            dps->specifiers_type = error_type();
+          } else if (width <= 0 && sign == sign_unsigned) {
+            pos_num2_diagnostic(es_error, ec_unsigned_bitint_width_too_small,
+                                width_pos, (int32_t)width, 1);
+            dps->specifiers_type = error_type();
+          } else if (width <= 0 || (width == 1 && sign != sign_unsigned)) {
+            pos_num2_diagnostic(es_error, ec_signed_bitint_width_too_small,
+                                width_pos, (int32_t)width, 2);
+            dps->specifiers_type = error_type();
+          } else {
+            dps->specifiers_type = bit_precise_integer_type(
+                                                        (a_targ_size_t)width,
+                                                        sign == sign_unsigned,
+                                                        sign == sign_signed);
+          }  /* if */
+        }  /* if */
       } else {
         bad_combination = TRUE;
       }  /* if */
@@ -10643,6 +10693,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_type_sign                sign = sign_none;
   a_type_size                size = size_none;
+  a_constant_ptr             bit_precise_width_con = NULL;
   a_complex_attribute        complex_attr = cxa_none;
   a_boolean                  saturating_fixed_point = FALSE;
   a_boolean                  bad_type_name_error;
@@ -11545,6 +11596,7 @@ storage_class_specifier:
       case tok_c99_bool:
       case tok_bool:
       case tok_int:
+      case tok_bit_precise_int:
       case tok_float:
       case tok_double:
 #if FIXED_POINT_ALLOWED
@@ -11604,6 +11656,25 @@ storage_class_specifier:
               FALLTHROUGH
             case tok_bool:     basic_type = bt_bool;    break;
             case tok_int:      basic_type = bt_int;     break;
+            case tok_bit_precise_int:
+              {
+                a_constant_ptr  width_con = local_constant();
+                basic_type = bt_bit_precise_int;
+                /* Skip over _BitInt. */
+                (void)get_token();
+                if (required_token_no_advance(tok_lparen, ec_exp_lparen)) {
+                  (void)get_token();
+                  add_stop_token(tok_rparen);
+                  scan_integral_constant_expression(width_con);
+                  bit_precise_width_con = alloc_shareable_constant(width_con);
+                  (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+                  remove_stop_token(tok_rparen);
+                } else {
+                  bit_precise_width_con = fs_constant(ck_error);
+                }  /* if */
+                release_local_constant(&width_con);
+              }
+              break;
             case tok_float:    basic_type = bt_float;   break;
             case tok_double:   basic_type = bt_double;  break;
 #if FIXED_POINT_ALLOWED
@@ -13073,7 +13144,8 @@ exit_loop:
          type.  *type_ptr is updated, based on the basic type, sign, and size
          specified. */
       if (!combine_type_specifiers(state, basic_type, sign, size,
-                                   complex_attr, saturating_fixed_point)) {
+                                   bit_precise_width_con, complex_attr,
+                                   saturating_fixed_point)) {
         err = TRUE;
       } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED

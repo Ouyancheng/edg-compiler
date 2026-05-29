@@ -441,6 +441,168 @@ the same constant.
 }  /* in_range_for_integer_kind */
 
 
+a_targ_size_t integer_value_bit_size_for_type(a_type_ptr type)
+/*
+Return the number of value-representation bits used by the indicated integer
+type.  For bit-precise integer types, this is the declared _BitInt width; for
+ordinary integer types, this is the target storage size in bits.
+*/
+{
+  a_targ_size_t result;
+
+  type = skip_typerefs(type);
+  check_assertion(type_is(type, tk_integer));
+  if (is_bit_precise_kind(type->variant.integer.int_kind)) {
+    result = bit_precise_integer_width(type);
+  } else {
+    result = type->size * targ_char_bit;
+  }  /* if */
+  return result;
+}  /* integer_value_bit_size_for_type */
+
+
+a_boolean integer_value_can_represent_type_width(a_type_ptr type)
+/*
+Return TRUE if an_integer_value can represent all value bits of the indicated
+integer type.
+*/
+{
+  return integer_value_bit_size_for_type(type) <=
+                                          BITS_IN_AN_INTEGER_VALUE;
+}  /* integer_value_can_represent_type_width */
+
+
+void integer_value_range_for_type(a_type_ptr        type,
+                                  an_integer_value  *min_value,
+                                  an_integer_value  *max_value)
+/*
+Return in *min_value and *max_value the representable range for the indicated
+integer type.
+*/
+{
+  a_targ_size_t    bit_size;
+  an_integer_kind  ikind;
+  a_boolean        is_signed;
+
+  type = skip_typerefs(type);
+  check_assertion(type_is(type, tk_integer));
+  ikind = type->variant.integer.int_kind;
+  if (!is_bit_precise_kind(ikind)) {
+    *min_value = min_integer_value_of_kind[ikind];
+    *max_value = max_integer_value_of_kind[ikind];
+  } else {
+    bit_size = bit_precise_integer_width(type);
+    if (bit_size > BITS_IN_AN_INTEGER_VALUE) {
+      bit_size = BITS_IN_AN_INTEGER_VALUE;
+    }  /* if */
+    is_signed = int_kind_is_signed[ikind];
+    /* Obtain the maximum value by creating a mask with the appropriate number
+       of bits set.  If the integer is signed, subtract one from the bit size
+       to account for the sign bit.  If the integer is unsigned, use the full
+       bit size. */
+    make_integer_value_mask(max_value, size_t_arg(is_signed ? bit_size - 1
+                                                            : bit_size));
+    if (is_signed) {
+      /* Obtain the minimum value by adding one to the maximum value (relying
+         on two's complement arithmetic) and sign extending the result. */
+      an_integer_value one;
+      a_boolean        err;
+      set_integer_value(&one, (a_host_large_integer)1);
+      *min_value = *max_value;
+      add_integer_values(min_value, &one, /*is_signed=*/FALSE, &err);
+      sign_extend_integer_value(min_value, size_t_arg(bit_size));
+    } else {
+      set_integer_value(min_value, (a_host_large_integer)0);
+    }  /* if */
+  }  /* if */
+}  /* integer_value_range_for_type */
+
+
+a_boolean integer_value_in_range_for_type(an_integer_value *value,
+                                          a_boolean        is_signed,
+                                          a_type_ptr       type)
+/*
+Return TRUE if value fits in the representable range of the indicated integer
+type.  is_signed describes how value itself should be interpreted.
+*/
+{
+  an_integer_value min_value, max_value;
+  a_boolean        type_is_signed;
+  a_boolean        in_range;
+
+  type = skip_typerefs(type);
+  check_assertion(type_is(type, tk_integer));
+  if (!integer_value_can_represent_type_width(type)) {
+    a_boolean type_is_unsigned =
+                       !int_kind_is_signed[type->variant.integer.int_kind];
+    an_integer_value zero_value;
+    set_integer_value(&zero_value, (a_host_large_integer)0);
+    return !type_is_unsigned || !is_signed ||
+           cmp_integer_values(value, is_signed, &zero_value,
+                              /*op_2_signed=*/FALSE) >= 0;
+  }  /* if */
+  integer_value_range_for_type(type, &min_value, &max_value);
+  type_is_signed = int_kind_is_signed[type->variant.integer.int_kind];
+  in_range = cmp_integer_values(value, is_signed, &min_value,
+                                type_is_signed) >= 0 &&
+             cmp_integer_values(value, is_signed, &max_value,
+                                type_is_signed) <= 0;
+  return in_range;
+}  /* integer_value_in_range_for_type */
+
+
+a_boolean integer_constant_in_range_for_type(a_constant *min_con,
+                                             a_constant *max_con,
+                                             a_type_ptr  type)
+/*
+Return TRUE if the range min_con..max_con falls entirely within the legal
+range of values for the indicated integer type.  min_con and max_con may be
+the same constant.
+*/
+{
+  a_boolean min_con_signed, max_con_signed;
+  a_boolean in_range;
+
+  check_assertion(constant_is(min_con, ck_integer) &&
+                  constant_is(max_con, ck_integer));
+  min_con_signed = int_constant_is_signed(min_con);
+  in_range = integer_value_in_range_for_type(&min_con->variant.integer_value,
+                                             min_con_signed, type);
+  if (in_range && min_con != max_con) {
+    max_con_signed = int_constant_is_signed(max_con);
+    in_range = integer_value_in_range_for_type(&max_con->variant.integer_value,
+                                               max_con_signed, type);
+  }  /* if */
+  return in_range;
+}  /* integer_constant_in_range_for_type */
+
+
+void trim_integer_value_to_type(an_integer_value *value,
+                                a_type_ptr        type)
+/*
+Adjust *value to fit in the value representation of the indicated integer type,
+using two's-complement wrapping for unsigned and sign extension for signed.
+*/
+{
+  an_integer_value mask;
+  a_targ_size_t    bit_size;
+  a_boolean        is_signed;
+
+  type = skip_typerefs(type);
+  check_assertion(type_is(type, tk_integer));
+  bit_size = integer_value_bit_size_for_type(type);
+  if (bit_size >= BITS_IN_AN_INTEGER_VALUE) {
+    return;
+  }  /* if */
+  is_signed = int_kind_is_signed[type->variant.integer.int_kind];
+  make_integer_value_mask(&mask, size_t_arg(bit_size));
+  and_integer_values(value, &mask);
+  if (is_signed) {
+    sign_extend_integer_value(value, size_t_arg(bit_size));
+  }  /* if */
+}  /* trim_integer_value_to_type */
+
+
 a_boolean le_max_integer_value_of_kind(an_integer_value *value,
                                        a_boolean	is_signed,
                                        an_integer_kind  ikind)
@@ -2319,6 +2481,49 @@ of the indicated kind.
 }  /* get_integer_size_and_alignment */
 
 
+void get_bit_precise_integer_size_and_alignment(a_targ_size_t    bit_width,
+                                                a_targ_size_t    *p_size,
+                                                a_targ_alignment *p_alignment)
+/*
+Determine and return the size and alignment of a bit-precise integer type
+with the indicated width.
+*/
+{
+  a_targ_size_t     size;
+  a_targ_alignment  alignment;
+
+  check_assertion(bit_width != 0);
+  size = (bit_width + targ_char_bit - 1) / targ_char_bit;
+  if (size <= 1) {
+    alignment = 1;
+  } else if (size <= targ_sizeof_short) {
+    alignment = targ_alignof_short;
+  } else if (size <= targ_sizeof_int) {
+    alignment = targ_alignof_int;
+  } else if (size <= targ_sizeof_long) {
+    alignment = targ_alignof_long;
+#if LONG_LONG_ALLOWED
+  } else if (size <= targ_sizeof_long_long) {
+    alignment = targ_alignof_long_long;
+#endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+  } else if (size <= targ_sizeof_int128) {
+    alignment = targ_alignof_int128;
+#endif /* INT128_EXTENSIONS_ALLOWED */
+  } else {
+    alignment = targ_alignof_long;
+#if LONG_LONG_ALLOWED
+    alignment = targ_alignof_long_long;
+#endif /* LONG_LONG_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED
+    alignment = targ_alignof_int128;
+#endif /* INT128_EXTENSIONS_ALLOWED */
+  }  /* if */
+  *p_size = size;
+  *p_alignment = alignment;
+}  /* get_bit_precise_integer_size_and_alignment */
+
+
 an_integer_kind int_kind_for_size_and_alignment(a_targ_size_t    size,
                                                 a_targ_alignment alignment,
                                                 a_boolean        is_signed)
@@ -2336,6 +2541,9 @@ integer kind, return ik_last.
   for (int_kind = (an_integer_kind)0;
        (int)int_kind < (int)ik_last;
        int_kind = (an_integer_kind)((int)int_kind + 1)) {
+    if (is_bit_precise_kind(int_kind)) {
+      continue;
+    }  /* if */
     get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
     int_signed = int_kind_is_signed[(int)int_kind];
     if (int_size == size && int_alignment == alignment &&
@@ -2380,6 +2588,9 @@ signedness.  If none is found, ik_none is returned.
     for (int_kind = (an_integer_kind)0;
          (int)int_kind < (int)ik_last;
          int_kind = (an_integer_kind)((int)int_kind + 1)) {
+      if (is_bit_precise_kind(int_kind)) {
+        continue;
+      }  /* if */
       get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
       if (int_size == size &&
           int_kind_is_signed[(int)int_kind] == is_signed &&
@@ -2482,7 +2693,12 @@ for the integer kind ikind.
   a_boolean	   is_signed;
 
   /* Get the attributes of the integer kind. */
-  get_integer_size_and_alignment(ikind, &size, &alignment);
+  if (is_bit_precise_kind(ikind)) {
+    get_bit_precise_integer_size_and_alignment(bitint_maxwidth_value,
+                                               &size, &alignment);
+  } else {
+    get_integer_size_and_alignment(ikind, &size, &alignment);
+  }  /* if */
   /* Build the actual maximum and minimum values.  We do this by
      constructing a mask with "bit_size" bits set.  This is the maximum
      value.  We add one to this to get the bit pattern for the

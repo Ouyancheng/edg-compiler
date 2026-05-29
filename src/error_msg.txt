@@ -3650,6 +3650,10 @@ ec_address_of_overload_set_implicit_obj_member_selected;;"overload resolution fo
 ec_pack_indexing_is_cpp26;;"pack indexing is a C++26 feature"
 ec_pack_index_out_of_bounds;;"pack index exceeds number of pack elements"
 ec_alias_ctad_is_cpp20;;"class template argument deduction for alias templates is a C++20 feature"
+ec_bitint_width_too_large;;"_BitInt(%d1) is invalid; the maximum integer width is %d2"
+ec_signed_bitint_width_too_small;;"_BitInt(%d1) is invalid; the minimum signed _BitInt width is %d2"
+ec_unsigned_bitint_width_too_small;;"unsigned _BitInt(%d1) is invalid; the minimum unsigned _BitInt width is %d2"
+ec_bitint_enum_base_not_allowed;;"_BitInt types cannot be the underlying type of an enumeration type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

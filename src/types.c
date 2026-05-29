@@ -3628,11 +3628,18 @@ diagnostic in error cases.  error_pos is the position to use for diagnostics
           for (an_integer_kind  ik = ik_signed_char;
                ik != ik_last; 
                ik = an_integer_kind(ik+1)) {
+            if (is_bit_precise_kind(ik)) {
+              continue;
+            }  /* if */
             if (int_kind_is_signed[ik]) {
               result = integer_type(ik);
               if (result->size == tp->size) break;
             }  /* if */
           }  /* for */
+        } else if (is_bit_precise_kind(int_kind)) {
+          result = bit_precise_integer_type(bit_precise_integer_width(tp),
+                                            /*is_unsigned=*/FALSE,
+                                            /*explicitly_signed=*/TRUE);
         } else if (int_kind == ik_char) {
           result = integer_type(ik_signed_char);
         } else if (!int_type_is_signed(tp)) {
@@ -3663,11 +3670,18 @@ diagnostic in error cases.  error_pos is the position to use for diagnostics
           for (an_integer_kind  ik = ik_unsigned_char;
                ik != ik_last; 
                ik = an_integer_kind(ik+1)) {
+            if (is_bit_precise_kind(ik)) {
+              continue;
+            }  /* if */
             if (!int_kind_is_signed[ik]) {
               result = integer_type(ik);
               if (result->size == tp->size) break;
             }  /* if */
           }  /* for */
+        } else if (is_bit_precise_kind(int_kind)) {
+          result = bit_precise_integer_type(bit_precise_integer_width(tp),
+                                            /*is_unsigned=*/TRUE,
+                                            /*explicitly_signed=*/FALSE);
         } else if (int_kind == ik_char) {
           result = integer_type(ik_unsigned_char);
         } else if (int_type_is_signed(tp)) {
@@ -5879,8 +5893,14 @@ set, leave it alone.  Also compute and set the alignment requirement.
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_integer:
-        get_integer_size_and_alignment(type_ptr->variant.integer.int_kind,
-                                       &size, &alignment);
+        if (is_bit_precise_kind(type_ptr->variant.integer.int_kind)) {
+          get_bit_precise_integer_size_and_alignment(
+                                      integer_type_supp(type_ptr)->bit_width,
+                                      &size, &alignment);
+        } else {
+          get_integer_size_and_alignment(type_ptr->variant.integer.int_kind,
+                                         &size, &alignment);
+        }  /* if */
         if (type_ptr->variant.integer.enum_type) {
           /* Issue a diagnostic if an explicit alignment is too restrictive
              for the underlying type. */
@@ -6033,7 +6053,9 @@ receive an rvalue type.
 
   if (is_integer_or_unscoped_enum(unqual_type)) {
     an_integer_kind ikind = unqual_type->variant.integer.int_kind;
-    if (unqual_type->variant.integer.bool_type) {
+    if (is_bit_precise_kind(ikind)) {
+      /* Bit-precise integer types are not subject to integral promotion. */
+    } else if (unqual_type->variant.integer.bool_type) {
       /* bool always promotes to int. */
       promoted_type = integer_type((an_integer_kind)ik_int);
     } else if (!C_mode() &&
@@ -7973,7 +7995,10 @@ check_typerefs:
               type_1->variant.integer.char32_t_type ==
                                       type_2->variant.integer.char32_t_type &&
               type_1->variant.integer.bool_type ==
-                                      type_2->variant.integer.bool_type) {
+                                      type_2->variant.integer.bool_type &&
+              (!is_bit_precise_kind(type_1->variant.integer.int_kind) ||
+               integer_type_supp(type_1)->bit_width ==
+                                      integer_type_supp(type_2)->bit_width)) {
             identical = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
           } else if (il_identical && same_repr_int_types(type_1, type_2)) {
@@ -8345,6 +8370,14 @@ check_typerefs:
                  the unknown types of two different translation units.
                  Consider them to be the same. */
               identical = TRUE;
+              break;
+            case tptk_bit_precise_int:
+              identical =
+                type_1->variant.template_param.is_unsigned_bit_precise_int ==
+                type_2->variant.template_param.is_unsigned_bit_precise_int &&
+                compare_constants(tptsp_1->constraint.bit_width_constant,
+                                  tptsp_2->constraint.bit_width_constant,
+                                  CC_NO_OPTIONS);
               break;
             default:
               unexpected_condition_str
@@ -8991,7 +9024,10 @@ check_typerefs:
                 type_1->variant.integer.char32_t_type ==
                                        type_2->variant.integer.char32_t_type &&
                 type_1->variant.integer.bool_type ==
-                                        type_2->variant.integer.bool_type) {
+                                        type_2->variant.integer.bool_type &&
+                (!is_bit_precise_kind(type_1->variant.integer.int_kind) ||
+                 integer_type_supp(type_1)->bit_width ==
+                                      integer_type_supp(type_2)->bit_width)) {
               compat = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
             } else if (C_dialect == C_dialect_pcc &&
@@ -9389,6 +9425,8 @@ integer kind (e.g., "unsigned int" and "int" both yield ik_int).
   } else if (ikind == (an_integer_kind)ik_unsigned_long_long) {
     ikind = (an_integer_kind)ik_long_long;
 #endif /* LONG_LONG_ALLOWED */
+  } else if (ikind == ik_unsigned_bit_precise) {
+    ikind = ik_bit_precise;
   }  /* if */
   return ikind;
 }  /* canonical_integer_kind_of */
@@ -9411,6 +9449,11 @@ except for signedness.
   if (result) {
     result = canonical_integer_kind_of(type_1) ==
                                             canonical_integer_kind_of(type_2);
+    if (result && is_bit_precise_kind(type_1->variant.integer.int_kind)) {
+      result = is_bit_precise_kind(type_2->variant.integer.int_kind) &&
+               integer_type_supp(type_1)->bit_width ==
+                                      integer_type_supp(type_2)->bit_width;
+    }  /* if */
   }  /* if */
   return result;
 }  /* integral_types_the_same_except_for_signedness */
@@ -9604,7 +9647,10 @@ that are not present in standalone back ends and utilities.
                    type_1->variant.integer.char32_t_type ==
                                        type_2->variant.integer.char32_t_type &&
                    type_1->variant.integer.bool_type ==
-                                            type_2->variant.integer.bool_type);
+                                       type_2->variant.integer.bool_type &&
+                   (!is_bit_precise_kind(type_1->variant.integer.int_kind) ||
+                    integer_type_supp(type_1)->bit_width ==
+                                      integer_type_supp(type_2)->bit_width));
       break;
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
@@ -15586,6 +15632,14 @@ based on the specified template parameter constant.
       found = constant_contains_template_param_constant(
                                                    esp->variant.noexcept_arg);
     }  /* if */
+  } else if (type_is(type_ptr, tk_template_param) &&
+             tptk_is(type_ptr, tptk_bit_precise_int)) {
+    a_constant_ptr cp =
+      type_ptr->variant.template_param.extra_info->constraint
+                                                        .bit_width_constant;
+    if (cp != NULL) {
+      found = constant_contains_template_param_constant(cp);
+    }  /* if */
   }  /* if */
   if (found) *force_end_of_traversal = TRUE;
   return found;
@@ -15703,6 +15757,11 @@ types, i.e., also for nonreal classes.
       check_assertion(!type_ptr->variant.typeref.is_dependent_type_operator);
       *force_end_of_traversal = TRUE;
       found = FALSE;
+    } else if (find_all_dependent_types &&
+               type_is(type_ptr, tk_template_param) &&
+               tptk_is(type_ptr, tptk_bit_precise_int)) {
+      /* A dependent _BitInt. */
+      *force_end_of_traversal = found = TRUE;
     } else if (find_all_dependent_types &&
                type_is(type_ptr, tk_array) &&
                type_ptr->variant.array.is_template_dependent_size_array) {
@@ -15881,6 +15940,15 @@ from which a template parameter value can be deduced.
             *force_end_of_traversal = TRUE;
           }  /* if */
         }  /* for */
+      }  /* if */
+    } else if (type_is(type_ptr, tk_template_param) &&
+               tptk_is(type_ptr, tptk_bit_precise_int)) {
+      a_constant_ptr cp =
+        type_ptr->variant.template_param.extra_info->constraint
+                                                        .bit_width_constant;
+      if (cp != NULL && is_deducible_template_param_constant(cp)) {
+        found = TRUE;
+        *force_end_of_traversal = TRUE;
       }  /* if */
     } else if (type_is(type_ptr, tk_routine) && exc_spec_in_func_type) {
       /* Check for something like "void f() noexcept(B)" where B is a nontype

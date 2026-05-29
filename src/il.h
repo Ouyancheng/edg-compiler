@@ -1618,6 +1618,13 @@ extern a_const_char* get_type_name(a_type_ptr tp);
 
 extern a_type_ptr integer_type(an_integer_kind kind);
 
+extern a_type_ptr bit_precise_integer_type(a_targ_size_t bit_width,
+                                           a_boolean     is_unsigned,
+                                           a_boolean     explicitly_signed);
+extern a_type_ptr dependent_bit_precise_integer_type(
+                                           a_constant_ptr bit_width_constant,
+                                           a_boolean      is_unsigned);
+
 extern a_type_ptr signed_integer_type(an_integer_kind kind);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

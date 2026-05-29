@@ -1183,6 +1183,11 @@ Integer types:
 			   targ_alignof_int128. */
 #endif /* !defined(TARG_ALIGNOF_INT128) */
 #endif /* INT128_EXTENSIONS_ALLOWED */
+#ifndef DEFAULT_BITINT_MAXWIDTH_VALUE
+#define DEFAULT_BITINT_MAXWIDTH_VALUE 65535
+			/* Default value, used to initialize global variable
+			   bitint_maxwidth_value. */
+#endif /* !defined(DEFAULT_BITINT_MAXWIDTH_VALUE) */
 
 /* Specify the size of the largest integer.  Note that this will constrain
    how targ_sizeof_long, targ_sizeof_long_long, and targ_sizeof_largest_integer

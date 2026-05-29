@@ -3787,17 +3787,15 @@ which the value will ultimately be stored, which is used to determine
 the appropriate largest or smallest value for the destination type.
 */
 {
-  an_integer_kind  ikind;
-  a_boolean        is_signed;
-  size_t           bit_size;
+  an_integer_value min_value, max_value;
   a_host_fp_value  temp;
 
-  get_integer_attributes(result_constant, &ikind, &is_signed, &bit_size);
+  integer_value_range_for_type(result_constant->type, &min_value, &max_value);
   temp = fetch_host_fp_value(kind, float_value);
   if (do_fp_lt_zero(temp)) {
-    *result = min_integer_value_of_kind[ikind];
+    *result = min_value;
   } else {
-    *result = max_integer_value_of_kind[ikind];
+    *result = max_value;
   }  /* if */
 }  /* make_saturated_integer_for_float */
 

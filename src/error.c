@@ -6646,6 +6646,25 @@ at the indicated position.
 }  /* pos_st_num2_diagnostic */
 
 
+void pos_num2_diagnostic(an_error_severity error_severity,
+                         an_error_code     error_code,
+                         a_source_position *error_pos,
+                         int32_t           num1,
+                         int32_t           num2)
+/*
+Report the indicated diagnostic (with the indicated number fill-ins) at the
+indicated position.
+*/
+{
+  a_diagnostic_ptr dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, error_severity);
+  add_number_fill_in(dp, num1);
+  add_number_fill_in(dp, num2);
+  wrap_up_diagnostic(dp);
+}  /* pos_num2_diagnostic */
+
+
 void st_num_add_diag_info(a_diagnostic_ptr primary_dp,
                           an_error_code    error_code,
                           a_const_char     *error_string,

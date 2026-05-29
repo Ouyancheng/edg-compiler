@@ -1449,6 +1449,9 @@ common_long_long_processing:
                                 }  /* if */
                                 break;
 #endif /* INT128_EXTENSIONS_ALLOWED */
+    case ik_bit_precise:        p = "_BitInt";            break;
+    case ik_unsigned_bit_precise:
+                                p = "unsigned _BitInt";   break;
     default:                    p = "**BAD-INT-KIND**";
   }  /* switch */
   return p;
@@ -1480,7 +1483,19 @@ C++-generating back end.
 {
   a_const_char     *result;
 
-  check_assertion(type->kind == (a_type_kind)tk_integer);
+  check_assertion(type_is(type, tk_integer));
+  if (is_bit_precise_kind(type->variant.integer.int_kind)) {
+    pos_in_temp_text_buffer = 0;
+    if (type->variant.integer.int_kind == ik_unsigned_bit_precise) {
+      put_str_to_temp_text_buffer("unsigned ");
+    }  /* if */
+    put_str_to_temp_text_buffer("_BitInt(");
+    put_uint_to_temp_text_buffer(
+                    (unsigned long long)integer_type_supp(type)->bit_width);
+    put_ch_to_temp_text_buffer(')');
+    put_ch_to_temp_text_buffer('\0');
+    result = temp_text_buffer;
+  } else
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (type->variant.integer.microsoft_sized_int_type) {
     an_integer_kind  kind = type->variant.integer.int_kind;
@@ -2665,6 +2680,15 @@ by octl.
           } else {
             octl->output_str("auto", octl);
           }  /* if */
+        } else if (tptk_is(type, tptk_bit_precise_int)) {
+          if (type->variant.template_param.is_unsigned_bit_precise_int) {
+            octl->output_str("unsigned ", octl);
+          }  /* if */
+          octl->output_str("_BitInt(", octl);
+          form_constant(type->variant.template_param.extra_info
+                                     ->constraint.bit_width_constant,
+                        /*need_parens=*/FALSE, octl);
+          octl->output_str(")", octl);
         } else {
           a_source_correspondence_ptr scp = &type->source_corresp;
           an_il_entry_kind            scp_kind = iek_type;

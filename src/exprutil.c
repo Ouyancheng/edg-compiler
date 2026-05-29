@@ -11167,18 +11167,18 @@ desired.
       is_error_type(promoted_type)) {
     goto end_of_routine;
   }  /* if */
-#if CHECKING
   /* The type of a bit-field should be integral. */
-  if (promoted_type->kind != (a_type_kind)tk_integer) {
-    internal_error(
+  check_assertion_str(
+            type_is(promoted_type, tk_integer),
             "type_after_bit_field_integral_promotion: bit-field not integral");
-  }  /* if */
-  if (field_size > (unsigned int)(targ_sizeof_largest_integer*targ_char_bit)) {
-    internal_error(
-                 "type_after_bit_field_integral_promotion: bit-field too big");
-  }  /* if */
-#endif /* CHECKING */
   orig_ikind = ikind = promoted_type->variant.integer.int_kind;
+  if (is_bit_precise_kind(ikind)) {
+    /* Bit-precise integer types are not subject to integral promotion. */
+    goto end_of_routine;
+  }  /* if */
+  check_assertion_str(
+      field_size <= (unsigned int)(targ_sizeof_largest_integer*targ_char_bit),
+      "type_after_bit_field_integral_promotion: bit-field too big");
   if (!C_mode()) {
     /* In C++, the size of a bit field can be larger than the size of
        the underlying type.  The value representation only includes
@@ -11245,8 +11245,8 @@ desired.
        of an enum type (unscoped; scoped enum types don't get here). */
     promoted_type = integer_type(ikind);
   }  /* if */
-  db_exit();
 end_of_routine:
+  db_exit();
   return promoted_type;
 }  /* type_after_bit_field_integral_promotion */
 
@@ -11846,6 +11846,29 @@ If those routines return TRUE, this routine should not be called.
                   type_1->variant.integer.int_kind : (an_integer_kind)ik_last;
       ikind_2 = is_integral_or_enum_type(type_2) ?
                   type_2->variant.integer.int_kind : (an_integer_kind)ik_last;
+      if (is_bit_precise_kind(ikind_1) || is_bit_precise_kind(ikind_2)) {
+        a_targ_size_t     width_1, width_2, size;
+        a_targ_alignment  alignment;
+        a_boolean         result_is_unsigned;
+        if (is_bit_precise_kind(ikind_1)) {
+          width_1 = bit_precise_integer_width(type_1);
+        } else {
+          get_integer_size_and_alignment(ikind_1, &size, &alignment);
+          width_1 = size * targ_char_bit;
+        }  /* if */
+        if (is_bit_precise_kind(ikind_2)) {
+          width_2 = bit_precise_integer_width(type_2);
+        } else {
+          get_integer_size_and_alignment(ikind_2, &size, &alignment);
+          width_2 = size * targ_char_bit;
+        }  /* if */
+        result_is_unsigned = !int_kind_is_signed[(int)ikind_1] ||
+                             !int_kind_is_signed[(int)ikind_2];
+        result_type = bit_precise_integer_type(max_val(width_1, width_2),
+                                               result_is_unsigned,
+                                               /*explicitly_signed=*/FALSE);
+        goto done;
+      }  /* if */
 #if INT128_EXTENSIONS_ALLOWED
       if (int128_extensions_enabled) {
         if (is_unsigned_int128(ikind_1) || is_unsigned_int128(ikind_2)) {
@@ -20127,6 +20150,9 @@ can be taken (as an extension).
         for (int_kind = (an_integer_kind)0;
              (int)int_kind < (int)ik_last;
              int_kind = (an_integer_kind)((int)int_kind + 1)) {
+          if (is_bit_precise_kind(int_kind)) {
+            continue;
+          }  /* if */
           /* The signedness must match. */
           if (int_kind_is_signed[(int)int_kind] ==
                                                   field->bit_field_is_signed) {

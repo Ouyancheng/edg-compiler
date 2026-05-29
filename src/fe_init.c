@@ -939,6 +939,9 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_goto,      "goto");
   enter_keyword((a_token_kind)tok_if,        "if");
   enter_keyword((a_token_kind)tok_int,       "int");
+  if (bit_precise_int_enabled) {
+    enter_keyword(tok_bit_precise_int, "_BitInt");
+  }  /* if */
   enter_keyword((a_token_kind)tok_long,      "long");
   enter_keyword((a_token_kind)tok_register,  "register");
   enter_keyword((a_token_kind)tok_return,    "return");

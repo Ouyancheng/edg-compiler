@@ -10738,6 +10738,15 @@ top_of_loop:
           mangled_type_name_full(type, /*check_for_subst=*/FALSE, 
                                  /*ok_to_mangle_type=*/TRUE, mctl);
           goto have_whole_mangled_name;
+        } else if (is_bit_precise_kind(type->variant.integer.int_kind)) {
+          add_str_to_mangled_name(
+              type->variant.integer.int_kind == ik_bit_precise ? "DB" : "DU",
+              mctl);
+          add_number_to_mangled_name(
+                    (a_host_large_unsigned)integer_type_supp(type)->bit_width,
+                    mctl);
+          add_to_mangled_name('_', mctl);
+          goto have_whole_mangled_name;
         }  /* if */
         if (type->variant.integer.wchar_t_type) {
           s = MANGLING_STRING_FOR_WCHAR_T;
@@ -11054,6 +11063,18 @@ top_of_loop:
                  instantiations (e.g., in expressions); give it a bogus
                  name. */
               mangled_name_with_length("?", mctl);
+              break;
+            case tptk_bit_precise_int:
+              add_str_to_mangled_name(
+                      type->variant.template_param.is_unsigned_bit_precise_int
+                                                            ? "DU" : "DB",
+                      mctl);
+              mangled_encoding_for_constant(
+                 type->variant.template_param.extra_info
+                     ->constraint.bit_width_constant,
+                 /*old_form=*/FALSE, /*in_dependent_expr=*/TRUE,
+                 /*suppress_address_of=*/FALSE, mctl);
+              add_to_mangled_name('_', mctl);
               break;
             default:
               unexpected_condition_str(

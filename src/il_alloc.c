@@ -1457,6 +1457,7 @@ a pointer to it.
 #endif /* DO_IL_LOWERING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   itsp->base_type = NULL;
+  itsp->bit_width = 0;
   itsp->base_type_position = null_source_position;
   itsp->assoc_template = NULL;
   return itsp;
@@ -2203,6 +2204,7 @@ to default values.
         pte->variant.template_param.is_auto_param = FALSE;
         pte->variant.template_param.is_decltype_auto = FALSE;
         pte->variant.template_param.originally_class_template_param = FALSE;
+        pte->variant.template_param.is_unsigned_bit_precise_int = FALSE;
         tptsp = alloc_template_param_type_supplement();
         pte->variant.template_param.extra_info = tptsp;
         tptsp->coordinates.position = 0;

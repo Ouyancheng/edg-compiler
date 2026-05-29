@@ -1173,6 +1173,7 @@ enum a_token_kind : unsigned short {
   tok_goto,
   tok_if,
   tok_int,
+  tok_bit_precise_int,
   tok_long,
   tok_register,
   tok_return,
@@ -1606,7 +1607,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, token_names, tok_last + 1)
    "{", "}", "[:", ":]", "\\",  ";", "...",
    "auto", "break", "case", "char", "const",
    "continue", "default", "do", "double", "else", "enum", "extern",
-   "float", "for", "goto", "if", "int", "long", "register",
+   "float", "for", "goto", "if", "int", "_BitInt", "long", "register",
    "return", "short", "signed", "sizeof", "static", "struct",
    "switch", "typedef", "union", "unsigned", "void", "volatile",
    "while", "__generic", "__genericfx", "__ALIGNOF__", "__INTADDR__",
@@ -4474,6 +4475,10 @@ typedef int32_t a_template_nesting_depth;
 			/* Depth used to indicate that the template parameter
 			   represents a C++17 class template being used for
 			   class template argument deduction. */
+#define BIT_PRECISE_INT_NESTING_DEPTH	-3
+			/* Depth used to indicate that the constraint union
+			   contains the width constant for a dependent
+			   _BitInt type. */
 #define PLAIN_AUTO_TYPE_POS_NUMBER 1
 			/* When a template parameter nesting depth is
 			   AUTO_TYPE_NESTING_DEPTH, and its position number is
@@ -5627,6 +5632,8 @@ enum an_integer_kind : a_byte {
   ik_int128,
   ik_unsigned_int128,
 #endif /* INT128_EXTENSIONS_ALLOWED */
+  ik_bit_precise,
+  ik_unsigned_bit_precise,
   ik_last,
   ik_none = ik_last
 };
@@ -5654,6 +5661,8 @@ EXTERN_CONSTINIT_ARRAY(EDG_THREAD a_byte_boolean, int_kind_is_signed, ik_last)
   TRUE,		/* ik_int128 */
   FALSE,	/* ik_uint128 */
 #endif /* INT128_EXTENSIONS_ALLOWED */
+  TRUE,		/* ik_bit_precise */
+  FALSE,	/* ik_unsigned_bit_precise */
 }
 #endif /* VAR_INITIALIZERS*/
 EXTERN_CONSTINIT_ARRAY_END(int_kind_is_signed)
@@ -5663,23 +5672,25 @@ EXTERN_CONSTINIT_ARRAY_END(int_kind_is_signed)
 EXTERN_CONSTINIT_ARRAY(an_integer_kind, unsigned_int_kind_of, ik_last)
 #if VAR_INITIALIZERS
 = {
-  (an_integer_kind)ik_unsigned_char,		/* ik_char */
-  (an_integer_kind)ik_unsigned_char,		/* ik_signed_char */
-  (an_integer_kind)ik_unsigned_char,		/* ik_unsigned_char */
-  (an_integer_kind)ik_unsigned_short,		/* ik_short */
-  (an_integer_kind)ik_unsigned_short,		/* ik_unsigned_short */
-  (an_integer_kind)ik_unsigned_int,		/* ik_int */
-  (an_integer_kind)ik_unsigned_int,		/* ik_unsigned_int */
-  (an_integer_kind)ik_unsigned_long,		/* ik_long */
-  (an_integer_kind)ik_unsigned_long,		/* ik_unsigned_long */
+  ik_unsigned_char,			/* ik_char */
+  ik_unsigned_char,			/* ik_signed_char */
+  ik_unsigned_char,			/* ik_unsigned_char */
+  ik_unsigned_short,			/* ik_short */
+  ik_unsigned_short,			/* ik_unsigned_short */
+  ik_unsigned_int,			/* ik_int */
+  ik_unsigned_int,			/* ik_unsigned_int */
+  ik_unsigned_long,			/* ik_long */
+  ik_unsigned_long,			/* ik_unsigned_long */
 #if LONG_LONG_ALLOWED
-  (an_integer_kind)ik_unsigned_long_long,	/* ik_long_long */
-  (an_integer_kind)ik_unsigned_long_long,	/* ik_unsigned_long_long */
+  ik_unsigned_long_long,		/* ik_long_long */
+  ik_unsigned_long_long,		/* ik_unsigned_long_long */
 #endif /* LONG_LONG_ALLOWED */
 #if INT128_EXTENSIONS_ALLOWED
-  (an_integer_kind)ik_unsigned_int128,		/* ik_int128 */
-  (an_integer_kind)ik_unsigned_int128,		/* ik_unsigned_int128 */
+  ik_unsigned_int128,			/* ik_int128 */
+  ik_unsigned_int128,			/* ik_unsigned_int128 */
 #endif /* INT128_EXTENSIONS_ALLOWED */
+  ik_unsigned_bit_precise,		/* ik_bit_precise */
+  ik_unsigned_bit_precise,		/* ik_unsigned_bit_precise */
 }
 #endif /* VAR_INITIALIZERS */
 EXTERN_CONSTINIT_ARRAY_END(unsigned_int_kind_of)
@@ -9234,7 +9245,7 @@ enum a_template_param_type_kind : a_byte {
 			     };
 			   (where, during prototype instantiation, X is
 			   assumed to be a member of T and a type). */
-  tptk_unknown		/* The template param type represents the unknown
+  tptk_unknown,		/* The template param type represents the unknown
 			   type of a non-type member of a template parameter
 			   class, e.g., the type of T::k, and the type of
                            the constant "1" in the following:
@@ -9249,6 +9260,9 @@ enum a_template_param_type_kind : a_byte {
 			   prototype instantiation context that involves
 			   template parameter values, and whose real type
 			   cannot be known. */
+  tptk_bit_precise_int	/* The template param type represents a dependent
+			   _BitInt type, whose width is represented by
+			   constraint.bit_width_constant. */
 };
 
 
@@ -9323,6 +9337,11 @@ typedef struct a_template_param_type_supplement {
 			   deduction, this points to the class template
 			   that was specified.  NULL otherwise.  Used in
 			   the front end only; cannot be used in back ends. */
+    /* When coordinates.depth == BIT_PRECISE_INT_NESTING_DEPTH: */
+    a_constant_ptr
+		bit_width_constant;
+			/* For a tptk_bit_precise_int type, the constant
+			   specifying the _BitInt width.  NULL otherwise. */
   } constraint;
 } a_template_param_type_supplement;
 
@@ -9476,6 +9495,7 @@ typedef struct an_integer_type_supplement {
 			   string. */
 #endif /* DO_IL_LOWERING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* When variant.integer.enum_type is TRUE: */
   a_type_ptr
 		base_type;
 			/* For enumeration types, the type explicitly set as
@@ -9483,6 +9503,11 @@ typedef struct an_integer_type_supplement {
 			   If non-NULL, has_explicit_enum_base will be TRUE.
 			   (In C++/CLI mode this can be a value class type
 			   that maps on an integral type.) */
+  /* When variant.integer.int_kind is ik_bit_precise or
+     ik_unsigned_bit_precise: */
+  a_targ_size_t
+		bit_width;
+			/* The declared width of a bit-precise integer type. */
   a_source_position
 		base_type_position;
 			/* If base_type is non-NULL, the source position at
@@ -10825,6 +10850,11 @@ typedef struct a_type {
 			   implicit deduction guide that is based on a
 			   template parameter from the enclosing class
 			   template of the associated constructor. */
+      a_bit_field
+		is_unsigned_bit_precise_int:1;
+			/* TRUE if this is a tptk_bit_precise_int type
+			   representing unsigned _BitInt.  FALSE represents
+			   signed _BitInt. */
       a_template_param_type_supplement_ptr
 		extra_info;
 			/* Pointer to a supplement containing additional

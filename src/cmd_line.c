@@ -1707,6 +1707,12 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_char8_t, "no_char8_t", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_bit_precise_integers, "bit_precise_integers",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_bit_precise_integers, "no_bit_precise_integers",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_relaxed_abstract_checking,
                          "relaxed_abstract_checking", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
@@ -12020,6 +12026,9 @@ enable_microsoft_mode:
       case optk_char8_t:
         char8_t_enabled = opt_value;
         break;
+      case optk_bit_precise_integers:
+        bit_precise_int_enabled = opt_value;
+        break;
       case optk_relaxed_abstract_checking:
         relaxed_abstract_checking = opt_value;
         break;
@@ -12221,6 +12230,15 @@ enable_microsoft_mode:
   }  /* if */
   if (c23_mode && !option_kind_used[(int)optk_c23_typeof]) {
     c23_typeof_enabled = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_bit_precise_integers]) {
+    /* _BitInt types are a C23 feature (we enable them in all C23 dialects,
+       even though Clang and GCC started supporting them in their respective
+       versions 14).  GCC accepts them in their pre-C23 C modes and Clang
+       accepts them in all their C and C++ modes. */
+    bit_precise_int_enabled = c23_mode ||
+                              gcc_version_is(>=140000) ||
+                              clang_version_is(>=140000);
   }  /* if */
   if (unrestricted_unions_enabled) {
     /* Unrestricted unions require the ability to mark special member functions
@@ -13626,6 +13644,7 @@ variables declared in cmd_line.h.
   rvalue_allowed_with_const_qual_memptr = FALSE;
   va_opt_enabled = FALSE;
   char8_t_enabled = FALSE;
+  bit_precise_int_enabled = FALSE;
   init_statement_allowed_in_range_based_for = FALSE;
   relaxed_abstract_checking = FALSE;
   modules_enabled = FALSE;

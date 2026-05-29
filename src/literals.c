@@ -80,6 +80,49 @@ sign-extension might be needed later on.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+
+static a_boolean is_bit_precise_literal_suffix(a_const_char  *first_char,
+                                               a_const_char  *last_char,
+                                               a_const_char  **suffix_start,
+                                               a_boolean     *is_unsigned)
+/*
+Return TRUE if the characters ending at last_char form a bit-precise integer
+literal suffix.  The "wb" portion must be consistently lowercase or uppercase.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (last_char - first_char >= 1 &&
+      ((last_char[-1] == 'w' && last_char[0] == 'b') ||
+       (last_char[-1] == 'W' && last_char[0] == 'B'))) {
+    *suffix_start = last_char - 1;
+    *is_unsigned = FALSE;
+    if (last_char - first_char >= 2 &&
+        (last_char[-2] == 'u' || last_char[-2] == 'U')) {
+      *suffix_start = last_char - 2;
+      *is_unsigned = TRUE;
+    }  /* if */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_bit_precise_literal_suffix */
+
+
+static size_t bits_required_to_represent_unsigned_value(
+                                                    an_integer_value *value)
+/*
+Return the number of bits required to represent the indicated unsigned value.
+*/
+{
+  a_constant con;
+
+  clear_constant(&con, (a_constant_repr_kind)ck_integer);
+  con.type = integer_type((an_integer_kind)ik_unsigned_long);
+  con.variant.integer_value = *value;
+  return bits_required_to_represent_integer_constant(&con);
+}  /* bits_required_to_represent_unsigned_value */
+
+
 void conv_integer_literal(int                  radix,
                           an_error_code        *err_code,
                           a_const_char         **err_pos,
@@ -107,6 +150,9 @@ affects the handling of some overflow cases.
   a_boolean        has_u_suffix = FALSE;
   a_boolean        has_l_suffix = FALSE;
   a_boolean        has_z_suffix = FALSE;
+  a_boolean        has_bit_precise_suffix = FALSE;
+  a_boolean        bit_precise_suffix_is_unsigned = FALSE;
+  a_const_char     *bit_precise_suffix_start = NULL;
 #if LONG_LONG_ALLOWED
   a_boolean        has_ll_suffix = FALSE;
   char		   l_char_used = '\0';
@@ -128,6 +174,13 @@ affects the handling of some overflow cases.
      signed/unsigned type (if size_suffix_enabled is TRUE); these can
      appear in either order. */
   if (real_end_pos >= start_of_curr_token) {
+    if (bit_precise_int_enabled &&
+        is_bit_precise_literal_suffix(start_of_curr_token, real_end_pos,
+                                      &bit_precise_suffix_start,
+                                      &bit_precise_suffix_is_unsigned)) {
+      has_bit_precise_suffix = TRUE;
+      real_end_pos = bit_precise_suffix_start - 1;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ms_extensions) {
       /* The Microsoft compiler allows a suffix like "i32" indicating a
@@ -211,6 +264,15 @@ affects the handling of some overflow cases.
         break;
       }  /* if */
     }  /* for */
+    if (has_bit_precise_suffix &&
+        (has_u_suffix || has_l_suffix || has_z_suffix
+#if LONG_LONG_ALLOWED
+         || has_ll_suffix
+#endif /* LONG_LONG_ALLOWED */
+                                             )) {
+      *err_pos = bit_precise_suffix_start;
+      *err_code = ec_bad_suffix;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ms_extensions && isuffix_kind != (an_integer_kind)ik_none &&
         has_u_suffix) {
@@ -328,6 +390,44 @@ affects the handling of some overflow cases.
       }  /* if */
     }  /* for */
   }  /* if */
+  if (has_bit_precise_suffix) {
+    /* Bit-precise integer literals use the smallest _BitInt type that can
+       represent the accumulated value. */
+    if (!ovflo && *err_code == ec_no_error) {
+      a_targ_size_t width = (a_targ_size_t)
+                         bits_required_to_represent_unsigned_value(&number);
+      if (!bit_precise_suffix_is_unsigned) {
+        width++;
+        if (width < 2) width = 2;
+      } else if (width < 1) {
+        width = 1;
+      }  /* if */
+      if (width > bitint_maxwidth_value) {
+        a_source_position pos;
+        conv_line_loc_to_source_pos(start_of_curr_token, &pos);
+        pos_num2_diagnostic(es_error, ec_bitint_width_too_large, &pos,
+                            (int32_t)width,
+                            (int32_t)bitint_maxwidth_value);
+        set_error_constant(&const_for_curr_token);
+        goto wrapup;
+      }  /* if */
+      clear_constant(&const_for_curr_token,
+                     (a_constant_repr_kind)ck_integer);
+      const_for_curr_token.type = bit_precise_integer_type(
+                                      width, bit_precise_suffix_is_unsigned,
+                                      /*explicitly_signed=*/FALSE);
+      const_for_curr_token.variant.integer_value = number;
+      const_for_curr_token.non_arithmetic = non_arith;
+      const_for_curr_token.is_simple_zero = FALSE;
+      goto wrapup;
+    }  /* if */
+    if (*err_code != ec_no_error) {
+      goto wrapup;
+    }  /* if */
+    check_assertion(ovflo);
+    goto bit_precise_literal_done;
+  } else
+  /* Do not insert code here. */
   /* Determine the type based on the value and the suffixes.  See standard,
      3.1.3.2 (for C89). */
   if (in_pp_if_expression && (c99_mode || gnu_mode)) {
@@ -668,6 +768,7 @@ ll_check:
 #endif /* LONG_LONG_ALLOWED */
 kind_established:;
   }  /* if */
+bit_precise_literal_done:
   if (ovflo) {
     *err_pos = start_of_curr_token;
     *err_code = ec_integer_too_large;

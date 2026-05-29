@@ -360,6 +360,7 @@ enum an_option_kind {
   optk_cpp26_mode,
   optk_ms_std_preproc,
   optk_char8_t,
+  optk_bit_precise_integers,
   optk_relaxed_abstract_checking,
   optk_module_dir,
   optk_ms_module_file_map,
@@ -1412,6 +1413,10 @@ EXTERN_THREAD a_const_char
 EXTERN_THREAD a_boolean
 		c11_atomic_enabled;
 			/* TRUE if support for C11 _Atomic types is enabled. */
+
+EXTERN_THREAD a_boolean
+		bit_precise_int_enabled;
+			/* TRUE if support for _BitInt types is enabled. */
 
 EXTERN_THREAD a_boolean
 		create_module_unit;
