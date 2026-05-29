@@ -4701,9 +4701,11 @@ defaulted.
                                       a_type_ptr(scp),
                                       /*include_base_classes=*/FALSE,
                                       /*ignore_field_selection_contexts=*/TRUE,
-                                      /*is_access_check=*/FALSE)) {
+                                      /*is_access_check=*/TRUE)) {
     /* This is the injected-class-name of a class template, so no template
-       arguments are needed. */
+       arguments are needed.  (The context check is not strictly an "access
+       check", but that flag is needed to circumvent the special treatment
+       given to friend declarations in ordinary context checks.) */
     render_args = FALSE;
   } else {
     render_args = name_has_template_arguments(scp, entry_kind, &tap, &tpp,
