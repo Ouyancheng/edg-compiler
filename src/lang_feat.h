@@ -1067,6 +1067,18 @@ TRUE).
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !BUILTIN_FUNCTIONS... */
 
 /*
+Flag that is TRUE if RISC-V vector builtin functions are enabled.  Note that
+the RISC-V vector builtin tables contain a very large number of entries and can
+account for a significant fraction of the resulting binary size.
+*/
+#ifndef RISCV_VECTOR_BUILTINS_ENABLED
+#define RISCV_VECTOR_BUILTINS_ENABLED FALSE
+#endif /* RISCV_VECTOR_BUILTINS_ENABLED */
+#if !BUILTIN_FUNCTIONS_ENABLED && RISCV_VECTOR_BUILTINS_ENABLED
+ #error -- BUILTIN_FUNCTIONS_ENABLED must be enabled for RISC-V vector builtins
+#endif /* !BUILTIN_FUNCTIONS_ENABLED && RISCV_VECTOR_BUILTINS_ENABLED */
+
+/*
 Flag that is TRUE if the front end should recognize some alias templates and
 treat them intrinsically (instead of performing more costly generic
 substitution of the definition as it appeared in the source).  For example,
