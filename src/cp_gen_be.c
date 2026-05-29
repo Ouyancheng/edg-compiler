@@ -3981,7 +3981,9 @@ member initializer list.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Use the special processing in gen_type_reference to handle these
        typerefs. */
-    gen_type_reference(tp, /*suppress_typename_kwd=*/TRUE);
+    gen_type_reference(tp, /*suppress_typename_kwd=*/TRUE,
+                       /*is_declaration=*/FALSE,
+                       /*suppress_elab_type_spec=*/TRUE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (targ_type != NULL) {
       targ_type->elaborated_type_specifier_needed = TRUE;

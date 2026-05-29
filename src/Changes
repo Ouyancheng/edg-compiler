@@ -1,5 +1,23 @@
 Version 6.9
 
+5/28/26  [EDGcpfe/28866]
+C++-generating back end: elaborated type specifiers in base specifier lists
+
+As a result of the changes for EDGcpfe/26294 in version 6.8, the
+C++-generating back end sometimes used an elaborated type specifier to
+name a base class in the base class list of a class definition.  This is
+now fixed.  For example:
+
+  class A {
+  protected:
+    class I {};
+  };
+  class B : public A {};
+  struct C : public B {
+    struct I : public B::I {};  // Previously generated as "class B::I"
+  };
+
+
 5/28/26  [EDGcpfe/28060,EDGcpfe/28845]
 Clang compatibility: Accept new C++ features in older C++ modes
 
