@@ -54,7 +54,7 @@ Clang compatibility: Accept new C++ features in older C++ modes
 
 In Clang mode with clang_version >= 90000, the front end now accepts:
   - generic lambdas in pre-C++14 modes,
-  - initializers in selection declarations (like "if (int x = 0; x)")
+  - initializer declarations in selection statements (like "if (int x = 0; x)")
     in pre-C++17 modes,
   - "if constexpr" in pre-C++17 modes, and
   - init-captures in pre-C++17 modes.
