@@ -26905,19 +26905,27 @@ p_fatal and p_copy_error are NULL by default.
     }  /* if */
     if (subst_pairs.length() > 1) {
       /* We have nested template arguments.  Perform ordinary expression
-         substitutions on all but the last one. */
+         substitutions on all but the outermost one.  Treat these substitutions
+         as nonreal: since the outermost substitution is still pending, a
+         template-id in the constraint that still refers to an
+         as-yet-unsubstituted enclosing template parameter must be left
+         dependent rather than resolved to a real instance. */
       a_ctws_state_ptr     inner_ctws_state = ctws_state;
       a_ctws_state         new_ctws_state;
       a_subst_pairs_array  new_subst_pairs(subst_pairs.length() - 1);
+      a_boolean            saved_nonreal =
+                                    scope_stack_top().in_nonreal_instantiation;
       if (inner_ctws_state == NULL) {
         init_ctws_state(&new_ctws_state);
         inner_ctws_state = &new_ctws_state;
       }  /* if */
       new_subst_pairs.insert(0, subst_pairs.begin() + 1,
                              subst_pairs.length() - 1);
+      scope_stack_top().in_nonreal_instantiation = TRUE;
       expr = substitute_expr(constraint, new_subst_pairs,
                              inner_ctws_state, options | CTWS_MAY_BE_RESCANNED,
                              cp, &allocated_cp, &copy_error);
+      scope_stack_top().in_nonreal_instantiation = saved_nonreal;
       if (!copy_error && expr == NULL) {
         if (allocated_cp == NULL) {
           /* The constant result was constructed in *cp: Move it to file

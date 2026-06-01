@@ -1,5 +1,23 @@
 Version 6.9
 
+6/1/26   [EDGcpfe/28674]
+Internal error in find_template_variable during constraint checking
+
+In Microsoft mode, the front end could abort with an internal error in
+find_template_variable while checking a constraint that referred to a variable
+template specialization, when that check was triggered in a further nested
+template context.  For example, with --ms_c++20:
+
+  template<typename T> constexpr int v = 1;
+  template<typename T> struct X {
+    template<typename V>
+    operator V() requires(v<T> == 1);
+  };
+  auto b = [](auto p) {
+    return requires { p + X<int>(); };  // Previously triggered an internal
+  }(1);                                 // error.  Now okay.
+
+
 5/29/26  [EDGcpfe/25899,EDGcpfe/27503,EDGcpfe/28820]
 C23: _BitInt support
 
