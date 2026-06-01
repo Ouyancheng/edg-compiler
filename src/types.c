@@ -6401,9 +6401,9 @@ and a vector are compatible.
                 cmplit_integer_constant(source_constant, 1) == 0) {
               is_narrowing = FALSE;
             }  /* if */
-          } else if (in_range_for_integer_kind(
-                                       source_constant, source_constant,
-                                       dest_type->variant.integer.int_kind)) {
+          } else if (integer_constant_in_range_for_type(source_constant,
+                                                        source_constant,
+                                                        dest_type)) {
             is_narrowing = FALSE;
           }  /* if */
         } else if (dependent_constant) {
