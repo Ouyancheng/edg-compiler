@@ -2288,6 +2288,7 @@ variant fields to default values.
   pte->has_been_declared = FALSE;
   pte->definition_delayed = FALSE;
   pte->elaborated_type_specifier_needed = FALSE;
+  pte->elab_type_spec_needed_in_some_scope = FALSE;
   pte->replace_by_generated_typedef = FALSE;
   pte->typedef_for_vacuous_dtor_call_put_out = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

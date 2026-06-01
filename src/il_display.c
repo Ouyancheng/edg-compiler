@@ -2275,6 +2275,11 @@ Display the indicated type entry.
     disp_boolean("alignment_set_explicitly", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if BACK_END_IS_CP_GEN_BE
+  if (ptr->elab_type_spec_needed_in_some_scope) {
+    disp_boolean("elab_type_spec_needed_in_some_scope", TRUE);
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->variables_are_implicitly_referenced) {
     disp_boolean("variables_are_implicitly_referenced", TRUE);

@@ -390,6 +390,9 @@ a class template in Microsoft mode.
   if (tag_hidden_by_nontag) {
     check_assertion(kind == (an_il_entry_kind)iek_type);
     hnp->elaborated_type_specifier_needed = TRUE;
+#if BACK_END_IS_CP_GEN_BE
+    a_type_ptr(entity)->elab_type_spec_needed_in_some_scope = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
   if (hidden_class_or_namespace_member) {
     a_symbol_ptr  fund_hiding_sym = (hidden_by == NULL) ?

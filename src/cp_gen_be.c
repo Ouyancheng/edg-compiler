@@ -2150,13 +2150,15 @@ static void register_substitutable_typedef(a_type_ptr type)
 type is a typedef that has just been defined.  If it is publicly accessible
 (which includes having no inaccessible template arguments in its parent
 class(es)) and is a synonym for a named type that is not publicly
-accessible or whose template arguments are not publicly accessible, add it
-to the list of typedefs that can be used as a substitute when the
-underlying type is named in a context in which it is not accessible.
-Similarly, if the typedef is a member of the prototype instantiation of a
-class template and the generated code target is MSVC, add it to the list of
-such typedefs.  If type is the prototype instantiation of a public alias
-template, add its instances as well in case they may be needed.
+accessible or whose template arguments are not publicly accessible, or if
+the target type might need to be named using an elaborated-type-specifier
+(which is not allowed in, e.g., an explicit temporary), add it to the list
+of typedefs that can be used as a substitute when the underlying type is
+named in a context in which it cannot be used.  Similarly, if the typedef
+is a member of the prototype instantiation of a class template and the
+generated code target is MSVC, add it to the list of such typedefs.  If
+type is the prototype instantiation of a public alias template, add its
+instances as well in case they may be needed.
 */
 {
   a_type_ptr targ_type;
@@ -2182,12 +2184,14 @@ template, add its instances as well in case they may be needed.
       has_name_before_mangling(targ_type)) {
     a_boolean typedef_added = FALSE;
     if (type->variant.typeref.is_prototype_instantiation ||
+        targ_type->elab_type_spec_needed_in_some_scope ||
         !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
                                    /*ignore_context=*/TRUE,
                                    &targ_for_all_scopes)) {
       /* This typedef can be substituted for the target type when that type
-         is inaccessible or if it is the prototype instantiation of an
-         alias template, which might be used in a later template
+         is inaccessible or can only be named using an
+         elaborated-type_specifier or if it is the prototype instantiation
+         of an alias template, which might be used in a later template
          definition.  Add it to the table of such typedefs. */
       add_typedef_to(accessible_typedef_hash_table, type);
       typedef_added = TRUE;
@@ -8362,6 +8366,31 @@ brace/parenthesis delimiters around it should be suppressed.
 }  /* gen_designator */
 
 
+static EXPAND a_type_ptr prep_type_for_func_notation_cast(a_type_ptr tp)
+/*
+tp is a type that is about to be used in a functional-notation cast.  Strip
+off any type qualifiers, which might have been added implicitly by the
+front end, and if the type is a tag type that must be named using an
+elaborated-type-specifier in the current scope because of hiding, see if
+there is a typedef-name that can be used in its place.
+*/
+{
+  /* Skip type qualifiers (which can be specified on the cast). */
+  tp = skip_non_naming_typerefs(tp);
+  if (tp->elaborated_type_specifier_needed) {
+    /* An elaborated-type-specifier is not syntactically permitted in a
+       functional-notation cast.  Check to see if there is a typedef name
+       that can be used instead. */
+    a_type_ptr alternative_for_elab_type_spec =
+                            find_typedef_in(accessible_typedef_hash_table, tp);
+    if (alternative_for_elab_type_spec != NULL) {
+      tp = alternative_for_elab_type_spec;
+    }  /* if */
+  }  /* if */
+  return tp;
+}  /* prep_type_for_func_notation_cast */
+
+
 static void gen_initializer_constant(a_constant_ptr     constant,
                                      a_type_ptr         type,
                                      a_boolean          transparent_case,
@@ -8413,8 +8442,7 @@ which constant is the value.
            caller when suppress_delims is TRUE.) */
         a_type_ptr cast_type = type != NULL ? type : constant->type;
         a_boolean  need_closing_paren = FALSE;
-        /* Skip type qualifiers (which can be specified on the cast). */
-        cast_type = skip_non_naming_typerefs(cast_type);
+        cast_type = prep_type_for_func_notation_cast(cast_type);
         if (cast_type->kind == (a_type_kind)tk_array ||
             cast_type->kind == (a_type_kind)tk_pointer) {
           /* We cannot use a functional-notation cast with a type that uses
@@ -22546,10 +22574,8 @@ when possible.
     if (braced_init || suppress_template_args) {
       /* The source was a braced-init cast or involved class template
          argument deduction (the reason for suppressing the template
-         arguments), so use the functional-notation form.  If there are
-         extra cv-qualifiers on the entity type they must have been added
-         by the context. */
-      init_entity_type = skip_non_naming_typerefs(init_entity_type);
+         arguments), so use the functional-notation form. */
+      init_entity_type = prep_type_for_func_notation_cast(init_entity_type);
       use_func_notation_cast = TRUE;
     } else if (assoc_expr != NULL && assoc_expr->is_static_cast) {
       /* The source was a static_cast.  That's handled as a variant of the
@@ -22606,9 +22632,7 @@ when possible.
         /* The cast has zero arguments, or more than one argument, so
            we have to use a functional-notation cast. */
         use_func_notation_cast = TRUE;
-        /*  If there are extra cv-qualifiers on the entity type they
-            must have been added by the context. */
-        init_entity_type = skip_non_naming_typerefs(init_entity_type);
+        init_entity_type = prep_type_for_func_notation_cast(init_entity_type);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (!use_func_notation_cast &&

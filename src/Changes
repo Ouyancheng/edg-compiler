@@ -1,5 +1,25 @@
 Version 6.9
 
+6/1/26   [EDGcpfe/28872]
+C++-generating back end: functional-notation casts to hidden tag types
+
+The C++-generating back end sometimes generated incorrect code for a cast
+to a class or enumeration type whose name is hidden by the name of a
+non-type entity.  The C++-generating back end now uses an equivalent
+typedef name if one is available in such cases.  For example, with --c++11:
+
+  struct A { };
+  void A(int);   // Hides struct A
+  struct B {
+    struct A a;
+    typedef struct A BA;
+  };
+  static B b1 = {B::BA{}};   // Previously generated "b1 = {struct A{}}",
+                             // which is syntactically incorrect
+  static B b2 = {B::BA()};   // Previously generated "b2 = {A()};", which
+                             // names the function, not the class
+
+
 6/1/26   [EDGcpfe/28674]
 Internal error in find_template_variable during constraint checking
 

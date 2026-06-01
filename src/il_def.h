@@ -9814,8 +9814,13 @@ typedef struct a_type {
 			   back end. */
   a_bit_field	elaborated_type_specifier_needed:1;
 			/* An elaborated type specifier (e.g., "class X")
-			   is needed when referring to this type.  Used only
-			   within the C++-generating back end. */
+			   is needed when referring to this type in the
+			   current scope.  Set and cleared only in the
+			   C++-generating back end. */
+  a_bit_field	elab_type_spec_needed_in_some_scope:1;
+			/* TRUE if this is a tag type that is hidden by a
+			   non-type entity in at least one scope in the
+			   current translation unit. */
   a_bit_field	replace_by_generated_typedef:1;
 			/* TRUE if references to this type should be replaced
 			   by references to a generated typedef.  This is used
