@@ -7163,22 +7163,24 @@ successfully emitted.
     }  /* if */
   }  /* if */
   if (octl.output_name_reference == NULL &&
-      !qual_is_mbr_of_curr_instantiation) {
+      !qual_is_mbr_of_curr_instantiation &&
+      !nrp->is_global_qualified_name) {
     /* Name references in template arguments are captured from the first
        use of the instance.  If that use was nested inside a class or
-       namespace, the names may have been unqualified or partially
-       qualified references to members of that class or namespace or its
-       parents.  However, the instance can be used outside that context, in
-       which case the names in template arguments would need to be fully
-       qualified.  For safety's sake, we ignore name references in
-       expressions in template arguments (form_template_args sets
-       octl.output_name_reference to NULL to indicate that we are in the
-       context of a template argument list) so that gen_name will provide
-       qualification as needed in the current context.  (This is not a
-       problem within prototype instantiations, and using the generated
-       qualifier instead of the qualifier that appears in the source can
-       trigger bugs in some target compilers, so we should use the recorded
-       qualifier in such cases.) */
+       namespace, non-globally-qualified names may have been unqualified or
+       partially qualified references to members of that class or namespace
+       or its parents.  However, the instance can be used outside that
+       context, in which case the names in template arguments would need to
+       be fully qualified.  For safety's sake, we ignore
+       non-globally-qualified name references in expressions in template
+       arguments (form_template_args sets octl.output_name_reference to
+       NULL to indicate that we are in the context of a template argument
+       list) so that gen_name will provide qualification as needed in the
+       current context.  (This is not a problem within prototype
+       instantiations, and using the generated qualifier instead of the
+       qualifier that appears in the source can trigger bugs in some target
+       compilers, so we should use the recorded qualifier in such
+       cases.) */
   } else if (nrp != NULL) {
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (nrp->qualifier == NULL && scp->is_class_member && !is_declaration &&
