@@ -7164,7 +7164,7 @@ successfully emitted.
   }  /* if */
   if (octl.output_name_reference == NULL &&
       !qual_is_mbr_of_curr_instantiation &&
-      !nrp->is_global_qualified_name) {
+      !(nrp != NULL && nrp->is_global_qualified_name)) {
     /* Name references in template arguments are captured from the first
        use of the instance.  If that use was nested inside a class or
        namespace, non-globally-qualified names may have been unqualified or
