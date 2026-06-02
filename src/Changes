@@ -1,5 +1,20 @@
 Version 6.9
 
+6/1/26   [EDGcpfe/28877]
+C++-generating back end: globally-qualified dependent non-type template args
+
+In some cases involving a globally-qualified dependent non-type template
+argument, the C++-generating back end could omit the leading "::" from the
+argument.  Depending on how the template is used, this omission could
+result in incorrect mangling and linkage errors when the generated code was
+compiled.  This is now fixed.  For example, with --c++17:
+
+  template<typename T> constexpr inline bool v = false;
+  template<bool> struct S { using t = int; };
+  template<typename T> void f(typename ::S<::v<T>>::t);  // Previously omitted
+                                                         // "::" before "v"
+
+
 6/1/26   [EDGcpfe/28872]
 C++-generating back end: functional-notation casts to hidden tag types
 
