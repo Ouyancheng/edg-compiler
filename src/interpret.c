@@ -9009,10 +9009,11 @@ static a_boolean do_constexpr_builtin_bitcount(a_routine_ptr  callee,
 Evaluate the builtin bit counting function indicated by callee on the operand
 of type arg_tp stored in arg1_bytes.  Place the result in *result_storage.  If
 arg2_bytes is not NULL and the value stored in arg1_bytes is zero, use the
-operand stored in arg2_bytes as the result.  This function currently always
-returns TRUE.
+operand stored in arg2_bytes as the result.  Return FALSE in case of failure
+(which can happen with _BitInt types).
 */
 {
+  a_boolean                result = TRUE;
   a_builtin_function_kind  bfk;
   a_targ_size_t            k, n_bits, count = 0;
   an_integer_value         arg;
@@ -9033,7 +9034,10 @@ returns TRUE.
     a_boolean         bit, ovflo;
     an_integer_value  mask = one_int;
     shift_left_integer_value(&mask, (int)k, &ovflo);
-    check_assertion(!ovflo);
+    if (ovflo) {
+      result = FALSE;
+      goto done;
+    }  /* if */
     and_integer_values(&mask, &arg);
     bit = !is_zero_int(&mask);
     switch (bfk) {
@@ -9097,7 +9101,7 @@ count_done:
   set_integer_value((an_integer_value*)result_storage,
                     (a_host_large_integer)count);
 done:
-  return TRUE;
+  return result;
 }  /* do_constexpr_builtin_bitcount */
 
 
@@ -10932,9 +10936,12 @@ to FALSE and the reason for the failure is recorded in *ips.
           }  /* if */
           if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
               (args2 != NULL &&
-               !do_constexpr_expression(ips, args2, arg2_bytes, arg2_bytes)) ||
-              !do_constexpr_builtin_bitcount(callee, arg1_bytes, arg2_bytes,
-                                             tp, result_storage)) {
+               !do_constexpr_expression(ips, args2, arg2_bytes, arg2_bytes))) {
+            do_constexpr_fail(*p_result);
+          } else if (!do_constexpr_builtin_bitcount(
+                         callee, arg1_bytes, arg2_bytes, tp, result_storage)) {
+            info_with_pos_type(ec_constexpr_integer_overflow,
+                               &call_node->position, tp, ips);
             do_constexpr_fail(*p_result);
           }  /* if */
         }  /* if */
