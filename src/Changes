@@ -1,5 +1,19 @@
 Version 6.9
 
+6/2/26   [EDGcpfe/28875]
+C++-generating back end: Extraneous parentheses rendered on decltype construct
+
+Consider, in GNU C++11 mode:
+
+  struct Inner { int x = 0; };
+  struct Outer { Inner member{}; };
+  using MemberType = decltype(Outer{}.member);
+
+Previously, the C++-generating back end added extraneous parentheses around the
+decltype operand, which in turn changed the resulting MemberType type.  That is
+now fixed.
+
+
 6/1/26   [EDGcpfe/28877]
 C++-generating back end: globally-qualified dependent non-type template args
 

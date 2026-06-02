@@ -806,7 +806,7 @@ static void gen_variable_decl(a_boolean is_condition,
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       is_stmt_expression);
 static void gen_cast(a_type_ptr type);
-static a_boolean is_expl_ctor_or_value_init(an_expr_node_ptr expr);
+static a_boolean is_expl_temp_or_field_thereof(an_expr_node_ptr expr);
 static void gen_type_operator(a_type_ptr tp,
                               a_boolean  from_name_qual_typeref = FALSE);
 static void gen_expr(an_expr_node_ptr expr,
@@ -8421,7 +8421,7 @@ which constant is the value.
   if (constant_should_be_put_out_as_expr(constant)) {
     /* The constant resulted from a recorded constant-expression: Render it in
        its original form. */
-    gen_expr(constant->expr, !is_expl_ctor_or_value_init(constant->expr),
+    gen_expr(constant->expr, !is_expl_temp_or_field_thereof(constant->expr),
              /*obj_expr_of_mfunc_operator=*/FALSE);
   } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
@@ -14234,26 +14234,45 @@ syntax ("a->b") rather than an explicit function call.
 }  /* is_operator_syntax_arrow */
 
 
-static a_boolean is_expl_ctor_or_value_init(an_expr_node_ptr expr)
+static a_boolean is_expl_temp_or_field_thereof(an_expr_node_ptr expr)
 /*
 Return TRUE if expr (which may be NULL) designates an enk_temp_init node
 (possibly under some compiler-generated type adjustments) representing
 either an explicit constructor call or a value initialization (i.e.,
-something of the form "T(...)") and FALSE otherwise.  This is used to avoid
-putting unnecessary parentheses around such expressions, which can confuse
-some versions of g++ and the Sun compiler.
+something of the form "T(...)"), either directly or as the top-level object
+expression of one or more eok_dot_field or eok_points_to_field operators,
+possibly folded to an aggregate constant, and FALSE otherwise.  This is used
+to avoid putting unnecessary parentheses around such expressions, which can
+confuse some versions of g++ and the Sun compiler and give incorrect results
+of type operators.
 */
 {
+  a_boolean result = FALSE;
+
   if (expr != NULL) {
     /* Skip over any compiler-generated type adjustments. */
     expr = expr_before_type_adjustment(expr);
+    /* If folded to a constant with a backing expression, use that. */
+    expr = assoc_expr_if_constant(expr);
+    /* Skip over any eok_dot_field or eok_points_to_field operations, as
+       T().x.y.z does not need parentheses any more than T() by itself
+       does. */
+    while (is_operation_node(expr) &&
+           (node_operator_is(expr, eok_dot_field) ||
+            node_operator_is(expr, eok_points_to_field))) {
+      expr = expr->variant.operation.operands;
+      expr = assoc_expr_if_constant(expr);
+    }  /* while */
+    if (node_is(expr, enk_temp_init)) {
+      a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+      result = (dip->kind == dik_constructor || dip->kind == dik_zero ||
+                dip->kind == dik_nonconstant_aggregate ||
+                (dip->kind == dik_constant &&
+                 constant_is(dip->variant.constant.ptr, ck_aggregate)));
+    }  /* if */
   }  /* if */
-  return (expr != NULL && expr->kind == (an_expr_node_kind)enk_temp_init &&
-          (expr->variant.init.dynamic_init->kind ==
-                                        (a_dynamic_init_kind)dik_constructor ||
-           expr->variant.init.dynamic_init->kind ==
-                                               (a_dynamic_init_kind)dik_zero));
-}  /* is_expl_ctor_or_value_init */
+  return result;
+}  /* is_expl_temp_or_field_thereof */
 
 
 static void gen_simple_field_selection(an_expr_node_ptr expr)
@@ -14387,7 +14406,7 @@ the expression reflects an implicit member access ("this->y"), so the
     }  /* if */
   } else {
     /* Normal "." case. */ 
-    gen_expr(object_expr, !is_expl_ctor_or_value_init(object_expr),
+    gen_expr(object_expr, !is_expl_temp_or_field_thereof(object_expr),
              /*obj_expr_of_mfunc_operator=*/FALSE);
     m_write_tok_ch('.');
   }  /* if */
@@ -14701,7 +14720,7 @@ indicated by opstr.
        use "->" with a non-pointer value. */
     opstr = ".";
   }  /* if */
-  gen_expr(operand_1, !is_expl_ctor_or_value_init(operand_1),
+  gen_expr(operand_1, !is_expl_temp_or_field_thereof(operand_1),
            /*obj_expr_of_mfunc_operator=*/FALSE);
   /* If the second operand has been turned into a constant (i.e., it
      was a const-valued variable), use a comma operator in the output
@@ -14994,7 +15013,7 @@ case, is passed along to gen_expr.
   } else {
     a_boolean need_parens;
     expr = assoc_expr_if_constant(expr);
-    if (is_expl_ctor_or_value_init(expr)) {
+    if (is_expl_temp_or_field_thereof(expr)) {
       /* Do not add parentheses in order to avoid syntactic ambiguity; for
          example, (X()) is a cast to a function type, not an explicit
          temporary. */
@@ -15081,7 +15100,7 @@ obscure Microsoft bug).
         temp_init_node = NULL;
         traverse_expr(expr, &tblock);
       }  /* if */
-      if (is_expl_ctor_or_value_init(temp_init_node) &&
+      if (is_expl_temp_or_field_thereof(temp_init_node) &&
           is_pointer_type(expr->type)) {
         /* See if the type of the temporary being created is a template-id
            that's namespace-qualified and has more than one
@@ -15903,7 +15922,7 @@ function reference.
         write_tok_str("((");
         overparenthesize = TRUE;
       }  /* if */
-      gen_expr(object_expr, !is_expl_ctor_or_value_init(object_expr),
+      gen_expr(object_expr, !is_expl_temp_or_field_thereof(object_expr),
                /*obj_expr_of_mfunc_operator=*/FALSE);
       if (overparenthesize) {
         write_tok_str("))");
@@ -16510,7 +16529,7 @@ return FALSE and let the caller generate the code normally.
           a_boolean obj_expr_of_mfunc_operator = TRUE;
           if (sun_is_generated_code_target &&
               op == (an_opname_kind)onk_function_call &&
-              is_expl_ctor_or_value_init(arg)) {
+              is_expl_temp_or_field_thereof(arg)) {
             /* The Sun compiler has a bug that requires parentheses around
                an explicit temporary when used with overloaded operators, and
                gen_dynamic_init uses the obj_expr_of_mfunc_operator flag in

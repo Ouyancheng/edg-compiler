@@ -8879,7 +8879,8 @@ give the starting and ending source positions for the field reference
                                                          /*std_also=*/FALSE);
     make_lvalue_or_rvalue_expression_operand(orig_node, result);
   }  /* if */
-  if (!is_lvalue && constexpr_enabled) {
+  if (!is_lvalue && constexpr_enabled &&
+      !expr_stack->consteval_call_need_not_fold) {
     /* See if the field selection folds to a constant (usually this happens
        on the glvalue-to-prvalue conversion, but in this case we're building
        a prvalue immediately). */
@@ -18023,6 +18024,10 @@ name.  We do not advance to the token after the decltype in this case.
   transfer_expr_context_if_applicable(saved_expr_stack);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   expr_stack->is_type_operator_arg_expression = TRUE;
+  /* Do not fold the decltype operand expression, so that the form of the
+     expression (e.g., a member access) is preserved for decltype semantics
+     and for the C++-generating back end. */
+  expr_stack->consteval_call_need_not_fold = TRUE;
   /* Indicate that we are in the context of a decltype expression. */
   saved_in_decltype_context = scope_stack_top().in_decltype_context;
   saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
