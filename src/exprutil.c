@@ -27249,8 +27249,8 @@ potentially throwing.
   a_constant_ptr    cp = local_constant(), allocated_cp = NULL;
   an_expr_node_ptr  expr = req_expr;
 
-  expr = substitute_expr(expr, subst_pairs, ctws_state, CTWS_NO_OPTIONS,
-                         cp, &allocated_cp, &err);
+  expr = substitute_expr(expr, subst_pairs, ctws_state,
+                         CTWS_COPY_ARG_OPERAND_INFO, cp, &allocated_cp, &err);
   if (err) {
     result = NULL;
   } else if (expr != NULL) {

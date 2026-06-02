@@ -15672,7 +15672,7 @@ If there is an error in the copying, set *copy_error to TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (options & CTWS_COPY_ARG_OPERAND_INFO &&
       (template_sym == NULL ||
-       !symbol_is(template_sym, sk_variable_template))) {
+       is_function_or_template_symbol(template_sym))) {
     /* Arg operands are preserved during rescan for function template
        references. */
     copy_arg_operands = TRUE;
@@ -17526,7 +17526,12 @@ a pointer over a reference type or creating an array of references.
      type. */
   is_overload_candidate = (options & CTWS_IS_OVERLOAD_CANDIDATE) != 0;
   options &= ~CTWS_IS_OVERLOAD_CANDIDATE;
-  if (type->source_corresp.is_class_member) {
+  /* A lambda closure class is lexically a member of its enclosing class but
+     has no name, so it cannot be found by member lookup in a substituted
+     parent.  Such a closure is recreated by re-scanning the lambda's tokens,
+     so leave its type unchanged here instead of treating it as an ordinary
+     nested member. */
+  if (type->source_corresp.is_class_member && !is_lambda_closure_type(type)) {
     a_symbol_ptr	sym;
     a_type_ptr		parent_type;
     a_type_ptr		type_before_parent_subst = type;
@@ -44194,6 +44199,29 @@ constructor).
 }  /* make_implicit_deduction_guide_template */
 
 
+static an_expr_node_ptr make_constraint_conjunction(an_expr_node_ptr  op1,
+                                                    an_expr_node_ptr  op2)
+/*
+Return an expression that represents the conjunction of op1 and op2.  If one
+of the operands is NULL, return the other operand.
+*/
+{
+  an_expr_node_ptr  result;
+
+  if (op1 == NULL || op2 == NULL) {
+    result = op1 != NULL ? op1 : op2;
+  } else {
+    result = alloc_expr_node(enk_operation);
+    result->compiler_generated = TRUE;
+    result->type = bool_type();
+    result->variant.operation.kind = eok_land;
+    result->variant.operation.operands = op1;
+    op1->next = op2;
+  }  /* if */
+  return result;
+}  /* make_constraint_conjunction */
+
+
 static a_symbol_ptr make_template_implicit_deduction_guide(
 			a_symbol_ptr				ct_sym,
 			a_type_ptr				proto_type,
@@ -44237,6 +44265,14 @@ identical).
   a_template_symbol_supplement_ptr	ct_tssp;
   a_requires_clause_ptr			ctor_rcp;
   an_expr_node_ptr			trailing_constraint = NULL;
+  a_requires_clause_ptr			class_template_rcp = NULL;
+  a_requires_clause_ptr			ctor_template_rcp = NULL;
+  an_expr_node_ptr			class_template_constraint = NULL;
+  an_expr_node_ptr			ctor_template_constraint = NULL;
+  an_expr_node_ptr			template_constraint = NULL;
+  a_source_position			template_requires_pos =
+							  null_source_position;
+  a_template_decl_ptr			orig_template_decl = NULL;
 
   ct_tssp = ct_sym->variant.template_info;
   if (symbol_is(ctor_sym, sk_member_function)) {
@@ -44249,6 +44285,20 @@ identical).
     ctor_rout = ctor_tssp->variant.function.routine;
   }  /* if */
   tcp = ct_tssp->cache;
+  orig_template_decl = tcp->decl_info->template_decl;
+  if (orig_template_decl != NULL) {
+    class_template_rcp = orig_template_decl->constraint.requires_clause;
+  }  /* if */
+  if (ctor_is_template) {
+    a_template_decl_info_ptr  ctor_tdip;
+    ctor_tdip = ctor_tssp->variant.function.decl_cache->decl_info;
+    if (ctor_tdip->template_decl != NULL) {
+      ctor_template_rcp = ctor_tdip->template_decl->constraint.requires_clause;
+      if (orig_template_decl == NULL) {
+        orig_template_decl = ctor_tdip->template_decl;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* A rescan context is needed because nonreal types will be created
      below. */
   push_instantiation_scope_for_rescan(ct_sym);
@@ -44335,6 +44385,32 @@ identical).
   ctws_state.new_templ_params = templ_param_list;
   ctws_state.old_this_class = proto_type;
   ctws_state.new_this_class = return_type;
+  if (class_template_rcp != NULL && class_template_rcp->constraint != NULL) {
+    class_template_constraint = copy_expr_with_substitutions(
+                                                class_template_rcp->constraint,
+                                                class_templ_args,
+                                                orig_class_templ_params,
+                                                (CTWS_ADJUST_COORDINATES |
+                                                 CTWS_MAY_BE_RESCANNED |
+                                                 CTWS_NON_CONSTANT_EXPR),
+                                                &copy_error, &ctws_state);
+    if (copy_error) goto done;
+    template_requires_pos = class_template_rcp->requires_pos;
+  }  /* if */
+  if (ctor_template_rcp != NULL && ctor_template_rcp->constraint != NULL) {
+    ctor_template_constraint = copy_expr_with_substitutions(
+                                                 ctor_template_rcp->constraint,
+                                                 class_templ_args,
+                                                 orig_class_templ_params,
+                                                 (CTWS_ADJUST_COORDINATES |
+                                                  CTWS_MAY_BE_RESCANNED |
+                                                  CTWS_NON_CONSTANT_EXPR),
+                                                 &copy_error, &ctws_state);
+    if (copy_error) goto done;
+    if (ctor_template_constraint != NULL) {
+      template_requires_pos = ctor_template_rcp->requires_pos;
+    }  /* if */
+  }  /* if */
   rout_type = copy_type_with_substitution(
                                   ctor_rout->type,
                                   class_templ_args,
@@ -44346,7 +44422,7 @@ identical).
                                   &ctws_state);
   if (copy_error) goto done;
   ctor_rcp = ctor_rout->trailing_requires_clause;
-  if (ctor_rcp != NULL) {
+  if (ctor_rcp != NULL && ctor_rcp->constraint != NULL) {
     trailing_constraint = copy_expr_with_substitutions(
                                             ctor_rcp->constraint,
                                             class_templ_args,
@@ -44379,13 +44455,44 @@ identical).
                                             &copy_error, &ctws_state);
       if (copy_error) goto done;
     }  /* if */
+    if (ctor_template_constraint != NULL) {
+      /* Substitute constructor template arguments into its constraint. */
+      ctor_template_constraint = copy_expr_with_substitutions(
+                                                     ctor_template_constraint,
+                                                     ctor_templ_args,
+                                                     orig_ctor_templ_params,
+                                                     (CTWS_ADJUST_COORDINATES |
+                                                      CTWS_MAY_BE_RESCANNED |
+                                                      CTWS_NON_CONSTANT_EXPR),
+                                                     &copy_error, &ctws_state);
+      if (copy_error) goto done;
+    }  /* if */
   }  /* if */
+  template_constraint = make_constraint_conjunction(class_template_constraint,
+                                                    ctor_template_constraint);
   rout_type->variant.routine.return_type = return_type;
   rout->type = rout_type;
   if (trailing_constraint != NULL) {
     rout->trailing_requires_clause = alloc_requires_clause();
     rout->trailing_requires_clause->constraint = trailing_constraint;
     rout->trailing_requires_clause->requires_pos = ctor_rcp->requires_pos;
+  }  /* if */
+  if (template_constraint != NULL) {
+    a_template_decl_ptr    guide_template_decl = alloc_template_decl();
+    a_requires_clause_ptr  guide_rcp = alloc_requires_clause();
+
+    /* Attach the combined constraint on the synthesized guide template. */
+    if (orig_template_decl != NULL) {
+      guide_template_decl->parent = orig_template_decl->parent;
+      guide_template_decl->scope = orig_template_decl->scope;
+      guide_template_decl->template_pos = orig_template_decl->template_pos;
+    }  /* if */
+    guide_rcp->constraint = template_constraint;
+    guide_rcp->requires_pos = template_requires_pos;
+    guide_template_decl->constraint.requires_clause = guide_rcp;
+    complete_template_decl(guide_template_decl, templ_param_list);
+    tdip->template_decl = guide_template_decl;
+    tssp->il_template_entry->template_decl = guide_template_decl;
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("impl_guide")) {
@@ -45279,20 +45386,9 @@ On success, return the symbol for the new guide; otherwise return NULL.
                                                   &copy_error, &ctws_state);
         if (copy_error) goto done;
         trailing_rcp = alloc_requires_clause();
-        if (is_deducible_expr != NULL) {
-          an_expr_node_ptr  conj_expr;
-
-          /* Add a deducible-from constraint to the requires clause. */
-          conj_expr = alloc_expr_node(enk_operation);
-          conj_expr->compiler_generated = TRUE;
-          conj_expr->type = bool_type();
-          conj_expr->variant.operation.kind = eok_land;
-          conj_expr->variant.operation.operands = subst_expr;
-          subst_expr->next = is_deducible_expr;
-          trailing_rcp->constraint = conj_expr;
-        } else {
-          trailing_rcp->constraint = subst_expr;
-        }  /* if */
+        /* Add a deducible-from constraint to the requires clause. */
+        trailing_rcp->constraint = make_constraint_conjunction(
+                                                subst_expr, is_deducible_expr);
         trailing_rcp->requires_pos = requires_pos;
       } else if (is_deducible_expr != NULL) {
         trailing_rcp = alloc_requires_clause();

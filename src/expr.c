@@ -58597,7 +58597,7 @@ cases the selector is returned via bound_function_selector).
   a_token_kind          op_token = expr->variant.fold.operator_token;
   a_source_position     *op_pos = &expr->position;
   an_operand            *saved_opnd = &expr->extra.rescan_info->saved_operand;
-  an_arg_list_elem_ptr  opnd_list;
+  an_arg_list_elem_ptr  opnd, opnd_list;
   a_boolean             generic = FALSE;
   a_boolean             preserve_deduced_packs =
                          (rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) != 0;
@@ -58619,8 +58619,11 @@ cases the selector is returned via bound_function_selector).
     }  /* if */
   } else {
     opnd_list = rescan_expr_list(generic_opnds, rcblock);
-    /* Produce a generic representation if we still have a pack expansion. */
-    generic = opnd_list != NULL && opnd_list->pack_expansion_descr != NULL;
+    /* Produce a generic representation if any operand is still a pack
+       expansion. */
+    for (opnd = opnd_list; !generic && opnd != NULL; opnd = opnd->next) {
+      if (opnd->pack_expansion_descr != NULL) generic = TRUE;
+    }  /* for */
   }  /* if */
   assemble_fold_expression_operand(result, bound_function_selector,
                                    &saved_opnd->position, op_pos,
