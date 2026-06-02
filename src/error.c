@@ -4129,10 +4129,15 @@ null-terminated.
   }  /* for */
 #if CHECKING
   if (dfip == NULL) {
-    a_string err_msg("specified fill-in (",
+    /* When this condition is reached, typically the diagnostic was constructed
+       without a fill-in the error message text is expecting (or alternatively
+       there is a type mismatch between the fill-in and the string attempting
+       to use it -- e.g., use of a "%d" fill-in for an unsigned integer). */
+    a_string err_msg("placeholder (",
                      a_string_view(&fill_in_char, 1), fill_in_seq,
-                     ") not found for error string: \"",
-                     error_text(dp->error_code), "\"");
+                     ") in error string: \"",
+                     error_text(dp->error_code),
+                     "\" did not match any of the provided fill-ins");
 
     unexpected_condition_str2("process_fill_in:",
                               err_msg.as_temp_characters());
