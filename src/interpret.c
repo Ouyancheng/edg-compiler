@@ -23729,7 +23729,8 @@ the value representation of the integer value.
                 an_integer_value  mask;
                 shift_left_integer_value((an_integer_value*)opnd1_value,
                                          (int)host_int_val, &ovfl);
-                if (bit_size >= BITS_IN_AN_INTEGER_VALUE && ovfl) {
+                if (bit_size >= BITS_IN_AN_INTEGER_VALUE && is_signed &&
+                    ovfl) {
                   do_constexpr_fail(result);
                   info_with_pos_type(ec_constexpr_integer_overflow,
                                      &expr->position, opnd1_type, ips);
