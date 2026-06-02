@@ -11657,22 +11657,21 @@ storage_class_specifier:
             case tok_bool:     basic_type = bt_bool;    break;
             case tok_int:      basic_type = bt_int;     break;
             case tok_bit_precise_int:
-              {
-                a_constant_ptr  width_con = local_constant();
+              { a_boolean          lparen_found;
+                a_source_position  wpos;
                 basic_type = bt_bit_precise_int;
+                bit_precise_width_con = fs_constant(ck_error);
                 /* Skip over _BitInt. */
                 (void)get_token();
-                if (required_token_no_advance(tok_lparen, ec_exp_lparen)) {
-                  (void)get_token();
+                lparen_found = required_token(tok_lparen, ec_exp_lparen);
+                wpos = pos_curr_token;
+                if (lparen_found) {
                   add_stop_token(tok_rparen);
-                  scan_integral_constant_expression(width_con);
-                  bit_precise_width_con = alloc_shareable_constant(width_con);
+                  scan_integral_constant_expression(bit_precise_width_con);
                   (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
                   remove_stop_token(tok_rparen);
-                } else {
-                  bit_precise_width_con = fs_constant(ck_error);
                 }  /* if */
-                release_local_constant(&width_con);
+                bit_precise_width_con->source_corresp.decl_position = wpos;
               }
               break;
             case tok_float:    basic_type = bt_float;   break;
