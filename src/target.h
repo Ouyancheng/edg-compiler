@@ -197,10 +197,10 @@ EXTERN_THREAD a_targ_size_t
 		bitint_maxwidth_value;
 			/* The maximum width accepted for _BitInt. */
 
- EXTERN_THREAD a_targ_size_t
-                targ_sizeof_largest_integer;
-                        /* Size of the longest integer in the configuration.
-                           Must be no larger than MAX_SIZEOF_LARGEST_INTEGER.*/
+EXTERN_THREAD a_targ_size_t
+		targ_sizeof_largest_integer;
+			/* Size of the longest integer in the configuration.
+			   Must be no larger than MAX_SIZEOF_LARGEST_INTEGER.*/
 
 #if GNU_EXTENSIONS_ALLOWED
 EXTERN_THREAD a_targ_size_t

@@ -426,11 +426,8 @@ affects the handling of some overflow cases.
     }  /* if */
     check_assertion(ovflo);
     goto bit_precise_literal_done;
-  } else
-  /* Do not insert code here. */
-  /* Determine the type based on the value and the suffixes.  See standard,
-     3.1.3.2 (for C89). */
-  if (in_pp_if_expression && (c99_mode || gnu_mode)) {
+  } else if (in_pp_if_expression && (c99_mode || gnu_mode)) {
+    /* Determine the type based on the value and the suffixes. */
     /* C99 was amended with DR 265 to the effect that the conversion of an
        integer literal in a #if control expression should treat all integer
        types as having the same representation as intmax_t or uintmax_t

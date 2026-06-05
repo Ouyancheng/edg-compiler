@@ -9323,7 +9323,8 @@ typedef struct a_template_param_type_supplement {
 			/* The parameter list position and template nesting
 			   depth of the parameter. */
   union {
-    /* When coordinates.depth != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH: */
+    /* When coordinates.depth != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH and
+       coordinates.depth != BIT_PRECISE_INT_NESTING_DEPTH: */
     an_expr_node_ptr
 		type_constraint;
 			/* For a template parameter declared with a type
@@ -9341,7 +9342,7 @@ typedef struct a_template_param_type_supplement {
     a_constant_ptr
 		bit_width_constant;
 			/* For a tptk_bit_precise_int type, the constant
-			   specifying the _BitInt width.  NULL otherwise. */
+			   specifying the _BitInt width. */
   } constraint;
 } a_template_param_type_supplement;
 
