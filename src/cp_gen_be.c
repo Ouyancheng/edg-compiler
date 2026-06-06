@@ -752,10 +752,11 @@ static void gen_declaration(a_boolean for_init);
 static a_boolean parens_may_be_needed(a_byte           operator_precedence,
                                       an_expr_node_ptr operand);
 static a_boolean entity_name_is_accessible(
-                                  a_source_correspondence_ptr scp,
-                                  an_il_entry_kind            kind,
-                                  a_boolean                   ignore_context,
-                                  a_boolean                   *for_all_scopes);
+                          a_source_correspondence_ptr scp,
+                          an_il_entry_kind            kind,
+                          a_boolean                   ignore_context,
+                          a_boolean                   *for_all_scopes,
+                          a_boolean                   check_visibility = TRUE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static void gen_prop_event_or_op_synth_call(
                           an_expr_node_ptr                    obj_expr,
@@ -807,8 +808,7 @@ static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       is_stmt_expression);
 static void gen_cast(a_type_ptr type);
 static a_boolean is_expl_temp_or_field_thereof(an_expr_node_ptr expr);
-static void gen_type_operator(a_type_ptr tp,
-                              a_boolean  from_name_qual_typeref = FALSE);
+static void gen_type_operator(a_type_ptr tp);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
                      a_boolean        obj_expr_of_mfunc_operator);
@@ -2593,6 +2593,20 @@ typedef struct an_access_cache_entry {
 			   even if ignore_context is FALSE, i.e., when a
 			   context-dependent query finds that only public
 			   names are involved. */
+  a_byte_boolean
+		check_visibility;
+			/* TRUE if the query represented by this cache
+			   entry treated block-scope entities as
+			   inaccessible outside their scope.  (Members of
+			   local classes can be accessed outside their
+			   containing scope if the class type leaks via a
+			   decltype applied to a function return value,
+			   e.g.,
+			     auto f() { struct S { int m; }; return S{}; }
+			     decltype(f()) s; decltype(s.m) i;
+			   The access check for "m" must not consider
+			   visibility, as it would otherwise fail because
+			   of being accessed outside its scope.) */
 } an_access_cache_entry;
 
 #define BUCKETS_FOR_ACCESS_CACHE 16383
@@ -2606,10 +2620,12 @@ STATIC_THREAD an_access_cache_entry_ptr
 		avail_access_cache_entries;
 
 
-static void cache_access_result_for(a_source_correspondence_ptr scp,
-                                    a_boolean                   is_accessible,
-                                    a_boolean                   for_all_scopes,
-                                    a_boolean                   ignore_context)
+static void cache_access_result_for(
+                                  a_source_correspondence_ptr scp,
+                                  a_boolean                   is_accessible,
+                                  a_boolean                   for_all_scopes,
+                                  a_boolean                   ignore_context,
+                                  a_boolean                   check_visibility)
 /*
 Add the result of the access check for the IL entry designated by scp to
 the access cache.  If for_all_scopes is TRUE, the result is valid in all
@@ -2618,7 +2634,9 @@ otherwise, it will be set to the scope designated by the current top of the
 name context stack.  ignore_context is TRUE if this result represents a
 context-independent query and FALSE if the result might depend the current
 scope.  The value of for_all_scopes reflects the result of the query, while
-ignore_context reflects the character of the query itself.
+ignore_context reflects the character of the query itself.  If
+check_visibility is TRUE, a name declared in a block scope is considered to
+be inaccessible outside that scope.
 */
 {
   a_hash_value bucket = hash_IL_ptr(scp) % BUCKETS_FOR_ACCESS_CACHE;
@@ -2659,19 +2677,22 @@ ignore_context reflects the character of the query itself.
       access_cache[bucket].lookup_scope =
                                         curr_name_context->assoc_scope->number;
     }  /* if */
+    access_cache[bucket].check_visibility = check_visibility;
   }  /* if */
 }  /* cache_access_result_for */
 
 
 static a_boolean access_from_cache_for(
-                                   a_source_correspondence_ptr scp,
-                                   a_boolean                   ignore_context,
-                                   a_boolean                   *is_accessible,
-                                   a_boolean                   *for_all_scopes)
+                                  a_source_correspondence_ptr scp,
+                                  a_boolean                   ignore_context,
+                                  a_boolean                   *is_accessible,
+                                  a_boolean                   *for_all_scopes,
+                                  a_boolean                   check_visibility)
 /*
 See if a previous compatible access check was made for the entity
 designated by scp; a query is compatible if the value of ignore_context was
-the same or if the result is valid in all scopes.  If a compatible cache
+the same or if the result is valid in all scopes; mismatched values for
+check_visibility also render the query incompatible.  If a compatible cache
 entry exists, return TRUE and set *is_accessible to that result; otherwise,
 return FALSE.  In the case of a TRUE return for an entry for which the
 scope is relevant (i.e., one in which at least some names are not public),
@@ -2699,7 +2720,8 @@ set *for_all_scopes to FALSE.
         /* The result is valid for all scopes. */
         *is_accessible = entry->is_accessible;
         found = TRUE;
-      } else if (entry->ignore_context != ignore_context) {
+      } else if (entry->ignore_context != ignore_context ||
+                 entry->check_visibility != check_visibility) {
         /* This entry records a scope-dependent query and we're now looking
            for scope-independent results or vice versa, so we can't use this
            entry.  Keep looking in case there's a compatible entry further
@@ -2860,10 +2882,11 @@ otherwise.
 
 
 static a_boolean entity_name_is_accessible(
-                                   a_source_correspondence_ptr scp,
-                                   an_il_entry_kind            kind,
-                                   a_boolean                   ignore_context,
-                                   a_boolean                   *for_all_scopes)
+                                  a_source_correspondence_ptr scp,
+                                  an_il_entry_kind            kind,
+                                  a_boolean                   ignore_context,
+                                  a_boolean                   *for_all_scopes,
+                /* Defaulted: */  a_boolean                   check_visibility)
 /*
 Return TRUE if the entity described by scp and kind can be named without
 access errors -- i.e., if the entity and any classes in which it is nested
@@ -2871,7 +2894,9 @@ are non-members or public members of their containing classes, or (when
 ignore_context is FALSE) if the containing class is in the context stack.
 This check also includes any other names needed to name the entity, e.g.,
 template arguments, parameter types in function types, etc.  If any of the
-names is not public, set *for_all_scopes to FALSE.
+names is not public, set *for_all_scopes to FALSE.  If check_visibility is
+TRUE, an entity declared in block scope is also deemed inaccessible outside
+that block.
 */
 {
   a_boolean  is_accessible = FALSE;
@@ -2879,7 +2904,7 @@ names is not public, set *for_all_scopes to FALSE.
   a_boolean  local_for_all_scopes = TRUE;
 
   if (access_from_cache_for(scp, ignore_context, &is_accessible,
-                            &local_for_all_scopes)) {
+                            &local_for_all_scopes, check_visibility)) {
     /* No need to repeat the testing, we can reuse a previously-cached
        result. */
   } else {
@@ -2918,10 +2943,11 @@ names is not public, set *for_all_scopes to FALSE.
       } else {
         a_scope_ptr sp = get_parent_scope_of(scp);
         if (sp == NULL || sp->kind == sck_namespace || sp->kind == sck_file ||
-            sp->kind == sck_template_declaration) {
+            sp->kind == sck_template_declaration || !check_visibility) {
           /* Members of namespaces, including the global namespace, are
              accessible from any scope via qualified names.  We assume
-             template parameter names are in scope. */
+             template parameter names are in scope, and the same for names
+             for which visibility is not being checked. */
           is_accessible = TRUE;
         } else {
           /* A name in a block scope is accessible only if its block is on
@@ -3041,7 +3067,8 @@ names is not public, set *for_all_scopes to FALSE.
       a_source_correspondence *parent_scp = &parent_class->source_corresp;
       is_accessible = entity_name_is_accessible(parent_scp, iek_type,
                                                 ignore_context,
-                                                &local_for_all_scopes);
+                                                &local_for_all_scopes,
+                                                check_visibility);
       if (!is_accessible) {
         /* Check to see if there is an accessible typedef for the parent;
            if so, treat the type as accessible. */
@@ -3054,7 +3081,7 @@ names is not public, set *for_all_scopes to FALSE.
       }  /* if */
     }  /* if */
     cache_access_result_for(scp, is_accessible, local_for_all_scopes,
-                            ignore_context);
+                            ignore_context, check_visibility);
   }  /* if */
   if (!local_for_all_scopes) {
     *for_all_scopes = FALSE;
@@ -7061,7 +7088,7 @@ is from a trk_name_qualifier typeref.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       if (decltype_type != NULL) {
         /* A decltype operator is the qualifier. */
-        gen_type_operator(decltype_type, from_name_qual_typeref);
+        gen_type_operator(decltype_type);
       } else
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       /* Do not insert code here. */
@@ -7069,7 +7096,7 @@ is from a trk_name_qualifier typeref.
         if (class_type->kind == (a_type_kind)tk_typeref &&
             typeref_is_type_operator(class_type,
                                      /*include_intrinsics=*/TRUE)) {
-          gen_type_operator(class_type, from_name_qual_typeref);
+          gen_type_operator(class_type);
         } else {
           if (from_name_qual_typeref && nqp->previous_qualifier == NULL &&
               !has_qual_typeref(nqp->qualifier.class_type) &&
@@ -9182,8 +9209,7 @@ the same instance might not be).
 }  /* expr_has_enk_param_ref */
 
 
-static void gen_type_operator(a_type_ptr tp,
-            /* Defaulted: */  a_boolean  from_name_qual_typeref)
+static void gen_type_operator(a_type_ptr tp)
 /*
 Emit a type operator (decltype, etc.) or type builtin construct.  If the
 argument to the construct has associated source sequence entries, the type
@@ -9192,8 +9218,7 @@ source sequence entries were skipped); the source sequence entries
 associated with the argument should be reactivated in such cases.  If the
 operand of the type operator is an unusable expression (because of scope or
 access issues), the result type is put out directly instead of the type
-operator, except when from_name_qual_typeref is TRUE; in that case, the
-expression is presumed to be valid at this point in the translation unit.
+operator.
 */
 {
   a_source_sequence_scan_state saved_state = null_source_sequence_scan_state;
@@ -9296,7 +9321,7 @@ expression is presumed to be valid at this point in the translation unit.
          the underlying type. */
       operator_suppressed = TRUE;
     } else if (!tp->variant.typeref.is_dependent_type_operator &&
-               !from_name_qual_typeref && expr_is_unusable(expr)) {
+               expr_is_unusable(expr)) {
       /* The expression involves an inaccessible or out-of-scope name.
          Just put out the underlying type. */
       operator_suppressed = TRUE;
@@ -12870,14 +12895,74 @@ scope.
 
 
 /*
-Definitions related to prevention of unbounded loops and recursion while
-scanning the types associated with a generated explicit specialization to
-determine whether it would be invalid.  Whenever a class type is
-encountered during the scan, a type scan record is allocated and it and the
-type are linked to each other.  A type whose scan record pointer is
-non-NULL has been, or is currently being, processed and should not be
-examined again.
+Declarations for tracking operands of member access expressions when
+checking expressions for usability.  A given field or member function of a
+local class might be usable if the object expression in the member access
+expression is usable (e.g., if the class type is known outside its containing
+function via decltype and used as the type of a global variable) but not if
+the object expression is not usable.  Because the processing function in a
+traverse_expr only knows about a given node and not its parent, we must
+track the operands of member access expressions in parallel with the
+traversal so that the processing function can determine the appropriate
+checks to apply to fields and member functions when they are examined.
 */
+
+struct a_member_access_operand {
+  a_member_access_operand
+		*next;	/* The next operand on the stack; NULL for the
+			   entry at the bottom of the stack. */
+  a_source_correspondence
+		*scp;	/* The operand (field or member function) of a
+			   member access expression. */
+};  /* a_member_access_operand */
+
+static a_member_access_operand
+		*pending_member_access_operands;
+			/* The top of a stack of operands of member access
+			   expressions that have not yet been visited by
+			   the current traverse_expr invocation. */
+
+static a_member_access_operand
+		*avail_member_access_operands;
+			/* A list of member access operand records that are
+			   available for reuse. */
+
+static void register_member_access_operand(a_source_correspondence *scp)
+/*
+Push a new member access operand onto the stack of pending operands.
+*/
+{
+  a_member_access_operand *maop;
+
+  if (avail_member_access_operands != NULL) {
+    maop = avail_member_access_operands;
+    avail_member_access_operands = maop->next;
+  } else {
+    maop = alloc_general_of_type(a_member_access_operand);
+  }  /* if */
+  maop->next = pending_member_access_operands;
+  maop->scp = scp;
+  pending_member_access_operands = maop;
+}  /* register_member_access_operand */
+
+
+static void pop_member_access_operand_stack(a_boolean pop_all)
+/*
+Move either the top entry or all entries, depending on the value of pop_all,
+from the pending_member_access_operands stack to the
+avail_member_access_operands list.
+*/
+{
+  do {
+    a_member_access_operand *maop = pending_member_access_operands;
+    if (maop != NULL) {
+      pending_member_access_operands = maop->next;
+      maop->next = avail_member_access_operands;
+      avail_member_access_operands = maop;
+    }  /* if */
+  } while (pending_member_access_operands != NULL && pop_all);
+}  /* pop_member_access_operand_stack */
+
 
 static void check_for_unusable_entity(
                                     an_expr_node_ptr                    expr,
@@ -12903,6 +12988,8 @@ to unusable variables and class members.
   an_il_entry_kind            kind = iek_none;
   a_boolean                   for_all_scopes;
   a_boolean                   is_local_lambda_in_scope = FALSE;
+  a_source_correspondence_ptr op_scp = NULL;
+  an_expr_node_ptr            op2;
 
   switch (expr->kind) {
     case enk_variable:
@@ -12929,6 +13016,36 @@ to unusable variables and class members.
       scp = &node_constant(expr)->source_corresp;
       kind = iek_constant;
       break;
+    case enk_operation:
+      switch (expr->variant.operation.kind) {
+        case eok_dot_field:
+        case eok_points_to_field:
+        case eok_dot_static:
+        case eok_points_to_static:
+        case eok_dot_member_call:
+        case eok_points_to_member_call:
+          /* Register the field, function, or variable operand as the
+             operand of a member access expression.  In such expressions,
+             the visibility of the operand's containing class is
+             irrelevant, as a local class type may be usable if it has
+             escaped the containing function via decltype and the
+             visibility of the object expression, not that of the member,
+             is the controlling factor. */
+          op2 = expr->variant.operation.operands->next;
+          if (is_variable_node(op2)) {
+            op_scp = &node_variable(op2)->source_corresp;
+          } else if (is_field_node(op2)) {
+            op_scp = &node_field(op2)->source_corresp;
+          } else if (is_routine_node(op2)) {
+            op_scp = &node_routine(op2)->source_corresp;
+          }  /* if */
+          if (op_scp != NULL) {
+            register_member_access_operand(op_scp);
+          }  /* if */
+        default:
+          break;
+      }  /* switch */
+      break;
     default:
       break;
   }  /* switch */
@@ -12942,6 +13059,15 @@ to unusable variables and class members.
       tblock->terminate = TRUE;
     } else if (scp->is_class_member) {
       a_type_ptr parent = scp_parent_class(scp);
+      a_boolean  check_visibility = TRUE;
+      if (pending_member_access_operands != NULL &&
+          scp == pending_member_access_operands->scp) {
+        /* This node is the operand of a member access expression, so its
+           visibility is irrelevant; it is visible if the object expression
+           is, which was already checked. */
+        check_visibility = FALSE;
+        pop_member_access_operand_stack(/*pop_all=*/FALSE);
+      }  /* if */
       if (!parent->variant.class_struct_union.is_nonreal_class &&
           ((!(parent->has_been_defined
 #if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -12951,9 +13077,10 @@ to unusable variables and class members.
             !class_is_in_name_context_stack(
                                   parent, /*include_base_classes=*/FALSE,
                                   /*ignore_field_selection_contexts=*/TRUE)) ||
-           (scp->is_local_to_function && !is_local_lambda_in_scope) ||
+           (check_visibility && scp->is_local_to_function &&
+            !is_local_lambda_in_scope) ||
            !entity_name_is_accessible(scp, kind, /*ignore_context=*/FALSE,
-                                      &for_all_scopes))) {
+                                      &for_all_scopes, check_visibility))) {
         /* This node refers to a member of a not-yet-defined or local class
            or to a member that is inaccessible in the current context, so
            an explicit specialization for the class in which this
@@ -13053,11 +13180,22 @@ reference, so check for that also as a special case.
   tblock.process_non_dynamic_constants = TRUE;
   tblock.process_expressions_for_constants = TRUE;
   tblock.process_template_parameter_constants_and_expressions = TRUE;
+  pop_member_access_operand_stack(/*pop_all=*/TRUE);
   traverse_expr(expr, &tblock);
   return tblock.result;
 }  /* expr_is_unusable */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+/*
+Definitions related to prevention of unbounded loops and recursion while
+scanning the types associated with a generated explicit specialization to
+determine whether it would be invalid.  Whenever a class type is
+encountered during the scan, a type scan record is allocated and it and the
+type are linked to each other.  A type whose scan record pointer is
+non-NULL has been, or is currently being, processed and should not be
+examined again.
+*/
 
 typedef struct a_type_scan_record *a_type_scan_record_ptr;
 typedef struct a_type_scan_record {
@@ -26267,6 +26405,8 @@ Initialize for the C++/C-generating back end.
   need_pragma_pack_restore = FALSE;
   entities_for_decltype = NULL;
   avail_entities_for_decltype = NULL;
+  pending_member_access_operands = NULL;
+  avail_member_access_operands = NULL;
   is_generated_explicit_specialization = FALSE;
   global_qual_emitted = FALSE;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
