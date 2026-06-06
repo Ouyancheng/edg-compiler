@@ -22,10 +22,11 @@ is now fixed.
 6/6/26   [EDGcpfe/28878]
 C++-generating back end: invalid decltype operand
 
-In some complex cases. the C++-generating back end emitted a decltype
+In some complex cases, the C++-generating back end emitted a decltype
 operator whose operand was invalid, involving either an out-of-scope name
 or a generated temporary name (of the form __T12345678).  This is now fixed,
-and the underlying type of the decltype construct is used instead.
+and the underlying type of the decltype specifier in such cases is used
+instead.
 
 
 6/2/26   [EDGcpfe/28712]
