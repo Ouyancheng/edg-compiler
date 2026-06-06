@@ -13042,6 +13042,7 @@ to unusable variables and class members.
           if (op_scp != NULL) {
             register_member_access_operand(op_scp);
           }  /* if */
+          break;
         default:
           break;
       }  /* switch */
