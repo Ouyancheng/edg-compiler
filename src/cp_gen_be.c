@@ -9602,6 +9602,38 @@ a template instance, for its associated template.
   return result;
 }  /* qualified_name_required */
 
+
+static EXPAND a_boolean type_is_qualified_by_dependent_type_operator(
+                                                                 a_type_ptr tp)
+/*
+Return TRUE if the leftmost qualifier specified by tp, which must be a
+trk_name_qualifier typeref, is a dependent type operator typeref, FALSE
+otherwise.
+*/
+{
+  a_name_qualifier_ptr nqp;
+  a_boolean            result = FALSE;
+
+  check_assertion(type_is(tp, tk_typeref) &&
+                  is_typeref_kind(tp, trk_name_qualifier));
+  nqp = tp->variant.typeref.extra_info->name_qualifier;
+  while (nqp != NULL && nqp->is_class) {
+    tp = nqp->qualifier.class_type;
+    if (has_qual_typeref(tp)) {
+      nqp = (is_typeref_kind(tp, trk_template_arg_list))
+         ? tp->variant.typeref.type->variant.typeref.extra_info->name_qualifier
+         : tp->variant.typeref.extra_info->name_qualifier;
+    } else {
+      if (type_is(tp, tk_typeref) &&
+          tp->variant.typeref.is_dependent_type_operator) {
+        result = TRUE;
+      }  /* if */
+      nqp = nqp->previous_qualifier;
+    }  /* if */
+  }  /* while */
+  return result;
+}  /* type_is_qualified_by_dependent_type_operator */
+
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 static void gen_type_reference(a_type_ptr type,
@@ -9659,8 +9691,7 @@ elaborated-type-specifier, even if it would be required in some contexts.
     if (nqp != NULL && nqp->is_class) {
       a_type_ptr qt = skip_lexical_typerefs(nqp->qualifier.class_type);
       if (is_template_param_or_nonreal_class_type(qt) ||
-          (type_is(qt, tk_typeref) &&
-           qt->variant.typeref.is_dependent_type_operator)) {
+          type_is_qualified_by_dependent_type_operator(type)) {
         poss_dep_type = nqp->qualifier.class_type;
       }  /* if */
     }  /* if */

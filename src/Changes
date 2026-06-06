@@ -1,5 +1,24 @@
 Version 6.9
 
+6/6/26   [EDGcpfe/28882]
+C++-generating back end, GNU compatibility: decltype type dependency
+
+In the following example,
+
+  template <typename T> struct A { using E = T; };
+  template <typename T> struct B  { using V = T; };
+  template <typename T> struct C {
+    B<A<double>> v;
+    typename decltype(v)::V::E x;   // #1
+  };
+
+g++ treats the type in the line marked #1 as dependent when compiling for
+C++17, requiring use of the "typename" keyword.  As a result of the changes
+for EDGcpfe/26294 in version 6.8, the C++-generating back end incorrectly
+omitted the "typename" keyword in the generated code for this example.  This
+is now fixed.
+
+
 6/6/26   [EDGcpfe/28878]
 C++-generating back end: invalid decltype operand
 
