@@ -2691,7 +2691,7 @@ static a_boolean access_from_cache_for(
 /*
 See if a previous compatible access check was made for the entity
 designated by scp; a query is compatible if the value of ignore_context was
-the same or if the result is valid in all scopes; mismatched values for
+the same or if the result is valid in all scopes.  Mismatched values for
 check_visibility also render the query incompatible.  If a compatible cache
 entry exists, return TRUE and set *is_accessible to that result; otherwise,
 return FALSE.  In the case of a TRUE return for an entry for which the
@@ -12949,8 +12949,9 @@ struct a_member_access_operand {
 
 static a_member_access_operand
 		*pending_member_access_operands;
-			/* The top of a stack of operands of member access
-			   expressions that have not yet been visited by
+			/* The top of a stack of second operands of
+			   already-processed member access expressions for
+			   which that operand has not yet been visited by
 			   the current traverse_expr invocation. */
 
 static a_member_access_operand
