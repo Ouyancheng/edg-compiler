@@ -5858,8 +5858,7 @@ before this routine is called.
       size_suffix_enabled = TRUE;
     }  /* if */
     if (clang_version >= 170000) {
-      /* Clang 17 (and later) accepts C++-style standard attributes in all
-         C++ modes. */
+      /* Clang 17 (and later) accepts standard syntax attributes. */
       std_attributes_enabled = TRUE;
     }  /* if */
   } else {
