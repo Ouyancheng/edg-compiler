@@ -2752,7 +2752,7 @@ is in fact valid.
          scp->name_linkage != corresp_scp->name_linkage)) {
       match = FALSE;
       if (scp->assoc_info != NULL &&
-          scp->assoc_info != (char*)unnamed_field_symbol()) {
+          scp->assoc_info != (char*)make_unnamed_field_symbol()) {
         /* A named field: */
         process_bad_trans_unit_corresp(iek_field, field, corresp_field);
       } else {

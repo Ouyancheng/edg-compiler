@@ -5340,7 +5340,7 @@ extern a_symbol_ptr make_module_symbol(const a_string    &primary_name,
                                        a_boolean         is_interface,
                                        a_source_position *pos);
 
-extern a_symbol_ptr unnamed_field_symbol(void);
+extern a_symbol_ptr make_unnamed_field_symbol(void);
 
 extern a_symbol_ptr make_anonymous_parent_object_symbol(
                                                 a_symbol_kind      kind,

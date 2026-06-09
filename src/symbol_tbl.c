@@ -272,6 +272,12 @@ STATIC_THREAD a_symbol_ptr
 		error_class_template_symbol;
 			/* Pointer to a shared error class template entry. */
 
+STATIC_THREAD a_symbol_ptr
+		unnamed_field_symbol;
+			/* Pointer to "the" unnamed field symbol, which exists
+			   only for the sake of identifying a given field entry
+			   as representing an unnamed field. */
+
 STATIC_THREAD sizeof_t
 		size_of_trans_unit_for_scope;
 			/* Allocated size of the trans_unit_for_scope table. */
@@ -8083,27 +8089,23 @@ Return TRUE if sym represents an unnamed namespace.
 }  /* is_unnamed_namespace_symbol */
 
 
-a_symbol_ptr unnamed_field_symbol(void)
+a_symbol_ptr make_unnamed_field_symbol(void)
 /*
 Return a pointer to "the" unnamed field symbol, which exists only for the
 sake of identifying a given field entry as representing an unnamed field.
 */
 {
-  STATIC_THREAD a_symbol             sym;
-
   if (unnamed_field_symbol_header == NULL) {
-    /* Set the shared fields to default values, set the kind, and initialize
-       its variant fields. */
-    clear_symbol(&sym, (a_symbol_kind)sk_field);
-    /* Set the header. */
     unnamed_field_symbol_header = alloc_symbol_header();
     set_identifier_for_symbol_header(unnamed_field_symbol_header,
                                      "<unnamed>", 9,
                                      /*is_unnamed=*/TRUE);
-    sym.header = unnamed_field_symbol_header;
+    unnamed_field_symbol = alloc_symbol((a_symbol_kind)sk_field,
+                                        unnamed_field_symbol_header,
+                                        &null_source_position);
   }  /* if */
-  return &sym;
-}  /* unnamed_field_symbol */
+  return unnamed_field_symbol;
+}  /* make_unnamed_field_symbol */
 
 
 a_symbol_ptr make_unnamed_namespace_symbol(a_source_position  *pos)
@@ -19536,6 +19538,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(unnamed_namespace_symbol_header),
       pch_saved_var_array_elem(anonymous_parent_object_symbol_header),
       pch_saved_var_array_elem(unnamed_field_symbol_header),
+      pch_saved_var_array_elem(unnamed_field_symbol),
       pch_saved_var_array_elem(global_namespace_list_entry),
       pch_saved_var_array_elem(symbol_for_namespace_std),
       pch_saved_var_array_elem(symbol_for_namespace_std_entered),
@@ -19794,6 +19797,7 @@ of the front end.
   unnamed_namespace_symbol_header = NULL;
   anonymous_parent_object_symbol_header = NULL;
   unnamed_field_symbol_header = NULL;
+  unnamed_field_symbol = NULL;
   size_t_type = NULL;
   ptr_to_const_char_type = NULL;
   dummy_undefined_symbol = NULL;

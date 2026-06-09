@@ -8984,7 +8984,7 @@ non-NULL, set *end_of_list to the last initializer in the list.
       }  /* if */
     } else if (!field->compiler_generated) {
       a_symbol_ptr  sym = symbol_for(field);
-      if (sym == NULL || sym->is_error || sym == unnamed_field_symbol()) {
+      if (sym == NULL || sym->is_error || sym == make_unnamed_field_symbol()) {
         /* Skip over any error and unnamed fields. */
         continue;
       }  /* if */
