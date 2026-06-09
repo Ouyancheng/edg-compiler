@@ -253,8 +253,8 @@ static constexpr an_attr_descr known_attr_table[] = {
   { "indeterminate", "", "c+(202600-)", ak_indeterminate },
 
   /* C standard attributes (C23 and later).  Also accepted by default when
-     gnu_version >= 100000 or microsoft_version >= 1934 (see the setting of
-     std_attributes_enabled). */
+     gnu_version >= 100000, microsoft_version >= 1934, or clang_version >=
+     170000 (see the setting of std_attributes_enabled). */
   { "deprecated", "?(sx)", "c", ak_deprecated },
   { "fallthrough", "", "c", ak_fallthrough },
   { "nodiscard", "?(sx)", "c", ak_nodiscard },

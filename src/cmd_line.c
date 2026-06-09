@@ -5857,6 +5857,11 @@ before this routine is called.
       /* As of version 13.0.0, clang recognizes the "z" integer suffix. */
       size_suffix_enabled = TRUE;
     }  /* if */
+    if (clang_version >= 170000) {
+      /* Clang 17 (and later) accepts C++-style standard attributes in all
+         C++ modes. */
+      std_attributes_enabled = TRUE;
+    }  /* if */
   } else {
     /* Not Clang mode. */
     /* Early template test for g++ prior to 4.7 (a TRUE value corresponds to

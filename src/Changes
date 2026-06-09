@@ -1,5 +1,12 @@
 Version 6.9
 
+6/9/26   [EDGcpfe/28844]
+Clang compatibility: Enable C++ standard attributes in all modes
+
+When clang_version >= 170000, C++ standard attributes are now enabled in all
+C++ modes.
+
+
 6/9/26   [EDGcpfe/25813]
 PCH issue with unnamed_field_symbol
 
