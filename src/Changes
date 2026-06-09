@@ -1,5 +1,18 @@
 Version 6.9
 
+6/9/26   [EDGcpfe/27232]
+Spurious "**NON FILE SCOPE PTR**" in IL display with the alternate IL
+file format)
+
+When displaying intermediate language with the alternate IL file format,
+pointers to string entries could be labeled "**NON FILE SCOPE PTR**" even
+though the string remained in file-scope memory.  During IL output,
+assign_entry_number records the memory region kind in the file_scope flag
+of the entry prefix for the region from which the string is referenced.
+The IL display program now labels such string entries "**possible
+non-file-scope ptr**".
+
+
 6/6/26   [EDGcpfe/28882]
 C++-generating back end, GNU compatibility: decltype type dependency
 

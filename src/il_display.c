@@ -166,9 +166,18 @@ kind entry_kind.
   } else {
     is_file_scope_entry = in_file_scope(entry_ptr);
     if (displaying_file_scope_il && !is_file_scope_entry) {
-      /* Reference from file scope to non-file scope pointer. */
-      (void)fprintf(f_display, "**NON FILE SCOPE PTR** (%p)",
-                    (a_void_ptr)entry_ptr);
+      /* Reference from file scope to a pointer whose prefix indicates
+         function-scope memory region kind.  For string entries this can
+         happen even when the string is allocated in file-scope memory,
+         because strings referenced from a function-scope memory region
+         are numbered as honorary members of that region during IL output. */
+      if (is_string_entry_kind(entry_kind)) {
+        (void)fprintf(f_display, "**possible non-file-scope ptr** (%p)",
+                      (a_void_ptr)entry_ptr);
+      } else {
+        (void)fprintf(f_display, "**NON FILE SCOPE PTR** (%p)",
+                      (a_void_ptr)entry_ptr);
+      }  /* if */
     } else {
       (void)fprintf(f_display, is_file_scope_entry ? "file-scope"
                                                    : "func-scope");

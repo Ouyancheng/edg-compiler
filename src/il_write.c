@@ -242,7 +242,11 @@ encoded form.
        be in the region of the entry that points to it (see comment above). */
     if (is_string_entry) {
       /* A string entry is considered to be in the region of the entry
-         that points to it. */
+         that points to it (see the comment above).  Use the region
+         currently being written, not epp->file_scope, to choose the
+         entry-number table.  A file-scope string referenced from a
+         function scope must be numbered in that function's tables even
+         though it remains allocated in file-scope memory. */
       is_file_scope_entry = writing_file_scope_il;
     } else if (writing_file_scope_il) {
       /* Writing the file scope, so only file-scope items should appear. */
@@ -285,6 +289,15 @@ encoded form.
     /* Use the next entry number for this entry. */
     copy_to_bitfield((*count_ptr + 1), epp->entry_number,
                      BITS_IN_ENTRY_NUMBER);
+    /* For string entries, overwrite epp->file_scope even when that
+       changes the value set at allocation time.  During IL file output
+       the prefix bit records the memory region kind (file scope vs.
+       function scope) for which the entry number was assigned in this
+       write, not where the string is stored in memory.  That value must
+       remain set until il_read (or a later write pass) reassigns the
+       entry, because subsequent pointer remapping, FUNC_ENTRY_NUMBER_BIT
+       encoding, and the out-of-date entry-number logic above all consult
+       epp->file_scope. */
     epp->file_scope = is_file_scope_entry;
     /* Increment the table entry by the right number of logical entries. */
     *count_ptr += num_entries;
