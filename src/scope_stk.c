@@ -13103,6 +13103,20 @@ class.
 }  /* enclosing_nonlambda_routine_for_lambda_class */
 
 
+a_boolean generic_lambda_is_in_specialized_routine(a_symbol_ptr  call_op)
+/*
+Return TRUE if the generic lambda whose call operator is call_op is enclosed by
+an explicitly specialized function definition.
+*/
+{
+  a_type_ptr     closure_class = sym_parent_class(call_op);
+  a_routine_ptr  encl_rout =
+                  enclosing_nonlambda_routine_for_lambda_class(&closure_class);
+
+  return encl_rout != NULL && encl_rout->is_specialized;
+}  /* generic_lambda_is_in_specialized_routine */
+
+
 static a_boolean template_instantiation_for_class_is_on_stack(
                                            a_type_ptr               class_type,
                                            a_scope_stack_entry_ptr  ssep)
