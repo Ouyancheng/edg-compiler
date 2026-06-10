@@ -1,5 +1,22 @@
 Version 6.9
 
+6/9/26   [EDGcpfe/28887]
+C++-generating back end: elaborated type specifier in explicit temporary
+
+In some cases involving an explicit temporary of a tag type whose name is
+hidden by the name of a non-type entity, the C++-generating back end could
+put out the type's name using an elaborated type specifier, which is
+syntactically incorrect.  This is now fixed.  For example, with --c++17:
+
+  struct A { };
+  using T = A;
+  namespace ns { struct T { }; }
+  inline ns::T f() {
+    return ns::T{};   // Previously generated as "struct ns::T{}"
+  }
+  using namespace ns;
+
+
 6/9/26   [EDGcpfe/28844]
 Clang compatibility: Enable C++ standard attributes in all modes
 

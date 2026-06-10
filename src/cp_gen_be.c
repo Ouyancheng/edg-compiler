@@ -8483,7 +8483,9 @@ which constant is the value.
           write_tok_ch('(');
           need_closing_paren = TRUE;
         }  /* if */
-        gen_type_reference(cast_type);
+        gen_type_reference(cast_type, /*suppress_typename_kwd=*/TRUE,
+                           /*is_declaration=*/FALSE,
+                           /*suppress_elab_type_spec=*/TRUE);
         if (need_closing_paren) {
           write_tok_ch(')');
         }  /* if */
