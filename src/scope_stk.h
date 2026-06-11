@@ -2621,9 +2621,6 @@ extern a_boolean in_generic_lambda_in_prototype_instantiation(void);
 extern a_routine_ptr enclosing_nonlambda_routine_for_lambda_class(
                                                   a_type_ptr  *p_lambda_class);
 
-extern a_boolean generic_lambda_is_in_specialized_routine(
-                                                        a_symbol_ptr  call_op);
-
 extern a_boolean in_generic_lambda_in_class_template_friend(void);
 
 extern a_boolean is_nested_in_real_instantiation(void);

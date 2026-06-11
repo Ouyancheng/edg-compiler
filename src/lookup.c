@@ -7729,8 +7729,7 @@ current scope.
   } else {
     decl_seq_number = ssep->template_decl_info->decl_seq;
   }  /* if */
-  if (decl_seq_number != NO_DECL_SEQUENCE_NUMBER && ssep->is_generic_lambda &&
-      !generic_lambda_is_in_specialized_routine(ssep->template_sym)) {
+  if (decl_seq_number != NO_DECL_SEQUENCE_NUMBER && ssep->is_generic_lambda) {
     /* The innermost instantiation is the call operator of a generic lambda.
        The call operator's own decl_seq is not always the right one for lookups
        inside the lambda body: in deferred prototype instantiation contexts the
