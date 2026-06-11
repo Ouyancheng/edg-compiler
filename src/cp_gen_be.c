@@ -13103,24 +13103,37 @@ to unusable variables and class members.
         check_visibility = FALSE;
         pop_member_access_operand_stack(/*pop_all=*/FALSE);
       }  /* if */
-      if (!parent->variant.class_struct_union.is_nonreal_class &&
-          ((!(parent->has_been_defined
-#if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-              || parent->variant.class_struct_union.is_template_class
-#endif /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-                                                                     ) &&
-            !class_is_in_name_context_stack(
-                                  parent, /*include_base_classes=*/FALSE,
-                                  /*ignore_field_selection_contexts=*/TRUE)) ||
-           (check_visibility && scp->is_local_to_function &&
-            !is_local_lambda_in_scope) ||
-           !entity_name_is_accessible(scp, kind, /*ignore_context=*/FALSE,
-                                      &for_all_scopes, check_visibility))) {
-        /* This node refers to a member of a not-yet-defined or local class
-           or to a member that is inaccessible in the current context, so
-           an explicit specialization for the class in which this
-           expression appears or a type operator containing this expression
-           would be invalid. */
+      if (!parent->variant.class_struct_union.is_nonreal_class) {
+        /* Access to members of nonreal classes is always permitted. */
+      } else if (!parent->has_been_defined) {
+        if (
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+            parent->variant.class_struct_union.is_template_class ||
+#endif /* !TCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+            class_is_in_name_context_stack(
+                                   parent, /*include_base_classes=*/FALSE,
+                                   /*ignore_field_selection_contexts=*/TRUE)) {
+          /* The parent class's definition has not been seen, which is not
+             a problem if the class is an instantiated class template or we
+             are still lexically within the class definition. */
+        } else {
+          /* Referring to a member of a yet-undefined class would be an
+             error. */
+          tblock->result = TRUE;
+          tblock->terminate = TRUE;
+        }  /* if */
+      } else if (check_visibility && scp->is_local_to_function &&
+                 !is_local_lambda_in_scope) {
+        /* The parent class was defined in block scope, so its members
+           cannot be validly named. */
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      } else if (!entity_name_is_accessible(scp, kind,
+                                            /*ignore_context=*/FALSE,
+                                            &for_all_scopes,
+                                            check_visibility)) {
+        /* This node refers to a member that is inaccessible in the current
+           context. */
         tblock->result = TRUE;
         tblock->terminate = TRUE;
       } else if (scp_parent_class(scp)->
