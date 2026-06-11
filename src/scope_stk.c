@@ -13106,7 +13106,7 @@ class.
 a_boolean generic_lambda_is_in_specialized_routine(a_symbol_ptr  call_op)
 /*
 Return TRUE if the generic lambda whose call operator is call_op is enclosed by
-an explicitly specialized function definition.
+an explicitly-specialized function definition.
 */
 {
   a_type_ptr     closure_class = sym_parent_class(call_op);
