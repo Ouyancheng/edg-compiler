@@ -13109,7 +13109,7 @@ to unusable variables and class members.
         if (
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
             parent->variant.class_struct_union.is_template_class ||
-#endif /* !TCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
             class_is_in_name_context_stack(
                                    parent, /*include_base_classes=*/FALSE,
                                    /*ignore_field_selection_contexts=*/TRUE)) {
