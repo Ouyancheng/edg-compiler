@@ -5921,6 +5921,14 @@ before this routine is called.
     /* GCC does not implement P0929R2 until version 11.x. */
     relaxed_abstract_checking = FALSE;
   }  /* if */
+  deduction_guide_redeclaration_allowed = FALSE;
+  if (clang_mode) {
+    if (clang_version < 90000) {
+      deduction_guide_redeclaration_allowed = TRUE;
+    }  /* if */
+  } else if (gnu_mode && gnu_version < 110000) {
+    deduction_guide_redeclaration_allowed = TRUE;
+  }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
 
@@ -13437,6 +13445,7 @@ variables declared in cmd_line.h.
   float128_enabled = FLOAT128_ENABLING_POSSIBLE;
   hex_floating_point_constants_allowed = FALSE;
   binary_literals_allowed = FALSE;
+  deduction_guide_redeclaration_allowed = FALSE;
 #if EXPORT_ENABLING_POSSIBLE
   export_template_allowed = /*lint -e(506)*/DEFAULT_EXPORT_TEMPLATE_ALLOWED &&
                             /*lint -e(506)*/(DEFAULT_CPP_MODE < 201103);

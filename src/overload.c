@@ -9311,15 +9311,11 @@ deduction guides and check if one is preferred over the other.
         }  /* if */
       }  /* if */
     } else {
-      /* Two user-declared guides.  There are currently no redeclaration rules
-         for deduction guides.  So, e.g.:
-            template<class ... T, int N> struct S {};
-            template<class ... T> S(T...)->S<T..., 42>;
-            template<class ... T> S(T...)->S<T..., 42>;
-            S s;
-         technically results in an ambiguity.  However, common practice is to
-         ignore that ambiguity and just pick either guide. */
-      if (identical_types(rp1->type, rp2->type)) {
+      /* Two user-declared guides with identical types are diagnosed as
+         invalid redeclarations when the second guide is declared (unless
+         deduction_guide_redeclaration_allowed is TRUE). */
+      if (deduction_guide_redeclaration_allowed &&
+          identical_types(rp1->type, rp2->type)) {
         result = 1;
       }  /* if */
     }  /* if */

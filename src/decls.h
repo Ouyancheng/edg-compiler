@@ -1759,6 +1759,14 @@ extern void add_src_seq_end_of_routine_if_needed(a_decl_parse_state  *dps);
 extern void check_deduction_guide_specifiers(a_decl_parse_state  *dps,
                                              a_routine_ptr       guide);
 
+extern a_boolean deduction_guide_return_type_is_valid(
+                                              a_type_ptr     rout_type,
+                                              a_symbol_ptr   ct_sym);
+
+extern a_boolean deduction_guide_return_type_is_strictly_valid(
+                                              a_type_ptr     rout_type,
+                                              a_symbol_ptr   ct_sym);
+
 extern void check_deduction_guide_return_type(a_decl_parse_state  *dps,
                                               a_symbol_ptr        ct_sym);
 

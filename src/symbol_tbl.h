@@ -7963,6 +7963,9 @@ extern a_symbol_ptr look_up_name_string_in_namespace(
 
 extern a_boolean resolve_pending_trailing_requires_clause(a_symbol_ptr  sym);
 
+extern a_requires_clause_ptr function_template_head_requires_clause(
+                                                             a_symbol_ptr sym);
+
 inline a_boolean is_ineligible(a_symbol_ptr  sym)
 /*
 Return whether the function or member function associated with the given symbol

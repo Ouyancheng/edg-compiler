@@ -7186,6 +7186,13 @@ a locator for the new symbol.  Return a pointer to the new symbol.
 }  /* enter_overloaded_symbol */
 
 
+static a_boolean check_for_deduction_guide_redeclaration(
+                                                   a_symbol_ptr  new_guide,
+                                                   a_symbol_ptr  guide_set);
+
+static a_type_ptr deduction_guide_routine_type(a_symbol_ptr sym);
+
+
 void add_deduction_guide(a_symbol_ptr  new_guide,
                          a_symbol_ptr  *p_guide_set)
 /*
@@ -7196,6 +7203,14 @@ set).  Add new_guide to this set.
   a_symbol_ptr  guide_set = *p_guide_set;
 
   check_assertion(new_guide->decl_seq != NO_DECL_SEQUENCE_NUMBER);
+  /* Diagnose a redeclaration when new_guide has the same type and equivalent
+     requires-clauses as an existing user-declared guide in the set.  Do not
+     add new_guide to the set if an error was issued. */
+  if (guide_set != NULL) {
+    if (!check_for_deduction_guide_redeclaration(new_guide, guide_set)) {
+      return;
+    }  /* if */
+  }  /* if */
   if (guide_set == NULL) {
     *p_guide_set = new_guide;
   } else if (symbol_is(guide_set, sk_overloaded_function)) {
@@ -7247,6 +7262,88 @@ the set.
 }  /* remove_deduction_guide */
 
 
+a_requires_clause_ptr function_template_head_requires_clause(
+                                                              a_symbol_ptr sym)
+/*
+Return the template-head requires-clause for sym if it is a function
+template; otherwise return NULL.
+*/
+{
+  a_requires_clause_ptr             rcp = NULL;
+  a_template_symbol_supplement_ptr  tssp;
+  a_template_decl_ptr               tdp = NULL;
+
+  reduce_projection_symbol_to_fundamental_symbol(sym);
+  if (!symbol_is(sym, sk_function_template)) {
+    goto done;
+  }  /* if */
+  tssp = sym->variant.template_info;
+  if (tssp->il_template_entry != NULL) {
+    tdp = tssp->il_template_entry->template_decl;
+  }  /* if */
+  if (tdp == NULL &&
+      tssp->variant.function.decl_cache != NULL &&
+      tssp->variant.function.decl_cache->decl_info != NULL) {
+    tdp = tssp->variant.function.decl_cache->decl_info->template_decl;
+  }  /* if */
+  if (tdp != NULL) {
+    rcp = if_microsoft_extensions(tdp->is_generic ? NULL : )
+          tdp->constraint.requires_clause;
+  }  /* if */
+done:
+  return rcp;
+}  /* function_template_head_requires_clause */
+
+
+static a_boolean deduction_guides_are_redeclarations(a_symbol_ptr  sym1,
+                                                     a_symbol_ptr  sym2)
+/*
+Return TRUE if sym1 and sym2, two user-declared deduction guides, have
+the same type and equivalent requires-clauses (template-head and trailing).
+*/
+{
+  a_type_ptr             type1, type2;
+  a_routine_ptr          rp1, rp2;
+  a_requires_clause_ptr  head_rcp1, head_rcp2;
+
+  type1 = function_or_template_symbol_type(sym1);
+  type2 = function_or_template_symbol_type(sym2);
+  if (!identical_types(type1, type2)) {
+    return FALSE;
+  }  /* if */
+  rp1 = func_sym_routine(sym1);
+  rp2 = func_sym_routine(sym2);
+  if (!equiv_requires_clauses(trailing_requires_clause(rp1),
+                              trailing_requires_clause(rp2))) {
+    return FALSE;
+  }  /* if */
+  head_rcp1 = function_template_head_requires_clause(sym1);
+  head_rcp2 = function_template_head_requires_clause(sym2);
+  return equiv_requires_clauses(head_rcp1, head_rcp2);
+}  /* deduction_guides_are_redeclarations */
+
+
+static a_type_ptr deduction_guide_routine_type(a_symbol_ptr sym)
+/*
+Return the routine type of sym, a deduction guide represented as either a
+simple function or a function template.  Unlike
+function_or_template_symbol_type, typerefs are not stripped from the type.
+*/
+{
+  a_type_ptr rout_type = NULL;
+
+  reduce_projection_symbol_to_fundamental_symbol(sym);
+  if (is_simple_function_symbol(sym)) {
+    rout_type = routine_symbol_type(sym);
+  } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+    rout_type = sym->variant.template_info->variant.function.routine->type;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return rout_type;
+}  /* deduction_guide_routine_type */
+
+
 a_type_ptr function_or_template_symbol_type(a_symbol_ptr sym)
 /*
 Return the type of a function, whether a simple function or a function
@@ -7266,6 +7363,69 @@ template.
   rout_type = skip_typerefs(rout_type);
   return rout_type;
 }  /* function_or_template_symbol_type */
+
+
+static a_boolean check_for_deduction_guide_redeclaration(
+                                                   a_symbol_ptr  new_guide,
+                                                   a_symbol_ptr  guide_set)
+/*
+If new_guide has the same type and equivalent requires-clauses as an
+existing user-declared deduction guide in guide_set, issue an error.
+Return FALSE if an error was issued, TRUE otherwise.  Ill-formed guides
+(with invalid return types) are ignored.
+*/
+{
+  a_routine_ptr  new_rp = func_sym_routine(new_guide);
+  a_symbol_ptr   ct_sym = symbol_for(new_rp->variant.class_template);
+  a_type_ptr     new_type, rout_type;
+  a_boolean      result = TRUE;
+
+  if (new_rp->compiler_generated) {
+    goto done;
+  }  /* if */
+  if (deduction_guide_redeclaration_allowed) {
+    goto done;
+  }  /* if */
+  rout_type = deduction_guide_routine_type(new_guide);
+  if (!deduction_guide_return_type_is_strictly_valid(rout_type, ct_sym)) {
+    goto done;
+  }  /* if */
+  new_type = function_or_template_symbol_type(new_guide);
+  if (symbol_is(guide_set, sk_overloaded_function)) {
+    a_symbol_ptr  sym;
+
+    for (sym = guide_set->variant.overloaded_function.symbols;
+         sym != NULL; sym = sym->next) {
+      a_routine_ptr  rp = func_sym_routine(sym);
+      a_type_ptr     existing_rout_type = deduction_guide_routine_type(sym);
+
+      if (!rp->compiler_generated &&
+          deduction_guide_return_type_is_strictly_valid(existing_rout_type,
+                                                        ct_sym) &&
+          deduction_guides_are_redeclarations(new_guide, sym)) {
+        pos_error(ec_deduction_guide_redeclaration, &new_guide->decl_position,
+                  new_type, &sym->decl_position);
+        result = FALSE;
+        goto done;
+      }  /* if */
+    }  /* for */
+  } else {
+    a_routine_ptr  rp = func_sym_routine(guide_set);
+    a_type_ptr     existing_rout_type =
+                              deduction_guide_routine_type(guide_set);
+
+    if (!rp->compiler_generated &&
+        deduction_guide_return_type_is_strictly_valid(existing_rout_type,
+                                                      ct_sym) &&
+        deduction_guides_are_redeclarations(new_guide, guide_set)) {
+      pos_error(ec_deduction_guide_redeclaration, &new_guide->decl_position,
+                new_type, &guide_set->decl_position);
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* check_for_deduction_guide_redeclaration */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

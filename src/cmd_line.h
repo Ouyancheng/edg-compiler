@@ -902,6 +902,11 @@ EXTERN_THREAD a_boolean
 			   is enabled. */
 
 EXTERN_THREAD a_boolean
+		deduction_guide_redeclaration_allowed;
+			/* TRUE if duplicate user-declared deduction guides
+			   with identical types are permitted. */
+
+EXTERN_THREAD a_boolean
 		auto_template_params_enabled;
 			/* TRUE if C++17 "auto" template parameters are
 			   enabled. */
