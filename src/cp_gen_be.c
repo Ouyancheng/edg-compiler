@@ -13103,8 +13103,10 @@ to unusable variables and class members.
         check_visibility = FALSE;
         pop_member_access_operand_stack(/*pop_all=*/FALSE);
       }  /* if */
-      if (!parent->variant.class_struct_union.is_nonreal_class) {
-        /* Access to members of nonreal classes is always permitted. */
+      if (parent->variant.class_struct_union.is_nonreal_class ||
+          parent->variant.class_struct_union.proxy_class) {
+        /* Access to members of nonreal and proxy classes is always
+           permitted. */
       } else if (!parent->has_been_defined) {
         if (
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
