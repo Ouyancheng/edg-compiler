@@ -7380,10 +7380,7 @@ Return FALSE if an error was issued, TRUE otherwise.  Ill-formed guides
   a_type_ptr     new_type, rout_type;
   a_boolean      result = TRUE;
 
-  if (new_rp->compiler_generated) {
-    goto done;
-  }  /* if */
-  if (deduction_guide_redeclaration_allowed) {
+  if (new_rp->compiler_generated || deduction_guide_redeclaration_allowed) {
     goto done;
   }  /* if */
   rout_type = deduction_guide_routine_type(new_guide);
@@ -7412,7 +7409,7 @@ Return FALSE if an error was issued, TRUE otherwise.  Ill-formed guides
   } else {
     a_routine_ptr  rp = func_sym_routine(guide_set);
     a_type_ptr     existing_rout_type =
-                              deduction_guide_routine_type(guide_set);
+                                   deduction_guide_routine_type(guide_set);
 
     if (!rp->compiler_generated &&
         deduction_guide_return_type_is_strictly_valid(existing_rout_type,

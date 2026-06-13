@@ -21490,25 +21490,21 @@ guide) to diagnose the use of invalid specifiers and record the presence of
 
 
 static a_boolean deduction_guide_return_type_is_valid_impl(
-                                              a_type_ptr    rout_type,
-                                              a_symbol_ptr  ct_sym,
-                                              a_boolean
-                                              allow_ms_gnu_alias_typerefs)
+                              a_type_ptr      rout_type,
+                              a_symbol_ptr    ct_sym,
+                              a_boolean       allow_ms_gnu_alias_typerefs)
 /*
-Shared implementation for deduction_guide_return_type_is_valid and
-deduction_guide_return_type_is_strictly_valid.
-*rout_type is the routine type of the deduction guide being checked.
-*ct_sym is the symbol for the associated class template.
-*allow_ms_gnu_alias_typerefs is TRUE if g++/Microsoft alias and typedef
-typeref relaxation may be applied when examining the return type.
+rout_type is the routine type of the deduction guide being checked.  ct_sym
+is the symbol for the associated class template.  Return TRUE if the return
+type of rout_type is a valid designation of a specialization of that class
+template.  When allow_ms_gnu_alias_typerefs is TRUE, g++/Microsoft alias and
+typedef typeref relaxation may be applied when examining the return type.
 */
 {
   a_boolean  result = FALSE;
   a_type_ptr rtp;
 
-  if (!type_is(rout_type, tk_routine)) {
-    goto done;
-  }  /* if */
+  check_assertion(type_is(rout_type, tk_routine));
   rtp = rout_type->variant.routine.return_type;
   if (allow_ms_gnu_alias_typerefs &&
       ((gpp_mode && !clang_mode) || microsoft_mode)) {
@@ -21520,31 +21516,15 @@ typeref relaxation may be applied when examining the return type.
        template name used in the deduced type ("A" here) must be the same
        as the deduction guide itself and no cv-qualifiers are permitted. */
     rtp = skip_typerefs(rtp);
-  } else {
-    /* Use skip_lexical_typerefs, not skip_typerefs: skip_typerefs would peel
-       typedef and alias-template typerefs and treat a return type written via
-       a type alias as a direct designation of the class template (e.g.,
-       AliasClass<T> for C<T,T>).  skip_lexical_typerefs only removes typerefs
-       that record lexical source form; any remaining typeref is rejected
-       below. */
-    rtp = skip_lexical_typerefs(rtp);
-    if (type_is(rtp, tk_typeref)) {
-      goto done;
-    }  /* if */
   }  /* if */
   if (is_error_type(rtp)) {
-    goto done;
+    expect_error();
+  } else if (is_immediate_class_type(rtp) &&
+             rtp->variant.class_struct_union.is_template_class &&
+             symbol_for(class_type_supp(rtp)->assoc_template) ==
+                                             prototype_template_of(ct_sym)) {
+    result = TRUE;
   }  /* if */
-  if (!is_immediate_class_type(rtp) ||
-      !rtp->variant.class_struct_union.is_template_class) {
-    goto done;
-  }  /* if */
-  if (symbol_for(class_type_supp(rtp)->assoc_template) !=
-                                            prototype_template_of(ct_sym)) {
-    goto done;
-  }  /* if */
-  result = TRUE;
-done:
   return result;
 }  /* deduction_guide_return_type_is_valid_impl */
 
@@ -21552,12 +21532,16 @@ done:
 a_boolean deduction_guide_return_type_is_valid(a_type_ptr    rout_type,
                                                a_symbol_ptr  ct_sym)
 /*
-Return TRUE if the return type of the deduction guide with the given routine
-type is a valid direct designation of a specialization of the class template
-described by ct_sym.
+rout_type is the routine type of the deduction guide being checked.  ct_sym
+is the symbol for the associated class template.  Return TRUE if the return
+type of rout_type is a valid designation of a specialization of that class
+template.
 */
 {
-  return deduction_guide_return_type_is_valid_impl(rout_type, ct_sym, TRUE);
+  return deduction_guide_return_type_is_valid_impl(
+                              rout_type,
+                              ct_sym,
+                              /*allow_ms_gnu_alias_typerefs=*/TRUE);
 }  /* deduction_guide_return_type_is_valid */
 
 
@@ -21570,7 +21554,10 @@ relaxed treatment of alias and typedef typerefs in the return type.  Used when
 deciding whether to diagnose a deduction guide redeclaration.
 */
 {
-  return deduction_guide_return_type_is_valid_impl(rout_type, ct_sym, FALSE);
+  return deduction_guide_return_type_is_valid_impl(
+                              rout_type,
+                              ct_sym,
+                              /*allow_ms_gnu_alias_typerefs=*/FALSE);
 }  /* deduction_guide_return_type_is_strictly_valid */
 
 

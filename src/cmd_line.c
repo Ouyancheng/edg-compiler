@@ -5921,12 +5921,7 @@ before this routine is called.
     /* GCC does not implement P0929R2 until version 11.x. */
     relaxed_abstract_checking = FALSE;
   }  /* if */
-  deduction_guide_redeclaration_allowed = FALSE;
-  if (clang_mode) {
-    if (clang_version < 90000) {
-      deduction_guide_redeclaration_allowed = TRUE;
-    }  /* if */
-  } else if (gnu_mode && gnu_version < 110000) {
+  if (gnu_version_is(<110000) || clang_version_is(<90000)) {
     deduction_guide_redeclaration_allowed = TRUE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
