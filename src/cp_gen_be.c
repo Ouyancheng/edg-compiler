@@ -819,7 +819,8 @@ static a_boolean template_arg_is_accessible(
                                         a_template_arg_ptr argp,
                                         a_boolean          ignore_context,
                                         a_boolean          check_related_types,
-                                        a_boolean          *for_all_scopes);
+                                        a_boolean          *for_all_scopes,
+                                        a_boolean          check_visibility);
 
 /* Interfaces to gen_expr for the usual cases. */
 /* Note that gen_expr_with_parens does not force parentheses around the
@@ -1911,7 +1912,8 @@ otherwise, return NULL.
              advance_to_next_template_arg_simple(&tap)) {
           matches = template_arg_is_accessible(tap, /*ignore_context=*/FALSE,
                                                /*check_related_types=*/FALSE,
-                                               &for_all_scopes);
+                                               &for_all_scopes,
+                                               /*check_visibility=*/TRUE);
         }  /* for */
         if (matches) {
           result = entry->type;
@@ -2431,7 +2433,8 @@ static a_boolean template_arg_is_accessible(
                                         a_template_arg_ptr argp,
                                         a_boolean          ignore_context,
                                         a_boolean          check_related_types,
-                                        a_boolean          *for_all_scopes)
+                                        a_boolean          *for_all_scopes,
+                                        a_boolean          check_visibility)
 /*
 Return TRUE if all names in the template argument are accessible (either
 publicly or in the current context, depending on the value of
@@ -2439,7 +2442,7 @@ ignore_context) or if the argument contains no names, FALSE otherwise.  If
 check_related_types is TRUE, the accessibility of the underlying type of an
 inaccessible typedef will be considered, as well as any accessible typedefs
 that can substitute for an inaccessible type argument.  Pass for_all_scopes
-through to entity_name_is_accessible.
+and check_visibility through to entity_name_is_accessible.
 */
 {
   a_boolean                   is_accessible = TRUE;
@@ -2460,7 +2463,8 @@ through to entity_name_is_accessible.
               skip_typerefs_not_typedefs_or_type_operators(argp->variant.type);
       scp = &tp->source_corresp;
       is_accessible = entity_name_is_accessible(scp, iek_type, ignore_context,
-                                                for_all_scopes);
+                                                for_all_scopes,
+                                                check_visibility);
       if (!is_accessible && check_related_types) {
         /* Check to see if this is a typedef whose underlying type is
            accessible.  If so, the underlying type will be used instead of
@@ -2470,7 +2474,8 @@ through to entity_name_is_accessible.
           a_type_ptr utp = skip_typerefs(tp);
           is_accessible = entity_name_is_accessible(&utp->source_corresp,
                                                     iek_type, ignore_context,
-                                                    for_all_scopes);
+                                                    for_all_scopes,
+                                                    check_visibility);
         }  /* if */
       }  /* if */
       if (!is_accessible && check_related_types) {
@@ -2496,24 +2501,26 @@ through to entity_name_is_accessible.
                                            (an_address_base_kind)abk_routine) {
           is_accessible = entity_name_is_accessible(
                     &constant->variant.address.variant.routine->source_corresp,
-                    iek_routine, ignore_context, for_all_scopes);
+                    iek_routine, ignore_context, for_all_scopes,
+                    check_visibility);
         } else if (constant->variant.address.kind ==
                                           (an_address_base_kind)abk_variable) {
           is_accessible = entity_name_is_accessible(
                    &constant->variant.address.variant.variable->source_corresp,
-                   iek_variable, ignore_context, for_all_scopes);
+                   iek_variable, ignore_context, for_all_scopes,
+                   check_visibility);
         }  /* if */
       } else {
         if (constant->variant.ptr_to_member.is_function_ptr &&
             constant->variant.ptr_to_member.variant.routine != NULL) {
           is_accessible = entity_name_is_accessible(
               &constant->variant.ptr_to_member.variant.routine->source_corresp,
-              iek_routine, ignore_context, for_all_scopes);
+              iek_routine, ignore_context, for_all_scopes, check_visibility);
         } else if (!constant->variant.ptr_to_member.is_function_ptr &&
                    constant->variant.ptr_to_member.variant.field != NULL) {
           is_accessible = entity_name_is_accessible(
                 &constant->variant.ptr_to_member.variant.field->source_corresp,
-                iek_field, ignore_context, for_all_scopes);
+                iek_field, ignore_context, for_all_scopes, check_visibility);
         }  /* if */
       }  /* if */
     } else {
@@ -2536,7 +2543,7 @@ through to entity_name_is_accessible.
     is_accessible = entity_name_is_accessible(
                                       &argp->variant.templ.ptr->source_corresp,
                                       iek_template, ignore_context,
-                                      for_all_scopes);
+                                      for_all_scopes, check_visibility);
     break;
   default:
     unexpected_condition();
@@ -3046,13 +3053,15 @@ that block.
                 is_accessible = template_arg_is_accessible(
                                                   tap, ignore_context,
                                                   /*check_related_types=*/TRUE,
-                                                  &local_for_all_scopes);
+                                                  &local_for_all_scopes,
+                                                  check_visibility);
               }  /* if */
               local_for_all_scopes = FALSE;
             }  /* if */
           } else if (!template_arg_is_accessible(tap, ignore_context,
                                                  /*check_related_types=*/TRUE,
-                                                 &local_for_all_scopes)) {
+                                                 &local_for_all_scopes,
+                                                 check_visibility)) {
             is_accessible = FALSE;
           }  /* if */
         }  /* for */
@@ -4874,7 +4883,8 @@ defaulted.
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
               !template_arg_is_accessible(argp, /*ignore_context=*/FALSE,
                                           /*check_related_types=*/TRUE,
-                                          &for_all_scopes)) {
+                                          &for_all_scopes,
+                                          /*check_visibility=*/TRUE)) {
             break;
           }  /* if */
         }  /* if */
@@ -13095,6 +13105,7 @@ to unusable variables and class members.
     } else if (scp->is_class_member) {
       a_type_ptr parent = scp_parent_class(scp);
       a_boolean  check_visibility = TRUE;
+      a_boolean  member_unusable = FALSE;
       if (pending_member_access_operands != NULL &&
           scp == pending_member_access_operands->scp) {
         /* This node is the operand of a member access expression, so its
@@ -13108,34 +13119,39 @@ to unusable variables and class members.
         /* Access to members of nonreal and proxy classes is always
            permitted. */
       } else if (!parent->has_been_defined) {
-        if (
+        if ((
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-            parent->variant.class_struct_union.is_template_class ||
+             (parent->variant.class_struct_union.is_template_class &&
+              !parent->variant.class_struct_union.is_specialized) ||
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-            class_is_in_name_context_stack(
-                                   parent, /*include_base_classes=*/FALSE,
-                                   /*ignore_field_selection_contexts=*/TRUE)) {
+             class_is_in_name_context_stack(
+                                  parent, /*include_base_classes=*/FALSE,
+                                  /*ignore_field_selection_contexts=*/TRUE)) &&
+            entity_name_is_accessible(scp, kind, /*ignore_context=*/FALSE,
+                                      &for_all_scopes, check_visibility)) {
           /* The parent class's definition has not been seen, which is not
              a problem if the class is an instantiated class template or we
-             are still lexically within the class definition. */
+             are still lexically within the class definition, and the
+             name is accessible. */
         } else {
           /* Referring to a member of a yet-undefined class would be an
              error. */
-          tblock->result = TRUE;
-          tblock->terminate = TRUE;
+          member_unusable = TRUE;
         }  /* if */
       } else if (check_visibility && scp->is_local_to_function &&
                  !is_local_lambda_in_scope) {
         /* The parent class was defined in block scope, so its members
            cannot be validly named. */
-        tblock->result = TRUE;
-        tblock->terminate = TRUE;
+        member_unusable = TRUE;
       } else if (!entity_name_is_accessible(scp, kind,
                                             /*ignore_context=*/FALSE,
                                             &for_all_scopes,
                                             check_visibility)) {
         /* This node refers to a member that is inaccessible in the current
            context. */
+        member_unusable = TRUE;
+      }  /* if */
+      if (member_unusable) {
         tblock->result = TRUE;
         tblock->terminate = TRUE;
       } else if (scp_parent_class(scp)->
@@ -13639,7 +13655,7 @@ instantiations are only permitted in namespace scope).
       a_boolean for_all_scopes;
       result = !template_arg_is_accessible(tap, /*ignore_context=*/FALSE,
                                            /*check_related_types=*/TRUE,
-                                           &for_all_scopes);
+                                           &for_all_scopes, check_visibility);
       if (!result) {
         /* Check that the template argument is not a member of a
            not-yet-defined class. */
