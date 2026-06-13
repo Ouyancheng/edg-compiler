@@ -274,6 +274,8 @@ extern void precompiled_header_processing(void);
 
 extern void generate_precompiled_header(void);
 
+extern void check_create_pch_file_created(void);
+
 extern void header_stop_no_longer_pending(void);
 
 extern void process_prefix_pragma_hdrstop(void);

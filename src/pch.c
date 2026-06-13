@@ -138,6 +138,11 @@ STATIC_THREAD a_text_buffer_ptr
 		file_name_text_buffer;
 			/* A buffer used to construct PCH file names. */
 
+STATIC_THREAD a_boolean
+		precompiled_header_file_created;
+			/* TRUE if write_precompiled_header_file completed
+			   successfully during this compilation. */
+
 /*
 Macro to write a value to the PCH output file.
 */
@@ -1617,6 +1622,7 @@ current point.
   pch_write_value(is_complete);
   (void)fclose(f_pch_output);
   f_pch_output = NULL;
+  precompiled_header_file_created = TRUE;
 }  /* write_precompiled_header_file */
 
 
@@ -1743,6 +1749,21 @@ write out the precompiled header file.
   }  /* if */
   db_exit();
 }  /* generate_precompiled_header */
+
+
+void check_create_pch_file_created(void)
+/*
+If the --create_pch option was specified but no precompiled header file was
+written, issue a warning.
+*/
+{
+  if (create_precompiled_header && !precompiled_header_file_created) {
+    if (!suppress_pch_messages) {
+      str_warning(ec_create_pch_file_not_created,
+                  format_file_name(pch_output_file_name));
+    }  /* if */
+  }  /* if */
+}  /* check_create_pch_file_created */
 
 
 void header_stop_no_longer_pending(void)
@@ -2527,6 +2548,7 @@ Initialize variables used by the precompiled header routines.
   pragma_hdrstop_found = FALSE;
   pos_of_last_event_from_pch = null_source_position;
   using_a_pch_file = FALSE;
+  precompiled_header_file_created = FALSE;
   file_name_text_buffer = NULL;
   new_alloc_history_entries = 0;
   new_alloc_history = NULL;

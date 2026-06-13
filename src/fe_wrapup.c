@@ -36,6 +36,7 @@ fe_wrapup.c - End of front end processing.
 #include "templates.h"
 #include "trans_corresp.h"
 #include "trans_copy.h"
+#include "pch.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
@@ -47,9 +48,6 @@ fe_wrapup.c - End of front end processing.
 #include "preproc.h"
 #include "statements.h"
 #endif /* DEBUG */
-#if MAKE_FRONT_END_CALLABLE
-#include "pch.h"
-#endif /* MAKE_FRONT_END_CALLABLE */
 #if MAINTAIN_NEEDED_FLAGS || DO_IL_LOWERING
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS || DO_IL_LOWERING */
@@ -150,6 +148,9 @@ are instantiated.
     /* Check for the presence of a master instance established in a prior
        translation unit. */
     set_master_instance_information();
+  }  /* if */
+  if (is_primary_translation_unit && !do_preprocessing_only) {
+    check_create_pch_file_created();
   }  /* if */
   db_exit();
 }  /* translation_unit_wrapup */

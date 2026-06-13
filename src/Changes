@@ -1,5 +1,17 @@
 Version 6.9
 
+6/10/26  [EDGcpfe/25372]
+Warning when --create_pch is used but no PCH file is created
+
+When the --create_pch command-line option is specified but no precompiled
+header file is written for some reason (such as the translation unit not
+having any #include directives), a warning is now issued.  unit.  For example:
+
+  edgcpfe --create_pch=foo.pch empty.c
+
+where empty.c contains no #include directives.
+
+
 6/10/26  [EDGcpfe/25301]
 Missing diagnostic for redeclaration of deduction guide
 

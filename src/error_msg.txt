@@ -3655,6 +3655,7 @@ ec_signed_bitint_width_too_small;;"_BitInt(%d1) is invalid; the minimum signed _
 ec_unsigned_bitint_width_too_small;;"unsigned _BitInt(%d1) is invalid; the minimum unsigned _BitInt width is %d2"
 ec_bitint_enum_base_not_allowed;;"_BitInt types cannot be the underlying type of an enumeration type"
 ec_deduction_guide_redeclaration;;"redeclaration of deduction guide %t (previous declaration %p)"
+ec_create_pch_file_not_created;;"precompiled header file %sq was not created"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
