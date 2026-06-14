@@ -13655,7 +13655,8 @@ instantiations are only permitted in namespace scope).
       a_boolean for_all_scopes;
       result = !template_arg_is_accessible(tap, /*ignore_context=*/FALSE,
                                            /*check_related_types=*/TRUE,
-                                           &for_all_scopes, check_visibility);
+                                           &for_all_scopes,
+                                           /*check_visibility=*/TRUE);
       if (!result) {
         /* Check that the template argument is not a member of a
            not-yet-defined class. */
