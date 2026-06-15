@@ -3121,8 +3121,8 @@ enum an_attribute_kind : a_byte {
   ak_edg_n1,		/* "edg::n1" (must appear in namespace scope). */
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
-  ak_availability,      /* "availability" */
-  ak_using_if_exists,   /* "using_if_exists" */
+  ak_availability,	/* "availability" */
+  ak_using_if_exists,	/* "using_if_exists" */
   ak_exclude_from_explicit_instantiation,
 			/* "exclude_from_explicit_instantiation" (clang). */
 
