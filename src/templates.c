@@ -41868,6 +41868,21 @@ this routine is called indirectly for a class instantiation.
 }  /* update_instantiation_flags */
 
 
+static a_boolean sym_has_exclude_from_explicit_instantiation_attr(
+                                                             a_symbol_ptr  sym)
+/*
+Return TRUE if sym is a class template member marked with the Clang
+exclude_from_explicit_instantiation attribute.
+*/
+{
+  a_source_correspondence  *scp = source_corresp_entry_for_symbol(sym);
+
+  return scp != NULL &&
+         find_attribute(ak_exclude_from_explicit_instantiation,
+                        scp->attributes) != NULL;
+}  /* sym_has_exclude_from_explicit_instantiation_attr */
+
+
 void update_instantiation_flags_for_class(
                                   a_symbol_ptr          sym,
                                   a_pragma_kind         pragma_kind,
@@ -42006,7 +42021,8 @@ dllimport or dllexport attribute to a template instance.
                this processing. */
             if (is_function_symbol(list_sym) &&
                 sym_can_be_instantiated(list_sym, /*issue_errors=*/FALSE,
-                                        is_pragma, pragma_kind)) {
+                                        is_pragma, pragma_kind) &&
+                !sym_has_exclude_from_explicit_instantiation_attr(list_sym)) {
               update_instantiation_flags(list_sym, pragma_kind, pos,
                                          /*is_class_instantiation=*/TRUE,
                                          is_pragma, is_dll_directive,
@@ -42015,7 +42031,8 @@ dllimport or dllexport attribute to a template instance.
           }  /* for */
         } else if (symbol_is(mem_sym, sk_static_data_member)) {
           if (sym_can_be_instantiated(mem_sym, /*issue_errors=*/FALSE,
-                                      is_pragma, pragma_kind)) {
+                                      is_pragma, pragma_kind) &&
+              !sym_has_exclude_from_explicit_instantiation_attr(mem_sym)) {
             update_instantiation_flags(mem_sym, pragma_kind, pos,
                                        /*is_class_instantiation=*/TRUE,
                                        is_pragma, is_dll_directive,
@@ -42023,11 +42040,13 @@ dllimport or dllexport attribute to a template instance.
           }  /* if */
         } else if (is_class_struct_union_symbol(mem_sym) &&
                    !skip_nested_classes) {
-          /* Instantiate the members of any nested classes.  (The effect of
-             a Microsoft DLL attribute does not propagate to these.) */
-          update_instantiation_flags_for_class(
+          if (!sym_has_exclude_from_explicit_instantiation_attr(mem_sym)) {
+            /* Instantiate the members of any nested classes.  (The effect of
+               a Microsoft DLL attribute does not propagate to these.) */
+            update_instantiation_flags_for_class(
                              mem_sym, pragma_kind, pos, is_pragma,
                              /*top_level=*/FALSE, /*is_dll_directive=*/FALSE);
+          }  /* if */
         }  /* if */
       }  /* for */
     }  /* if */

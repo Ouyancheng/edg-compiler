@@ -6379,6 +6379,8 @@ Display the indicated attribute entry.
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
     case ak_availability:        kind_name = "availability";        break;
     case ak_using_if_exists:     kind_name = "using_if_exists";     break;
+    case ak_exclude_from_explicit_instantiation:
+                 kind_name = "exclude_from_explicit_instantiation"; break;
     case ak_annotation:          kind_name = "annotation";          break;
     case ak_conditional_explicit:kind_name = "conditional_explicit";break;
     case ak_pragma_pack_state:   kind_name = "pragma_pack_state";   break;

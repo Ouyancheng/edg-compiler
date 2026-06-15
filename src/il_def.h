@@ -3123,6 +3123,8 @@ enum an_attribute_kind : a_byte {
 
   ak_availability,      /* "availability" */
   ak_using_if_exists,   /* "using_if_exists" */
+  ak_exclude_from_explicit_instantiation,
+			/* "exclude_from_explicit_instantiation" (clang). */
 
   /* Other attributes. */
   ak_annotation,	/* An attribute-like user-defined value that can be

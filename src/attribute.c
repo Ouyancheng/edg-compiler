@@ -441,6 +441,8 @@ static constexpr an_attr_descr known_attr_table[] = {
   { "availability", "(*)", "lx{clang}", ak_availability },
   { "unavailable", "?(sn)", "lx(30500-)", ak_unavailable },
   { "using_if_exists", "", "l+{clang}", ak_using_if_exists },
+  { "exclude_from_explicit_instantiation", "", "lx{clang}(80000-)",
+    ak_exclude_from_explicit_instantiation },
 
   { NULL, NULL, NULL, ak_last }
 };
@@ -682,6 +684,7 @@ static an_attr_application_fn apply_edg_n1_attr;
 
 static an_attr_application_fn apply_availability_attr;
 static an_attr_application_fn apply_using_if_exists_attr;
+static an_attr_application_fn apply_exclude_from_explicit_instantiation_attr;
 
 /*
 Table of entries describing how to apply a specific attribute kind to an IL
@@ -848,6 +851,8 @@ STATIC_THREAD an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   /* Clang-specific attributes. */
   { ak_availability, "", apply_availability_attr },
   { ak_using_if_exists, "u|t|r|v|n", apply_using_if_exists_attr },
+  { ak_exclude_from_explicit_instantiation, "r:+m|v|c",
+    apply_exclude_from_explicit_instantiation_attr },
 
   /* Internal attributes. */
   { ak_annotation, "", NO_APPL_FN },
@@ -9760,6 +9765,54 @@ scope (it has no other effect).
 }  /* apply_edg_n1_attr */
 
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
+
+static a_boolean is_class_template_member_entity(char             *entity,
+                                                 an_il_entry_kind entity_kind)
+/*
+Return TRUE if entity is a member of a class template (including prototype
+instantiations).
+*/
+{
+  a_boolean    result = FALSE;
+  a_type_ptr   parent_class = NULL;
+  a_symbol_ptr sym = NULL;
+
+  if (entity_kind == iek_routine) {
+    sym = symbol_for((a_routine_ptr)entity);
+  } else if (entity_kind == iek_variable) {
+    sym = symbol_for((a_variable_ptr)entity);
+  } else if (entity_kind == iek_type) {
+    sym = symbol_for((a_type_ptr)entity);
+  }  /* if */
+  if (sym != NULL && sym->is_class_member) {
+    parent_class = sym_parent_class(sym);
+  }  /* if */
+  if (parent_class != NULL) {
+    parent_class = skip_typerefs(parent_class);
+    result = parent_class->variant.class_struct_union.is_template_class;
+  }  /* if */
+  return result;
+}  /* is_class_template_member_entity */
+
+
+static char* apply_exclude_from_explicit_instantiation_attr(
+                                             an_attribute_ptr  ap,
+                                             char              *entity,
+                                             an_il_entry_kind  entity_kind)
+/*
+The given entity must be a member of a class template.  Issue a warning if
+the entity is not applicable for the exclude_from_explicit_instantiation
+attribute.
+*/
+{
+  if (!is_class_template_member_entity(entity, entity_kind)) {
+    pos_st_diagnostic(es_warning, ec_wrong_entity_for_attribute,
+                      &ap->position, attribute_display_name(ap));
+    make_attr_unrecognized(ap);
+  }  /* if */
+  return entity;
+}  /* apply_exclude_from_explicit_instantiation_attr */
+
 
 static char* apply_availability_attr(an_attribute_ptr            ap,
                                      ARG_UNUSED char             *entity,
