@@ -1,5 +1,15 @@
 Version 6.9
 
+6/15/26  [EDGcpfe/28839]
+Improved handling of GNU statement expressions
+
+The changes for EDGcpfe/28806 exacerbated pre-existing issues with the handling
+of IL representing GNU statement expressions, particularly when that IL needed
+to be allocated in file scope memory.  Often, these issues manifested as
+"IL write-read" errors, although other aborting modes were also observed.
+All known issues in this category are now fixed.
+
+
 6/15/26  [EDGcpfe/28885]
 Clang compatibility: exclude_from_explicit_instantiation attribute
 

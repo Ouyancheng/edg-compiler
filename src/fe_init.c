@@ -2276,6 +2276,7 @@ when it is a secondary file.
                                                            file_scope_number);
   /* il_header fields that are per-translation-unit: */
   il_header.primary_scope = curr_translation_unit->primary_scope;
+  il_header.file_scope_statements = NULL;
   il_header.main_routine = NULL;
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   il_header.scope_orphaned_list_headers = NULL;

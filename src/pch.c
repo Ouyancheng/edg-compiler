@@ -2235,6 +2235,7 @@ from the PCH file) to reflect the information loaded from the file.
      from the precompiled header to work properly. */
   il_header.primary_source_file = orig_sfp;
   il_header.primary_scope = il_header_from_pch.primary_scope;
+  il_header.file_scope_statements = il_header_from_pch.file_scope_statements;
   il_header.main_routine = il_header_from_pch.main_routine;
   il_header.seq_number_lookup_entries =
                                   il_header_from_pch.seq_number_lookup_entries;
