@@ -5714,6 +5714,14 @@ class to be defined.
       push_class_reactivation_scope(lambda_class,
                                     /*extend_namespace=*/FALSE);
     }  /* if */
+    if (is_lambda_body && assoc_routine == NULL) {
+      /* Real generic-lambda instantiations are pushed with a NULL
+         assoc_routine; record the call operator for decl_seq and
+         enclosing-routine queries. */
+      a_template_symbol_supplement_ptr  tssp =
+                                  template_supplement_for_symbol(template_sym);
+      assoc_routine = tssp->variant.function.routine;
+    }  /* if */
     (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                           decl_info->declaration_scope, assoc_type,
                           assoc_routine, (a_namespace_ptr)NULL, instance_sym,
@@ -13103,6 +13111,19 @@ class.
 }  /* enclosing_nonlambda_routine_for_lambda_class */
 
 
+a_boolean generic_lambda_is_in_specialized_routine(a_routine_ptr  call_op_rp)
+/*
+Return TRUE if the generic lambda whose call operator is call_op_rp is enclosed
+by an explicitly-specialized function definition; otherwise, return FALSE.
+*/
+{
+  a_type_ptr     lambda_class = parent_class_of(call_op_rp);
+  a_routine_ptr  encl_rout =
+                   enclosing_nonlambda_routine_for_lambda_class(&lambda_class);
+  return encl_rout != NULL && encl_rout->is_specialized;
+}  /* generic_lambda_is_in_specialized_routine */
+
+
 static a_boolean template_instantiation_for_class_is_on_stack(
                                            a_type_ptr               class_type,
                                            a_scope_stack_entry_ptr  ssep)
@@ -13171,8 +13192,9 @@ performed during the same instantiation chain.
   a_scope_stack_entry_ptr  ssep;
 
   ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
-  if (ssep != NULL && ssep->is_generic_lambda) {
-    a_type_ptr     lambda_class = sym_parent_class(ssep->template_sym);
+  if (ssep != NULL && ssep->is_generic_lambda &&
+      ssep->assoc_routine != NULL && ssep->assoc_routine->is_lambda_body) {
+    a_type_ptr     lambda_class = parent_class_of(ssep->assoc_routine);
     a_routine_ptr  enclosing_rp =
                    enclosing_nonlambda_routine_for_lambda_class(&lambda_class);
     if (enclosing_rp != NULL && enclosing_rp->defined_in_friend_decl) {

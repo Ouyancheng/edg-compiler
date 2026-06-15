@@ -7729,7 +7729,9 @@ current scope.
   } else {
     decl_seq_number = ssep->template_decl_info->decl_seq;
   }  /* if */
-  if (decl_seq_number != NO_DECL_SEQUENCE_NUMBER && ssep->is_generic_lambda) {
+  if (decl_seq_number != NO_DECL_SEQUENCE_NUMBER && ssep->is_generic_lambda &&
+      ssep->assoc_routine != NULL && ssep->assoc_routine->is_lambda_body &&
+      !generic_lambda_is_in_specialized_routine(ssep->assoc_routine)) {
     /* The innermost instantiation is the call operator of a generic lambda.
        The call operator's own decl_seq is not always the right one for lookups
        inside the lambda body: in deferred prototype instantiation contexts the
@@ -7737,7 +7739,8 @@ current scope.
        enclosing template's, so the visibility filter would treat declarations
        that appear after the lambda as if they were visible.  When the
        enclosing real template instantiation has a smaller decl_seq, use that
-       value instead. */
+       value instead.  Do not apply this adjustment when the lambda is inside
+       an explicitly-specialized function. */
     a_scope_stack_entry_ptr  encl = previous_scope_of(ssep);
     while (encl != NULL) {
       if (scope_is(encl, sck_template_instantiation) &&
