@@ -234,7 +234,7 @@ also accepts _BitInt types:
 In Clang C++ modes, _BitInt literal suffixes are currently not accepted (Clang
 C++ does not accept the standard suffixes either, but offers alternative
 suffixes which the current front end does not emulate).  The command-line
-option --[no_]bit_precise_integers explicit enables or disables this feature.
+option --[no_]bit_precise_integers explicitly enables or disables this feature.
 
 
 5/28/26  [EDGcpfe/28866]
