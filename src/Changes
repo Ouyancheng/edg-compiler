@@ -67,7 +67,7 @@ Warning when --create_pch is used but no PCH file is created
 
 When the --create_pch command-line option is specified but no precompiled
 header file is written for some reason (such as the translation unit not
-having any #include directives), a warning is now issued.  unit.  For example:
+having any #include directives), a warning is now issued.  For example:
 
   edgcpfe --create_pch=foo.pch empty.c
 
