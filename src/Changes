@@ -124,7 +124,7 @@ from the PCH file; the symbol itself was not initialized, and pointers in
 anonymous-field entries could refer to the address of the local static
 from the process that created the PCH.  The symbol is now dynamically
 allocated, its pointer is saved in the PCH file, and unnamed_field_symbol
-has been renamed to make_unnamed_field_symbol.  With these changes the
+has been renamed to get_unnamed_field_symbol.  With these changes the
 issue is now fixed.
 
 

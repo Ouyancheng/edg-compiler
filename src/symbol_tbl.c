@@ -8246,7 +8246,7 @@ Return TRUE if sym represents an unnamed namespace.
 }  /* is_unnamed_namespace_symbol */
 
 
-a_symbol_ptr make_unnamed_field_symbol(void)
+a_symbol_ptr get_unnamed_field_symbol(void)
 /*
 Return a pointer to "the" unnamed field symbol, which exists only for the
 sake of identifying a given field entry as representing an unnamed field.
@@ -8262,7 +8262,7 @@ sake of identifying a given field entry as representing an unnamed field.
                                         &null_source_position);
   }  /* if */
   return unnamed_field_symbol;
-}  /* make_unnamed_field_symbol */
+}  /* get_unnamed_field_symbol */
 
 
 a_symbol_ptr make_unnamed_namespace_symbol(a_source_position  *pos)

@@ -21261,7 +21261,7 @@ be entered.
   if (unnamed_field && decl_info->is_bit_field) {
     /* All field entries for an unnamed bit field share the same symbol.  It is
        used for easy identification. */
-    field->source_corresp.assoc_info = (char *)make_unnamed_field_symbol();
+    field->source_corresp.assoc_info = (char *)get_unnamed_field_symbol();
     /* Update the source correspondence information manually -- there's no
        symbol. */
     field->source_corresp.decl_position = locator->source_position;
