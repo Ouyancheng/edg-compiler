@@ -1,5 +1,12 @@
 Version 6.9
 
+6/16/26  [EDGcpfe/28884]
+Clang __builtin_invoke and pointer-to-data-member
+
+The intrinsic handling of __builtin_invoke (accepted is some Clang C++ modes)
+failed to handle pointer-to-data-member cases.  That is now fixed.
+
+
 6/16/26  [EDGcpfe/28894]
 GNU compatibility: GCC 15.3 builtins
 

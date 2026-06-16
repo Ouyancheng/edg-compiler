@@ -98,6 +98,13 @@ static void scan_yield_expression(an_operand  *result);
 static void scan_await_expression(an_operand  *result);
 static void make_zero_operand(an_operand *opnd,
                               a_type_ptr tp);
+static void combine_ptr_to_member_operands(
+                               an_operand        *operand_1,
+                               an_operand        *operand_2,
+                               a_boolean         is_arrow_operator,
+                               a_source_position *operator_position,
+                               an_operand        *result,
+                               an_operand        *bound_function_selector);
 
 /* Interface to scan_expr_full for the simple case where a bound function
    cannot be returned. */
@@ -7605,6 +7612,385 @@ type itself.
   return result;
 }  /* lambda_closure_has_nondependent_call_type */
 
+#if BUILTIN_FUNCTIONS_ENABLED
+
+static void adjust_invoke_pointer_to_member_object(
+                                      an_operand  *object_operand,
+                                      a_type_ptr  member_class_type,
+                                      a_boolean   *selector_is_object_pointer)
+/*
+Adjust *object_operand, the object to which a pointer-to-member is applied by
+__builtin_invoke, following the rules of std::invoke ([func.require]).
+member_class_type is the class of which the pointer-to-member is a member.
+If the (decayed) type of *object_operand is that class or a class derived
+from it, the pointer-to-member is applied to the object directly.  Otherwise,
+if it is a std::reference_wrapper specialization, the object is replaced with
+the result of its get() member function.  Otherwise the object is dereferenced:
+a pointer selects the "->*" form (so *selector_is_object_pointer is set to
+TRUE), and any other type has its built-in or overloaded "*" operator applied.
+Whether the resulting object is suitable as the left operand of the selection
+is left for the caller to check when it forms the selection.
+*/
+{
+  a_type_ptr  obj_tp = remove_cvref(object_operand->type),
+              uobj_tp = skip_typerefs(obj_tp);
+
+  *selector_is_object_pointer = FALSE;
+  if (is_immediate_class_type(uobj_tp) &&
+      is_same_class_or_base_class_thereof(uobj_tp, member_class_type)) {
+    /* The object is the member's class or a class derived from it; the
+       pointer-to-member applies to it directly. */
+  } else if (is_std_class(uobj_tp, "reference_wrapper")) {
+    /* "Unwrap" a std::reference_wrapper operand by calling its "get()". */
+    call_named_member_function(object_operand, "get",
+                               (a_template_arg*)NULL,
+                               (an_arg_list_elem_ptr)NULL,
+                               object_operand, object_operand);
+  } else if (is_pointer_type(uobj_tp)) {
+    /* A pointer object selects through the "->*" form. */
+    conv_glvalue_to_prvalue(object_operand);
+    *selector_is_object_pointer = TRUE;
+  } else if (is_immediate_class_type(uobj_tp) ||
+             is_immediate_enum_type(uobj_tp)) {
+    /* A potentially pointer-like object: Select through "*object", applying
+       any user-defined indirection operator. */
+    a_source_position  star_position = object_operand->position;
+    a_boolean          processed = FALSE;
+    an_operand         deref_operand;
+    check_for_operator_overloading(onk_star, /*unary_operator=*/TRUE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   /*has_predef_meaning=*/FALSE,
+                                   object_operand, (an_operand*)NULL,
+                                   &star_position, curr_token_sequence_number,
+                                   (a_nondependent_call_depth)0,
+                                   (a_source_position*)NULL,
+                                   &deref_operand, &processed);
+    copy_operand(&deref_operand, object_operand);
+  }  /* if */
+}  /* adjust_invoke_pointer_to_member_object */
+
+
+static a_boolean adjust_builtin_call_arguments(
+                   a_builtin_call_adjustment  *bcap,
+                   a_routine_ptr              operand_routine,
+                   an_operand                 *bound_function_selector,
+                   a_source_position          *call_position,
+                   a_source_position          *closing_paren_position,
+                   an_operand                 **p_operand,
+                   an_arg_list_elem_ptr       *p_arg_list,
+                   an_expr_node_ptr           *p_argument_list,
+                   a_type_ptr                 *p_routine_type,
+                   a_routine_ptr              *p_routine,
+                   a_boolean                  *p_overloaded_function_case,
+                   a_symbol_ptr               *p_overloaded_function_symbol,
+                   a_boolean                  *p_unknown_dependent_function,
+                   a_boolean                  *p_try_surrogate_functions,
+                   a_boolean                  *p_has_overloaded_call_operator,
+                   an_arg_list_elem_ptr       *p_delay_free_arg_list_elem,
+                   an_operand                 *result)
+/*
+Adjust the arguments of a call of a predeclared builtin function that needs
+compiler "magic", as described by *bcap.  This handles __builtin_invoke
+(bcap->is_invoke) and builtins that supply an argument-checking callback
+(bcap->callback).  *p_operand is the function operand of the call, which may
+be replaced (e.g., by the selected member of an overload set); the remaining
+arguments are *p_arg_list, with the already-checked arguments in
+*p_argument_list.  The other p_* parameters hold the evolving state of the
+call (the routine and routine type being called, whether overload resolution
+is needed, etc.) and are updated in place.  operand_routine is the routine
+for the builtin operand itself, bound_function_selector receives any implied
+selector, and call_position and closing_paren_position give source positions
+for the call and its closing parenthesis.  The result is returned in *result
+when this routine fully handles the construct (in particular, the
+pointer-to-data-member form of __builtin_invoke, which is just a member
+selection rather than a call).  Return TRUE in that case, so that the caller
+stops processing the call; return FALSE when the caller should continue
+forming the call as usual.
+*/
+{
+  a_boolean             done = FALSE;
+  an_operand            *operand = *p_operand;
+  an_arg_list_elem_ptr  arg_list = *p_arg_list;
+  an_expr_node_ptr      argument_list = *p_argument_list;
+  a_type_ptr            routine_type = *p_routine_type;
+  a_routine_ptr         routine = *p_routine;
+  a_boolean             overloaded_function_case = *p_overloaded_function_case;
+  a_symbol_ptr          overloaded_function_symbol =
+                                              *p_overloaded_function_symbol;
+  a_boolean             unknown_dependent_function =
+                                              *p_unknown_dependent_function;
+  a_boolean             try_surrogate_functions = *p_try_surrogate_functions;
+  a_boolean             has_overloaded_call_operator =
+                                              *p_has_overloaded_call_operator;
+  an_arg_list_elem_ptr  delay_free_arg_list_elem = *p_delay_free_arg_list_elem;
+
+  if (bcap->is_invoke) {
+    /* Special handling for __builtin_invoke. */
+    an_operand_ptr  first_operand;
+    if (arg_list == NULL) {
+      expr_pos_error(ec_too_few_arguments, closing_paren_position);
+      make_error_operand(result);
+      done = TRUE;
+      goto write_back;
+    }  /* if */
+    check_arg_list_elem_is_expression(arg_list);
+    first_operand = operand_of_arg_list_elem(arg_list);
+    do_operand_transformations(first_operand,
+                               TOPT_WILL_CALL |
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+    if (first_operand->kind == ok_error) {
+      make_error_operand(result);
+      done = TRUE;
+      goto write_back;
+    } else if (is_template_dependent_type(first_operand->type)) {
+      /* Keep the call as an unknown dependent function call for a
+         type-dependent first operand. */
+      overloaded_function_case = FALSE;
+      unknown_dependent_function = TRUE;
+      routine_type = NULL;
+      prep_generic_operand(operand);
+      operand_routine->type->variant.routine.return_type =
+                                          type_of_unknown_templ_param_nontype;
+    } else {
+      an_arg_list_elem_ptr  first_arg = arg_list;
+      routine_type = NULL;
+      arg_list = arg_list->next;
+      if (is_class_struct_union_type(first_operand->type)) {
+        /* For a class-type operand, look for a function call operator. */
+        a_type_ptr    class_type = skip_typerefs(first_operand->type);
+        a_symbol_ptr  member_function_symbol;
+        complete_class_type_is_needed(class_type);
+        try_surrogate_functions = TRUE;
+        overloaded_function_case = TRUE;
+        operand = first_operand;
+        copy_operand(first_operand, bound_function_selector);
+        member_function_symbol = opname_member_function_symbol(
+                                               onk_function_call, class_type);
+        if (member_function_symbol != NULL) {
+          /* There is an operator() function.  The operand has become the
+             selector object, and the function call operator routine becomes
+             the operand.  We can use an indefinite function operand whether
+             the operator() is overloaded or not. */
+          has_overloaded_call_operator = TRUE;
+          make_indefinite_function_operand(member_function_symbol,
+                                           (a_symbol_locator*)NULL,
+                                           first_operand);
+          overloaded_function_symbol = member_function_symbol;
+          bind_member_function_operand_to_selector(
+                                         bound_function_selector,
+                                         /*selector_is_object_pointer=*/FALSE,
+                                         first_operand);
+        }  /* if */
+      } else {
+        /* We should have either a pointer or a pointer to member. */
+        a_boolean  mbr_pointer = is_ptr_to_member_type(first_operand->type);
+        if (mbr_pointer || is_pointer_type(first_operand->type)) {
+          overloaded_function_case = FALSE;
+          conv_glvalue_to_prvalue(first_operand);
+          if (mbr_pointer) {
+            routine_type = pm_member_type(first_operand->type);
+          } else {
+            routine_type = type_pointed_to(first_operand->type);
+          }  /* if */
+          if (!type_is(skip_typerefs(routine_type), tk_routine)) {
+            /* The "function" being invoked is not a (pointer-to-) function.
+               For a pointer to a data member, __builtin_invoke(pmd, obj)
+               denotes the member access obj.*pmd; anything else is an
+               error. */
+            if (!mbr_pointer) {
+              free_arg_list_elem(first_arg);
+              if (expr_error_should_be_issued()) {
+                pos_error(ec_expr_not_ptr_to_function,
+                          &first_operand->position);
+              }  /* if */
+              make_error_operand(result);
+              done = TRUE;
+              goto write_back;
+            }  /* if */
+            /* Pointer to data member.  The remaining arguments must consist
+               of exactly the object to which the pointer-to-member is
+               applied. */
+            { an_operand_ptr  object_operand;
+              if (arg_list == NULL) {
+                free_arg_list_elem(first_arg);
+                if (expr_error_should_be_issued()) {
+                  expr_pos_error(ec_too_few_arguments, closing_paren_position);
+                }  /* if */
+                make_error_operand(result);
+                done = TRUE;
+                goto write_back;
+              }  /* if */
+              object_operand = operand_of_arg_list_elem(arg_list);
+              if (is_template_dependent_type(object_operand->type)) {
+                /* A type-dependent object operand: Keep the construct as an
+                   unknown dependent function call. */
+                overloaded_function_case = FALSE;
+                unknown_dependent_function = TRUE;
+                routine_type = NULL;
+                prep_generic_operand(operand);
+                operand_routine->type->variant.routine.return_type =
+                                          type_of_unknown_templ_param_nontype;
+              } else if (arg_list->next != NULL) {
+                free_arg_list_elem(first_arg);
+                if (expr_error_should_be_issued()) {
+                  expr_pos_error(ec_too_many_arguments,
+                                 closing_paren_position);
+                }  /* if */
+                make_error_operand(result);
+                done = TRUE;
+                goto write_back;
+              } else {
+                /* Build the member access "obj.*pmd", adjusting the object
+                   operand the way std::invoke does. */
+                a_boolean   object_is_pointer;
+                an_operand  selector;
+                adjust_invoke_pointer_to_member_object(
+                                           object_operand,
+                                           pm_class_type(first_operand->type),
+                                           &object_is_pointer);
+                if (is_error_operand(object_operand)) {
+                  make_error_operand(result);
+                } else {
+                  /* The selector is unused: a data-member selection never
+                     produces a bound function. */
+                  combine_ptr_to_member_operands(object_operand, first_operand,
+                                                 object_is_pointer,
+                                                 call_position, result,
+                                                 &selector);
+                }  /* if */
+                set_operand_position(result, call_position,
+                                     closing_paren_position, call_position);
+                free_arg_list_elem(arg_list);
+                free_arg_list_elem(first_arg);
+                arg_list = NULL;
+                done = TRUE;
+                goto write_back;
+              }  /* if */
+            }
+          } else if (mbr_pointer) {
+            /* For a pointer to member, the second operand should be of class
+               type (or pointer to class type). */
+            an_operand_ptr  second_operand;
+            if (arg_list == NULL) {
+              free_arg_list_elem(first_arg);
+              if (expr_error_should_be_issued()) {
+                expr_pos_error(ec_too_few_arguments,
+                               closing_paren_position);
+              }  /* if */
+              make_error_operand(result);
+              done = TRUE;
+              goto write_back;
+            }  /* if */
+            second_operand = operand_of_arg_list_elem(arg_list);
+            if (!is_template_dependent_type(second_operand->type)) {
+              a_boolean   selector_is_object_pointer;
+              a_type_ptr  cls_type;
+              /* Adjust the object operand before freeing the
+                 pointer-to-member argument: a user-defined "*" operator
+                 applied while adjusting the object would otherwise reuse the
+                 just-freed argument slot still referenced by
+                 first_operand. */
+              adjust_invoke_pointer_to_member_object(
+                                           second_operand,
+                                           pm_class_type(first_operand->type),
+                                           &selector_is_object_pointer);
+              free_arg_list_elem(first_arg);
+              first_arg = arg_list;
+              cls_type = selector_is_object_pointer ?
+                                       type_pointed_to(second_operand->type) :
+                                       second_operand->type;
+              if (is_error_operand(second_operand)) {
+                make_error_operand(result);
+                done = TRUE;
+                goto write_back;
+              }  /* if */
+              if (!is_class_struct_union_type(cls_type)) {
+                if (expr_error_should_be_issued()) {
+                  expr_pos_ty_error(ec_expr_not_class,
+                                    &second_operand->position,
+                                    cls_type);
+                }  /* if */
+                make_error_operand(result);
+                done = TRUE;
+                goto write_back;
+              }  /* if */
+              copy_operand(second_operand, bound_function_selector);
+              bind_member_function_operand_to_selector(
+                                                   bound_function_selector,
+                                                   selector_is_object_pointer,
+                                                   first_operand);
+              arg_list = arg_list->next;
+              operand = first_operand;
+            } else {
+              overloaded_function_case = FALSE;
+              unknown_dependent_function = TRUE;
+              routine_type = NULL;
+              prep_generic_operand(operand);
+              operand_routine->type->variant.routine.return_type =
+                                          type_of_unknown_templ_param_nontype;
+            }  /* if */
+          } else {
+            operand = first_operand;
+          }  /* if */
+        } else {
+          free_arg_list_elem(first_arg);
+          if (expr_error_should_be_issued()) {
+            pos_error(ec_expr_not_ptr_to_function, &first_operand->position);
+          }  /* if */
+          make_error_operand(result);
+          done = TRUE;
+          goto write_back;
+        }  /* if */
+      }  /* if */
+      if (!unknown_dependent_function) {
+        delay_free_arg_list_elem = first_arg;
+      } else {
+        arg_list = first_arg;
+      }  /* if */
+    }  /* if */
+    if (!overloaded_function_case) {
+      /* In the non-overloaded case, check and transform the call arguments
+         based on the parameter list. */
+      an_arg_check_block  arg_block;
+      start_call_argument_processing(routine_type, NULL, &arg_block);
+      arg_block.closing_paren_position = *closing_paren_position;
+      process_call_argument_list(arg_list, &arg_block);
+      argument_list = arg_block.argument_head;
+      free_init_component_list(arg_list);
+      arg_list = NULL;
+    }  /* if */
+  } else if (bcap->callback != nullptr) {
+    /* Check and adjust the arguments for a call of a builtin function.  Also
+       determine the concrete routine being called, based on the argument
+       types. */
+    routine = bcap->callback(operand, arg_list, closing_paren_position, bcap,
+                             &argument_list);
+    if (routine == NULL) {
+      /* Something went wrong. */
+      expr_expect_error();
+      make_error_operand(result);
+      done = TRUE;
+      goto write_back;
+    }  /* if */
+    routine_type = routine->type;
+  }  /* if */
+write_back:
+  *p_operand = operand;
+  *p_arg_list = arg_list;
+  *p_argument_list = argument_list;
+  *p_routine_type = routine_type;
+  *p_routine = routine;
+  *p_overloaded_function_case = overloaded_function_case;
+  *p_overloaded_function_symbol = overloaded_function_symbol;
+  *p_unknown_dependent_function = unknown_dependent_function;
+  *p_try_surrogate_functions = try_surrogate_functions;
+  *p_has_overloaded_call_operator = has_overloaded_call_operator;
+  *p_delay_free_arg_list_elem = delay_free_arg_list_elem;
+  return done;
+}  /* adjust_builtin_call_arguments */
+
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 static void scan_function_call(an_operand             *operand,
                                an_operand             *bound_function_selector,
@@ -8346,180 +8732,21 @@ and bound_function_selector are expected to be NULL in that case.
   }  /* if */
   error_position = call_position;
 #if BUILTIN_FUNCTIONS_ENABLED
-  if (bcap != NULL) {
-    if (bcap->is_invoke) {
-      /* Special handling for __builtin_invoke. */
-      an_operand_ptr  first_operand;
-      if (arg_list == NULL) {
-        expr_pos_error(ec_too_few_arguments, &closing_paren_position);
-        make_error_operand(result);
-        goto done;
-      }  /* if */
-      check_arg_list_elem_is_expression(arg_list);
-      first_operand = operand_of_arg_list_elem(arg_list);
-      do_operand_transformations(first_operand,
-                                 TOPT_WILL_CALL |
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-      if (first_operand->kind == ok_error) {
-        make_error_operand(result);
-        goto done;
-      } else if (is_template_dependent_type(first_operand->type)) {
-        /* Keep the call as an unknown dependent function call for a
-           type-dependent first operand. */
-        overloaded_function_case = FALSE;
-        unknown_dependent_function = TRUE;
-        routine_type = NULL;
-        prep_generic_operand(operand);
-        operand_routine->type->variant.routine.return_type =
-                                           type_of_unknown_templ_param_nontype;
-      } else {
-        an_arg_list_elem_ptr  first_arg = arg_list;
-        routine_type = NULL;
-        arg_list = arg_list->next;
-        if (is_class_struct_union_type(first_operand->type)) {
-          /* For a class-type operand, look for a function call operator. */
-          a_type_ptr    class_type = skip_typerefs(first_operand->type);
-          a_symbol_ptr  member_function_symbol;
-          complete_class_type_is_needed(class_type);
-          try_surrogate_functions = TRUE;
-          overloaded_function_case = TRUE;
-          operand = first_operand;
-          copy_operand(first_operand, bound_function_selector);
-          member_function_symbol = opname_member_function_symbol(
-                                                             onk_function_call,
-                                                             class_type);
-          if (member_function_symbol != NULL) {
-            /* There is an operator() function.  The operand has become the
-               selector object, and the function call operator routine becomes
-               the operand.  We can use an indefinite function operand whether
-               the operator() is overloaded or not. */
-            has_overloaded_call_operator = TRUE;
-            make_indefinite_function_operand(member_function_symbol,
-                                             (a_symbol_locator*)NULL,
-                                             first_operand);
-            overloaded_function_symbol = member_function_symbol;
-            bind_member_function_operand_to_selector(
-                                          bound_function_selector,
-                                          /*selector_is_object_pointer=*/FALSE,
-                                          first_operand);
-          }  /* if */
-        } else {
-          /* We should have either a pointer or a pointer to member. */
-          a_boolean  mbr_pointer = is_ptr_to_member_type(first_operand->type);
-          if (mbr_pointer || is_pointer_type(first_operand->type)) {
-            overloaded_function_case = FALSE;
-            conv_glvalue_to_prvalue(first_operand);
-            if (mbr_pointer) {
-              routine_type = pm_member_type(first_operand->type);
-            } else {
-              routine_type = type_pointed_to(first_operand->type);
-            }  /* if */
-            if (skip_typerefs(routine_type)->kind != tk_routine) {
-              free_arg_list_elem(first_arg);
-              if (expr_error_should_be_issued()) {
-                pos_error(ec_expr_not_ptr_to_function,
-                          &first_operand->position);
-              }  /* if */
-              make_error_operand(result);
-              goto done;
-            }  /* if */
-            if (mbr_pointer) {
-              /* For a pointer to member, the second operand should be of class
-                 type (or pointer to class type). */
-              an_operand_ptr  second_operand;
-              if (arg_list == NULL) {
-                free_arg_list_elem(first_arg);
-                if (expr_error_should_be_issued()) {
-                  expr_pos_error(ec_too_few_arguments,
-                                 &closing_paren_position);
-                }  /* if */
-                make_error_operand(result);
-                goto done;
-              }  /* if */
-              second_operand = operand_of_arg_list_elem(arg_list);
-              if (!is_template_dependent_type(second_operand->type)) {
-                a_type_ptr  cls_type = second_operand->type;
-                free_arg_list_elem(first_arg);
-                first_arg = arg_list;
-                if (is_pointer_type(cls_type)) {
-                  cls_type = type_pointed_to(cls_type);
-                  conv_glvalue_to_prvalue(second_operand);
-                } else if (is_std_class(cls_type, "reference_wrapper")) {
-                  /* If we are applying the pointer-to-member to a
-                     std::reference_wrapper operand, "unwrap" the operand by
-                     calling its "get()" member function. */
-                  call_named_member_function(second_operand, "get",
-                                             (a_template_arg*)NULL,
-                                             (an_arg_list_elem_ptr)NULL,
-                                             second_operand, second_operand);
-                }  /* if */
-                if (!is_class_struct_union_type(cls_type)) {
-                  if (expr_error_should_be_issued()) {
-                    expr_pos_ty_error(ec_expr_not_class,
-                                      &second_operand->position,
-                                      cls_type);
-                  }  /* if */
-                  make_error_operand(result);
-                  goto done;
-                }  /* if */
-                copy_operand(second_operand, bound_function_selector);
-                bind_member_function_operand_to_selector(
-                                         bound_function_selector,
-                                         is_pointer_type(second_operand->type),
-                                         first_operand);
-                arg_list = arg_list->next;
-                operand = first_operand;
-              } else {
-                overloaded_function_case = FALSE;
-                unknown_dependent_function = TRUE;
-                routine_type = NULL;
-                prep_generic_operand(operand);
-                operand_routine->type->variant.routine.return_type =
-                                           type_of_unknown_templ_param_nontype;
-              }  /* if */
-            } else {
-              operand = first_operand;
-            }  /* if */
-          } else {
-            free_arg_list_elem(first_arg);
-            if (expr_error_should_be_issued()) {
-              pos_error(ec_expr_not_ptr_to_function, &first_operand->position);
-            }  /* if */
-            make_error_operand(result);
-            goto done;
-          }  /* if */
-        }  /* if */
-        if (!unknown_dependent_function) {
-          delay_free_arg_list_elem = first_arg;
-        } else {
-          arg_list = first_arg;
-        }  /* if */
-      }  /* if */
-      if (!overloaded_function_case) {
-        /* In the non-overloaded case, check and transform the call arguments
-           based on the parameter list. */
-        an_arg_check_block  arg_block;
-        start_call_argument_processing(routine_type, NULL, &arg_block);
-        arg_block.closing_paren_position = closing_paren_position;
-        process_call_argument_list(arg_list, &arg_block);
-        argument_list = arg_block.argument_head;
-        free_init_component_list(arg_list);
-        arg_list = NULL;
-      }  /* if */
-    } else if (bcap->callback != nullptr) {
-      /* Check and adjust the arguments for a call of a builtin function.  Also
-         determine the concrete routine being called, based on the argument
-         types. */
-      routine = bcap->callback(operand, arg_list, &closing_paren_position,
-                               bcap, &argument_list);
-      if (routine == NULL) {
-        /* Something went wrong. */
-        expr_expect_error();
-        make_error_operand(result);
-        goto done;
-      }  /* if */
-      routine_type = routine->type;
-    }  /* if */
+  if (bcap != NULL &&
+      adjust_builtin_call_arguments(bcap, operand_routine,
+                                    bound_function_selector,
+                                    &call_position, &closing_paren_position,
+                                    &operand, &arg_list, &argument_list,
+                                    &routine_type, &routine,
+                                    &overloaded_function_case,
+                                    &overloaded_function_symbol,
+                                    &unknown_dependent_function,
+                                    &try_surrogate_functions,
+                                    &has_overloaded_call_operator,
+                                    &delay_free_arg_list_elem, result)) {
+    /* The builtin was fully handled (e.g., the pointer-to-data-member form
+       of __builtin_invoke), or an error was detected. */
+    goto done;
   }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
@@ -11485,6 +11712,267 @@ done:
 }  /* scan_field_selection_operator */
 
 
+static void combine_ptr_to_member_operands(
+                                  an_operand         *opnd1,
+                                  an_operand         *opnd2,
+                                  a_boolean          is_arrow_operator,
+                                  a_source_position  *operator_position,
+                                  an_operand         *result,
+                                  an_operand         *bound_function_selector)
+/*
+Combine *opnd1 and the pointer-to-member *opnd2 into a pointer-to-member
+selection ("E1.*E2" if is_arrow_operator is FALSE and "E1->*E2" otherwise) and
+return an operand for the result in *result.  operator_position is the position
+of the selection operator, used for diagnostics.  When the result is a bound
+member function, return its selector in *bound_function_selector.  The operands
+are assumed not to be of (possibly) template-dependent type and not to involve
+operator overloading; those cases are handled by the caller.
+*/
+{
+  a_boolean         err = FALSE;
+  a_type_ptr        operand_1_type = NULL, qual_operand_1_type = NULL;
+  a_type_ptr        opnd2_type, qual_opnd2_type, opnd2_class, result_type;
+  a_base_class_ptr  bcp = NULL;
+  an_expr_node_ptr  select_node, object_node, pm_node;
+  a_boolean         ptr_to_data_member_case = FALSE;
+  a_boolean         result_is_a_glvalue = FALSE, result_is_an_xvalue = FALSE;
+
+  /* Do implicit operand transformations.  In the ".*" case, keep a glvalue if
+     we have one. */
+  do_operand_transformations(opnd1,
+                             is_arrow_operator ?
+                                   TOPT_NO_OPTIONS :
+                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+  /* Check the first operand type.  It must be (a pointer to) a class. */
+  if (is_error_operand(opnd1)) {
+    err = TRUE;
+    normalize_error_operand(opnd1);
+  } else {
+    if (is_arrow_operator) {
+      /* "->*" operator.  The first operand must be a pointer (except in
+         C++/CX mode, where it could be a handle). */
+      a_boolean  operand1_type_okay;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcx_enabled) {
+        operand1_type_okay = check_pointer_or_handle_operand(
+                                       opnd1, ec_expr_not_pointer_nor_handle);
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do no insert code here. */
+      {
+        operand1_type_okay = check_pointer_operand(
+                                    opnd1, ec_member_access_requires_pointer);
+      }  /* if */
+      if (operand1_type_okay) {
+        qual_operand_1_type = type_pointed_to(opnd1->type);
+        operand_1_type = skip_typerefs(qual_operand_1_type);
+      } else {
+        /* Not a pointer. */
+        err = TRUE;
+      }  /* if */
+    } else {
+      /* ".*" operator. */
+      qual_operand_1_type = opnd1->type;
+      operand_1_type = skip_typerefs(qual_operand_1_type);
+      if (cpp11_mode && !microsoft_mode && !gpp_version_is(<100000) &&
+          is_a_prvalue(opnd1) && is_immediate_class_type(operand_1_type)) {
+        conv_class_prvalue_operand_to_glvalue(opnd1, /*xvalue=*/TRUE);
+      }  /* if */
+      if (is_a_glvalue(opnd1)) {
+        using_lvalue(opnd1);
+      }  /* if */
+    }  /* if */
+    if (!err && !is_immediate_class_type(operand_1_type)) {
+      /* Not (a pointer to) a class. */
+      an_error_code err_code;
+      err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
+                                     ec_expr_not_class;
+      type_error_in_operand(err_code, opnd1, opnd1->type);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  /* The type of the second operand must be pointer to member. */
+  do_operand_transformations(opnd2, TOPT_NO_OPTIONS);
+  qual_opnd2_type = opnd2->type;
+  opnd2_type = skip_typerefs(qual_opnd2_type);
+  if (!type_is(opnd2_type, tk_ptr_to_member)) {
+    if (!type_is(opnd2_type, tk_error)) {
+      error_in_operand(ec_expr_not_ptr_to_member, opnd2);
+    }  /* if */
+    err = TRUE;
+  }  /* if */
+  if (!err) {
+    /* Check the combination of the operand types. */
+    /* The class underlying the second operand type must be the same as the
+       class of the first operand, or a base class thereof.  The check that
+       the derivation is unambiguous and accessible is done later. */
+    opnd2_class = pm_class_type(opnd2_type);
+    if (same_entities(operand_1_type, opnd2_class)) {
+      /* Same class. */
+      bcp = NULL;
+    } else if ((bcp = find_base_class_of(operand_1_type,
+                                         opnd2_class)) != NULL) {
+      /* Related classes. */
+    } else {
+      /* Bad combination. */
+      expr_pos_ty2_error(ec_incompatible_ptr_to_member_selection_operands,
+                         operator_position, operand_1_type, opnd2_class);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    /* Check for invalid combinations with C++11 ref-qualifiers. */
+    a_type_ptr member_type = pm_member_type(opnd2_type);
+    member_type = skip_typerefs(member_type);
+    if (type_is(member_type, tk_routine)) {
+      a_ref_qualifier_kind ref_qual = enum_cast<a_ref_qualifier_kind>(
+                                 rout_type_supp(member_type)->ref_qualifiers);
+      if (ref_qual == rqk_rvalue) {
+        if (is_arrow_operator || is_an_lvalue(opnd1)) {
+          err = TRUE;
+          if (expr_error_should_be_issued()) {
+            pos_ty_error(ec_pm_call_obj_not_rvalue, operator_position,
+                         opnd2_type);
+          }  /* if */
+        }  /* if */
+      } else if (ref_qual == rqk_lvalue) {
+        if (!is_arrow_operator && is_an_rvalue(opnd1) &&
+            !(rvalue_allowed_with_const_qual_memptr &&
+              rout_type_supp(member_type)->qualifiers == TQ_CONST)) {
+          err = TRUE;
+          if (expr_error_should_be_issued()) {
+            pos_ty_error(ec_pm_call_obj_not_lvalue, operator_position,
+                         opnd2_type);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    } else {
+      ptr_to_data_member_case = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    /* Some error. */
+    make_error_operand(result);
+    operand_will_not_be_used_because_of_error(opnd1);
+    operand_will_not_be_used_because_of_error(opnd2);
+  } else {
+    /* The operands are compatible.  Determine the value category of the
+       result.  C++03 had this to say:
+         "The result of a .* expression is an lvalue only if its first
+          operand is an lvalue and its second operand is a pointer to
+          data member. The result of an ->* expression is an lvalue only
+          if its second operand is a pointer to data member."
+       C++11 changed that significantly:
+         "The result of a .* expression whose second operand is a pointer
+          to a data member is of the same value category (3.10) as its
+          first operand. The result of a .* expression whose second
+          operand is a pointer to a member function is a prvalue."
+       And C++14 revised it again (via the resolution to Core issue 616):
+         "The result of a .* expression whose second operand is a pointer
+          to a data member is an lvalue if the first operand is an lvalue
+          and an xvalue otherwise. The result of a .* expression whose
+          second operand is a pointer to a member function is a prvalue."
+       (In C++11 and C++14, "E1->*E2" is by definition "(*(E1)).*E2".) */
+    if (selection_from_prvalue_is_xvalue && !microsoft_mode) {
+      if (ptr_to_data_member_case) {
+        result_is_a_glvalue = TRUE;
+        result_is_an_xvalue = !is_arrow_operator && !is_an_lvalue(opnd1);
+      }  /* if */
+    } else if (cpp11_mode && !microsoft_mode) {
+      if (ptr_to_data_member_case) {
+        if (is_arrow_operator || is_an_lvalue(opnd1)) {
+          result_is_a_glvalue = TRUE;
+        } else if (is_an_xvalue(opnd1)) {
+          result_is_a_glvalue = TRUE;
+          result_is_an_xvalue = TRUE;
+        }  /* if */
+      }  /* if */
+    } else {
+      if (is_arrow_operator ||
+          (is_an_lvalue(opnd1) || is_error_operand(opnd1))) {
+        /* The result is an lvalue if the operator is "->*" or if the
+           first operand is an lvalue (or might be, if an error). */
+        result_is_a_glvalue = TRUE;
+      } else if (any_cfront_mode() || ms_version_is(<1900)) {
+        /* ARM rules: the result is always an lvalue and that doesn't
+           depend on the value category of the left operand. */
+        /* Also the case for MSVC up to 18.x. */
+        result_is_a_glvalue = TRUE;
+        /* Force the "->*" form to get an lvalue result. */
+        conv_selector_to_object_pointer(opnd1, &is_arrow_operator);
+      } else if (is_an_xvalue(opnd1)) {
+        /* xvalue.*pm produces an xvalue result. */
+        result_is_a_glvalue = TRUE;
+        result_is_an_xvalue = TRUE;
+      } else {
+        /* prvalue.*pm, result is a prvalue. */
+        result_is_a_glvalue = FALSE;
+      }  /* if */
+    }  /* if */
+    /* Cast the left operand to a base class if necessary.  This does the
+       ambiguity and accessibility checking. */
+    if (bcp != NULL) {
+      base_class_cast_operand(opnd1, bcp, (a_type_ptr)NULL,
+                              /*check_cast_access=*/TRUE,
+                              /*allow_ambiguity=*/FALSE,
+                              /*is_implicit_cast=*/TRUE,
+                              /*implicit_in_naming=*/FALSE,
+                              /*is_object_pointer=*/TRUE);
+    }  /* if */
+    /* Determine the result type, which is roughly the member type pointed
+       to by the second operand. */
+    result_type = make_pm_selection_type(qual_operand_1_type, opnd2_type);
+    if (is_function_type(result_type)) {
+      /* Result is a bound function.  It can only be called or (as an
+         anachronism) cast to a normal function pointer. */
+      copy_operand(opnd2, result);
+      /* Clear the reference list for the second operand, because
+         if any pointers-to-members are in there we don't want to change
+         the references from address-taken to reference on a call. */
+      result->ref_entries_list = NULL;
+      copy_operand(opnd1, bound_function_selector);
+      bind_member_function_operand_to_selector(bound_function_selector,
+                                               is_arrow_operator, result);
+    } else {
+      /* Result is a data member. */
+      /* Use an eok_pm_field node with the pointer to object and
+         pointer-to-member as the operands. */
+      object_node = make_node_from_operand(opnd1);
+      pm_node = make_node_from_operand(opnd2);
+      object_node->next = pm_node;
+      select_node = make_operator_node(
+                           is_arrow_operator ? eok_pm_points_to_field :
+                                               eok_pm_field,
+                           result_type, object_node);
+      if (strict_cpp17_eval_order) {
+        select_node->variant.operation.eval_left_to_right = TRUE;
+      }  /* if */
+      make_expression_operand(select_node, result);
+      if (result_is_a_glvalue) {
+        /* The result is a glvalue. */
+        select_node->is_lvalue = TRUE;
+        set_glvalue_operand_state(result);
+        /* Keep the references from the first operand. */
+        result->ref_entries_list = opnd1->ref_entries_list;
+        if (result_is_an_xvalue) {
+          conv_rvalue_reference_result_to_xvalue(result);
+        }  /* if */
+      } else {
+        /* A prvalue result.  The type must be complete. */
+        complete_type_is_needed(result_type);
+        if (is_incomplete_type(result_type)) {
+          expr_issue_incomplete_type_diag(operator_position, result_type);
+          conv_to_error_operand(result);
+          result_type = result->type;
+        }  /* if */
+      }  /* if */
+      /* There shouldn't be any pointers to members to references. */
+      check_assertion(!is_any_reference_type(result_type));
+    }  /* if */
+  }  /* if */
+}  /* combine_ptr_to_member_operands */
+
+
 static void scan_ptr_to_member_operator(
                                an_operand             *operand_1,
                                a_rescan_control_block *rcblock,
@@ -11514,18 +12002,10 @@ the selection, not an operator token for the call.
   a_token_kind      operator_token;
   a_boolean         is_arrow_operator;
   a_boolean         err = FALSE, processed = FALSE;
-  a_type_ptr        operand_1_type = NULL, qual_operand_1_type = NULL;
-  a_type_ptr        operand_2_type, qual_operand_2_type;
-  a_type_ptr        operand_2_class, result_type;
   an_operand        local_operand_1, operand_2;
   a_source_position operator_position;
   a_token_sequence_number
                     operator_tok_seq_number;
-  a_base_class_ptr  bcp = NULL;
-  an_expr_node_ptr  select_node, object_node, pm_node;
-  a_boolean         ptr_to_data_member_case = FALSE;
-  a_boolean         result_is_a_glvalue = FALSE;
-  a_boolean         result_is_an_xvalue = FALSE;
 
   db_enter(4, "scan_ptr_to_member_operator");
 
@@ -11646,251 +12126,11 @@ the selection, not an operator token for the call.
                                      result, &processed);
     }  /* if */
     if (!processed) {
-      /* Non-operator-function cases. */
-      /* Do implicit operand transformations.  In the ".*" case, keep a
-         glvalue if we have one. */
-      do_operand_transformations(operand_1,
-                                 is_arrow_operator ?
-                                    TOPT_NO_OPTIONS :
-                                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-      /* Check the first operand type.  It must be (a pointer to) a class. */
-      if (is_error_operand(operand_1)) {
-        err = TRUE;
-        normalize_error_operand(operand_1);
-      } else {
-        if (is_arrow_operator) {
-          /* "->*" operator.  The first operand must be a pointer (except in
-             C++/CX mode, where it could be a handle). */
-          a_boolean  operand1_type_okay;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcx_enabled) {
-            operand1_type_okay = check_pointer_or_handle_operand(
-                                   operand_1, ec_expr_not_pointer_nor_handle);
-          } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          /* Do no insert code here. */
-          {
-            operand1_type_okay = check_pointer_operand(
-                                           operand_1,
-                                           ec_member_access_requires_pointer);
-          }  /* if */
-          if (operand1_type_okay) {
-            qual_operand_1_type = type_pointed_to(operand_1->type);
-            operand_1_type = skip_typerefs(qual_operand_1_type);
-          } else {
-            /* Not a pointer. */
-            err = TRUE;
-          }  /* if */
-        } else {
-          /* ".*" operator. */
-          qual_operand_1_type = operand_1->type;
-          operand_1_type = skip_typerefs(qual_operand_1_type);
-          if (cpp11_mode && !microsoft_mode && !gpp_version_is(<100000) &&
-              is_a_prvalue(operand_1) &&
-              is_immediate_class_type(operand_1_type)) {
-            conv_class_prvalue_operand_to_glvalue(operand_1, /*xvalue=*/TRUE);
-          }  /* if */
-          if (is_a_glvalue(operand_1)) using_lvalue(operand_1);
-        }  /* if */
-        if (!err) {
-          /* Drop any qualifiers or typedefs on the underlying first operand
-             type and see if it is a class. */
-          if (!is_immediate_class_type(operand_1_type)) {
-            /* Not (a pointer to) a class. */
-            an_error_code err_code;
-            err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
-                                           ec_expr_not_class;
-            type_error_in_operand(err_code, operand_1, operand_1->type);
-            err = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      /* The type of the second operand must be pointer to member. */
-      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-      qual_operand_2_type = operand_2.type;
-      operand_2_type = skip_typerefs(qual_operand_2_type);
-      if (!is_ptr_to_member_type(operand_2_type)) {
-        if (!is_error_type(operand_2_type)) {
-          error_in_operand(ec_expr_not_ptr_to_member, &operand_2);
-        }  /* if */
-        err = TRUE;
-      }  /* if */
-      if (!err) {
-        /* Check the combination of the operand types. */
-        /* The class underlying the second operand type must be the same as
-           the class of the first operand, or a base class thereof.  The check
-           that the derivation is unambiguous and accessible is done later. */
-        operand_2_class = pm_class_type(operand_2_type);
-        if (same_entities(operand_1_type, operand_2_class)) {
-          /* Same class. */
-          bcp = NULL;
-        } else if ((bcp = find_base_class_of(operand_1_type,
-                                             operand_2_class)) != NULL) {
-          /* Related classes. */
-        } else {
-          /* Bad combination. */
-          expr_pos_ty2_error(ec_incompatible_ptr_to_member_selection_operands,
-                             &operator_position,
-                             operand_1_type, operand_2_class);
-          err = TRUE;
-        }  /* if */
-      }  /* if */
-      if (!err) {
-        /* Check for invalid combinations with C++11 ref-qualifiers. */
-        a_type_ptr member_type = pm_member_type(operand_2_type);
-        member_type = skip_typerefs(member_type);
-        if (is_function_type(member_type)) {
-          a_ref_qualifier_kind ref_qual = enum_cast<a_ref_qualifier_kind>(
-                      member_type->variant.routine.extra_info->ref_qualifiers);
-          if (ref_qual == (a_ref_qualifier_kind)rqk_rvalue) {
-            if (is_arrow_operator || is_an_lvalue(operand_1)) {
-              err = TRUE;
-              if (expr_error_should_be_issued()) {
-                pos_ty_error(ec_pm_call_obj_not_rvalue, &operator_position,
-                             operand_2_type);
-              }  /* if */
-            }  /* if */
-          } else if (ref_qual == (a_ref_qualifier_kind)rqk_lvalue) {
-            if (!is_arrow_operator && is_an_rvalue(operand_1) &&
-                !(rvalue_allowed_with_const_qual_memptr &&
-                  member_type->variant.routine.extra_info->
-                                                     qualifiers == TQ_CONST)) {
-              err = TRUE;
-              if (expr_error_should_be_issued()) {
-                pos_ty_error(ec_pm_call_obj_not_lvalue, &operator_position,
-                             operand_2_type);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        } else {
-          ptr_to_data_member_case = TRUE;
-        }  /* if */
-      }  /* if */
-      if (err) {
-        /* Some error. */
-        make_error_operand(result);
-        operand_will_not_be_used_because_of_error(operand_1);
-        operand_will_not_be_used_because_of_error(&operand_2);
-      } else {
-        /* The operands are compatible.  Determine the value category of the
-           result.  C++03 had this to say:
-             "The result of a .* expression is an lvalue only if its first
-              operand is an lvalue and its second operand is a pointer to
-              data member. The result of an ->* expression is an lvalue only
-              if its second operand is a pointer to data member."
-           C++11 changed that significantly:
-             "The result of a .* expression whose second operand is a pointer
-              to a data member is of the same value category (3.10) as its
-              first operand. The result of a .* expression whose second
-              operand is a pointer to a member function is a prvalue."
-           And C++14 revised it again (via the resolution to Core issue 616):
-             "The result of a .* expression whose second operand is a pointer
-              to a data member is an lvalue if the first operand is an lvalue
-              and an xvalue otherwise. The result of a .* expression whose
-              second operand is a pointer to a member function is a prvalue."
-           (In C++11 and C++14, "E1->*E2" is by definition "(*(E1)).*E2".) */
-        if (selection_from_prvalue_is_xvalue && !microsoft_mode) {
-          if (ptr_to_data_member_case) {
-            result_is_a_glvalue = TRUE;
-            result_is_an_xvalue = !is_arrow_operator &&
-                                  !is_an_lvalue(operand_1);
-          }  /* if */
-        } else if (cpp11_mode && !microsoft_mode) {
-          if (ptr_to_data_member_case) {
-            if (is_arrow_operator || is_an_lvalue(operand_1)) {
-              result_is_a_glvalue = TRUE;
-            } else if (is_an_xvalue(operand_1)) {
-              result_is_a_glvalue = TRUE;
-              result_is_an_xvalue = TRUE;
-            }  /* if */
-          }  /* if */
-        } else {
-          if (is_arrow_operator ||
-              (is_an_lvalue(operand_1) || is_error_operand(operand_1))) {
-            /* The result is an lvalue if the operator is "->*" or if the
-               first operand is an lvalue (or might be, if an error). */
-            result_is_a_glvalue = TRUE;
-          } else if (any_cfront_mode() || ms_version_is(<1900)) {
-            /* ARM rules: the result is always an lvalue and that doesn't
-               depend on the value category of the left operand. */
-            /* Also the case for MSVC up to 18.x. */
-            result_is_a_glvalue = TRUE;
-            /* Force the "->*" form to get an lvalue result. */
-            conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
-          } else if (is_an_xvalue(operand_1)) {
-            /* xvalue.*pm produces an xvalue result. */
-            result_is_a_glvalue = TRUE;
-            result_is_an_xvalue = TRUE;
-          } else {
-            /* prvalue.*pm, result is a prvalue. */
-            result_is_a_glvalue = FALSE;
-          }  /* if */
-        }  /* if */
-        /* Cast the left operand to a base class if necessary.  This does the
-           ambiguity and accessibility checking. */
-        if (bcp != NULL) {
-          base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
-                                  /*check_cast_access=*/TRUE,
-                                  /*allow_ambiguity=*/FALSE,
-                                  /*is_implicit_cast=*/TRUE,
-                                  /*implicit_in_naming=*/FALSE,
-                                  /*is_object_pointer=*/TRUE);
-        }  /* if */
-        /* Determine the result type, which is roughly the member type pointed
-           to by the second operand. */
-        result_type = make_pm_selection_type(qual_operand_1_type,
-                                             operand_2_type);
-        if (is_function_type(result_type)) {
-          /* Result is a bound function.  It can only be called or (as an
-             anachronism) cast to a normal function pointer. */
-          copy_operand(&operand_2, result);
-          /* Clear the reference list for the second operand, because
-             if any pointers-to-members are in there we don't want to change
-             the references from address-taken to reference on a call. */
-          result->ref_entries_list = NULL;
-          copy_operand(operand_1, bound_function_selector);
-          bind_member_function_operand_to_selector(bound_function_selector,
-                                                   is_arrow_operator,
-                                                   result);
-        } else {
-          /* Result is a data member. */
-          /* Use an eok_pm_field node with the pointer to object and
-             pointer-to-member as the operands. */
-          object_node = make_node_from_operand(operand_1);
-          pm_node = make_node_from_operand(&operand_2);
-          object_node->next = pm_node;
-          select_node = make_operator_node(
-                               is_arrow_operator ?
-                                 (an_expr_operator_kind)eok_pm_points_to_field:
-                                 (an_expr_operator_kind)eok_pm_field,
-                               result_type,
-                               object_node);
-          if (strict_cpp17_eval_order) {
-            select_node->variant.operation.eval_left_to_right = TRUE;
-          }  /* if */
-          make_expression_operand(select_node, result);
-          if (result_is_a_glvalue) {
-            /* The result is a glvalue. */
-            select_node->is_lvalue = TRUE;
-            set_glvalue_operand_state(result);
-            /* Keep the references from the first operand. */
-            result->ref_entries_list = operand_1->ref_entries_list;
-            if (result_is_an_xvalue) {
-              conv_rvalue_reference_result_to_xvalue(result);
-            }  /* if */
-          } else {
-            /* A prvalue result.  The type must be complete. */
-            complete_type_is_needed(result_type);
-            if (is_incomplete_type(result_type)) {
-              expr_issue_incomplete_type_diag(&operator_position, result_type);
-              conv_to_error_operand(result);
-              result_type = result->type;
-            }  /* if */
-          }  /* if */
-          /* There shouldn't be any pointers to members to references. */
-          check_assertion(!is_any_reference_type(result_type));
-        }  /* if */
-      }  /* if */
+      /* Non-operator-function cases.  Combine the operands into the
+         pointer-to-member selection. */
+      combine_ptr_to_member_operands(operand_1, &operand_2,
+                                     is_arrow_operator, &operator_position,
+                                     result, bound_function_selector);
     }  /* if */
   }  /* if */
   /* The position of the operand is the position of the selection
