@@ -768,11 +768,9 @@ and before the back end (if any) is executed.
     /* For each translation unit, generate any instantiations that are
        needed, and determine which inline functions require definitions. */
     template_and_inline_entity_wrapup();
-#if DEBUG
-    if (db_flag_is_set("top_templates")) {
-      db_show_top_templates(100);
+    if (collect_top_templates) {
+      show_top_templates(top_templates_count);
     }  /* if */
-#endif /* DEBUG */
   }  /* if */
 #if CHECKING && DEBUG
   check_all_init_component_entries_freed();

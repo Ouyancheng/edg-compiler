@@ -1,5 +1,15 @@
 Version 6.9
 
+6/16/26  [EDGcpfe/28571]
+Command-line option --top_templates=N
+
+The front end now supports a command-line option --top_templates=N that reports
+the templates that were substituted the most.  N specifies how many templates
+to report; if N is zero, every template with a nonzero number of substitutions
+is reported.  The data needed for the report is collected only when the option
+is specified.
+
+
 12/2/25  [EDGcpfe/28575]
 Regression in concept subsumption
 
@@ -3405,13 +3415,6 @@ Consider, in GNU C++11 mode:
 
 The front end previously failed to apply the expanded attribute to the instance
 of g.  That is now fixed.
-
-
-12/1/25  [EDGcpfe/28571]
-DEBUG option -d-top_templates
-
-In configurations with DEBUG set to TRUE, the front end now supports an option
--d-top_templates to report the templates with the most instances.
 
 
 12/1/25  [EDGcpfe/28569]

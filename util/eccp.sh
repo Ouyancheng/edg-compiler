@@ -1269,6 +1269,7 @@ check_abbreviation()
 --thread_local_storage
 --time_limit
 --timing
+--top_templates
 --trace_includes
 --trans_unit_test_mode
 --trigraphs
@@ -2042,6 +2043,7 @@ process_option()
          --sys_include | \
          --template_directory | \
          --time_limit | \
+         --top_templates | \
          --incl_suffixes | \
          --db_alloc_seq | \
          --db_name | \
@@ -2167,6 +2169,7 @@ process_option()
           --sys_include=* | \
           --template_directory=* | \
           --time_limit=* | \
+          --top_templates=* | \
           --incl_suffixes=* | \
           --db_alloc_seq=* | \
           --db_name=* | \

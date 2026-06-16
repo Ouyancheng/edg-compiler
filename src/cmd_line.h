@@ -286,6 +286,7 @@ enum an_option_kind {
   optk_type_traits_helpers,
   optk_cpp11_mode,
   optk_list_macros,
+  optk_top_templates,
 #if DUMP_CONFIG_ENABLED
   optk_dump_configuration,
   optk_dump_legacy_as_target,

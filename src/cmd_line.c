@@ -1516,6 +1516,8 @@ Initialize the option information table.
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
+  add_option_description(optk_top_templates, "top_templates", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE, pchek_none);
 #if DUMP_CONFIG_ENABLED
   add_option_description(optk_dump_configuration, "dump_configuration",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2422,6 +2424,7 @@ STATIC_THREAD a_flag_name
   { "skip_il_read", &skip_il_read },
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   { "extended_float_types", &extended_float_types },
+  { "use_predefined_macro_file", &use_predefined_macro_file },
   { NULL, NULL }  /* must be last */
 };
 
@@ -11868,6 +11871,13 @@ enable_microsoft_mode:
         generate_pp_output = FALSE;
         list_macro_definitions = TRUE;
         break;
+      case optk_top_templates:
+        /* Request a report of the most-substituted templates.  The argument
+           is the number of templates to report; zero means report every
+           template that has a nonzero number of substitutions. */
+        scan_opt_arg_number(&top_templates_count, opt_arg);
+        collect_top_templates = TRUE;
+        break;
 #if DUMP_CONFIG_ENABLED
       case optk_dump_configuration:
         /* Display the values of all configuration macros with which this
@@ -13070,6 +13080,8 @@ variables declared in cmd_line.h.
   list_included_files = FALSE;
   list_makefile_dependencies = FALSE;
   list_macro_definitions = FALSE;
+  collect_top_templates = FALSE;
+  top_templates_count = 0;
   f_raw_listing = NULL;
   f_xref_info = NULL;
   suppress_back_end = FALSE;

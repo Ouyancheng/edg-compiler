@@ -3656,6 +3656,9 @@ ec_unsigned_bitint_width_too_small;;"unsigned _BitInt(%d1) is invalid; the minim
 ec_bitint_enum_base_not_allowed;;"_BitInt types cannot be the underlying type of an enumeration type"
 ec_deduction_guide_redeclaration;;"redeclaration of deduction guide %t (previous declaration %p)"
 ec_create_pch_file_not_created;;"precompiled header file %sq was not created"
+ec_top_templates_instances;INTERNAL;" instances ("
+ec_top_templates_defs_of;INTERNAL;" defs) of "
+ec_top_templates_unknown;INTERNAL;"<unknown>"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

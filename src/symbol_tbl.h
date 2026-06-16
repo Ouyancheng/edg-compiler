@@ -7711,11 +7711,25 @@ extern void form_symbol_name(a_symbol_ptr                          sym,
                              an_il_to_str_output_control_block_ptr octl);
 
 
+EXTERN_THREAD a_boolean
+		collect_top_templates;
+			/* When TRUE (set by the --top_templates option),
+			   templated entities are recorded as they are
+			   created so that show_top_templates can later
+			   report the most-substituted templates. */
+EXTERN_THREAD unsigned
+		top_templates_count;
+			/* The number of templates to report (the "N" of
+			   --top_templates=N).  When zero, every template with
+			   a nonzero number of substitutions is reported. */
+
+/* Report the most-substituted templates to the error output file.  See
+   show_top_templates in symbol_tbl.c for details. */
+extern void show_top_templates(unsigned  n);
+
 #if DEBUG
 /* Show and return the amount of memory used by symbol table entries. */
 extern unsigned long show_symbol_space_used(void);
-
-extern void db_show_top_templates(unsigned  n);
 
 /* Display a symbol table entry. */
 extern void db_symbol(a_symbol_ptr sym,

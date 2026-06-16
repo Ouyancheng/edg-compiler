@@ -157,6 +157,7 @@ STATIC_THREAD unsigned long
 		num_constexpr_if_cache_info_allocated,
 		num_exception_spec_error_descrs_allocated;
 
+#endif /* DEBUG */
 
 /*
 A structure recording instance counts for templates.
@@ -178,11 +179,9 @@ struct an_inst_count {
 STATIC_THREAD Dyn_array<an_inst_count>
 		 *inst_counters;
 			/* A dynamic array used to collect all templated
-			   entities in DEBUG configurations, and later used
-			   to potentially determine the most-used templates
-			   (with the "-d-top_templates" debug option). */
-
-#endif /* DEBUG */
+			   entities when the --top_templates option is in
+			   effect, later used to determine the most-used
+			   templates. */
 
 STATIC_THREAD a_namespace_list_entry_ptr
 		global_namespace_list_entry;
@@ -3882,10 +3881,12 @@ and return a pointer to it.
       unexpected_condition_str(
                           "alloc_template_symbol_supplement: bad symbol kind");
   }  /* switch */
-#if DEBUG
-  /* Record the supplement for convenient survey by -d-top_templates. */
-  inst_counters->push_back(an_inst_count{ kind, tssp, 0, 0 });
-#endif /* DEBUG */
+  if (collect_top_templates) {
+    /* Record the supplement for the --top_templates report.  This is done
+       only when the option is in effect to avoid growing inst_counters
+       needlessly. */
+    inst_counters->push_back(an_inst_count{ kind, tssp, 0, 0 });
+  }  /* if */
   db_exit();
   return tssp;
 }  /* alloc_template_symbol_supplement */
@@ -18715,17 +18716,23 @@ for space tracking purposes.
 }  /* show_symbol_space_used */
 
 
-void db_show_top_templates(unsigned  n)
+#endif /* DEBUG */
+
+
+void show_top_templates(unsigned  n)
 /*
-For every template recorded in inst_counters, count the number of instances
-that were created for it (and the number of instances that are definitions).
-Output the top-n templates and associated counts to f_debug.
+For every template recorded in inst_counters (which is populated only when the
+--top_templates option is in effect), count the number of instances that were
+created for it, and the number of those instances that are definitions.  The
+templates are sorted by descending instance count and the top n are written,
+with their counts, to the error output file.  When n is zero, every template
+that has a nonzero instance count is reported.
 */
 {
-  unsigned N = (unsigned)inst_counters->length();
+  unsigned  total = (unsigned)inst_counters->length();
+  unsigned  limit = (n == 0) ? total : min_val(total, n);
 
-  n = min_val(N, n);
-  for (unsigned k = 0; k<N; ++k) {
+  for (unsigned k = 0; k<total; ++k) {
     a_symbol_list_entry_ptr  slep = NULL;
     a_template_instance_ptr  tip = NULL;
     an_inst_count            &inst = (*inst_counters)[k];
@@ -18761,25 +18768,51 @@ Output the top-n templates and associated counts to f_debug.
        [](an_inst_count const &x, an_inst_count const &y) {
          return  x.count > y.count;
        });
-  for (unsigned k = 0; k<(unsigned)n; ++k) {
+  for (unsigned k = 0; k<limit; ++k) {
     an_inst_count  &inst = (*inst_counters)[k];
     a_template     *templ = inst.tssp->il_template_entry;
     if (inst.count == 0) break;
-    fprintf(f_debug, "%6lu instances (%6lu defs) of ",
-            inst.count, inst.defined);
+    /* The localized fragments supply the words surrounding the counts; the
+       template name itself is source text and is not localized. */
+    fprintf(f_error, "%6lu%s%6lu%s",
+            inst.count, error_text(ec_top_templates_instances),
+            inst.defined, error_text(ec_top_templates_defs_of));
     if (templ != NULL && symbol_for(templ) != NULL) {
-      db_symbol_name(symbol_for(templ));
+      an_il_to_str_output_control_block octl;
+      clear_il_to_str_output_control_block(&octl);
+      octl.output_str = put_str_to_temp_text_buffer_octl;
+      pos_in_temp_text_buffer = 0;
+      form_symbol_name(symbol_for(templ), &octl);
+      put_ch_to_temp_text_buffer('\0');
+      fprintf(f_error, "%s", temp_text_buffer);
     } else if (unmangled_name_of(&templ->source_corresp) != NULL) {
-      fprintf(f_debug, "%s",
+      fprintf(f_error, "%s",
               unmangled_name_of(&templ->source_corresp));
     } else {
-      fprintf(f_debug, "<unknown>");
+      fprintf(f_error, "%s", error_text(ec_top_templates_unknown));
     }  /* if */
-    fprintf(f_debug, "\n");
+    if (templ != NULL && templ->source_corresp.decl_position.seq > 0) {
+      /* Append the declaration location so that templates with the same
+         name (for instance overloaded function templates) can be told
+         apart. */
+      a_const_char  *file_name;
+      a_const_char  *full_name;
+      a_line_number line_number;
+      a_boolean     at_end_of_source;
+      (void)conv_seq_to_file_and_line(templ->source_corresp.decl_position.seq,
+                                      &file_name, &full_name, &line_number,
+                                      &at_end_of_source);
+      if (!at_end_of_source) {
+        /* The localized fragments supply the words; the file name is source
+           text and is not localized. */
+        fprintf(f_error, " (%s%lu%s%s)",
+                error_text(ec_at_line), (unsigned long)line_number,
+                error_text(ec_of), file_name);
+      }  /* if */
+    }  /* if */
+    fprintf(f_error, "\n");
   }  /* for */
-}  /* db_show_top_templates */
-
-#endif /* DEBUG */
+}  /* show_top_templates */
 
 
 /*
@@ -19783,8 +19816,8 @@ are handled in symbol_tbl_init.)
                          num_prop_or_event_accessor_header_lookups_allocated),
       pch_saved_var_array_elem(num_ms_attr_alt_name_entries_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      pch_saved_var_array_elem(inst_counters),
 #endif /* if DEBUG */
+      pch_saved_var_array_elem(inst_counters),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -20013,9 +20046,9 @@ of the front end.
                                                 = 0;
   num_ms_attr_alt_name_entries_allocated        = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* DEBUG */
   inst_counters = alloc_fe_of_type(Dyn_array<an_inst_count>);
   construct(inst_counters, /*cap=*/256u);
-#endif /* DEBUG */
   init_intrinsic_symbol_headers();
 }  /* symbol_tbl_init */
 
