@@ -25491,7 +25491,7 @@ struct a_charted_constraint {
   uint32_t	parent_op;
 			/* The 1-based index of the parent CK_AND or CK_OR
 			   entry (or 0 if none). */
-  inline a_boolean no_link() const { return this->link == (1<<30)-1; }
+  inline a_boolean no_link() const { return this->link == 0; }
 			/* Convenience function to test the absence of a
 			   parent entry. */
   union {
