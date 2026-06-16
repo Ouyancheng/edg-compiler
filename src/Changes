@@ -1,5 +1,13 @@
 Version 6.9
 
+12/2/25  [EDGcpfe/28575]
+Regression in concept subsumption
+
+The changes for EDGcpfe/28019 (in version 6.8) were incomplete in a way that
+theoretically could trigger aborts, but none were observed.  The missing change
+is now applied.
+
+
 6/16/26  [EDGcpfe/28886]
 Implicit "typename" on friend declaration in template
 
