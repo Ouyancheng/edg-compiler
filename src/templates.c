@@ -20324,9 +20324,8 @@ to an entry used to record detailed source position information.
   if (is_member_decl) {
     /* This is a declaration inside a class definition. */
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
-  } else {
-    state->is_implicit_type_context = TRUE;
   }  /* if */
+  state->is_implicit_type_context = TRUE;
   decl_specifiers(dsi_flags, state, decl_pos_block);
   if (is_error_type(state->specifiers_type) && !is_declarator_start()) {
     /* Error of some sort. */

@@ -1,5 +1,19 @@
 Version 6.9
 
+6/16/26  [EDGcpfe/28886]
+Implicit "typename" on friend declaration in template
+
+Consider, in C++20 mode:
+
+  template<typename> struct X { using type = int; };
+  struct S {
+    template<typename T> friend X<T>::type f(S);
+  };
+ 
+Previously, this elicited a spurious error about a missing "typename" keyword
+before the return type X<T>::type.  That is now fixed.
+
+
 6/16/26  [EDGcpfe/28884]
 Clang __builtin_invoke and pointer-to-data-member
 
