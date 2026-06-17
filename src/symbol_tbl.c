@@ -18772,12 +18772,13 @@ that has a nonzero instance count is reported.
     an_inst_count  &inst = (*inst_counters)[k];
     a_template     *templ = inst.tssp->il_template_entry;
     if (inst.count == 0) break;
+    if (templ == NULL) continue;
     /* The localized fragments supply the words surrounding the counts; the
        template name itself is source text and is not localized. */
     fprintf(f_error, "%6lu%s%6lu%s",
             inst.count, error_text(ec_top_templates_instances),
             inst.defined, error_text(ec_top_templates_defs_of));
-    if (templ != NULL && symbol_for(templ) != NULL) {
+    if (symbol_for(templ) != NULL) {
       an_il_to_str_output_control_block octl;
       clear_il_to_str_output_control_block(&octl);
       octl.output_str = put_str_to_temp_text_buffer_octl;
@@ -18791,7 +18792,7 @@ that has a nonzero instance count is reported.
     } else {
       fprintf(f_error, "%s", error_text(ec_top_templates_unknown));
     }  /* if */
-    if (templ != NULL && templ->source_corresp.decl_position.seq > 0) {
+    if (templ->source_corresp.decl_position.seq > 0) {
       /* Append the declaration location so that templates with the same
          name (for instance overloaded function templates) can be told
          apart. */
