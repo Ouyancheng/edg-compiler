@@ -19544,6 +19544,7 @@ completed.
               break;
             case ttmr_not_applicable:
               break;
+            default_is_unexpected();
           }  /* switch */
         }  /* if */
       }  /* if */

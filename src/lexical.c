@@ -25062,6 +25062,11 @@ correct translation unit.
   member_typeref->variant.typeref.is_intrinsic_member = TRUE;
   set_source_corresp(&member_typeref->source_corresp, member_sym);
   member_sym->variant.type.ptr = member_typeref;
+  /* alloc_type places member_typeref in the file scope memory region, and the
+     synthesized symbol is attributed to the file scope (see decl_scope above).
+     Record the typeref on the file scope types list so that it is reachable
+     by the file scope IL walk. */
+  add_to_types_list(member_typeref, DEPTH_OF_FILE_SCOPE);
   return member_sym;
 }  /* make_intrinsic_member_type_symbol */
 
@@ -25089,8 +25094,8 @@ Otherwise return FALSE so the caller falls back to ordinary lookup.
 
   *no_such_member = FALSE;
   if (intrinsic_templ_type_member_lookup(qualifier_type,
-                                            locator->symbol_header,
-                                            &result_tp, no_such_member)) {
+                                         locator->symbol_header,
+                                         &result_tp, no_such_member)) {
     handled = TRUE;
     if (!*no_such_member) {
       /* Record the resolved member in the locator.  The qualifier portion of
@@ -26152,21 +26157,23 @@ selection operator, in which case it points to the type of the left operand.
                                        is_dtor_or_finalizer_token(next_tok_2);
           is_cli_typeid = FALSE;
           /* If xyz<A...>::member is used as an intermediate qualifier (e.g.,
-             xyz<A...>::type::inner) and member resolves to a type
+             xyz<A...>::member::inner) and member resolves to a type
              intrinsically, continue the qualifier loop with that type as the
              new qualifier, without completing (instantiating) xyz<A...>. */
           if (qualifier_is_type && qualifier_type_is_class && !is_template) {
             a_type_ptr  intrinsic_result_tp = NULL;
             a_boolean   intrinsic_no_member = FALSE;
-            if (intrinsic_templ_type_member_lookup(
+            if (symbol_for(qualifier_type)->header->has_intrinsic_name &&
+                intrinsic_templ_type_member_lookup(
                     qualifier_type, locator_for_curr_id.symbol_header,
                     &intrinsic_result_tp, &intrinsic_no_member) &&
                 !intrinsic_no_member) {
               /* Continue the qualifier loop using a synthesized type symbol
-                 named for the intrinsic member (e.g., "type") that denotes the
-                 resolved type.  The next iteration records a name qualifier
-                 that preserves the original member spelling and looks up the
-                 following component in the resolved type. */
+                 named for the intrinsic member that denotes the resolved type
+                 (e.g., "member" in "xyz<A...>::member").  The next iteration
+                 records a name qualifier that preserves the original member
+                 spelling (e.g., "member") and looks up the following component
+                 in the resolved type. */
               qualifier_sym = make_intrinsic_member_type_symbol(
                                   locator_for_curr_id.symbol_header,
                                   intrinsic_result_tp,
@@ -26599,7 +26606,8 @@ selection operator, in which case it points to the type of the left operand.
       if (!err && qualifier_is_type &&
           qualifier_type != NULL && qualifier_type_is_class) {
         a_boolean  no_such_member = FALSE;
-        if (curr_token == tok_identifier &&
+        if (symbol_for(qualifier_type)->header->has_intrinsic_name &&
+            curr_token == tok_identifier &&
             locator_for_curr_id.symbol_header != NULL &&
             resolve_intrinsic_templ_type_member(&locator_for_curr_id,
                                                 qualifier_type,
@@ -27153,6 +27161,7 @@ See also coalesce_and_lookup_generalized_identifier.
               a_type_ptr  intrinsic_member_tp = NULL;
               if (qualifier_is_type &&
                   locator_for_curr_id.symbol_header != NULL &&
+                  symbol_for(qualifier_type)->header->has_intrinsic_name &&
                   intrinsic_templ_type_member_lookup(
                             qualifier_type, locator_for_curr_id.symbol_header,
                             &intrinsic_member_tp, &intrinsic_no_member) &&
@@ -27228,7 +27237,10 @@ See also coalesce_and_lookup_generalized_identifier.
                    the name was checked earlier. */
                 locator_for_curr_id.specific_symbol =
                                                      cssp_for_dtor->destructor;
-              } else if (qualifier_is_type && !qualifier_is_enum_type &&
+              } else if (qualifier_is_type &&
+                         is_immediate_class_type(qualifier_type) &&
+                         symbol_for(qualifier_type)->header
+                                                   ->has_intrinsic_name &&
                          !is_vacuous_dtor_or_finalizer &&
                          resolve_intrinsic_templ_type_member(
                                  &locator_for_curr_id, qualifier_type,

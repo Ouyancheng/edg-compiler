@@ -1460,7 +1460,7 @@ Some coding standards require a default label in switches even if it's
 unreachable, while others prefer to leave this off to allow the compiler to
 catch when the case labels are not exhaustive.  A TRUE value for
 CHECK_SWITCH_DEFAULT_UNEXPECTED causes the default_is_unexpected and
-default_is_unexpected_str macros (defined in error.h) to expand to default
+default_is_unexpected_str macros (defined in checking.h) to expand to default
 cases that abort the compilation if reached in a CHECKING configuration; a
 FALSE value results in omission of the default cases.
 */

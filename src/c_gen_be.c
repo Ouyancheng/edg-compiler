@@ -4097,6 +4097,14 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
                  is_typeref_kind(type, trk_is_typeof_with_type_operand)) {
         /* Typeof types do not need to be declared separately. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      } else if (type->variant.typeref.is_intrinsic_member) {
+        /* The synthesized entry for an intrinsically resolved template type
+           member reference (xyz<A...>::member; see
+           templ_type_member_intrinsics_enabled) is transparent: Every use is
+           emitted through its underlying type.  No C typedef should be
+           generated for it (such references often share the member spelling --
+           e.g., "type" -- and generating them would therefore produce
+           conflicting file-scope typedefs). */
       } else {
         /* Output typedefs only on the second pass. */
         if (pass == 2 &&
