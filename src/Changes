@@ -1,5 +1,20 @@
 Version 6.9
 
+6/17/26  [EDGcpfe/28899]
+Intrinsic treatment of commonly-occurring class template type members
+
+The front end now can recognize attempts to substitute constructs like
+std::remove_cv<T>::type and produce the resulting type without instantiating
+the underlying class template.  The framework to customize this handling is
+very similar to that for alias templates (see the entry for EDGcpfe/28580).
+The intrinsic treatment is enabled when the global variable
+templ_type_member_intrinsics_enabled is TRUE.  That variable is initialized by 
+the new configuration macro DEFAULT_TEMPL_TYPE_MEMBER_INTRINSICS_ENABLED (which
+is TRUE by default).  The variable can also be controlled from the command line
+with the --set_flag/--clear_flag options.  See the comments in sys_predef.h for
+how to add support for additional templates.
+
+
 6/16/26  [EDGcpfe/28571]
 Command-line option --top_templates=N
 

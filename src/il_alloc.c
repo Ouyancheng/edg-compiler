@@ -2178,6 +2178,7 @@ to default values.
       pte->variant.typeref.added_to_record_name = FALSE;
       pte->variant.typeref.has_typename_prefix = FALSE;
       pte->variant.typeref.is_global_qualified_name = FALSE;
+      pte->variant.typeref.is_intrinsic_member = FALSE;
       /* Clear size and alignment because they aren't used in typerefs. */
       pte->size = 0;
       pte->alignment = 1;

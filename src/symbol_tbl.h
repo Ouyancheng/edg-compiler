@@ -5399,6 +5399,8 @@ extern void init_alias_templ_intrinsic_descriptions(void);
 
 extern void init_var_templ_intrinsic_descriptions(void);
 
+extern void init_templ_type_member_intrinsic_descriptions(void);
+
 #if IA64_ABI
 EXTERN_THREAD a_symbol_ptr
 		symbol_for_namespace_abi;
@@ -8004,6 +8006,18 @@ extern void check_for_constexpr_intrinsic(a_routine_ptr     rp,
 extern int get_intrinsic_alias_templ_idx(a_symbol  *t_sym);
 
 extern int get_intrinsic_var_templ_idx(a_symbol  *t_sym);
+
+extern int get_intrinsic_templ_type_member_idx(a_symbol  *t_sym);
+
+extern a_boolean intrinsic_templ_type_member_matches(
+                                       int              idx,
+                                       a_symbol_header  *member_hdr);
+
+extern a_boolean intrinsic_templ_type_member_lookup(
+                                       a_type_ptr       qualifier_type,
+                                       a_symbol_header  *member_hdr,
+                                       a_type_ptr       *result_tp,
+                                       a_boolean        *no_such_member);
 
 extern a_boolean is_intrinsic_type_transform_name(a_symbol_header  *hdr);
 

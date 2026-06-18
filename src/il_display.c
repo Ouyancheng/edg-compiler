@@ -2766,6 +2766,9 @@ Display the indicated type entry.
       if (ptr->variant.typeref.is_global_qualified_name) {
         disp_boolean("is_global_qualified_name", TRUE);
       }  /* if */
+      if (ptr->variant.typeref.is_intrinsic_member) {
+        disp_boolean("is_intrinsic_member", TRUE);
+      }  /* if */
       break;
     case tk_ptr_to_member:
       disp_ptr("class_of_which_a_member", (char *)pm_class_type(ptr),

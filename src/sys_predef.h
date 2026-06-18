@@ -110,6 +110,67 @@ a_boolean get_intrinsic_var_templ_value(a_symbol              *vsym,
                                         a_host_large_integer  *p_val);
 
 
+/*
+NS_templ_type_member_intrinsics is similar to NS_alias_templ_intrinsics
+(see above), but for class templates used in the form xyz<A...>::name (for
+example, std::enable_if<B,T>::type).  When such a use is encountered, the
+front end resolves the named member intrinsically, without completing (i.e.,
+instantiating) the xyz<A...> instance.  The macro M should be of the form:
+
+  #define MACRO(ns, name, member)
+
+where member is the name accessed via "::" (typically "type").
+
+To recognize a new type-template member intrinsic for template xyz in a
+namespace N accessed as xyz<A...>::member:
+  a) Ensure there exists a variable of type a_symbol_ptr named
+     symbol_for_namespace_NS that represents namespace N (see, e.g.,
+     make_symbol_for_namespace_std).
+  b) Add a line
+         M(NS, xyz, member)
+     in the macro below.
+  c) Add a function named subst_NS_xyz in sys_predef.c that resolves the
+     member (see, e.g., subst_std_remove_cv for the required signature and an
+     example definition).
+*/
+
+#define NS_templ_type_member_intrinsics(M) \
+  M(std, remove_cv, type) \
+  M(std, remove_const, type) \
+  M(std, remove_volatile, type) \
+  M(std, remove_reference, type) \
+  M(std, remove_cvref, type) \
+  M(std, enable_if, type) \
+  /* End of NS_templ_type_member_intrinsics. */
+
+
+enum a_templ_type_member_intrinsic {
+  ttmi_error,
+#define TTMI_name(ns, name, member) ttmi_##ns##_##name,
+  NS_templ_type_member_intrinsics(TTMI_name)
+#undef TTMI_name
+  ttmi_last
+};
+
+/*
+The tri-state result of attempting to resolve xyz<A...>::name intrinsically.
+*/
+enum a_templ_type_member_result {
+  ttmr_not_applicable,  /* The case could not be decided intrinsically;
+                           the caller should fall back to ordinary
+                           processing. */
+  ttmr_resolved,        /* The member resolves to a type (returned to the
+                           caller). */
+  ttmr_no_such_member   /* The member provably does not exist (e.g.,
+                           std::enable_if<false,T>::type). */
+};
+
+extern a_templ_type_member_result eval_intrinsic_templ_type_member(
+                                       int             idx,
+                                       a_template_arg  *t_args,
+                                       a_type_ptr      *substituted_tp);
+
+
 #if BUILTIN_FUNCTIONS_ENABLED
 
 /*

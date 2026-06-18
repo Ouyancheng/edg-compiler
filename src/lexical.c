@@ -25037,6 +25037,76 @@ pack-index-specifier that is followed by "::":
 }  /* pack_index_name_qualifier_next */
 
 
+static a_symbol_ptr make_intrinsic_member_type_symbol(
+                                       a_symbol_header_ptr  member_hdr,
+                                       a_type_ptr           result_tp,
+                                       a_source_position    *position)
+/*
+Create and return a type symbol named member_hdr (e.g., "type") whose type is
+result_tp, the type to which an intrinsically resolved xyz<A...>::member
+expands.  The symbol's type is a named tk_typeref carrying member_hdr, so that
+source regeneration reproduces the original member spelling rather than the
+name of the resolved type.  The symbol is not entered into any scope and is
+not recorded as a member of xyz<A...>, so referring to it does not request the
+instantiation of xyz<A...>.  Its declaration scope is set to the file scope of
+the translation unit being compiled so that, when several translation units
+are compiled together, the synthesized member type's IL is attributed to the
+correct translation unit.
+*/
+{
+  a_symbol_ptr  member_sym = alloc_symbol(sk_type, member_hdr, position);
+  a_type_ptr    member_typeref = alloc_type(tk_typeref);
+
+  member_sym->decl_scope = file_scope_number;
+  member_typeref->variant.typeref.type = result_tp;
+  member_typeref->variant.typeref.is_intrinsic_member = TRUE;
+  set_source_corresp(&member_typeref->source_corresp, member_sym);
+  member_sym->variant.type.ptr = member_typeref;
+  return member_sym;
+}  /* make_intrinsic_member_type_symbol */
+
+
+static a_boolean resolve_intrinsic_templ_type_member(
+                                       a_symbol_locator  *locator,
+                                       a_type_ptr        qualifier_type,
+                                       a_boolean         *no_such_member)
+/*
+If the qualified name described by locator (whose final component is named by
+locator->symbol_header) denotes a member of the instance qualifier_type that is
+resolved intrinsically, resolve it without completing qualifier_type and return
+TRUE.  On successful resolution, set locator->specific_symbol to a synthesized
+type symbol denoting the member's type.  If the member provably does not exist,
+set *no_such_member to TRUE and return TRUE without issuing a diagnostic: the
+caller reports the missing member, applying the same tolerance as an ordinary
+failed member lookup (a tentative type lookup or an __if_exists query may fail
+silently; in particular this is what makes a delayed Microsoft default template
+argument such as enable_if<false,T>::type acceptable when it is never needed).
+Otherwise return FALSE so the caller falls back to ordinary lookup.
+*/
+{
+  a_boolean   handled = FALSE;
+  a_type_ptr  result_tp = NULL;
+
+  *no_such_member = FALSE;
+  if (intrinsic_templ_type_member_lookup(qualifier_type,
+                                            locator->symbol_header,
+                                            &result_tp, no_such_member)) {
+    handled = TRUE;
+    if (!*no_such_member) {
+      /* Record the resolved member in the locator.  The qualifier portion of
+         the spelling (xyz<A...>::) is supplied by the locator's name qualifier
+         (see make_typeref_with_lexical_information).  Because the lookup never
+         completes qualifier_type, referring to the resolved name does not
+         request its instantiation. */
+      locator->specific_symbol = make_intrinsic_member_type_symbol(
+                                     locator->symbol_header, result_tp,
+                                     &locator->source_position);
+    }  /* if */
+  }  /* if */
+  return handled;
+}  /* resolve_intrinsic_templ_type_member */
+
+
 a_boolean f_is_generalized_identifier_start(
 			an_identifier_options_set	options,
 			a_type_ptr			field_sel_type)
@@ -26081,6 +26151,29 @@ selection operator, in which case it points to the type of the left operand.
                                        can_be_vacuous_dtor_or_finalizer &&
                                        is_dtor_or_finalizer_token(next_tok_2);
           is_cli_typeid = FALSE;
+          /* If xyz<A...>::member is used as an intermediate qualifier (e.g.,
+             xyz<A...>::type::inner) and member resolves to a type
+             intrinsically, continue the qualifier loop with that type as the
+             new qualifier, without completing (instantiating) xyz<A...>. */
+          if (qualifier_is_type && qualifier_type_is_class && !is_template) {
+            a_type_ptr  intrinsic_result_tp = NULL;
+            a_boolean   intrinsic_no_member = FALSE;
+            if (intrinsic_templ_type_member_lookup(
+                    qualifier_type, locator_for_curr_id.symbol_header,
+                    &intrinsic_result_tp, &intrinsic_no_member) &&
+                !intrinsic_no_member) {
+              /* Continue the qualifier loop using a synthesized type symbol
+                 named for the intrinsic member (e.g., "type") that denotes the
+                 resolved type.  The next iteration records a name qualifier
+                 that preserves the original member spelling and looks up the
+                 following component in the resolved type. */
+              qualifier_sym = make_intrinsic_member_type_symbol(
+                                  locator_for_curr_id.symbol_header,
+                                  intrinsic_result_tp,
+                                  &locator_for_curr_id.source_position);
+              continue;
+            }  /* if */
+          }  /* if */
           if (qualifier_is_type && qualifier_type_is_class) {
             /* Make sure that this class has been instantiated. */
             complete_class_type_is_needed(qualifier_type);
@@ -26497,10 +26590,28 @@ selection operator, in which case it points to the type of the left operand.
     /* A possibly qualified identifier. */
     result = TRUE;
     if (is_qualified_name) {
-      /* Make sure that the class has been instantiated. */
+      /* Make sure that the class has been instantiated.  However, when the
+         final member of a name of the form xyz<A...>::member is resolved
+         intrinsically, resolve it here without completing (instantiating)
+         xyz<A...>.  The synthesized member symbol is recorded in the locator,
+         so the subsequent lookup in coalesce_and_lookup_qualified_name is
+         short-circuited. */
       if (!err && qualifier_is_type &&
           qualifier_type != NULL && qualifier_type_is_class) {
-        complete_class_type_is_needed(qualifier_type);
+        a_boolean  no_such_member = FALSE;
+        if (curr_token == tok_identifier &&
+            locator_for_curr_id.symbol_header != NULL &&
+            resolve_intrinsic_templ_type_member(&locator_for_curr_id,
+                                                qualifier_type,
+                                                &no_such_member)) {
+          /* xyz<A...>::member was handled intrinsically without completing
+             (instantiating) xyz<A...>.  On success the synthesized member
+             symbol is recorded in the locator.  A provably-absent member is
+             left unrecorded; it is diagnosed, with the appropriate tolerance,
+             by coalesce_and_lookup_qualified_name. */
+        } else {
+          complete_class_type_is_needed(qualifier_type);
+        }  /* if */
       }  /* if */
     }  /* if */
     set_err_pos_to_curr_token();
@@ -27038,7 +27149,25 @@ See also coalesce_and_lookup_generalized_identifier.
                  constraint from the later declaration will be used. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             } else {
-              issue_incomplete_type_diag(&pos_curr_token, qualifier_type);
+              a_boolean   intrinsic_no_member = FALSE;
+              a_type_ptr  intrinsic_member_tp = NULL;
+              if (qualifier_is_type &&
+                  locator_for_curr_id.symbol_header != NULL &&
+                  intrinsic_templ_type_member_lookup(
+                            qualifier_type, locator_for_curr_id.symbol_header,
+                            &intrinsic_member_tp, &intrinsic_no_member) &&
+                  intrinsic_no_member) {
+                /* xyz<A...>::member, where xyz<A...> is an undefined class and
+                   member is intrinsically known not to exist (e.g.
+                   enable_if<false,T>::type).  Report the missing member rather
+                   than the incompleteness of xyz<A...>, and without
+                   instantiating it. */
+                pos_stsy_error(ec_not_a_member, &identifier_pos,
+                               locator_for_curr_id.symbol_header->identifier,
+                               symbol_for(skip_typerefs(qualifier_type)));
+              } else {
+                issue_incomplete_type_diag(&pos_curr_token, qualifier_type);
+              }  /* if */
             }  /* if */
           } else {
             a_class_symbol_supplement_ptr	cssp_for_dtor = NULL;
@@ -27061,6 +27190,7 @@ See also coalesce_and_lookup_generalized_identifier.
             } else {
               /* Look up the id in the class scope. */
               a_boolean	qualifier_is_enum_type;
+              a_boolean	intrinsic_no_member = FALSE;
               if (ilm == ilm_using_declaration && qualifier_is_type &&
                   gpp_version_is(any_version) &&
                   scope_is(&scope_stack_top(), sck_class_struct_union)) {
@@ -27098,6 +27228,33 @@ See also coalesce_and_lookup_generalized_identifier.
                    the name was checked earlier. */
                 locator_for_curr_id.specific_symbol =
                                                      cssp_for_dtor->destructor;
+              } else if (qualifier_is_type && !qualifier_is_enum_type &&
+                         !is_vacuous_dtor_or_finalizer &&
+                         resolve_intrinsic_templ_type_member(
+                                 &locator_for_curr_id, qualifier_type,
+                                 &intrinsic_no_member)) {
+                /* The qualified name xyz<A...>::member was resolved
+                   intrinsically, without completing (instantiating)
+                   xyz<A...>. */
+                if (intrinsic_no_member) {
+                  /* The member provably does not exist.  Apply the same
+                     tolerance as the ordinary failed member lookup below: a
+                     tentative type lookup or an __if_exists query may fail
+                     without a diagnostic.  This is what allows a delayed
+                     Microsoft default template argument such as
+                     enable_if<false,T>::type to be accepted when it is never
+                     needed; otherwise the missing member is diagnosed. */
+                  if (ilm == ilm_tentative_type || in_if_exists) {
+                    okay = TRUE;
+                  } else {
+                    pos_stsy_error(
+                               ec_not_a_member, &identifier_pos,
+                               locator_for_curr_id.symbol_header->identifier,
+                               symbol_for(skip_typerefs(qualifier_type)));
+                    *err = TRUE;
+                    okay = FALSE;
+                  }  /* if */
+                }  /* if */
               } else if (qualifier_is_type && !qualifier_is_enum_type &&
                          class_qualified_id_lookup(&locator_for_curr_id,
                                                    qualifier_type,

@@ -2413,6 +2413,7 @@ STATIC_THREAD a_flag_name
 #endif /* REFLECTION_ENABLING_POSSIBLE */
   { "alias_templ_intrinsics", &alias_templ_intrinsics_enabled },
   { "var_templ_intrinsics", &var_templ_intrinsics_enabled },
+  { "templ_type_member_intrinsics", &templ_type_member_intrinsics_enabled },
   { "lazy_field_initializers", &always_delay_field_initializer_processing },
   { "core_constant_expr_is_noexcept", &core_constant_expr_is_noexcept },
   { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
@@ -6788,6 +6789,11 @@ file.
 #else /* !defined(DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED) */
   comment_undefined_macro_name(DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED);
 #endif /* defined(DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED) */
+#if defined(DEFAULT_TEMPL_TYPE_MEMBER_INTRINSICS_ENABLED)
+  define_numeric_valued_macro(DEFAULT_TEMPL_TYPE_MEMBER_INTRINSICS_ENABLED);
+#else /* !defined(DEFAULT_TEMPL_TYPE_MEMBER_INTRINSICS_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_TEMPL_TYPE_MEMBER_INTRINSICS_ENABLED);
+#endif /* defined(DEFAULT_TEMPL_TYPE_MEMBER_INTRINSICS_ENABLED) */
 #if defined(DEFAULT_ALLOW_ANACHRONISMS)
   define_numeric_valued_macro(DEFAULT_ALLOW_ANACHRONISMS);
 #else /* !defined(DEFAULT_ALLOW_ANACHRONISMS) */
@@ -13638,6 +13644,8 @@ variables declared in cmd_line.h.
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   alias_templ_intrinsics_enabled = DEFAULT_ALIAS_TEMPL_INTRINSICS_ENABLED;
   var_templ_intrinsics_enabled = DEFAULT_VAR_TEMPL_INTRINSICS_ENABLED;
+  templ_type_member_intrinsics_enabled =
+                              DEFAULT_TEMPL_TYPE_MEMBER_INTRINSICS_ENABLED;
   utf8_char_literals_enabled = FALSE;
   deduced_return_types_enabled = FALSE;
   warn_on_deduced_return_types = FALSE;

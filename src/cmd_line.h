@@ -2776,6 +2776,13 @@ EXTERN_THREAD a_boolean
 			   intrinsically. */
 
 EXTERN_THREAD a_boolean
+		templ_type_member_intrinsics_enabled;
+			/* TRUE if some known class templates (e.g., from the
+			   standard library) used in the form xyz<A...>::name
+			   should have that member resolved intrinsically,
+			   without completing (instantiating) xyz<A...>. */
+
+EXTERN_THREAD a_boolean
 		utf8_char_literals_enabled;
 			/* TRUE if character literals of the form u8'x' are
 			   accepted (a C++17 feature). */

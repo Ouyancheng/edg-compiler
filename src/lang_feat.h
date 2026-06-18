@@ -1101,6 +1101,17 @@ the type tree, rather than by matching template partial specializations.
 #endif /* ifndef DEFAULT_VAR_TEMPL_INTRINSICS_ENABLED */
 
 /*
+Flag that is TRUE if the front end should recognize selected class templates
+used in the form xyz<A...>::name (e.g., std::enable_if<B,T>::type) and resolve
+the named member intrinsically, without completing (instantiating) the
+xyz<A...> instance.  This avoids the instantiation that would otherwise be
+triggered as soon as the "::" is processed.
+*/
+#ifndef DEFAULT_TEMPL_TYPE_MEMBER_INTRINSICS_ENABLED
+#define DEFAULT_TEMPL_TYPE_MEMBER_INTRINSICS_ENABLED TRUE
+#endif /* ifndef DEFAULT_TEMPL_TYPE_MEMBER_INTRINSICS_ENABLED */
+
+/*
 Flag that is TRUE if a "__thread" specifier (to indicate that a variable should
 be stored in thread-local storage) should be supported.  Note that this is
 different from the C++11 "thread_local" specifier.

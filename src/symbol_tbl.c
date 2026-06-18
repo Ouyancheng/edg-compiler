@@ -19393,6 +19393,167 @@ corresponds to an enumerator of type a_var_templ_intrinsic).
 
 
 /*
+A structure describing a class template (e.g., std::remove_cv) whose use in
+the form xyz<A...>::member the front end resolves intrinsically (without
+completing xyz<A...>).
+*/
+struct a_templ_type_member_intrinsic_descr {
+  a_const_char	*name;	/* The class template name. */
+  a_symbol_ptr	*p_namespace_sym;
+			/* See a_templ_intrinsic_descr. */
+  a_const_char	*member_name;
+			/* The member accessed via "::" (e.g., "type"). */
+};
+
+STATIC_THREAD a_templ_type_member_intrinsic_descr
+		templ_type_member_intrinsic_descriptions[] = {
+  { NULL, NULL, NULL },
+#define TTMI_descr(ns, name, member) \
+  { #name, &symbol_for_namespace_##ns, #member },
+  NS_templ_type_member_intrinsics(TTMI_descr)
+#undef TTMI_descr
+};
+
+#define N_TEMPL_TYPE_MEMBER_INTRINSIC_DESCRIPTIONS \
+   ((int)(sizeof(templ_type_member_intrinsic_descriptions) \
+                        /sizeof(templ_type_member_intrinsic_descriptions[0])))
+
+STATIC_THREAD a_templ_intrinsic_descr_table
+		*templ_type_member_intrinsic_descr_table;
+			/* A map from scoped identifiers denoting class
+			   templates to the index of their type-template-
+			   member intrinsic treatment. */
+
+STATIC_THREAD a_symbol_header
+		*templ_type_member_intrinsic_member_hdrs[
+                                  N_TEMPL_TYPE_MEMBER_INTRINSIC_DESCRIPTIONS];
+			/* For each intrinsic index, the symbol header of the
+			   member name (e.g., "type") whose access triggers the
+			   intrinsic. */
+
+void init_templ_type_member_intrinsic_descriptions(void)
+/*
+Pre-enter headers for the class template names so they can efficiently be
+recognized during parsing.  Record, in a Ptr_map, the information needed to
+dispatch xyz<A...>::member resolutions handled intrinsically, and cache the
+header of each member name for matching.
+*/
+{
+  int  n;
+
+  templ_type_member_intrinsic_descr_table =
+                              alloc_fe_of_type(a_templ_intrinsic_descr_table);
+  if (templ_type_member_intrinsics_enabled) {
+    construct(templ_type_member_intrinsic_descr_table, /*mask_width=*/8u);
+    /* Note that we start at index 1 since index 0 is used as an indication
+       that there is no corresponding intrinsic. */
+    for (n = 1; n<N_TEMPL_TYPE_MEMBER_INTRINSIC_DESCRIPTIONS; ++n) {
+      a_symbol_locator  loc, member_loc;
+      a_templ_type_member_intrinsic_descr
+                        &descr = templ_type_member_intrinsic_descriptions[n];
+      (void)find_symbol(descr.name, strlen(descr.name), &loc);
+      loc.symbol_header->has_intrinsic_name = TRUE;
+      templ_type_member_intrinsic_descr_table->map(
+         a_scoped_identifier{ loc.symbol_header, *descr.p_namespace_sym }, n);
+      (void)find_symbol(descr.member_name, strlen(descr.member_name),
+                        &member_loc);
+      templ_type_member_intrinsic_member_hdrs[n] = member_loc.symbol_header;
+    }  /* for */
+  } else {
+    construct(templ_type_member_intrinsic_descr_table, /*mask_width=*/1u);
+  }  /* if */
+}  /* init_templ_type_member_intrinsic_descriptions */
+
+
+int get_intrinsic_templ_type_member_idx(a_symbol  *t_sym)
+/*
+If t_sym is a class template that the front end resolves intrinsically when
+used in the form t_sym<A...>::member, return an index identifying that template
+(corresponding to an enumerator of a_templ_type_member_intrinsic).  Otherwise,
+return 0.
+*/
+{
+  int  idx = 0;
+
+  if (!t_sym->is_class_member && t_sym->parent.namespace_ptr != NULL) {
+    a_symbol_ptr  ns_sym = symbol_for(t_sym->parent.namespace_ptr);
+    idx = templ_type_member_intrinsic_descr_table->get(
+                                a_scoped_identifier{ t_sym->header, ns_sym });
+  }  /* if */
+  return idx;
+}  /* get_intrinsic_templ_type_member_idx */
+
+
+a_boolean intrinsic_templ_type_member_matches(int              idx,
+                                              a_symbol_header  *member_hdr)
+/*
+Return TRUE if member_hdr is the member name associated with the type-template-
+member intrinsic identified by idx (e.g., "type" for std::remove_cv).
+*/
+{
+  return idx > 0 && idx < N_TEMPL_TYPE_MEMBER_INTRINSIC_DESCRIPTIONS &&
+         templ_type_member_intrinsic_member_hdrs[idx] == member_hdr;
+}  /* intrinsic_templ_type_member_matches */
+
+
+a_boolean intrinsic_templ_type_member_lookup(
+                                       a_type_ptr       qualifier_type,
+                                       a_symbol_header  *member_hdr,
+                                       a_type_ptr       *result_tp,
+                                       a_boolean        *no_such_member)
+/*
+Determine whether qualifier_type is an instance of a class template whose use
+in the form qualifier_type::member_hdr is to be resolved intrinsically (see
+init_templ_type_member_intrinsic_descriptions).  If so, return TRUE; set
+*no_such_member to TRUE if the member provably does not exist (e.g.,
+std::enable_if<false,T>::type), and otherwise set *no_such_member to FALSE and
+*result_tp to the resolved member type.  If qualifier_type is not such an
+instance, or the member cannot be decided intrinsically, return FALSE so the
+caller falls back to ordinary processing.  The class qualifier_type is never
+completed.
+*/
+{
+  a_boolean  applicable = FALSE;
+
+  *no_such_member = FALSE;
+  if (templ_type_member_intrinsics_enabled &&
+      is_immediate_class_type(qualifier_type) &&
+      !is_template_dependent_type(qualifier_type)) {
+    a_symbol_ptr  template_sym = class_template_for_type(qualifier_type);
+    if (template_sym != NULL) {
+      template_sym = primary_template_if_template_symbol(template_sym);
+      /* The has_intrinsic_name flag, set on the headers of the class template
+         names of interest by the init routine for this table, is a cheap way
+         to skip the descriptor-table lookup for the common case of a template
+         that is not handled intrinsically. */
+      if (template_sym->header->has_intrinsic_name) {
+        int  idx = get_intrinsic_templ_type_member_idx(template_sym);
+        if (idx != 0 &&
+            intrinsic_templ_type_member_matches(idx, member_hdr)) {
+          a_template_arg_ptr  t_args =
+                    template_arg_list_for_symbol(symbol_for(qualifier_type));
+          a_templ_type_member_result  r =
+                  eval_intrinsic_templ_type_member(idx, t_args, result_tp);
+          switch (r) {
+            case ttmr_resolved:
+              applicable = TRUE;
+              break;
+            case ttmr_no_such_member:
+              applicable = TRUE;
+              *no_such_member = TRUE;
+              break;
+            case ttmr_not_applicable:
+              break;
+          }  /* switch */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return applicable;
+}  /* intrinsic_templ_type_member_lookup */
+
+
+/*
 Like intrinsic_names, these are names of interest to the front end, but they
 should also be associated with token kinds (for context-sensitive promotion to
 keywords).

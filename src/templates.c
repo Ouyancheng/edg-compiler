@@ -16647,6 +16647,7 @@ known to be a type.
   a_type_ptr	orig_parent_type;
   a_symbol_ptr	fund_sym = NULL;
   a_symbol_ptr	new_sym = NULL;
+  a_boolean	intrinsic_no_member = FALSE;
 
   check_assertion(parent_type != NULL);
   if (ctws_state->parent_levels == 0) options &= (~CTWS_IS_PARENT);
@@ -16681,6 +16682,19 @@ known to be a type.
        an enum type (in some modes), and so cannot be a parent. */
     subst_fail(*copy_error);
     goto done;
+  } else if (new_type != NULL &&
+             intrinsic_templ_type_member_lookup(
+                 parent_type, sym->header, new_type, &intrinsic_no_member)) {
+    /* parent_type is now a concrete instance of a class template whose member
+       is resolved intrinsically (e.g., std::enable_if<B,T>::type).  Resolve it
+       here without completing (instantiating) parent_type.  A provably missing
+       member yields a substitution failure, which is exactly what is needed
+       for SFINAE cases such as std::enable_if<false,T>::type. */
+    if (intrinsic_no_member) {
+      *new_type = NULL;
+      subst_fail(*copy_error);
+    }  /* if */
+    new_sym = NULL;
   } else {
     /* If the original parent type of "type" was A<T>, parent_type now
        represents a class with the substitution performed on the template

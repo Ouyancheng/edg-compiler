@@ -3006,6 +3006,12 @@ members of template classes.
         !type->variant.typeref.is_dependent) {
       /* Drop the alias, unless the alias is dependent. */
       result = TRUE;
+    } else if (type->variant.typeref.is_intrinsic_member) {
+      /* The synthesized leaf for an intrinsically resolved xyz<A...>::member
+         names a member of a template class without instantiating it; like an
+         ordinary member typedef of a template class, drop it in favor of the
+         underlying type. */
+      result = TRUE;
     } else if (type->source_corresp.is_class_member) {
       /* Drop the typedef if it was defined in a template class.  This is
          done even if the class was specialized. */

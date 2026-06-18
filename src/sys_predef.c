@@ -143,6 +143,144 @@ the resulting type.  Otherwise, return FALSE.
 }  /* eval_intrinsic_alias_templ */
 
 
+/*
+Functions implementing intrinsic class-template members of the form
+xyz<A...>::name.  (See the description of NS_templ_type_member_intrinsics.)
+The std::remove_* members share the underlying type transform with the
+corresponding alias templates, so they simply delegate to the alias subst
+functions (the argument list shape, <T>, is identical) and report that the
+member resolved.
+*/
+
+static a_templ_type_member_result subst_std_remove_cv(a_template_arg  *t_args,
+                                                      a_type          **p_tp)
+/*
+Resolve std::remove_cv<T>::type.  See subst_std_remove_cv_t.
+*/
+{
+  (void)subst_std_remove_cv_t(t_args, p_tp);
+  return ttmr_resolved;
+}  /* subst_std_remove_cv */
+
+
+static a_templ_type_member_result subst_std_remove_const(
+                                                  a_template_arg  *t_args,
+                                                  a_type          **p_tp)
+/*
+Resolve std::remove_const<T>::type.  See subst_std_remove_const_t.
+*/
+{
+  (void)subst_std_remove_const_t(t_args, p_tp);
+  return ttmr_resolved;
+}  /* subst_std_remove_const */
+
+
+static a_templ_type_member_result subst_std_remove_volatile(
+                                                  a_template_arg  *t_args,
+                                                  a_type          **p_tp)
+/*
+Resolve std::remove_volatile<T>::type.  See subst_std_remove_volatile_t.
+*/
+{
+  (void)subst_std_remove_volatile_t(t_args, p_tp);
+  return ttmr_resolved;
+}  /* subst_std_remove_volatile */
+
+
+static a_templ_type_member_result subst_std_remove_reference(
+                                                  a_template_arg  *t_args,
+                                                  a_type          **p_tp)
+/*
+Resolve std::remove_reference<T>::type.  See subst_std_remove_reference_t.
+*/
+{
+  (void)subst_std_remove_reference_t(t_args, p_tp);
+  return ttmr_resolved;
+}  /* subst_std_remove_reference */
+
+
+static a_templ_type_member_result subst_std_remove_cvref(
+                                                  a_template_arg  *t_args,
+                                                  a_type          **p_tp)
+/*
+Resolve std::remove_cvref<T>::type.  See subst_std_remove_cvref_t.
+*/
+{
+  (void)subst_std_remove_cvref_t(t_args, p_tp);
+  return ttmr_resolved;
+}  /* subst_std_remove_cvref */
+
+
+static a_templ_type_member_result subst_std_enable_if(a_template_arg  *t_args,
+                                                      a_type          **p_tp)
+/*
+Resolve std::enable_if<B,T>::type.  t_args is the argument list <B, T> where B
+is a nontype (bool) argument and T is a type.  If B is true, set *p_tp to T and
+return ttmr_resolved.  If B is false, the member does not exist; return
+ttmr_no_such_member.  If the condition cannot be evaluated to an integral
+constant here, return ttmr_not_applicable so the caller can fall back.
+*/
+{
+  a_templ_type_member_result  result;
+  a_template_arg              *cond_arg = t_args;
+  a_template_arg              *type_arg = (t_args != NULL) ? t_args->next
+                                                           : NULL;
+  a_constant_ptr              con;
+
+  if (cond_arg == NULL || !is_nontype_templ_arg(cond_arg) ||
+      type_arg == NULL || type_arg->kind != tak_type) {
+    result = ttmr_not_applicable;
+  } else {
+    con = cond_arg->variant.constant;
+    if (con == NULL || !constant_is(con, ck_integer)) {
+      /* The condition is dependent, an error, or otherwise not a plain
+         integral constant; let the caller handle it. */
+      result = ttmr_not_applicable;
+    } else {
+      a_boolean             ovflo;
+      a_host_large_integer  val = value_of_integer_constant(con, &ovflo);
+      if (val != 0) {
+        *p_tp = type_arg->variant.type;
+        result = ttmr_resolved;
+      } else {
+        result = ttmr_no_such_member;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* subst_std_enable_if */
+
+
+a_templ_type_member_result eval_intrinsic_templ_type_member(
+                                              int             idx,
+                                              a_template_arg  *t_args,
+                                              a_type_ptr      *substituted_tp)
+/*
+Resolve the intrinsic class-template member with the given index idx
+(corresponding to the enumerators of a_templ_type_member_intrinsic) for an
+instance with the template arguments described by t_args.  Return one of the
+a_templ_type_member_result values; on ttmr_resolved, set *substituted_tp to
+the resulting type.
+*/
+{
+  a_templ_type_member_result  result = ttmr_not_applicable;
+
+  switch (idx) {
+    case ttmi_error:
+      break;
+#define TTMI_dispatch(ns, name, member) \
+    case ttmi_##ns##_##name: \
+      result = subst_##ns##_##name(t_args, substituted_tp); \
+      break;
+    NS_templ_type_member_intrinsics(TTMI_dispatch)
+#undef TTMI_dispatch
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* eval_intrinsic_templ_type_member */
+
+
 a_boolean value_of_std_is_integral_v(a_template_arg        *t_args,
                                      ARG_UNUSED a_boolean  *okay)
 /*
