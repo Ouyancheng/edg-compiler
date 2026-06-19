@@ -2724,7 +2724,11 @@ set *for_all_scopes to FALSE.
       /* Found a result for this entity.  Check to see if it is applicable
          to the current scope. */
       if (entry->lookup_scope == NO_SCOPE_NUMBER) {
-        /* The result is valid for all scopes. */
+        /* The result is valid for all scopes.  We do not need to compare
+           the value of check_visibility between the current query and the
+           one represented by the cache; the recorded accessibility is
+           valid in all scopes regardless of whether visibility is
+           considered or not. */
         *is_accessible = entry->is_accessible;
         found = TRUE;
       } else if (entry->ignore_context != ignore_context ||
@@ -2945,7 +2949,7 @@ that block.
       /* Either a public class member or a non-member. */
       if (parent_class != NULL) {
         /* Public members are accessible from any scope via qualified
-           names. */
+           names and member access expressions. */
         is_accessible = TRUE;
       } else {
         a_scope_ptr sp = get_parent_scope_of(scp);
@@ -3070,9 +3074,11 @@ that block.
     if (!is_accessible && !ignore_context) {
       is_accessible = is_accessible_via_friendship(scp);
     }  /* if */
-    if (is_accessible && parent_class != NULL) {
+    if (is_accessible && check_visibility && parent_class != NULL) {
       /* Need to check as well for inaccessible template arguments on
-         parent classes. */
+         parent classes.  (If check_visibility is FALSE, we are evaluating
+         a member's usability via a member access expression, so the
+         usability of the parent's name is irrelevant.) */
       a_source_correspondence *parent_scp = &parent_class->source_corresp;
       is_accessible = entity_name_is_accessible(parent_scp, iek_type,
                                                 ignore_context,
@@ -13068,23 +13074,33 @@ to unusable variables and class members.
         case eok_points_to_static:
         case eok_dot_member_call:
         case eok_points_to_member_call:
-          /* Register the field, function, or variable operand as the
-             operand of a member access expression.  In such expressions,
-             the visibility of the operand's containing class is
-             irrelevant, as a local class type may be usable if it has
-             escaped the containing function via decltype and the
-             visibility of the object expression, not that of the member,
-             is the controlling factor. */
-          op2 = expr->variant.operation.operands->next;
-          if (is_variable_node(op2)) {
-            op_scp = &node_variable(op2)->source_corresp;
-          } else if (is_field_node(op2)) {
-            op_scp = &node_field(op2)->source_corresp;
-          } else if (is_routine_node(op2)) {
-            op_scp = &node_routine(op2)->source_corresp;
-          }  /* if */
-          if (op_scp != NULL) {
-            register_member_access_operand(op_scp);
+          if (!expr->compiler_generated) {
+            /* Register the field, function, or variable operand as the
+               operand of a member access expression.  In such expressions,
+               the visibility of the operand's containing class is
+               irrelevant, as a local class type may be usable if it has
+               escaped the containing function via decltype and the
+               visibility of the object expression, not that of the member,
+               is the controlling factor.  We exclude compiler-generated
+               member access expressions because they will not appear in
+               the generated code, and the front end does not respect
+               visibility restrictions when creating such expressions.
+               E.g., if S is a local class and T is a global typedef name
+               designating S, the IL produced by the front end for
+               "decltype(T::m)" is equivalent to "decltype(((S*)0)->m)",
+               which would lead to the invalid generated code
+               "decltype(S::m)" if we ignored the visibility of "m". */
+            op2 = expr->variant.operation.operands->next;
+            if (is_variable_node(op2)) {
+              op_scp = &node_variable(op2)->source_corresp;
+            } else if (is_field_node(op2)) {
+              op_scp = &node_field(op2)->source_corresp;
+            } else if (is_routine_node(op2)) {
+              op_scp = &node_routine(op2)->source_corresp;
+            }  /* if */
+            if (op_scp != NULL) {
+              register_member_access_operand(op_scp);
+            }  /* if */
           }  /* if */
           break;
         default:
