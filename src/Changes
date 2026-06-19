@@ -1,5 +1,16 @@
 Version 6.9
 
+6/19/26  [EDGcpfe/28898]
+Overflow of hexadecimal and delimited octal characters on 32-bit host
+
+On host platforms for which type "long" is 32 bits, the front end
+previously issued spurious "character value out of range" errors for
+hexadecimal and delimited octal characters whose values exceed 0x7fffffff.
+This is now fixed.  For example,
+
+  char32_t *str = U"\x80000000";   // Previously a spurious error
+
+
 6/17/26  [EDGcpfe/28899]
 Intrinsic treatment of commonly-occurring class template type members
 

@@ -1570,12 +1570,12 @@ get_another:
         targ_ch = 0;
         while (isdigit((unsigned char)*++lptr) &&
                *lptr != '8' && *lptr != '9') {
-          targ_ch = (targ_ch << 3) | (unsigned char)(*lptr - '0');
-          if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
+          if (targ_ch > (ULONG_MAX>>3)) {
             /* Error will be processed below.  We must keep going and take
                all the digits. */
             range_error = TRUE;
           }  /* if */
+          targ_ch = (targ_ch << 3) | (unsigned char)(*lptr - '0');
         }  /* while */
         if (*lptr == '}') {
           /* Normal termination.  Skip over the closing '}'. */
@@ -1598,12 +1598,12 @@ get_another:
              hexadecimal characters, terminated by a '}'. */
           targ_ch = 0;
           while (isxdigit(*++lptr)) {
-            targ_ch = (targ_ch << 4) | hexvalue((unsigned char)(*lptr));
-            if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
+            if (targ_ch > (ULONG_MAX>>4)) {
               /* Error will be processed below.  We must keep going and take
                  all the digits. */
               range_error = TRUE;
             }  /* if */
+            targ_ch = (targ_ch << 4) | hexvalue((unsigned char)(*lptr));
           }  /* while */
           if (*lptr == '}') {
             /* Normal termination.  Skip over the closing '}'. */
@@ -1630,7 +1630,7 @@ get_another:
           numeric_escape = TRUE;
           targ_ch = hexvalue((unsigned char)(*lptr));  /* First digit. */
           while (tch = (unsigned char)(*(++lptr)), isxdigit(tch)) {
-            if (targ_ch > (((unsigned long)LONG_MAX)>>4)) {
+            if (targ_ch > (ULONG_MAX>>4)) {
               /* Error will be processed below.  We must keep going and take
                  all the digits. */
               range_error = TRUE;
