@@ -2267,9 +2267,7 @@ function scope is assumed.
       /* The entity is in a function or block scope.  Find the innermost
          such scope on the name context stack. */
       a_name_context_ptr ncp;
-      for (ncp = curr_name_context; ; ncp = ncp->next) {
-        check_assertion_str(ncp != NULL,
-                            "decl_scope_of: function-local scope not found");
+      for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
         scope = ncp->assoc_scope;
         if (scope != NULL &&
             (scope->kind == (a_scope_kind)sck_block ||
@@ -2699,11 +2697,12 @@ static a_boolean access_from_cache_for(
 See if a previous compatible access check was made for the entity
 designated by scp; a query is compatible if the value of ignore_context was
 the same or if the result is valid in all scopes.  Mismatched values for
-check_visibility also render the query incompatible.  If a compatible cache
-entry exists, return TRUE and set *is_accessible to that result; otherwise,
-return FALSE.  In the case of a TRUE return for an entry for which the
-scope is relevant (i.e., one in which at least some names are not public),
-set *for_all_scopes to FALSE.
+check_visibility also render the query incompatible unless the result is
+valid in all scopes and the current query is ignoring visibility.  If a
+compatible cache entry exists, return TRUE and set *is_accessible to that
+result; otherwise, return FALSE.  In the case of a TRUE return for an entry
+for which the scope is relevant (i.e., one in which at least some names are
+not public), set *for_all_scopes to FALSE.
 */
 {
   a_hash_value              bucket =
@@ -2723,12 +2722,9 @@ set *for_all_scopes to FALSE.
     if (entry->scp == scp) {
       /* Found a result for this entity.  Check to see if it is applicable
          to the current scope. */
-      if (entry->lookup_scope == NO_SCOPE_NUMBER) {
-        /* The result is valid for all scopes.  We do not need to compare
-           the value of check_visibility between the current query and the
-           one represented by the cache; the recorded accessibility is
-           valid in all scopes regardless of whether visibility is
-           considered or not. */
+      if (entry->lookup_scope == NO_SCOPE_NUMBER &&
+          (!check_visibility || entry->check_visibility)) {
+        /* The result is valid in the current scope. */
         *is_accessible = entry->is_accessible;
         found = TRUE;
       } else if (entry->ignore_context != ignore_context ||
@@ -13155,9 +13151,11 @@ to unusable variables and class members.
           member_unusable = TRUE;
         }  /* if */
       } else if (check_visibility && scp->is_local_to_function &&
-                 !is_local_lambda_in_scope) {
-        /* The parent class was defined in block scope, so its members
-           cannot be validly named. */
+                 !is_local_lambda_in_scope &&
+                 !scope_is_in_name_context_stack(decl_scope_of(
+                                                   &parent->source_corresp))) {
+        /* The parent class was defined in a block scope that is no longer
+           current, so its members cannot be validly named. */
         member_unusable = TRUE;
       } else if (!entity_name_is_accessible(scp, kind,
                                             /*ignore_context=*/FALSE,
