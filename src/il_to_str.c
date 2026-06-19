@@ -3007,7 +3007,7 @@ members of template classes.
       /* Drop the alias, unless the alias is dependent. */
       result = TRUE;
     } else if (type->variant.typeref.is_intrinsic_member) {
-      /* The synthesized leaf for an intrinsically resolved xyz<A...>::member
+      /* The synthesized leaf for an intrinsically-resolved xyz<A...>::member
          names a member of a template class without instantiating it; like an
          ordinary member typedef of a template class, drop it in favor of the
          underlying type. */

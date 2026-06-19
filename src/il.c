@@ -33339,14 +33339,15 @@ be complete.
        appearance in the type list: Add this entry to the reordering now. */
     process_type_for_ordering(type, must_be_complete);
   } else {
-    /* This type is one that doesn't itself go on the file-scope types list, or
-       a typedef type that is already placed in the new ordering but that has
-       not yet been traversed as requiring completeness.  A typedef that is not
-       on the file-scope types list (e.g., one synthesized for an intrinsically
-       resolved xyz<A...>::member) is rendered transparently by c_gen_be, so it
-       is treated transparently here too: Its underlying type is processed so
-       that, if that type is on the file-scope list and must be complete, it is
-       ordered before the type that refers to it through the typedef. */
+    /* This type is one that doesn't itself go on the file-scope types list,
+       or a typedef type that is already placed in the new ordering but that
+       has not yet been traversed as requiring completeness.  A typedef that
+       is not on the file-scope types list (e.g., one synthesized for an
+       intrinsically-resolved xyz<A...>::member) is rendered transparently by
+       c_gen_be, so it is treated transparently here too: Its underlying type
+       is processed so that, if that type is on the file-scope list and must
+       be complete, it is ordered before the type that refers to it through
+       the typedef. */
     type->type_processed_for_ordering = TRUE;
     if (must_be_complete) {
       type->type_processed_as_complete_for_ordering = TRUE;

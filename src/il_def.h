@@ -10791,7 +10791,7 @@ typedef struct a_type {
       a_bit_field
 		is_intrinsic_member:1;
 			/* TRUE if this typeref is the synthesized entry for
-			   an intrinsically resolved type member of a class
+			   an intrinsically-resolved type member of a class
 			   template (like std::remove_cv<T>::type; see
 			   templ_type_member_intrinsics_enabled). */
     } typeref;

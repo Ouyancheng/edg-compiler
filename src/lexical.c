@@ -25043,7 +25043,7 @@ static a_symbol_ptr make_intrinsic_member_type_symbol(
                                        a_source_position    *position)
 /*
 Create and return a type symbol named member_hdr (e.g., "type") whose type is
-result_tp, the type to which an intrinsically resolved xyz<A...>::member
+result_tp, the type to which an intrinsically-resolved xyz<A...>::member
 expands.  The symbol's type is a named tk_typeref carrying member_hdr, so that
 source regeneration reproduces the original member spelling rather than the
 name of the resolved type.  The symbol is not entered into any scope and is
