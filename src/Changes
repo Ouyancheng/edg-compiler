@@ -25,7 +25,7 @@ is reported.  The data needed for the report is collected only when the option
 is specified.
 
 
-12/2/25  [EDGcpfe/28575]
+6/16/26  [EDGcpfe/28590]
 Regression in concept subsumption
 
 The changes for EDGcpfe/28019 (in version 6.8) were incomplete in a way that
