@@ -8380,8 +8380,105 @@ apply that would make one better than the other, and return
 }  /* compare_argument_tiebreakers */
 
 
-static int compare_arg_match_levels(an_arg_match_summary *arg_match1,
-                                    an_arg_match_summary *arg_match2,
+static a_boolean match_with_udc_to_constructor_class(
+                                              a_candidate_function_ptr  cfp);
+
+
+static a_boolean candidate_is_elidable_conv_ctor(
+                                              a_candidate_function_ptr  cfp)
+/*
+Return TRUE if cfp is a copy or move constructor whose sole parameter is
+matched by a conversion function that yields a prvalue of the constructor's
+own class (ignoring cv-qualification).  In that situation mandatory copy
+elision lets the conversion function initialize the destination object
+directly, so the constructor is not actually called.  This predicate is used
+to emulate the pre-P2828 (Core issue 2327) behavior of older GCC and of Clang,
+which prefer such a conversion function over a constructor that would
+otherwise win overload resolution with a standard conversion sequence.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (cfp != NULL && cfp->function_symbol != NULL &&
+      cfp->function_symbol->is_class_member &&
+      !cfp->is_function_template &&
+      match_with_udc_to_constructor_class(cfp)) {
+    a_symbol_ptr  sym = cfp->function_symbol;
+    reduce_projection_symbol_to_fundamental_symbol(sym);
+    if (symbol_is(sym, sk_member_function)) {
+      a_routine_ptr  rout = sym->variant.routine.ptr;
+      if (special_kind_is(rout, sfk_constructor) &&
+          is_copy_constructor(rout, (a_type_ptr)NULL,
+                              (a_type_qualifier_set *)NULL,
+                              /*include_move_ctors=*/TRUE,
+                              /*is_declarative_context=*/FALSE)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* candidate_is_elidable_conv_ctor */
+
+
+static a_boolean better_conv_func_binding_pre_p2828(
+                                      an_arg_match_summary  *conv_fn_match,
+                                      an_arg_match_summary  *competitor_match)
+/*
+Compare the reference bindings of two competing matches for the same argument
+when emulating the pre-P2828 (Core issue 2327) behavior of older GCC and of
+Clang.  conv_fn_match is the user-defined-conversion match of an elidable
+copy/move constructor -- see candidate_is_elidable_conv_ctor -- whose argument
+is converted by a conversion function; competitor_match is a competing match
+that binds a reference parameter through a standard conversion sequence.  The
+conversion function is a member of the source class, so its implicit object
+parameter binds the source by identity, and the choice these compilers make
+reduces to the [over.ics.rank] reference-binding criteria.  Return TRUE when
+the conversion function's object-parameter binding is the strictly better
+binding -- because the competitor binds a base class of the source
+(derived-to-base) or a more cv-qualified reference -- in which case the
+conversion function is selected.  On a tie, FALSE is returned so that the
+constructor is kept.
+*/
+{
+  a_boolean      result = FALSE;
+  a_routine_ptr  conv_rp = conv_fn_match->conversion.routine;
+  a_type_ptr     comp_param = competitor_match->param_type;
+
+  if (conv_rp != NULL && comp_param != NULL &&
+      is_any_reference_type(comp_param)) {
+    a_symbol_ptr  conv_sym = conv_fn_match->conversion.routine_symbol;
+    a_type_ptr    obj_param_tp =
+                    object_parameter_type(conv_rp->type, conv_sym,
+                                          /*is_conv_func=*/TRUE);
+    if (obj_param_tp != NULL && is_any_reference_type(obj_param_tp)) {
+      a_type_ptr  obj_ref_tp = type_pointed_to(obj_param_tp),
+                  comp_ref_tp = type_pointed_to(comp_param);
+      if (!types_are_compatible_ignoring_qualifiers(obj_ref_tp, comp_ref_tp)) {
+        /* The competitor binds its reference to a base class of the source,
+           whereas the conversion function binds the source's own class, so
+           the conversion function's binding is the better one. */
+        result = TRUE;
+      } else {
+        a_type_qualifier_set
+              obj_quals = simple_qualifiers(get_type_qualifiers(obj_ref_tp)),
+              comp_quals = simple_qualifiers(get_type_qualifiers(comp_ref_tp));
+        if (any_qualifier_in_set_missing(obj_quals, comp_quals) &&
+            !any_qualifier_in_set_missing(comp_quals, obj_quals)) {
+          /* The competitor's reference is strictly more cv-qualified, so the
+             conversion function's binding is the better one. */
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* better_conv_func_binding_pre_p2828 */
+
+
+static int compare_arg_match_levels(an_arg_match_summary      *arg_match1,
+                                    an_arg_match_summary      *arg_match2,
+                                    a_candidate_function_ptr  cfp1,
+                                    a_candidate_function_ptr  cfp2,
                                     a_boolean            suppress_tiebreakers)
 /*
 Compare two argument match summary entries and return
@@ -8390,11 +8487,22 @@ Compare two argument match summary entries and return
    0 if the two matches are equal, or
   -1 if arg_match1 is a worse match than arg_match2.
 
-If suppress_tiebreakers is TRUE, ignore tiebreakers (this is used
+cfp1 and cfp2 are the candidate functions to which arg_match1 and arg_match2
+respectively belong (either may be NULL when no candidate context is
+available).  If suppress_tiebreakers is TRUE, ignore tiebreakers (this is used
 for a Microsoft bug).
 */
 {
   int cmp = 0;
+  /* When emulating the pre-P2828 (Core issue 2327) behavior of older GCC
+     (before 14) and of Clang, a conversion function eligible for copy elision
+     is preferred over a constructor selected through a standard conversion
+     sequence.  The conditions match those under which
+     compare_for_copy_constructors prefers the eliding copy/move constructor,
+     so that the tie reported below is subsequently resolved in its favor. */
+  a_boolean emulate_pre_p2828_conv_fn_preference =
+              mandatory_copy_elision && !strict_ansi_mode &&
+              (gnu_version_is(<140000) || clang_version_is(any_version));
 
   /* Compare the gross match levels. */
   if (arg_match1->match_level == aml_none ||
@@ -8431,11 +8539,33 @@ for a Microsoft bug).
        over any other user-defined conversion. */
     cmp = arg_match1->conversion.std.conv_to_std_initializer_list ? 1 : -1;
   } else if ((int)arg_match1->match_level < (int)arg_match2->match_level) {
-    /* arg_match1 is better. */
-    cmp = 1;
+    /* arg_match1 has the better (lower) match level.  In the emulation modes,
+       however, an eliding conversion function (recognized through the
+       copy/move constructor that arg_match2 represents) is preferred over a
+       constructor that wins only by a standard conversion sequence, but only
+       when the conversion function's implicit-object reference binding is
+       itself the better binding; on a tie the constructor is kept. */
+    if (arg_match2->match_level == aml_user_conversion &&
+        emulate_pre_p2828_conv_fn_preference &&
+        candidate_is_elidable_conv_ctor(cfp2) &&
+        !candidate_is_elidable_conv_ctor(cfp1) &&
+        better_conv_func_binding_pre_p2828(arg_match2, arg_match1)) {
+      cmp = -1;
+    } else {
+      cmp = 1;
+    }  /* if */
   } else if ((int)arg_match1->match_level > (int)arg_match2->match_level) {
-    /* arg_match2 is better. */
-    cmp = -1;
+    /* arg_match2 has the better (lower) match level (see the preceding case
+       for the emulation-mode conversion-function exception). */
+    if (arg_match1->match_level == aml_user_conversion &&
+        emulate_pre_p2828_conv_fn_preference &&
+        candidate_is_elidable_conv_ctor(cfp1) &&
+        !candidate_is_elidable_conv_ctor(cfp2) &&
+        better_conv_func_binding_pre_p2828(arg_match1, arg_match2)) {
+      cmp = 1;
+    } else {
+      cmp = -1;
+    }  /* if */
   } else if (!do_late_ovl_res_tiebreaker &&
              !suppress_tiebreakers &&
              (cmp=compare_argument_tiebreakers(arg_match1, arg_match2)) != 0) {
@@ -9611,6 +9741,7 @@ of something based strictly on the function itself or the call context
            checking.  Consider an error match to be (possibly) better
            than another match. */
         if (compare_arg_match_levels(best_curr_arg, curr_arg,
+                                     best_cfp, cfp,
                                      /*suppress_tiebreakers=*/FALSE) > 0 ||
             best_curr_arg->match_level == aml_error) {
           goto check_next_function;
@@ -10217,6 +10348,7 @@ is set to TRUE.
             }  /* if */
             cmp = compare_arg_match_levels(curr_arg,
                                            func_in_set->current_arg_match,
+                                           cfp, func_in_set,
                                            suppress_tiebreakers);
             if (cmp < 0) {
               /* The current argument match is not as good as this match in
@@ -26366,6 +26498,8 @@ overwrite *worst_arg_match with that new worst match.
 {
   if (worst_arg_match->match_level == aml_none ||
       compare_arg_match_levels(new_arg_match, worst_arg_match,
+                               (a_candidate_function_ptr)NULL,
+                               (a_candidate_function_ptr)NULL,
                                /*suppress_tiebreakers=*/FALSE) < 0) {
     *worst_arg_match = *new_arg_match;
   }  /* if */

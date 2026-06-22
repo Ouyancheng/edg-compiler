@@ -1,5 +1,34 @@
 Version 6.9
 
+6/22/26  [EDGcpfe/28865]
+GCC and Clang C++ compatibility: Conversion function preferred in direct
+initialization
+ 
+In direct-initialization of a class type, older GCC (before GCC 14) and Clang
+may prefer a conversion function that is eligible for copy elision over a
+constructor that would otherwise be selected through a standard conversion
+sequence.  Consider:
+
+  struct X;
+  struct Y {
+    constexpr Y() {}                     // (1)
+    constexpr explicit Y(const X &) {}   // (2)
+  };
+  struct X { constexpr operator Y() { return Y(); } };
+  Y var(X{});
+
+The committee resolved this via Core issue 2327 (with paper P2828): The
+conversion function is not a candidate here, so the explicit converting
+constructor (2) is called.  The front end already implemented that resolution
+by default.  When emulating an earlier GCC version (gnu_version < 140000) or
+any Clang version, the front end now matches their behavior: X::operator Y is
+selected (initializing var through the eliding copy/move constructor (1)) when
+its implicit object parameter is the better reference binding -- here X& is
+less cv-qualified than the const X& of (2).  When the two bindings are
+indistinguishable (for example, if operator Y were const-qualified), the
+converting constructor (2) is kept.
+
+
 6/19/26  [EDGcpfe/28898]
 Overflow of hexadecimal and delimited octal characters on 32-bit host
 
