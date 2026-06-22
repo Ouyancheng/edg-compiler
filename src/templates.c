@@ -14248,7 +14248,8 @@ points to the template parameter list.
                                 templ_param_list, templ_arg_list, coordinates,
                                 /*is_rescan=*/FALSE,
                                 /*ignore_packs=*/FALSE);
-          if (templ_type->variant.template_param.is_pack) {
+          if (templ_type->variant.template_param.is_pack &&
+              !tap->is_pack_element) {
             /* When the deduced argument is a pack,
                get_template_arg_by_list_pos sometimes creates a new argument
                without inserting it in *templ_arg_list.  Ensure the insertion
