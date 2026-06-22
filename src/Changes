@@ -1,5 +1,16 @@
 Version 6.9
 
+6/22/26  [EDGcpfe/28905]
+Microsoft mode abort on incomplete struct typedef
+
+Consider, in Microsoft mode:
+
+  typedef struct {
+
+Previously, this aborted with an internal error in pop_scope_full
+(scope_stk.c).  That is now fixed.
+
+
 6/22/26  [EDGcpfe/28865]
 GCC and Clang C++ compatibility: Conversion function preferred in direct
 initialization

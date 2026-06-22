@@ -33096,6 +33096,7 @@ classes.
   a_routine_ptr                   rout;
 #endif /* IA64_ABI */
   a_source_position               end_pos;
+  LOCAL_UNUSED a_boolean          class_closed = FALSE;
   a_boolean                       access_checks_deferred = FALSE;
   a_scope_depth                   access_check_depth = NO_SCOPE_DEPTH;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -34040,8 +34041,8 @@ next_declaration:
       decl_pos_block->specifiers_range.end = pos_curr_token;
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
-                         &lbrace_pos);
+    class_closed = required_token(tok_rbrace, ec_exp_rbrace,
+                                  ec_matching_lbrace, &lbrace_pos);
     if (gnu_mode && curr_token == tok_attribute) {
       an_attribute_ptr  attributes =
                             scan_gnu_attribute_groups(al_post_tag_definition);
@@ -34276,6 +34277,16 @@ next_declaration:
   cssp->being_defined = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
 done:
+  if (!class_closed) {
+    /* This is an error condition: cleanup the class's deferred class fixups to
+       ensure it doesn't cause the scope stack to have unexpected unprocessed
+       deferred class fixups.  This can sometimes occur in Microsoft-mode as
+       the call to process_deferred_class_fixups_and_instantiations that would
+       normally handle cleanup in the class class_specifier (decl_spec.c) is
+       not called. */
+    process_deferred_class_fixups_and_instantiations(
+                                                  /*for_instantiation=*/FALSE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
   return !err;
