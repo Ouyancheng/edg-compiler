@@ -8475,11 +8475,12 @@ constructor is kept.
 }  /* better_conv_func_binding_pre_p2828 */
 
 
-static int compare_arg_match_levels(an_arg_match_summary      *arg_match1,
-                                    an_arg_match_summary      *arg_match2,
-                                    a_candidate_function_ptr  cfp1,
-                                    a_candidate_function_ptr  cfp2,
-                                    a_boolean            suppress_tiebreakers)
+static int compare_arg_match_levels(
+                               an_arg_match_summary      *arg_match1,
+                               an_arg_match_summary      *arg_match2,
+                               a_candidate_function_ptr  cfp1,
+                               a_candidate_function_ptr  cfp2,
+                               a_boolean                 suppress_tiebreakers)
 /*
 Compare two argument match summary entries and return
 
