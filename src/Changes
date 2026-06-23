@@ -1,5 +1,14 @@
 Version 6.9
 
+6/23/26
+Clang compatibility: __-prefixed _BitInt literal suffixes
+
+In Clang 19 and later modes, integer literals can use the __wb and
+__uwb suffixes, with the same _BitInt width selection as the standard
+wb and uwb suffixes.  In Clang C++ mode, the standard wb and uwb
+spellings remain unavailable.
+
+
 6/23/26  [EDGcpfe/28862]
 C++ generation: Missing cast on address of overload member
 

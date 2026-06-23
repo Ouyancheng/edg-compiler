@@ -11913,6 +11913,62 @@ static constexpr a_const_char *binary_dig = "01";
 static constexpr a_const_char *decimal_dig = "0123456789";
 static constexpr a_const_char *hex_dig = "0123456789ABCDEFabcdef";
 
+
+static a_boolean standard_bit_precise_literal_suffix_allowed(void)
+/*
+Return TRUE if the standard bit-precise integer literal suffixes are accepted
+in the current mode.
+*/
+{
+  return bit_precise_int_enabled && !clangcpp_version_is(any_version);
+}  /* standard_bit_precise_literal_suffix_allowed */
+
+
+static a_boolean prefixed_bit_precise_literal_suffix_allowed(void)
+/*
+Return TRUE if the Clang extension spelling of bit-precise integer literal
+suffixes is accepted in the current mode.
+*/
+{
+  return bit_precise_int_enabled && clang_version_is(>=190000);
+}  /* prefixed_bit_precise_literal_suffix_allowed */
+
+
+static int bit_precise_literal_suffix_length(a_const_char  *suffix)
+/*
+Return the length of the bit-precise integer literal suffix starting at suffix,
+or zero if no such suffix is present.  The "wb" portion must be consistently
+lowercase or uppercase.
+*/
+{
+  int  result = 0;
+
+  if (standard_bit_precise_literal_suffix_allowed()) {
+    if ((suffix[0] == 'w' && suffix[1] == 'b') ||
+        (suffix[0] == 'W' && suffix[1] == 'B')) {
+      result = 2;
+    } else if ((suffix[0] == 'u' || suffix[0] == 'U') &&
+               ((suffix[1] == 'w' && suffix[2] == 'b') ||
+                (suffix[1] == 'W' && suffix[2] == 'B'))) {
+      result = 3;
+    }  /* if */
+  }  /* if */
+  if (result == 0 && prefixed_bit_precise_literal_suffix_allowed() &&
+      suffix[0] == '_' && suffix[1] == '_') {
+    a_const_char  *start = suffix + 2;
+    if ((start[0] == 'w' && start[1] == 'b') ||
+        (start[0] == 'W' && start[1] == 'B')) {
+      result = 4;
+    } else if ((start[0] == 'u' || start[0] == 'U') &&
+               ((start[1] == 'w' && start[2] == 'b') ||
+                (start[1] == 'W' && start[2] == 'B'))) {
+      result = 5;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* bit_precise_literal_suffix_length */
+
+
 static a_token_kind scan_number(void)
 /*
 Scan a numeric token (integer, fixed-point, or floating constant).  Return
@@ -11936,6 +11992,7 @@ the kind of token.
   a_boolean     bit_precise_suffix_seen = FALSE;
   a_boolean     local_allow_hex_fp_constants;
   int           l_suffix_seen = 0;
+  int           bit_precise_suffix_len;
   a_boolean     z_suffix_seen = FALSE;
   a_boolean     single_l_confirmed = FALSE;
 #if FIXED_POINT_ALLOWED
@@ -12187,17 +12244,11 @@ int_imaginary_suffix:
   possible_start_of_ud_suffix = curr_char_loc;
   for (;; curr_char_loc++) {
     ch = *curr_char_loc;
-    if (bit_precise_int_enabled && !bit_precise_suffix_seen &&
-        l_suffix_seen == 0 && !z_suffix_seen &&
-        (((ch == 'w' && curr_char_loc[1] == 'b') ||
-          (ch == 'W' && curr_char_loc[1] == 'B')) ||
-         ((ch == 'u' || ch == 'U') &&
-          ((curr_char_loc[1] == 'w' && curr_char_loc[2] == 'b') ||
-           (curr_char_loc[1] == 'W' && curr_char_loc[2] == 'B'))))) {
-      if (ch == 'u' || ch == 'U') {
-        curr_char_loc++;
-      }  /* if */
-      curr_char_loc++;
+    bit_precise_suffix_len =
+                         bit_precise_literal_suffix_length(curr_char_loc);
+    if (!bit_precise_suffix_seen && l_suffix_seen == 0 && !z_suffix_seen &&
+        bit_precise_suffix_len != 0) {
+      curr_char_loc += bit_precise_suffix_len - 1;
       bit_precise_suffix_seen = TRUE;
 #if FIXED_POINT_ALLOWED
       fixed_point_ruled_out = TRUE;

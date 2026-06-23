@@ -81,6 +81,26 @@ sign-extension might be needed later on.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
+static a_boolean standard_bit_precise_literal_suffix_allowed(void)
+/*
+Return TRUE if the standard bit-precise integer literal suffixes are accepted
+in the current mode.
+*/
+{
+  return bit_precise_int_enabled && !clangcpp_version_is(any_version);
+}  /* standard_bit_precise_literal_suffix_allowed */
+
+
+static a_boolean prefixed_bit_precise_literal_suffix_allowed(void)
+/*
+Return TRUE if the Clang extension spelling of bit-precise integer literal
+suffixes is accepted in the current mode.
+*/
+{
+  return bit_precise_int_enabled && clang_version_is(>=190000);
+}  /* prefixed_bit_precise_literal_suffix_allowed */
+
+
 static a_boolean is_bit_precise_literal_suffix(a_const_char  *first_char,
                                                a_const_char  *last_char,
                                                a_const_char  **suffix_start,
@@ -95,14 +115,21 @@ literal suffix.  The "wb" portion must be consistently lowercase or uppercase.
   if (last_char - first_char >= 1 &&
       ((last_char[-1] == 'w' && last_char[0] == 'b') ||
        (last_char[-1] == 'W' && last_char[0] == 'B'))) {
-    *suffix_start = last_char - 1;
+    a_const_char  *start = last_char - 1;
     *is_unsigned = FALSE;
     if (last_char - first_char >= 2 &&
         (last_char[-2] == 'u' || last_char[-2] == 'U')) {
-      *suffix_start = last_char - 2;
+      start = last_char - 2;
       *is_unsigned = TRUE;
     }  /* if */
-    result = TRUE;
+    if (prefixed_bit_precise_literal_suffix_allowed() &&
+        start - first_char >= 2 && start[-2] == '_' && start[-1] == '_') {
+      *suffix_start = start - 2;
+      result = TRUE;
+    } else if (standard_bit_precise_literal_suffix_allowed()) {
+      *suffix_start = start;
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_bit_precise_literal_suffix */
@@ -174,8 +201,7 @@ affects the handling of some overflow cases.
      signed/unsigned type (if size_suffix_enabled is TRUE); these can
      appear in either order. */
   if (real_end_pos >= start_of_curr_token) {
-    if (bit_precise_int_enabled &&
-        is_bit_precise_literal_suffix(start_of_curr_token, real_end_pos,
+    if (is_bit_precise_literal_suffix(start_of_curr_token, real_end_pos,
                                       &bit_precise_suffix_start,
                                       &bit_precise_suffix_is_unsigned)) {
       has_bit_precise_suffix = TRUE;
