@@ -1,5 +1,21 @@
 Version 6.9
 
+6/22/26   [EDGcpfe/28907]
+Internal error when substituting incomplete or abstract types
+
+Consider the following case:
+
+  template<typename T> void foo(T) { };
+  struct Incomplete;
+  int main() {
+    foo<Incomplete>(0);
+  }
+
+While substituting an abstract or incomplete type during a function template
+instantiation, the EDG front end sometimes emitted an internal error instead of
+an appropriate diagnostic.  This issue is now fixed.
+
+
 6/22/26  [EDGcpfe/28905]
 Microsoft mode abort on incomplete struct typedef
 
