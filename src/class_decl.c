@@ -34280,7 +34280,7 @@ done:
   if (!class_closed) {
     /* This is an error condition: cleanup the class's deferred class fixups to
        ensure it doesn't cause the scope stack to have unexpected unprocessed
-       deferred class fixups.  This can sometimes occur in Microsoft-mode as
+       deferred class fixups.  This can sometimes occur in Microsoft mode as
        the call to process_deferred_class_fixups_and_instantiations that would
        normally handle cleanup in the class class_specifier (decl_spec.c) is
        not called. */
