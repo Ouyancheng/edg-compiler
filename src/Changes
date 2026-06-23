@@ -22,7 +22,7 @@ spellings remain unavailable.
 
 
 6/23/26  [EDGcpfe/28862]
-C++ generation: Missing cast on address of overload member
+C++-generating back end: Missing cast on address of overloaded member
 
 Consider:
 
@@ -38,7 +38,7 @@ Consider:
 Previously, the C++-generating back end rendered the decltype operand as
 "decltype((&S::f))", which is ill-formed because f is overloaded.  This
 happened when a constant in the file-scope memory region had its backing
-expression in a function-scope memory region: The link to that expression
+expression in a function-scope memory region: The link to that expression was
 then discarded.  The backing expression is now reached indirectly through an
 a_local_expr_node_ref entry, which in turn enables the rendering of the
 original decltype operand.

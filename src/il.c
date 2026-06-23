@@ -5656,11 +5656,11 @@ fix them.
     if (cp->expr != NULL && !in_file_scope(cp->expr)) {
       /* A constant in the file scope memory region has an attached backing
          expression in a function scope memory region.  A direct pointer would
-       violate the rule that file scope memory must not point into function
-       scope memory.  Record an indirect lerk_constant_expr reference in the
-       enclosing function scope so expr_node_from_constant can still recover
-       the expression.  If no enclosing function scope is reachable, fall back
-       to discarding the expression.  */
+         violate the rule that file scope memory must not point into function
+         scope memory.  Record an indirect lerk_constant_expr reference in the
+         enclosing function scope so expr_node_from_constant can still recover
+         the expression.  If no enclosing function scope is reachable, fall
+         back to discarding the expression. */
       a_routine_ptr  rp;
       a_scope_ptr    sp = get_innermost_function_scope();
       if (sp == NULL) {
