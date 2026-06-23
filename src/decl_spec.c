@@ -5341,30 +5341,38 @@ base specifier.
 
 static void check_enum_value_for_fixed_underlying_type(
                                              a_constant_ptr   constant,
-                                             an_integer_kind  underlying_kind,
+                                             a_type_ptr       underlying_type,
                                              a_boolean        implicit_value,
                                              a_boolean        *err)
 /*
-Check that an enumerator value fits in the given integer kind (if that kind is
-ik_none, use ik_int instead).  The enumerator value is the given constant and
+Check that an enumerator value fits in the given underlying type (if that type
+is NULL, use "int" instead).  The enumerator value is the given constant and
 was specified explicitly if implicit_value is FALSE; otherwise, the enumerator
 value is obtained implicitly by incrementing the given constant.  If the
 enumerator value does not fit, an error is issued and *err is set to TRUE.  If
-no error is issued and implicit_value is TRUE, *constant is incremented.
+no error is issued and implicit_value is TRUE, *constant is incremented.  A
+bool underlying type (e.g., "enum E: bool") can represent only false and true,
+so its values are checked against the range [0, 1].
 */
 {
-  a_type_ptr  underlying_type;
+  an_integer_kind  underlying_kind;
+  a_boolean        underlying_is_bool;
 
-  if (underlying_kind == (an_integer_kind)ik_none) {
-    underlying_kind = (an_integer_kind)ik_int;
+  if (underlying_type == NULL) {
+    underlying_type = integer_type(ik_int);
   }  /* if */
-  underlying_type = integer_type(underlying_kind);
+  underlying_kind = skip_typerefs(underlying_type)->variant.integer.int_kind;
+  underlying_is_bool = is_bool_type(underlying_type);
   if (implicit_value) {
-    if (is_max_value_for_integer_kind(constant, underlying_kind)) {
+    a_boolean increment_overflows =
+                underlying_is_bool
+                  ? eqlit_integer_constant(constant, (a_host_large_integer)1)
+                  : is_max_value_for_integer_kind(constant, underlying_kind);
+    if (increment_overflows) {
       /* The implicit increment produces a value that cannot be represented
          by the underlying type.  Ordinarily, this is an error, but Microsoft
-         compilers just wrap the value around. */
-      if (microsoft_mode) {
+         compilers just wrap the value around (except for bool). */
+      if (microsoft_mode && !underlying_is_bool) {
         pos_ty_warning(ec_enum_value_out_of_underlying_range, &error_position,
                        underlying_type);
         constant->variant.integer_value =
@@ -5378,8 +5386,16 @@ no error is issued and implicit_value is TRUE, *constant is incremented.
       incr_integer_value(&constant->variant.integer_value);
     }  /* if */
   } else {
-    if (!in_range_for_integer_kind(constant, constant, underlying_kind)) {
-      if (microsoft_mode) {
+    a_boolean out_of_range =
+                underlying_is_bool
+                  ? !(eqlit_integer_constant(constant,
+                                             (a_host_large_integer)0) ||
+                      eqlit_integer_constant(constant,
+                                             (a_host_large_integer)1))
+                  : !in_range_for_integer_kind(constant, constant,
+                                               underlying_kind);
+    if (out_of_range) {
+      if (microsoft_mode && !underlying_is_bool) {
         pos_ty_warning(ec_enum_value_out_of_underlying_range, &error_position,
                        underlying_type);
         /* Truncate the specified value to the length of the underlying type
@@ -5504,8 +5520,9 @@ there was an error; otherwise, return FALSE.
      */
     *is_template_param = TRUE;
   } else if (is_scoped_enum || explicit_base_kind != ik_none) {
-    /* The underlying type is fixed. */
-    check_enum_value_for_fixed_underlying_type(constant, explicit_base_kind,
+    /* The underlying type is fixed.  explicit_base is NULL for a scoped enum
+       with no explicit base, in which case the underlying type is "int". */
+    check_enum_value_for_fixed_underlying_type(constant, explicit_base,
                                                /*implicit_value=*/FALSE,
                                                &result);
   } else if (enum_types_can_be_larger_than_int) {
@@ -5793,9 +5810,11 @@ is updated to reflect relevant positions of this definition.
             template_param = TRUE;
           } else if (is_scoped_enum ||
                      explicit_base_kind != (an_integer_kind)ik_none) {
-            /* The underlying type is fixed. */
+            /* The underlying type is fixed.  explicit_base is NULL for a
+               scoped enum with no explicit base, in which case the
+               underlying type is "int". */
             check_enum_value_for_fixed_underlying_type(
-                                            constant, explicit_base_kind,
+                                            constant, explicit_base,
                                             /*implicit_value=*/TRUE, &err);
           } else if (is_max_value_for_integer_kind(constant,
                                                    largest_enum_int_kind)) {

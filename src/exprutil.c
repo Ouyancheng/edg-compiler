@@ -9661,13 +9661,30 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
                                  is_implicit_cast,
                                  p_node, err_pos);
     }  /* if */
-  } else if ((!C_mode() || c99_mode || gcc_mode) && is_bool_type(new_type)) {
-    /* Cast to bool.  Use eok_bool_cast. */
-    *p_node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
-                                 new_type, *p_node);
+  } else if ((!C_mode() || c99_mode || gcc_mode) &&
+             (is_bool_type(new_type) ||
+              enum_has_bool_underlying_type(new_type))) {
+    /* Cast to bool, or to an enumeration whose underlying type is bool.  Use
+       eok_bool_cast to normalize the operand to false/true.  For such an
+       enumeration the value is first converted to the underlying bool type
+       (per N5014 [expr.static.cast]/7,8), and the bool result is then cast to
+       the enumeration type. */
+    a_boolean  to_bool_enum = !is_bool_type(new_type);
+    *p_node = make_operator_node(eok_bool_cast,
+                                 to_bool_enum ? bool_type() : new_type,
+                                 *p_node);
     if (is_implicit_cast) {
       (*p_node)->compiler_generated = TRUE;
       (*p_node)->position = *err_pos;
+    }  /* if */
+    if (to_bool_enum) {
+      *p_node = make_operator_node(eok_cast, new_type, *p_node);
+      (*p_node)->variant.operation.is_reinterpret_cast = FALSE;
+      (*p_node)->variant.operation.is_reinterpret_like_cast = FALSE;
+      if (is_implicit_cast) {
+        (*p_node)->compiler_generated = TRUE;
+        (*p_node)->position = *err_pos;
+      }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled &&

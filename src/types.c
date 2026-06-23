@@ -811,6 +811,23 @@ when bool_is_keyword is FALSE (which, among other times, means when in C mode).
 }  /* is_bool_type */
 
 
+a_boolean enum_has_bool_underlying_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an enumeration type whose fixed underlying
+type is bool (e.g., "enum E: bool {}").  Such an enumeration can represent
+only false and true, so converting another value to it first converts to bool.
+*/
+{
+  a_boolean result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_enum(tp) && tp->variant.integer.has_explicit_enum_base) {
+    result = is_bool_type(integer_type_supp(tp)->base_type);
+  }  /* if */
+  return result;
+}  /* enum_has_bool_underlying_type */
+
+
 a_boolean is_character_type(a_type_ptr tp)
 /*
 Return TRUE if the type is a character type (signed, unsigned, or "plain").

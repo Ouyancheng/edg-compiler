@@ -2274,17 +2274,21 @@ for any diagnostics issued.
                                       !is_implicit_cast);
     goto done_with_folding;
   }  /* if */
-  if (is_bool_type(new_type)) {
-    /* Conversion of any type to bool.  Set the boolean value to FALSE (zero)
-       if the source constant is some form of "false".  Otherwise, set it
-       to TRUE (1). */
+  if (is_bool_type(new_type) || enum_has_bool_underlying_type(new_type)) {
+    /* Conversion of any type to bool, or to an enumeration with a bool
+       underlying type.  In the latter case the value is first converted to
+       the underlying bool type (N5014 [expr.static.cast]/7.8), so the result
+       is false or true rather than the unconverted integer value.  Set the
+       boolean value to zero if the source constant is some form of "false".
+       Otherwise, set it to 1.  The enum type itself is preserved in
+       new_constant->type, which was set above. */
     if (!constant_bool_value_known_at_compile_time(constant)) {
       /* The constant's value is not known until link time, so the conversion
          cannot be folded at this time. */
       *did_not_fold = TRUE;
       goto done_with_folding;
     }  /* if */
-    set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
+    set_constant_kind(new_constant, ck_integer);
     set_integer_value(&new_constant->variant.integer_value,
                       (a_host_large_integer)!is_false_constant(constant));
     goto done_with_folding;
