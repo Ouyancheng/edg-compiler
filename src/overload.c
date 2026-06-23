@@ -13465,14 +13465,14 @@ void make_abstract_this_operand(an_operand         *opnd,
 /*
 In some contexts there is no "this" variable, but "this" can nonetheless be
 used (explicitly or implicitly).  Create in *opnd a special enk_param_ref
-expression operand with type this_type to represent such a use of "this".
-pos is the source position of that use.  compiler_generated is TRUE if the
-use was implicit (i.e., not appearing explicitly in the source).
+expression operand with the prvalue type of this_type to represent such a use
+of "this".  pos is the source position of that use.  compiler_generated is TRUE
+if the use was implicit (i.e., not appearing explicitly in the source).
 */
 {
   an_expr_node_ptr  node = alloc_expr_node((an_expr_node_kind)enk_param_ref);
 
-  node->type = this_type;
+  node->type = prvalue_type(this_type);
   node->variant.param_ref.param_num = 0;
   node->variant.param_ref.levels_up = 0;
   node->position = *pos;

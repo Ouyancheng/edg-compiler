@@ -5653,11 +5653,27 @@ fix them.
 */
 {
   if (in_file_scope(cp)) {
-    if (cp->expr != NULL) {
-      /* If a constant in the file scope memory region has an attached
-         expression in a function scope memory region, break the link to
-         the expression. */
-      if (!in_file_scope(cp->expr)) cp->expr = NULL;
+    if (cp->expr != NULL && !in_file_scope(cp->expr)) {
+      /* A constant in the file scope memory region has an attached backing
+         expression in a function scope memory region.  A direct pointer would
+       violate the rule that file scope memory must not point into function
+       scope memory.  Record an indirect lerk_constant_expr reference in the
+       enclosing function scope so expr_node_from_constant can still recover
+       the expression.  If no enclosing function scope is reachable, fall back
+       to discarding the expression.  */
+      a_routine_ptr  rp;
+      a_scope_ptr    sp = get_innermost_function_scope();
+      if (sp == NULL) {
+        rp = cp->source_corresp.enclosing_routine;
+        if (rp != NULL) sp = scope_for_routine_or_null(rp);
+      }  /* if */
+      if (sp != NULL) {
+        an_expr_node_ptr expr = cp->expr;
+        cp->expr = NULL;
+        make_local_expr_node_ref(expr, lerk_constant_expr, (char*)cp, sp);
+      } else {
+        cp->expr = NULL;
+      }  /* if */
     }  /* if */
     if (cp->kind == ck_template_param) {
       a_template_param_constant_kind kind = cp->variant.template_param.kind;
@@ -7052,6 +7068,9 @@ copy_constant_full should be called to start a copy.
        prevent memory region issues. */
     new_constant->expr = NULL;
   }  /* if */
+  /* The case where new_constant is in the file scope memory region while
+     old_constant->expr lives in a function scope memory region is handled
+     by fix_memory_region_problems_in_copied_constant below. */
   if (constexpr_master_copy) {
     /* Constants created in making the master copy of a constexpr evaluation
        expression are marked as such. */

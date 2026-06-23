@@ -610,7 +610,7 @@ otherwise, return NULL.
 */
 #define assoc_expr_for_constant(c)                                            \
   (constant_should_be_put_out_as_expr(c)                                      \
-     ? c->expr                                                                \
+     ? expr_node_from_constant(c)                                             \
      : constant_is(c, ck_template_param) && tpck_is(c, tpck_expression) &&    \
                                                  !has_name_before_mangling(c) \
        ? expr_node_from_tpck_expression(c)                                    \
@@ -683,7 +683,7 @@ return that expression; otherwise return e.
 #define assoc_expr_if_constant(e)                                             \
   ((is_constant_node(e) &&                                                    \
     constant_should_be_put_out_as_expr(node_constant(e))) ?                   \
-                                        node_constant(e)->expr :              \
+                     expr_node_from_constant(node_constant(e)) :              \
    (is_constant_node(e) &&                                                    \
     constant_is(node_constant(e), ck_template_param) &&                       \
     tpck_is(node_constant(e), tpck_expression) &&                             \
@@ -8458,9 +8458,10 @@ which constant is the value.
   a_base_class_ptr  bcp = NULL;
 
   if (constant_should_be_put_out_as_expr(constant)) {
-    /* The constant resulted from a recorded constant-expression: Render it in
-       its original form. */
-    gen_expr(constant->expr, !is_expl_temp_or_field_thereof(constant->expr),
+    /* The constant resulted from a recorded constant-expression: Render it
+       in its original form. */
+    an_expr_node_ptr expr = expr_node_from_constant(constant);
+    gen_expr(expr, !is_expl_temp_or_field_thereof(expr),
              /*obj_expr_of_mfunc_operator=*/FALSE);
   } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
@@ -14847,9 +14848,12 @@ Return TRUE if the constant is either directly named or if it will be
 generated as an expression and the expression is a named variable.
 */
 {
-  a_boolean has_effective_name;
-  if (constant_should_be_put_out_as_expr(con) && is_variable_node(con->expr)) {
-    has_effective_name = has_name_before_mangling(node_variable(con->expr));
+  a_boolean         has_effective_name;
+  an_expr_node_ptr  expr = expr_node_from_constant(con);
+
+  if (expr != NULL && is_variable_node(expr) &&
+      constant_should_be_put_out_as_expr(con)) {
+    has_effective_name = has_name_before_mangling(node_variable(expr));
   } else {
     has_effective_name = has_name_before_mangling(con);
   }  /* if */
@@ -15142,7 +15146,8 @@ removed and FALSE otherwise.
     a_constant_ptr constant = node_constant(node);
     if (constant_should_be_put_out_as_expr(constant)) {
       /* This might be a constant node on top of an lvalue cast sequence. */
-      node = constant->expr;
+      an_expr_node_ptr backing_expr = expr_node_from_constant(constant);
+      if (backing_expr != NULL) node = backing_expr;
     }  /* if */
   }  /* if */
   if (node->kind == (an_expr_node_kind)enk_temp_init ||
@@ -15206,9 +15211,12 @@ obj_expr_of_mfunc_operator, which will be TRUE in the overloaded operator
 case, is passed along to gen_expr.
 */
 {
-  while (is_constant_node(expr) &&
-         constant_should_be_put_out_as_expr(node_constant(expr))) {
-    expr = node_constant(expr)->expr;
+  while (is_constant_node(expr)) {
+    a_constant_ptr con = node_constant(expr);
+    if (!constant_should_be_put_out_as_expr(con)) break;
+    an_expr_node_ptr  backing_expr = expr_node_from_constant(con);
+    if (backing_expr == NULL) break;
+    expr = backing_expr;
   }  /* while */
   expr = optimized_expr_for_selection(expr, (a_type_ptr *)NULL);
   if (!is_glvalue_node(expr) && is_constant_node(expr) &&
@@ -15463,9 +15471,10 @@ Return TRUE if the given expression will be put out as a braced-init-list.
       is_braced_init = TRUE;
     }  /* if */
   } else if (is_constant_node(expr)) {
-    a_constant_ptr con = node_constant(expr);
-    if (constant_should_be_put_out_as_expr(con) &&
-        expr_is_braced_init_list(con->expr)) {
+    a_constant_ptr   con = node_constant(expr);
+    an_expr_node_ptr backing_expr = expr_node_from_constant(con);
+    if (backing_expr != NULL && constant_should_be_put_out_as_expr(con) &&
+        expr_is_braced_init_list(backing_expr)) {
       is_braced_init = TRUE;
     }  /* if */
   }  /* if */
@@ -18259,8 +18268,8 @@ used as an rvalue).
   constant = node_constant(expr);
   if (constant_should_be_put_out_as_expr(constant)) {
     /* There's a backing expression, so use that. */
-    gen_expr(constant->expr, need_parens,
-             /*obj_expr_of_mfunc_operator=*/FALSE);
+    an_expr_node_ptr backing_expr = expr_node_from_constant(constant);
+    gen_expr(backing_expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
     processed = TRUE;
   } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
     tpkind = constant->variant.template_param.kind;
@@ -23588,9 +23597,12 @@ Output the initializer, if any, for the indicated variable.
     switch (init_kind) {
       case initk_static:
         if (constant_should_be_put_out_as_expr(con)) {
-          expr = con->expr;
-          if (!node_is(expr, enk_temp_init)) {
-            expr = skip_implicit_steps(con->expr);
+          /* Use expr_node_from_constant so we also reach a backing expression
+             referenced indirectly via the local-expr-node-ref mechanism
+             (lerk_constant_expr). */
+          expr = expr_node_from_constant(con);
+          if (expr != NULL && !node_is(expr, enk_temp_init)) {
+            expr = skip_implicit_steps(expr);
           }  /* if */
         }  /* if */
         if (expr != NULL && node_is(expr, enk_temp_init)) {

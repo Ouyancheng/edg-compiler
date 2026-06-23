@@ -20220,6 +20220,13 @@ previously-scanned noexcept expression, and return the result in
                          bool_type()->variant.integer.int_kind);
     result_constant->type = bool_type();
     if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+      if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
+          in_file_scope(operand_expr)) {
+        /* Rescanning can produce a file-scope operand while the recorded
+           noexcept node is being allocated in a function scope. */
+        operand_expr = copy_expr_tree(operand_expr,
+                                      CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
+      }  /* if */
       result_constant->expr = make_operator_node(
                                            (an_expr_operator_kind)eok_noexcept,
                                            bool_type(),
@@ -41333,10 +41340,10 @@ called.
     /* We're in a lambda and "this" could potentially be captured (because
        variable_this_exists(...) returned TRUE above), but it doesn't need to
        be captured since we're in an unevaluated context.  Don't attempt the
-       capture (which might fail), and instead make a null pointer operand of
-       the right type. */
-    make_integer_constant_operand(result, (a_host_large_integer)0L);
-    cast_operand(this_type, result, /*is_implicit_cast=*/TRUE);
+       capture (which might fail), but still keep the operand as "this" for
+       contexts like decltype that preserve source forms. */
+    make_abstract_this_operand(result, this_type, &start_position,
+                               /*compiler_generated=*/FALSE);
   } else {
     /* Make an rvalue for the "this" variable.  Note that this rewrites
        the "this" in a lambda to the captured "this" from the enclosing
@@ -53017,13 +53024,17 @@ memory region).  Do various error checks.
           }  /* if */
         }  /* if */
         do_fs_constant_fixup(constant);
-        if (expr != NULL &&
+        if (constant->local_expr_ref) {
+          /* do_fs_constant_fixup already set up an a_local_expr_node_ref
+             entry to cover the case of a backing expression in a function
+             scope memory region. */
+        } else if (expr != NULL &&
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-            !expr_stack->statement_expression_seen &&
+                   !expr_stack->statement_expression_seen &&
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-            scope_for_local_ref != NULL &&
-            (!in_file_scope(expr) ||
-             expr_has_reference_to_routine_scope_variable(expr))) {
+                   scope_for_local_ref != NULL &&
+                   (!in_file_scope(expr) ||
+                    expr_has_reference_to_routine_scope_variable(expr))) {
           /* Refer to the underlying expression indirectly since it lives in
              function scope memory, or because it contains a reference to a
              function-scope variable that cannot be reached from file-scope
@@ -53054,7 +53065,7 @@ memory region).  Do various error checks.
       }  /* if */
     }  /* if */
     if (!is_constant_operand(operand)) {
-      an_operand        orig_operand;
+      an_operand  orig_operand;
       copy_operand(operand, &orig_operand);
       make_constant_operand(constant, operand);
       restore_operand_details(operand, &orig_operand);

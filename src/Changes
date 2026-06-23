@@ -1,5 +1,28 @@
 Version 6.9
 
+6/23/26  [EDGcpfe/28862]
+C++ generation: Missing cast on address of overload member
+
+Consider:
+
+  struct S {
+    void f();
+    void f(int);
+  };
+  template <class T> struct W {};
+  int main() {
+    W<decltype(static_cast<void (S::*)(int)>(&S::f))> w;
+  }
+
+Previously, the C++-generating back end rendered the decltype operand as
+"decltype((&S::f))", which is ill-formed because f is overloaded.  This
+happened when a constant in the file-scope memory region had its backing
+expression in a function-scope memory region: The link to that expression
+then discarded.  The backing expression is now reached indirectly through an
+a_local_expr_node_ref entry, which in turn enables the rendering of the
+original decltype operand.
+
+
 6/23/26   [EDGcpfe/26109,EDGcpfe/28827]
 Enumerations with a bool underlying type
 

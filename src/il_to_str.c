@@ -609,7 +609,13 @@ Output the indicated template argument in the way described by octl.
           }  /* if */
           while (expr != NULL && is_constant_node(expr) &&
                  constant_should_be_put_out_as_expr(node_constant(expr))) {
-            expr = node_constant(expr)->expr;
+            /* Use expr_node_from_constant so we also reach a backing
+               expression referenced indirectly via the local-expr-node-ref
+               mechanism (lerk_constant_expr). */
+            an_expr_node_ptr backing_expr =
+                                  expr_node_from_constant(node_constant(expr));
+            if (backing_expr == NULL) break;
+            expr = backing_expr;
           }  /* while */
           if (expr != NULL && expr->compiler_generated &&
               node_is_operator(expr, eok_cast) &&

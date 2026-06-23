@@ -1806,9 +1806,12 @@ Otherwise, return a pointer to the argument's representation.
     switch_to_file_scope_region(&region_to_switch_back_to);
     aap->variant.constant = alloc_shareable_constant(constant);
     if (expr != NULL && aap->variant.constant->expr == NULL &&
+        !aap->variant.constant->local_expr_ref &&
         innermost_function_scope != NULL) {
       /* The backing expression got dropped because of a memory region issue.
-         Refer to it indirectly instead. */
+         Refer to it indirectly instead.  (If local_expr_ref is already set,
+         fix_memory_region_problems_in_copied_constant has already set up
+         the indirect reference.) */
       make_local_expr_node_ref(
                        expr, (a_local_expr_node_ref_kind)lerk_constant_expr,
                        (char*)aap->variant.constant, innermost_function_scope);
