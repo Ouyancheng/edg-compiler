@@ -1,5 +1,17 @@
 Version 6.9
 
+6/23/26  [EDGcpfe/28910]
+GNU C++ compatibility: __integer_pack in an initializer-list
+
+In GNU C++ modes, the __integer_pack(N) construct is now accepted as an
+element of an expression list (for example, a braced-init-list, a function
+argument list, or a parenthesized initializer), in addition to the already-
+supported template-argument context.
+
+  template<auto N, typename T>
+    constexpr T zeroAndUp[N] = { __integer_pack(T(N))... };
+
+
 6/23/26
 Clang compatibility: __-prefixed _BitInt literal suffixes
 

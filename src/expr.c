@@ -2777,6 +2777,37 @@ return a pointer to the init_component.
 }  /* scan_expr_into_new_init_component */
 
 
+static an_init_component_ptr scan_integer_pack_init_components(void)
+/*
+Scan a "__integer_pack ( <integer-constant> ) ..." construct that appears as
+an element of an initializer-expression list (e.g., a braced-init-list) and
+return the resulting list of initializer components.  The current token on
+entry must be tok_integer_pack; the trailing "..." is consumed.  When the bound
+N is a concrete nonnegative integer, the result is a (possibly empty) list of N
+ick_expression components holding the integer constants 0, 1, ..., N-1.  When
+the bound is dependent, the result is a single dependent ick_expression
+component that stands for the unexpanded __integer_pack; it is expanded when
+the enclosing template is instantiated and its initializer is rescanned with a
+concrete bound.
+*/
+{
+  a_template_arg_ptr     args = scan_integer_pack(/*record_operands=*/FALSE);
+  an_init_component_ptr  head = NULL;
+  an_init_component_ptr  *p_icp = &head;
+  a_template_arg_ptr     arg;
+
+  for (arg = args; arg != NULL; arg = arg->next) {
+    an_init_component_ptr  icp =
+                  alloc_init_component((an_init_component_kind)ick_expression);
+    make_constant_operand(arg->variant.constant,
+                          operand_of_arg_list_elem(icp));
+    *p_icp = icp;
+    p_icp = &icp->next;
+  }  /* for */
+  return head;
+}  /* scan_integer_pack_init_components */
+
+
 static an_init_component_ptr scan_expr_as_init_component(
                                             a_boolean                 bundle,
                                             a_local_expr_options_set  options)
@@ -3035,6 +3066,29 @@ resulting argument list is returned.
       while (any_more) {
         /* Scan another element for the list. */
         a_pack_expansion_descr_ptr pedep;
+        if (curr_token == tok_integer_pack) {
+          /* A "__integer_pack(N)..." construct used as a list element.  It
+             expands in place for a concrete N, or yields a single dependent
+             placeholder that is expanded at instantiation.  The construct
+             consumes its own trailing "...", so the potential pack expansion
+             context started above is simply closed. */
+          an_init_component_ptr pack_list;
+          pack_list = scan_integer_pack_init_components();
+          if (pack_list != NULL) {
+            an_init_component_ptr pack_tail = pack_list;
+            if (expr_list == NULL) {
+              expr_list = pack_list;
+            } else {
+              append_elem(end_expr_list, pack_list);
+            }  /* if */
+            for (; pack_tail->next != NULL; pack_tail = pack_tail->next) ;
+            end_expr_list = pack_tail;
+          }  /* if */
+          (void)end_potential_pack_expansion_context(pesep,
+                                                     /*is_declarator=*/FALSE);
+          any_more = advance_to_next_pack_element(pesep);
+          continue;
+        }  /* if */
         if (curr_token == tok_lbrace && list_init_enabled) {
           /* A brace-enclosed list. */
           alep = parse_braced_init_list(bundle);
@@ -47428,6 +47482,33 @@ restart_embed_data:
     any_more = begin_potential_pack_expansion_context(&pesep);
     while (any_more) {
       a_pack_expansion_descr_ptr pedep;
+      if (curr_token == tok_integer_pack) {
+        /* A "__integer_pack(N)..." construct used as an initializer-list
+           element.  For a concrete N this expands in place to the components
+           0, 1, ..., N-1; for a dependent N a single dependent placeholder
+           component is produced and expanded when the enclosing template is
+           instantiated.  The construct consumes its own trailing "...", so the
+           potential pack expansion context started above is simply closed. */
+        an_init_component_ptr  pack_list = scan_integer_pack_init_components();
+        if (pack_list != NULL) {
+          an_init_component_ptr  pack_tail = pack_list;
+          if (end_icp == NULL) {
+            icp->variant.braced.list = pack_list;
+          } else {
+            append_elem(end_icp, pack_list);
+          }  /* if */
+          for (; pack_tail->next != NULL; pack_tail = pack_tail->next) {
+            elems_scanned += 1;
+          }  /* for */
+          elems_scanned += 1;
+          end_icp = pack_tail;
+          elem_seen = TRUE;
+        }  /* if */
+        (void)end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+        any_more = advance_to_next_pack_element(pesep);
+        continue;
+      }  /* if */
       elem_icp = scan_expr_or_braced_init_list(bundle,
                                                /*always_allow_braced=*/TRUE);
       /* Add the entry to the end of the list. */
@@ -47730,6 +47811,25 @@ cache) for later restoration and further processing.
       an_init_component_ptr      icp;
       a_pack_expansion_descr_ptr pedep;
 
+      if (curr_token == tok_integer_pack) {
+        /* A "__integer_pack(N)..." construct used as a list element.  It
+           expands in place for a concrete N, or yields a single dependent
+           placeholder that is expanded at instantiation.  The construct
+           consumes its own trailing "...", so the potential pack expansion
+           context started above is simply closed. */
+        an_init_component_ptr pack_list = scan_integer_pack_init_components();
+        an_init_component_ptr next_icp;
+        for (; pack_list != NULL; pack_list = next_icp) {
+          next_icp = pack_list->next;
+          pack_list->next = NULL;
+          add_init_component_to_initializer_cache(pack_list,
+                                                  /*to_front=*/FALSE, cache);
+        }  /* for */
+        (void)end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+        any_more = advance_to_next_pack_element(pesep);
+        continue;
+      }  /* if */
       /* Scan the initializer expression and put it into the cache. */
       icp = scan_expr_or_braced_init_list(bundle,
                                           /*always_allow_braced=*/FALSE);

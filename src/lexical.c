@@ -21018,7 +21018,7 @@ it is used.
 }  /* scan_template_template_argument */
 
 
-static a_template_arg_ptr scan_integer_pack(a_boolean  record_operands)
+a_template_arg_ptr scan_integer_pack(a_boolean  record_operands)
 /*
 Scan a template argument of the form
   __integer_pack ( <integer-constant> ) ...

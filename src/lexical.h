@@ -4978,6 +4978,8 @@ extern a_template_arg_ptr scan_concept_arg_list(a_symbol_ptr template_sym,
                                                 a_boolean    type_constraint,
                                                 a_boolean    *any_errors);
 
+extern a_template_arg_ptr scan_integer_pack(a_boolean record_operands);
+
 extern void insert_string_into_token_stream(
                                         a_const_char      *string,
                                         a_boolean         insert_after,
