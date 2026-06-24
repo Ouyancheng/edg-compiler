@@ -5463,7 +5463,7 @@ the meaning of need_closing_paren.
         scope_pushed = TRUE;
       }  /* if */
     }  /* if */
-    /* Skip over the trk_name_reference typeref to the actual enumeration
+    /* Skip over the trk_name_qualifier typeref to the actual enumeration
        type. */
     enum_type = enum_type->variant.typeref.type;
   }  /* if */
