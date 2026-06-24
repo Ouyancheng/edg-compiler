@@ -5372,11 +5372,13 @@ so its values are checked against the range [0, 1].
       /* The implicit increment produces a value that cannot be represented
          by the underlying type.  Ordinarily, this is an error, but Microsoft
          compilers just wrap the value around (except for bool). */
-      if (microsoft_mode && !underlying_is_bool) {
+      if (microsoft_mode) {
         pos_ty_warning(ec_enum_value_out_of_underlying_range, &error_position,
                        underlying_type);
-        constant->variant.integer_value =
+        if (!underlying_is_bool) {
+          constant->variant.integer_value =
                                    min_integer_value_of_kind[underlying_kind];
+        }  /* if */
       } else {
         pos_ty_error(ec_enum_value_out_of_underlying_range, &error_position,
                      underlying_type);
