@@ -2779,16 +2779,16 @@ return a pointer to the init_component.
 
 static an_init_component_ptr scan_integer_pack_init_components(void)
 /*
-Scan a "__integer_pack ( <integer-constant> ) ..." construct that appears as
+Scan an "__integer_pack ( <integer-constant> ) ..." construct that appears as
 an element of an initializer-expression list (e.g., a braced-init-list) and
 return the resulting list of initializer components.  The current token on
 entry must be tok_integer_pack; the trailing "..." is consumed.  When the bound
-N is a concrete nonnegative integer, the result is a (possibly empty) list of N
-ick_expression components holding the integer constants 0, 1, ..., N-1.  When
-the bound is dependent, the result is a single dependent ick_expression
-component that stands for the unexpanded __integer_pack; it is expanded when
-the enclosing template is instantiated and its initializer is rescanned with a
-concrete bound.
+<integer-constant> is a concrete nonnegative integer N, the result is a
+(possibly empty) list of N ick_expression components holding the integer
+constants 0, 1, ..., N-1.  When the bound is dependent, the result is a single
+dependent ick_expression component that stands for the unexpanded
+__integer_pack; it is expanded when the enclosing template is instantiated and
+its initializer is rescanned with a concrete bound.
 */
 {
   a_template_arg_ptr     args = scan_integer_pack(/*record_operands=*/FALSE);
@@ -3067,7 +3067,7 @@ resulting argument list is returned.
         /* Scan another element for the list. */
         a_pack_expansion_descr_ptr pedep;
         if (curr_token == tok_integer_pack) {
-          /* A "__integer_pack(N)..." construct used as a list element.  It
+          /* An "__integer_pack(N)..." construct used as a list element.  It
              expands in place for a concrete N, or yields a single dependent
              placeholder that is expanded at instantiation.  The construct
              consumes its own trailing "...", so the potential pack expansion
@@ -47483,7 +47483,7 @@ restart_embed_data:
     while (any_more) {
       a_pack_expansion_descr_ptr pedep;
       if (curr_token == tok_integer_pack) {
-        /* A "__integer_pack(N)..." construct used as an initializer-list
+        /* An "__integer_pack(N)..." construct used as an initializer-list
            element.  For a concrete N this expands in place to the components
            0, 1, ..., N-1; for a dependent N a single dependent placeholder
            component is produced and expanded when the enclosing template is
@@ -47812,7 +47812,7 @@ cache) for later restoration and further processing.
       a_pack_expansion_descr_ptr pedep;
 
       if (curr_token == tok_integer_pack) {
-        /* A "__integer_pack(N)..." construct used as a list element.  It
+        /* An "__integer_pack(N)..." construct used as a list element.  It
            expands in place for a concrete N, or yields a single dependent
            placeholder that is expanded at instantiation.  The construct
            consumes its own trailing "...", so the potential pack expansion
