@@ -1,5 +1,23 @@
 Version 6.9
 
+6/23/2026  [EDGcpfe/28911]
+Suppressing template argument and name qualifier tracking
+
+The changes for EDGcpfe/26294 in version 6.8 added information to the IL
+that tracks the exact template argument list used in each reference to a
+template instance as well as more thoroughly tracking the qualifiers used
+to name various entities.  In some large and complex translation units,
+this additional information can result in very significant overhead,
+particularly in the depth of recursion when traversing the IL.  Previously,
+the presence of this information in the IL was controlled by the value of
+the DEFAULT_RECORD_FORM_OF_NAME_REFERENCE configuration macro.  A new
+configuration macro has now been added to control this information: When
+CREATE_LEXICAL_TYPEREFS is FALSE, this additional tracking information will
+not be present in the IL, regardless of the value of
+DEFAULT_RECORD_FORM_OF_NAME_REFERENCE.  If not explicitly set, its value is
+the same as DEFAULT_RECORD_FORM_OF_NAME_REFERENCE.
+
+
 6/23/26  [EDGcpfe/28910]
 GNU C++ compatibility: __integer_pack in an initializer-list
 

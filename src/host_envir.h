@@ -1300,6 +1300,23 @@ macro DEFAULT_RECORD_FORM_OF_NAME_REFERENCE.
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 /*
+Flag that is TRUE if typerefs should be created to record alternative
+template argument lists and name qualifiers (trk_template_arg_list and
+trk_name_qualifier, otherwise known as "lexical typerefs").  Ordinarily
+they are created when DEFAULT_RECORD_FORM_OF_NAME_REFERENCE is TRUE, but
+they can add significantly to the size and complexity of the IL; this
+option provides a way of suppressing them if they are not needed.
+*/
+#ifndef CREATE_LEXICAL_TYPEREFS
+// FIXME: #define CREATE_LEXICAL_TYPEREFS DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#define CREATE_LEXICAL_TYPEREFS FALSE
+#endif /* ifndef CREATE_LEXICAL_TYPEREFS */
+
+#if CREATE_LEXICAL_TYPEREFS && !DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#error CREATE_LEXICAL_TYPEREFS requires DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#endif /* CREATE_LEXICAL_TYPEREFS && !DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+
+/*
 Previously, a flag REPRESENT_EMPTY_STATEMENTS_IN_IL determined how empty
 statements are represented.  It has been eliminated and the behavior now
 corresponds to having that flag set to TRUE in past versions.  Catch

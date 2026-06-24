@@ -5059,6 +5059,7 @@ extern void get_definition_of_class(a_type_ptr	class_type);
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
 
 #if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#if CREATE_LEXICAL_TYPEREFS
 extern a_type_ptr make_typeref_with_lexical_information(
                                               a_type_ptr        tp,
                                               a_symbol_locator  *locator);
@@ -5066,6 +5067,10 @@ extern a_type_ptr make_typeref_with_name_qualifier(
                                a_type_ptr            tp,
                                a_name_qualifier_ptr  name_qualifier,
                                a_boolean             is_global_qualified_name);
+#else /* !CREATE_LEXICAL_TYPEREFS */
+#define make_typeref_with_lexical_information(tp, locator) (tp)
+#define make_typeref_with_name_qualifier(tp, qual, global) (tp)
+#endif /* CREATE_LEXICAL_TYPEREFS */
 extern a_hash_value hash_type_and_name_qualifier(a_void_ptr     key);
 extern a_boolean compare_type_and_name_qualifier(a_void_ptr     entry,
                                                  a_void_ptr     key);

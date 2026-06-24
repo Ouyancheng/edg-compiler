@@ -23811,6 +23811,7 @@ a_type_and_template_arg_list.  Return TRUE if the key matches the entry.
   return result;
 }  /* compare_type_and_template_arg_list */
 
+#if CREATE_LEXICAL_TYPEREFS
 
 static a_type_ptr make_typeref_with_template_args(a_type_ptr          tp,
                                                   a_template_arg_ptr  arg_list)
@@ -23909,6 +23910,12 @@ entry with that template argument list and whose underlying type is tp.
   }  /* if */
   return tp;
 }  /* make_typeref_with_lexical_information */
+
+#else /* !CREATE_LEXICAL_TYPEREFS */
+
+#define make_typeref_with_template_args(tp, args) (tp)
+
+#endif /* CREATE_LEXICAL_TYPEREFS */
 
 #endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
@@ -25316,9 +25323,9 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			separator_warning_issued = FALSE;
   a_name_qualifier_ptr          name_qualifier = NULL;
   a_symbol_ptr			qualifier_template_sym = NULL;
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#if CREATE_LEXICAL_TYPEREFS
   a_template_arg_ptr		orig_arg_list = NULL;
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+#endif /* CREATE_LEXICAL_TYPEREFS */
 
 /* Macro used to determine whether we are processing the identifier in
    a Microsoft __if_exists or __if_not_exists directive. */
@@ -25852,9 +25859,9 @@ selection operator, in which case it points to the type of the left operand.
                                            start_seq_number, template_options,
                                            field_sel_type == NULL, &err);
       specific_sym = locator_for_curr_id.specific_symbol;
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#if CREATE_LEXICAL_TYPEREFS
       orig_arg_list = locator_for_curr_id.template_arg_list;
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+#endif /* CREATE_LEXICAL_TYPEREFS */
     }  /* if */
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
@@ -25944,14 +25951,14 @@ selection operator, in which case it points to the type of the left operand.
           /* Get the type associated with the class symbol. */
           qualifier_sym_type = type_symbol_type(qualifier_sym);
           qualifier_type = skip_typerefs(qualifier_sym_type);
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#if CREATE_LEXICAL_TYPEREFS
           if (record_form_of_name_reference && orig_arg_list != NULL) {
             qualifier_lexical_type = make_typeref_with_template_args(
                                                             qualifier_sym_type,
                                                             orig_arg_list);
             orig_arg_list = NULL;
           } else
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+#endif /* CREATE_LEXICAL_TYPEREFS */
           /* Do not insert code here. */
           {
             qualifier_lexical_type = qualifier_sym_type;
@@ -25981,14 +25988,14 @@ selection operator, in which case it points to the type of the left operand.
                last qualifier of a vacuous destructor/finalizer.  Set class
                type to the type pointed to. */
             qualifier_type = type_symbol_type(qualifier_sym);
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#if CREATE_LEXICAL_TYPEREFS
             if (record_form_of_name_reference && orig_arg_list != NULL) {
               qualifier_lexical_type = make_typeref_with_template_args(
                                                                 qualifier_type,
                                                                 orig_arg_list);
               orig_arg_list = NULL;
             } else
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+#endif /* CREATE_LEXICAL_TYPEREFS */
             /* Do not insert code here. */
             {
               qualifier_lexical_type = qualifier_type;
@@ -26049,9 +26056,9 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_type = NULL;
           qualifier_type_is_class = FALSE;
           qualifier_sym = NULL;
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#if CREATE_LEXICAL_TYPEREFS
           orig_arg_list = NULL;
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+#endif /* CREATE_LEXICAL_TYPEREFS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (qualifier_is_super) {
           /* The Microsoft __super qualifier. */
@@ -26067,9 +26074,9 @@ selection operator, in which case it points to the type of the left operand.
           record_potential_pack_reference(
                           qualifier_sym, &locator_for_curr_id.source_position);
         }  /* if */
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#if CREATE_LEXICAL_TYPEREFS
         check_assertion(orig_arg_list == NULL);
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+#endif /* CREATE_LEXICAL_TYPEREFS */
         if (record_name_references_in_context()) {
           /* Create an entry that describes this qualifier.  Find a previously
              created entry if possible. */
@@ -26463,9 +26470,9 @@ selection operator, in which case it points to the type of the left operand.
                                                  start_seq_number, options,
                                                  /*is_name_start=*/FALSE,
                                                  &err);
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#if CREATE_LEXICAL_TYPEREFS
             orig_arg_list = locator_for_curr_id.template_arg_list;
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+#endif /* CREATE_LEXICAL_TYPEREFS */
             /* We can only now determine whether this template reference is
                followed by a "::".  If it is not, break out of the qualifier
                loop. */

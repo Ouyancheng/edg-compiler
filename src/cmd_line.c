@@ -6718,6 +6718,11 @@ file.
 #else /* !defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
   comment_undefined_macro_name(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT);
 #endif /* defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
+#if defined(CREATE_LEXICAL_TYPEREFS)
+  define_numeric_valued_macro(CREATE_LEXICAL_TYPEREFS);
+#else /* !defined(CREATE_LEXICAL_TYPEREFS) */
+  comment_undefined_macro_name(CREATE_LEXICAL_TYPEREFS);
+#endif /* defined(CREATE_LEXICAL_TYPEREFS) */
 #if defined(CUSTOM_DEFAULT_OUTPUT_FILES)
   define_numeric_valued_macro(CUSTOM_DEFAULT_OUTPUT_FILES);
 #else /* !defined(CUSTOM_DEFAULT_OUTPUT_FILES) */
