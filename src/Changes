@@ -1,5 +1,21 @@
 Version 6.9
 
+6/25/2026  [EDGcpfe/28870]
+C++23: Relaxed ref-qualifier overloading rule (P1787R6)
+
+Two non-static member functions with the same name and parameter types, where
+exactly one has a ref-qualifier, no longer always conflict in C++23.  This is
+a consequence of committee paper P1787R6.  For example:
+
+  struct S {
+    S f(int) const;
+    S f(int) &&;   // Now accepted in C++23 modes.
+  };
+
+This behavior is extended to GNU C++20 modes with gnu_version >= 160000
+(to match GCC16's behavior).
+
+
 6/23/2026  [EDGcpfe/28911]
 Suppressing template argument and name qualifier tracking
 

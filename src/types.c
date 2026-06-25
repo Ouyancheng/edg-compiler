@@ -15161,12 +15161,21 @@ C++ mode.
     if (old_ref_qualifiers != new_ref_qualifiers) {
       if (old_ref_qualifiers != rqk_default &&
           new_ref_qualifiers != rqk_default) {
-        /* "&" and "&&" ref-qualifiers are distinguishable, but other
-           combinations are not.  In particular, if two declarations only
-           differ in ref-qualifiers and one declaration has no explicit
-           ref-qualifier, the declarations are not overload-distinguishable
-           (and presumably an error will be issued since they aren't
-           compatible either). */
+        /* "&" and "&&" ref-qualifiers are distinguishable. */
+        distinguishable = TRUE;
+        goto distinguishable_determined;
+      } else if ((cpp23_mode || (cpp20_mode && gpp_version_is(>= 160000))) &&
+                 old_this_class != NULL && new_this_class != NULL &&
+                 (old_extra_info->qualifiers != new_this_qualifiers ||
+                  !identical_types(old_this_class, new_this_class))) {
+        /* Exactly one declaration has no explicit ref-qualifier.  Under N5014
+           [basic.scope.scope]/3, such declarations correspond only if their
+           object parameter types, with the top-level reference removed, are
+           the same; a difference in cv-qualification or class therefore makes
+           them distinguishable.  (When they match, e.g. "void g();" and
+           "void g() &&;", control falls through to the conflict diagnostic
+           below.)  This is a C++23 change introduced by P1787R6, but GCC 16
+           also applies it in C++20 mode. */ 
         distinguishable = TRUE;
         goto distinguishable_determined;
       }  /* if */
