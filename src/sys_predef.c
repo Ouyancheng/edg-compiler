@@ -284,34 +284,12 @@ the resulting type.
 a_boolean value_of_std_is_integral_v(a_template_arg        *t_args,
                                      ARG_UNUSED a_boolean  *okay)
 /*
-Set *okay to TRUE if *t_args represents a 128-bit integer type because
-std::is_integral_v<int128> has different values depending on the standard
-library implementing the trait (we fall back to the definition provided by
-the library and skip intrinsic processing).  Otherwise, return TRUE if
-*t_args represents a C++ integral type.  
+Return TRUE if *t_args represents an integral type.  (*okay is unused.  It
+would be set to FALSE if there were a case where this determination can fail.)
 */
 {
-  a_boolean   result = FALSE;
-  a_type_ptr  tp;
-
   check_assertion(t_args != NULL && t_args->kind == tak_type);
-  tp = skip_typerefs(t_args->variant.type);
-  if (type_is(tp, tk_integer) && !tp->variant.integer.enum_type) {
-#if INT128_EXTENSIONS_ALLOWED
-    if (tp->variant.integer.int_kind == ik_int128 ||
-        tp->variant.integer.int_kind == ik_unsigned_int128) {
-      /* Whether __int128 (and related types) produces a TRUE value appears
-         to be dependent on the library version.  So don't attempt to handle
-         that case intrinsically. */
-      *okay = FALSE;
-    } else
-#endif /* INT128_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
+  return is_std_integral_type(t_args->variant.type);
 }  /* value_of_std_is_integral_v */
 
 
