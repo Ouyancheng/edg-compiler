@@ -1,5 +1,16 @@
 Version 6.9
 
+6/25/2026  [EDGcpfe/28920]
+Intrinsic handling of std::is_integral_v
+
+The changes for EDGcpfe/28491 allow the front end to handle the instantiation
+of std::is_integral_v as an intrinsic.  However, it appears that for
+std::is_integral_v<__int128> and std::integral_v<unsigned __int128> different
+standard libraries produce different results.  The front end therefore no
+longer handles std::is_integral_v<T> intrinsically if T is a 128-bit integer
+type.
+
+
 6/25/2026  [EDGcpfe/28870]
 C++23: Relaxed ref-qualifier overloading rule (P1787R6)
 
@@ -3018,7 +3029,7 @@ example, with --c++23:
   }
 
 
-12/29/25 [EDGcpfe/27514,EDGcpfe/28491]
+12/29/25 [EDGcpfe/28491]
 Intrinsic treatment of commonly-occurring variable templates
 
 The front end now has the capability to recognize certain variable templates
