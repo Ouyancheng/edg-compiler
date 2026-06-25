@@ -677,30 +677,6 @@ Return TRUE if the given type is an integral type (3.1.2.5).
 }  /* is_integral_type */
 
 
-a_boolean is_std_integral_type(a_type_ptr tp)
-/*
-Return TRUE if std::is_integral_v<T> would produce a true value when T is the
-given type.  This excludes __int128 types.
-*/
-{
-  a_boolean  result;
-
-  tp = skip_typerefs(tp);
-  result = is_integral(tp);
-#if INT128_EXTENSIONS_ALLOWED
-  /* std::is_integral_v does not consider __int128 to be an integral type in
-     both libc++ (Clang's associated library) and libstdc++ (GCC's associated
-     library). */
-  if (result &&
-      (tp->variant.integer.int_kind == ik_int128 ||
-       tp->variant.integer.int_kind == ik_unsigned_int128)) {
-    result = FALSE;
-  }  /* if */
-#endif /* INT128_EXTENSIONS_ALLOWED */
-  return result;
-}  /* is_std_integral_type */
-
-
 a_boolean is_signed_integral_type(a_type_ptr tp)
 /*
 Return TRUE if the type is a signed integral type or an enum type whose
