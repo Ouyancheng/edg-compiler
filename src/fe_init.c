@@ -306,12 +306,12 @@ CONSTINIT_ARRAY(/* none */, a_function_pointer, function_pointers, fn_last + 1)
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   (a_function_pointer)hash_name_reference,
   (a_function_pointer)compare_name_reference,
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#if CREATE_LEXICAL_TYPEREFS
   (a_function_pointer)hash_type_and_name_qualifier,
   (a_function_pointer)compare_type_and_name_qualifier,
   (a_function_pointer)hash_type_and_template_arg_list,
   (a_function_pointer)compare_type_and_template_arg_list,
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+#endif /* CREATE_LEXICAL_TYPEREFS */
   (a_function_pointer)last               /* fn_last */
 }
 #endif /* VAR_INITIALIZERS */

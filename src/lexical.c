@@ -23707,7 +23707,7 @@ equivalence.
   return value;
 }  /* hash_lexical_template_arg_list */
 
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#if CREATE_LEXICAL_TYPEREFS
 
 /*
 Data structure used to represent a pair of a type and a name qualifier.
@@ -23810,8 +23810,6 @@ a_type_and_template_arg_list.  Return TRUE if the key matches the entry.
            are_template_args_lexically_identical(entry_tap, key_tap);
   return result;
 }  /* compare_type_and_template_arg_list */
-
-#if CREATE_LEXICAL_TYPEREFS
 
 static a_type_ptr make_typeref_with_template_args(a_type_ptr          tp,
                                                   a_template_arg_ptr  arg_list)
@@ -23916,8 +23914,6 @@ entry with that template argument list and whose underlying type is tp.
 #define make_typeref_with_template_args(tp, args) (tp)
 
 #endif /* CREATE_LEXICAL_TYPEREFS */
-
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 #if DEBUG
 
@@ -30957,7 +30953,7 @@ of the front end.
   processing_macro_preincludes = FALSE;
   name_references_map = alloc_fe_of_type(a_name_references_map);
   construct(name_references_map, /*mask_width=*/8u);
-#if DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#if CREATE_LEXICAL_TYPEREFS
   template_arg_list_typeref_hash_table =
          alloc_hash_table(FRONT_END_REGION_NUMBER,
                           (a_hash_table_size)1024,
@@ -30968,7 +30964,7 @@ of the front end.
                              (a_hash_table_size)1024,
                              fn_for_function(hash_type_and_name_qualifier),
                              fn_for_function(compare_type_and_name_qualifier));
-#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+#endif /* CREATE_LEXICAL_TYPEREFS */
   pending_overflow_reports = NULL;
   last_pending_overflow_report = NULL;
   available_overflow_reports = NULL;
