@@ -1308,8 +1308,7 @@ they can add significantly to the size and complexity of the IL; this
 option provides a way of suppressing them if they are not needed.
 */
 #ifndef CREATE_LEXICAL_TYPEREFS
-// FIXME: #define CREATE_LEXICAL_TYPEREFS DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
-#define CREATE_LEXICAL_TYPEREFS FALSE
+#define CREATE_LEXICAL_TYPEREFS DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
 #endif /* ifndef CREATE_LEXICAL_TYPEREFS */
 
 #if CREATE_LEXICAL_TYPEREFS && !DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
