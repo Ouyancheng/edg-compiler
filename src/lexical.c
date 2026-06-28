@@ -23811,6 +23811,7 @@ a_type_and_template_arg_list.  Return TRUE if the key matches the entry.
   return result;
 }  /* compare_type_and_template_arg_list */
 
+
 static a_type_ptr make_typeref_with_template_args(a_type_ptr          tp,
                                                   a_template_arg_ptr  arg_list)
 /*
