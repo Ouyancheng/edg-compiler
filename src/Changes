@@ -1,6 +1,6 @@
 Version 6.9
 
-6/25/2026  [EDGcpfe/28920]
+6/25/26  [EDGcpfe/28920]
 Intrinsic handling of std::is_integral_v
 
 The changes for EDGcpfe/28491 allow the front end to handle the instantiation
@@ -11,7 +11,7 @@ longer handles std::is_integral_v<T> intrinsically if T is a 128-bit integer
 type.
 
 
-6/25/2026  [EDGcpfe/28870]
+6/25/26  [EDGcpfe/28870]
 C++23: Relaxed ref-qualifier overloading rule (P1787R6)
 
 Two non-static member functions with the same name and parameter types, where
