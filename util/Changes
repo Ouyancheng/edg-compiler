@@ -1,5 +1,13 @@
 Version 6.9
 
+6/29/26  [EDGcpfe/28929]
+Spaces are improperly processed on various options
+
+Previously, various options (like --sys_include) did not properly quote
+their arguments resulting in arguments unintentionally decaying into multiple
+arguments (if the argument contained a space).  This is now fixed.
+
+
 5/14/26  [EDGcpfe/28833]
 Demangled names for fabricated field names of base objects
 

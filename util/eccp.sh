@@ -250,7 +250,7 @@ old_ii_format=${EDG_OLD_II_FORMAT-0}
 #
 gen_c_suffix=${EDG_GEN_C_SUFFIX-".int.c"}
 EDG_GEN_O_SUFFIX=${EDG_GEN_O_SUFFIX-"o"}
-gen_o_suffix=`expr $gen_c_suffix : '\(.*\)\.'`.$EDG_GEN_O_SUFFIX
+gen_o_suffix=`expr "$gen_c_suffix" : '\(.*\)\.'`.$EDG_GEN_O_SUFFIX
 #
 # The flag for specifying an output file.  If no trailing space is provided,
 # the output flag and output file will be adjacent.
@@ -2081,7 +2081,7 @@ process_option()
           # Convert relative -I paths to absolute ones, if necessary.
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 -a \
                "$curr_param" != "-" ] ; then
-            absolute_path=`expr $curr_param : '/.*'`
+            absolute_path=`expr "$curr_param" : '/.*'`
             if [ $absolute_path -eq 0 ] ; then
               # The directory is a relative path.  Add the current directory
               # to convert it to an absolute path
@@ -2204,10 +2204,10 @@ process_option()
           ;;
         -I*)
           # Convert relative -I paths to absolute ones, if necessary.
-          dir_name=`expr $arg : '-I\(.*\)'`    # Get the string after the -I
+          dir_name=`expr "$arg" : '-I\(.*\)'`    # Get the string after the -I
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
             if [ "$dir_name" != "-" ] ; then
-              absolute_path=`expr $dir_name : '/.*'`
+              absolute_path=`expr "$dir_name" : '/.*'`
               if [ $absolute_path -eq 0 ] ; then
                 # The directory is a relative path.  Add the current directory
                 # to convert it to an absolute path
@@ -2223,11 +2223,11 @@ process_option()
         --embed_directory=*)
           # Convert relative --include_directory  paths to absolute ones,
           # if necessary.
-          dir_name=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
-          opt_name=`expr $arg : '\(.*\)=.*'`    # Get the string before the =
+          dir_name=`expr "$arg" : '.*=\(.*\)'`    # Get the string after the =
+          opt_name=`expr "$arg" : '\(.*\)=.*'`    # Get the string before the =
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
             if [ "$dir_name" != "-" ] ; then
-              absolute_path=`expr $dir_name : '/.*'`
+              absolute_path=`expr "$dir_name" : '/.*'`
               if [ $absolute_path -eq 0 ] ; then
                 # The directory is a relative path.  Add the current directory
                 # to convert it to an absolute path
@@ -2243,14 +2243,14 @@ process_option()
         --ms_header_unit_angle=* | \
         --ms_header_unit_quote=*)
           # Need to split on the '=' and convert the appropriate paths.
-          opt_arg=`expr $arg : '[^=]*=\(.*\)'`  # Get the string after the =
-          opt_name=`expr $arg : '\([^=]*\)=.*'` # Get the string before the =
+          opt_arg=`expr "$arg" : '[^=]*=\(.*\)'`  # Get the string after the =
+          opt_name=`expr "$arg" : '\([^=]*\)=.*'` # Get the string before the =
           opt_arg_mapped=$(resolve_path_mapping "$opt_name" "$opt_arg")
           curr_arg="$opt_name=$opt_arg_mapped"
           ;;
         --target=*)
           # Capture the specified target configuration.
-          arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
+          arg_value=`expr "$arg" : '.*=\(.*\)'`    # Get the string after the =
           target=$arg_value
           ;;
         --create_header_unit=*)
@@ -2273,8 +2273,8 @@ process_option()
          --pch_dir=* | \
          --create_pch=* | \
          --use_pch=*)
-      opt_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
-      opt_name=`expr $arg : '\(.*\)=.*'`    # Get the before the =
+      opt_value=`expr "$arg" : '.*=\(.*\)'`    # Get the string after the =
+      opt_name=`expr "$arg" : '\(.*\)=.*'`    # Get the before the =
       opt_value=`native_path "$opt_value"`
       feoptions=$opt_name=`escape_if_needed "$opt_value"`" $feoptions"
       ;;
@@ -2770,7 +2770,7 @@ for cfile in $cfiles
 do
   instantiation_command_suffix=
   basefile=$(basename_of_file "$cfile")
-  suffix=`expr $cfile : '.*\.\(.*\)'` # Get the file suffix
+  suffix=`expr "$cfile" : '.*\.\(.*\)'` # Get the file suffix
   if [ $more_than_one_c_file -ne 0 ]
   then
     echo "$cfile:" 1>&2
@@ -2791,7 +2791,7 @@ do
     instantiation_command_suffix=$instantiation_command_suffix"-o $output_file"
     # Build the .ii file name based on the name of the object file being
     # built.
-    output_basename=`expr $output_file : '\(.*\)\.'`  # Get basename
+    output_basename=`expr "$output_file" : '\(.*\)\.'`  # Get basename
     ii_file_name=$output_basename.ii
     ii_file_specified=1
     ti_file_name=$output_basename.ti
@@ -2836,7 +2836,7 @@ do
   if [ $one_instantiation_per_object -ne 0 ] ; then
     if [ $keep_int_file -ne 0 ] ; then
       instantiation_gen_c_dir=$instantiation_dir
-      absolute_path=`expr $instantiation_gen_c_dir : '/.*'`
+      absolute_path=`expr "$instantiation_gen_c_dir" : '/.*'`
       if [ $absolute_path -eq 0 ] ; then
         # The directory is a relative path.  Add the current directory
         # to convert it to an absolute path
