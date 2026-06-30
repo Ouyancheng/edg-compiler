@@ -11914,26 +11914,6 @@ static constexpr a_const_char *decimal_dig = "0123456789";
 static constexpr a_const_char *hex_dig = "0123456789ABCDEFabcdef";
 
 
-static a_boolean standard_bit_precise_literal_suffix_allowed(void)
-/*
-Return TRUE if the standard bit-precise integer literal suffixes are accepted
-in the current mode.
-*/
-{
-  return bit_precise_int_enabled && !clangcpp_version_is(any_version);
-}  /* standard_bit_precise_literal_suffix_allowed */
-
-
-static a_boolean prefixed_bit_precise_literal_suffix_allowed(void)
-/*
-Return TRUE if the Clang extension spelling of bit-precise integer literal
-suffixes is accepted in the current mode.
-*/
-{
-  return bit_precise_int_enabled && clang_version_is(>=190000);
-}  /* prefixed_bit_precise_literal_suffix_allowed */
-
-
 static int bit_precise_literal_suffix_length(a_const_char  *suffix)
 /*
 Return the length of the bit-precise integer literal suffix starting at suffix,

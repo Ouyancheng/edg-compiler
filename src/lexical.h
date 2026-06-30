@@ -4992,6 +4992,22 @@ extern void cache_tokens_from_string(
                                  a_token_cache_ptr       cache,
                                  const a_source_position *position_for_tokens);
 
+
+/*
+Macro producing TRUE if the standard bit-precise integer literal suffixes (like
+"Uwb") are accepted in the current mode.
+*/
+#define standard_bit_precise_literal_suffix_allowed() \
+  (bit_precise_int_enabled && !clangcpp_version_is(any_version))
+
+/*
+Macro producing TRUE if the Clang extension spelling of bit-precise integer
+literal suffixes (like "__uWB") is accepted in the current mode.
+*/
+#define prefixed_bit_precise_literal_suffix_allowed() \
+  (bit_precise_int_enabled && clang_version_is(>=190000))
+
+
 #if CHECKING
 void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens);
 #endif /* CHECKING */

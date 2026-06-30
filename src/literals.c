@@ -80,27 +80,6 @@ sign-extension might be needed later on.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-
-static a_boolean standard_bit_precise_literal_suffix_allowed(void)
-/*
-Return TRUE if the standard bit-precise integer literal suffixes are accepted
-in the current mode.
-*/
-{
-  return bit_precise_int_enabled && !clangcpp_version_is(any_version);
-}  /* standard_bit_precise_literal_suffix_allowed */
-
-
-static a_boolean prefixed_bit_precise_literal_suffix_allowed(void)
-/*
-Return TRUE if the Clang extension spelling of bit-precise integer literal
-suffixes is accepted in the current mode.
-*/
-{
-  return bit_precise_int_enabled && clang_version_is(>=190000);
-}  /* prefixed_bit_precise_literal_suffix_allowed */
-
-
 static a_boolean is_bit_precise_literal_suffix(a_const_char  *first_char,
                                                a_const_char  *last_char,
                                                a_const_char  **suffix_start,
