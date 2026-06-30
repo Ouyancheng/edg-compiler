@@ -4,7 +4,7 @@ Version 6.9
 Spaces are improperly processed on various options
 
 Previously, various options (like --sys_include) did not properly quote
-their arguments resulting in arguments unintentionally decaying into multiple
+their arguments, resulting in arguments unintentionally decaying into multiple
 arguments (if the argument contained a space).  This is now fixed.
 
 
