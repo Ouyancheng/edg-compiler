@@ -5375,7 +5375,10 @@ so its values are checked against the range [0, 1].
       if (microsoft_mode) {
         pos_ty_warning(ec_enum_value_out_of_underlying_range, &error_position,
                        underlying_type);
-        if (!underlying_is_bool) {
+        if (underlying_is_bool) {
+          set_integer_value(&constant->variant.integer_value,
+                            (a_host_large_integer)1);
+        } else {
           constant->variant.integer_value =
                                    min_integer_value_of_kind[underlying_kind];
         }  /* if */
@@ -5397,18 +5400,24 @@ so its values are checked against the range [0, 1].
                   : !in_range_for_integer_kind(constant, constant,
                                                underlying_kind);
     if (out_of_range) {
-      if (microsoft_mode && !underlying_is_bool) {
+      if (microsoft_mode) {
         pos_ty_warning(ec_enum_value_out_of_underlying_range, &error_position,
                        underlying_type);
         /* Truncate the specified value to the length of the underlying type
            (taking care to extend the sign bit as needed).  E.g., 1000
            truncated to "signed char" becomes -24. */
-        and_integer_values(&constant->variant.integer_value,
-                           &max_integer_value_of_kind[
-                                    unsigned_int_kind_of[underlying_kind]]);
-        if (int_kind_is_signed[underlying_kind]) {
-          sign_extend_integer_value(&constant->variant.integer_value,
-                                    underlying_type->size * targ_char_bit);
+        if (underlying_is_bool) {
+          set_integer_value(&constant->variant.integer_value,
+                            (a_host_large_integer)
+                                                !is_false_constant(constant));
+        } else {
+          and_integer_values(&constant->variant.integer_value,
+                             &max_integer_value_of_kind[
+                                      unsigned_int_kind_of[underlying_kind]]);
+          if (int_kind_is_signed[underlying_kind]) {
+            sign_extend_integer_value(&constant->variant.integer_value,
+                                      underlying_type->size * targ_char_bit);
+          }  /* if */
         }  /* if */
       } else {
         pos_ty_error(ec_enum_value_out_of_underlying_range, &error_position,
