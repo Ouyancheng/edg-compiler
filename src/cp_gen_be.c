@@ -13036,7 +13036,7 @@ to unusable variables and class members.
   a_boolean                   for_all_scopes;
   a_boolean                   is_local_lambda_in_scope = FALSE;
   a_source_correspondence_ptr op_scp = NULL;
-  an_expr_node_ptr            op2;
+  an_expr_node_ptr            opnd;
 
   switch (expr->kind) {
     case enk_variable:
@@ -13087,13 +13087,20 @@ to unusable variables and class members.
                "decltype(T::m)" is equivalent to "decltype(((S*)0)->m)",
                which would lead to the invalid generated code
                "decltype(S::m)" if we ignored the visibility of "m". */
-            op2 = expr->variant.operation.operands->next;
-            if (is_variable_node(op2)) {
-              op_scp = &node_variable(op2)->source_corresp;
-            } else if (is_field_node(op2)) {
-              op_scp = &node_field(op2)->source_corresp;
-            } else if (is_routine_node(op2)) {
-              op_scp = &node_routine(op2)->source_corresp;
+            if (expr->variant.operation.kind == eok_dot_member_call ||
+                expr->variant.operation.kind == eok_points_to_member_call) {
+              /* The member function is the first operand. */
+              opnd = expr->variant.operation.operands;
+            } else {
+              /* The member is the second operand. */
+              opnd = expr->variant.operation.operands->next;
+            }  /* if */
+            if (is_variable_node(opnd)) {
+              op_scp = &node_variable(opnd)->source_corresp;
+            } else if (is_field_node(opnd)) {
+              op_scp = &node_field(opnd)->source_corresp;
+            } else if (is_routine_node(opnd)) {
+              op_scp = &node_routine(opnd)->source_corresp;
             }  /* if */
             if (op_scp != NULL) {
               register_member_access_operand(op_scp);
