@@ -11361,14 +11361,14 @@ in cases where the memory region is not available).
 
 a_scope_ptr scope_for_routine(a_routine_ptr rout)
 /*
-Return the function scope for the given (defined) routine.
+Return the function scope for the given (defined) routine.  The scope may be
+NULL in some cases involving nested lambdas.
 */
 {
   a_scope_ptr scope;
 
   scope = scope_for_routine_or_null(rout);
-  check_assertion_str(scope != NULL, "scope for routine is NULL");
-  check_assertion(scope->kind == (a_scope_kind)sck_function);
+  check_assertion(scope == NULL || scope->kind == sck_function);
   return scope;
 }  /* scope_for_routine */
 
