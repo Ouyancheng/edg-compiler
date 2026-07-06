@@ -5660,12 +5660,21 @@ fix them.
          scope memory.  Record an indirect lerk_constant_expr reference in the
          enclosing function scope so expr_node_from_constant can still recover
          the expression.  If no enclosing function scope is reachable, fall
-         back to discarding the expression. */
+         back to discarding the expression.  Don't do this for calls from
+         lowering because lowering will prune the backing expression causing
+         the indirect reference to dangle. */
       a_routine_ptr  rp;
-      a_scope_ptr    sp = get_innermost_function_scope();
-      if (sp == NULL) {
-        rp = cp->source_corresp.enclosing_routine;
-        if (rp != NULL) sp = scope_for_routine_or_null(rp);
+      a_scope_ptr    sp = NULL;
+      a_boolean      lowering = FALSE;
+#if DO_IL_LOWERING
+      lowering = il_lowering_underway;
+#endif /* DO_IL_LOWERING */
+      if (!lowering) {
+        sp = get_innermost_function_scope();
+        if (sp == NULL) {
+          rp = cp->source_corresp.enclosing_routine;
+          if (rp != NULL) sp = scope_for_routine_or_null(rp);
+        }  /* if */
       }  /* if */
       if (sp != NULL) {
         an_expr_node_ptr expr = cp->expr;
