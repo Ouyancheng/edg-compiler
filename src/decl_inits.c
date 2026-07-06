@@ -4773,6 +4773,18 @@ initializer, already copied and substituted.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
       /* Non-class, non-aggregate initialization. */
+      if (cpp11_mode && is_var_init && is_braced_init_component(icp) &&
+          type_is(dtype, tk_integer) && !dtype->variant.integer.bool_type) {
+        /* This ensures that something like
+             int x = { 2.0 };
+           will get an error (rather than a warning), by default in C++11
+           mode.  We only impose this when the destination type is a non-bool
+           integral type because various compilers (GCC, especially) don't
+           issue an error on some other cases deemed invalid by the standard,
+           and so far we have no reliable model of what other compilers
+           accept and don't accept. */
+        icp->check_narrowing = TRUE;
+      }  /* if */
       process_simple_init_component(icp, dtype, is, is_var_init);
       break;
   }  /* switch */
