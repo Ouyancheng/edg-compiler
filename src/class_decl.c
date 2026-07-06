@@ -21669,7 +21669,7 @@ be entered.
     curr_routine_fixup->symbol = member_sym;
   }  /* if */
   if (!class_state->class_aggregate_ruled_out) {
-    if (class_state->access != (an_access_specifier)as_public) {
+    if (class_state->access != as_public) {
       if (decl_info->is_unnamed_field && decl_info->is_bit_field) {
         /* Unnamed bit fields are not subject to initialization (and
            are not even members, according to WP 9.6) so a nonpublic
@@ -21681,6 +21681,11 @@ be entered.
         class_state->class_aggregate_ruled_out = TRUE;
         class_state->cpp03_POD_ruled_out = TRUE;
       }  /* if */
+    } else if (field->has_no_unique_address_attribute &&
+               gnu_version_is(any_version)) {
+      /* GCC considers that a [[no_unique_address]] attribute makes the class
+         type non-POD for layout purposes. */
+      class_state->cpp03_POD_ruled_out = TRUE;
     }  /* if */
   }  /* if */
   if (!class_state->any_const_or_ref_fields) {

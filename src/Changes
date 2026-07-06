@@ -1,5 +1,31 @@
 Version 6.9
 
+7/6/26   [EDGcpfe/28918]
+GCC compatibility: PODness and [[no_unique_address]
+
+Consider, in C++20 mode with the IA-64 ABI (and int a 4-byte-aligned type):
+
+  struct PodOrNot {
+    int i;
+    [[no_unique_address]] char c;
+  };
+  struct S {
+    [[no_unique_address]] PodOrNot x;
+    char d, e, f;
+  };
+  static_assert(sizeof(S) == 8);
+
+This fails with the EDG front end as well as with Clang, because PodOrNot is
+considered a "POD for layout purposes": Ignoring the attributes, PodOrNot is
+clearly a struct that could be expressed in C.  When used as a base class such
+a "POD" class cannot have its tail padding reused by a derived class (like S).
+However, it appears GCC treats the [[no_unique_address]] attribute in PodOrNot
+as an aspect that disqualifies PodOrNot from being a "POD for layout" purposes.
+That in turn allows the three bytes of tail padding of PodOrNot to be used to
+store the member d, e, and f of S.  The front end now emulates that behavior
+in GCC compatibility mode.
+
+
 7/6/26   [EDGcpfe/26816]
 Severity of narrowing diagnostics
 
