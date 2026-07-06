@@ -8966,7 +8966,8 @@ srq_seq_sublist_parent_found:
 static void gen_tag_reference(a_type_ptr             type,
                               a_gen_name_options_set options,
                               an_attribute_ptr       attributes,
-                              a_type_ptr             qual_typeref = NULL)
+                              a_type_ptr             qual_typeref = NULL,
+                              a_type_ptr             enum_base_type = NULL)
 /*
 Generate a reference to the indicated type, which is a class, struct, union,
 or enum; options may be GN_DECLARATION if the reference is in a secondary
@@ -8974,7 +8975,9 @@ declaration ("struct S;") or GN_NO_OPTIONS for other kinds of reference.
 attributes lists attributes associated with this reference: Render only the
 al_tag_name attributes (if any).  If qual_typeref is non-NULL, it points
 to a trk_name_qualifier typeref giving the qualification to be used in the
-type name.
+type name.  If enum_base_type is non-NULL, it points to the underlying type
+as written in a secondary enum declaration and is used for the explicit base
+type specifier in place of the type recorded in the type entry.
 */
 {
   a_source_sequence_scan_state saved_state;
@@ -9183,7 +9186,9 @@ type name.
         integer_type_supp(type)->base_type != NULL) {
       /* Presumably an opaque enum declaration with an explicit base type. */
       write_tok_str(": ");
-      gen_type(integer_type_supp(type)->base_type);
+      /* Use the spelling from the secondary declaration if available. */
+      gen_type((enum_base_type != NULL) ? enum_base_type
+                                         : integer_type_supp(type)->base_type);
     }  /* if */
   }  /* if */
 }  /* gen_tag_reference */
@@ -14159,8 +14164,10 @@ this one is such a continuation.
       }  /* if */
       saved_has_been_declared = type->has_been_declared;
       if (sec_decl != NULL && sec_decl->declared_type != NULL &&
+          type->kind == tk_typeref &&
           type_is(sec_decl->declared_type, tk_typeref) &&
           is_lexical_typeref(sec_decl->declared_type)) {
+        /* A secondary declaration of a typedef: use the declared type. */
         gen_type_reference(sec_decl->declared_type,
                            /*suppress_typename_kwd=*/TRUE,
                            /*is_declaration=*/TRUE);
@@ -14170,7 +14177,13 @@ this one is such a continuation.
                            /*suppress_typename_kwd=*/FALSE,
                            /*is_declaration=*/TRUE);
       } else {
-        gen_tag_reference(type, options, attributes);
+        /* For a secondary enum declaration, use the base type as written
+           in the secondary declaration. */
+        a_type_ptr enum_base_type =
+                           (sec_decl != NULL && is_immediate_enum_type(type)) ?
+                                     sec_decl->declared_type: (a_type_ptr)NULL;
+        gen_tag_reference(type, options, attributes, (a_type_ptr)NULL,
+                          enum_base_type);
       }  /* if */
       if (friend_decl) {
         /* Don't set type->has_been_declared for a friend declaration: it will

@@ -1,5 +1,25 @@
 Version 6.9
 
+7/6/26   [EDGcpfe/28937]
+C++-generating back end: spelling of enum base types
+
+Previously, the IL did not record the spelling of an explicitly-specified base
+type for each declaration of an enum.  For example, with --c++11:
+
+  using uint1 = unsigned int;
+  namespace ns {
+    enum E : uint1 {};  // Previously generated as "enum E : ns::uint2 {};"
+  }
+  namespace ns {
+    using uint2 = unsigned int;
+    enum E : ns::uint2;
+  }
+
+Now, the base_type field of an enum type refers to the type specified in the
+enum definition.  Each opaque enum declaration specifies its base type in the
+declared_type field of the corresponding secondary source sequence entry.
+
+
 6/25/26  [EDGcpfe/28920]
 Intrinsic handling of std::is_integral_v
 

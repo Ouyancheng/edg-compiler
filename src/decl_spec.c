@@ -6979,8 +6979,20 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   if (is_definition || is_opaque_enum_decl) {
     if (explicit_base != NULL) {
       a_type_ptr  utp = skip_typerefs(explicit_base);
-      /* Record the explicit underlying type as it appeared in the source. */
-      integer_type_supp(enum_type)->base_type = explicit_base;
+      /* Record the explicit underlying type as it appeared in the source.
+         Prefer the spelling from the definition. */
+      if (is_definition || integer_type_supp(enum_type)->base_type == NULL) {
+        integer_type_supp(enum_type)->base_type = explicit_base;
+      }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (!is_definition && is_opaque_enum_decl) {
+        /* Record the underlying type as written in this opaque declaration. */
+        (void)set_src_seq_secondary_decl_fields((char *)enum_type,
+                                                explicit_base,
+                                                (a_name_reference_ptr)NULL,
+                                                SSSD_NO_FLAGS);
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (C_mode() && type_is(utp, tk_integer)) {
         /* In C, enumerator constants immediately have the enumeration type
            with the explicitly-specified (unqualified) underlying type (a C23
