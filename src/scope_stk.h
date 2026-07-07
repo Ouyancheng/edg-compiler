@@ -2589,6 +2589,11 @@ extern a_boolean begin_rescan_pack_expansion_context(
 		a_ctws_state_ptr			ctws_state,
 		a_boolean				*err);
 
+extern a_boolean pack_expansion_maps_to_unexpanded_pack(
+		a_pack_expansion_descr_ptr		pedp,
+		a_template_param_ptr			templ_param_list,
+		a_template_arg_ptr			templ_arg_list);
+
 extern void begin_pack_deduction_context(
 		a_pack_expansion_descr_ptr		pedp,
 		a_template_param_ptr			templ_param_list,

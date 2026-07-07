@@ -11941,6 +11941,39 @@ rescan.
 }  /* find_template_arg_for_pack */
 
 
+a_boolean pack_expansion_maps_to_unexpanded_pack(
+                                  a_pack_expansion_descr_ptr  pedp,
+                                  a_template_param_ptr        templ_param_list,
+                                  a_template_arg_ptr          templ_arg_list)
+/*
+Return TRUE if pedp refers to a template parameter pack whose corresponding
+argument in templ_arg_list is itself still a parameter pack rather than a
+list of expanded elements.
+*/
+{
+  a_boolean             result = FALSE;
+  a_pack_reference_ptr  prp;
+
+  for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
+    if (prp->kind == prk_template_param && !prp->uses_enclosing_pack) {
+      uint32_t              elements;
+      a_template_arg_ptr    tap;
+      a_template_param_ptr  tpp;
+      a_boolean             found = FALSE;
+      tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
+                                       prp->symbol, &elements, &tpp, &found,
+                                       /*is_rescan=*/TRUE,
+                                       /*is_deduction=*/FALSE);
+      if (found && tap != NULL && tap->is_pack) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* pack_expansion_maps_to_unexpanded_pack */
+
+
 static a_param_id_ptr find_parameter_for_pack(
 				a_pack_reference_ptr	prp,
 				uint32_t		*elements)
