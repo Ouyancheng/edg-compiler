@@ -8986,6 +8986,7 @@ type specifier in place of the type recorded in the type entry.
 
   type = orig_type_if_nonreal_prototype_type(type);
   type_for_naming = type;
+  check_assertion(is_immediate_enum_type(type) || enum_base_type == NULL);
   if (type->definition_delayed) {
     /* Put out the definition if it is needed and was delayed because a
        non-autonomous definition appeared. */
@@ -9188,7 +9189,7 @@ type specifier in place of the type recorded in the type entry.
       write_tok_str(": ");
       /* Use the spelling from the secondary declaration if available. */
       gen_type((enum_base_type != NULL) ? enum_base_type
-                                         : integer_type_supp(type)->base_type);
+                                        : integer_type_supp(type)->base_type);
     }  /* if */
   }  /* if */
 }  /* gen_tag_reference */
@@ -14181,7 +14182,7 @@ this one is such a continuation.
            in the secondary declaration. */
         a_type_ptr enum_base_type =
                            (sec_decl != NULL && is_immediate_enum_type(type)) ?
-                                     sec_decl->declared_type: (a_type_ptr)NULL;
+                                                sec_decl->declared_type : NULL;
         gen_tag_reference(type, options, attributes, (a_type_ptr)NULL,
                           enum_base_type);
       }  /* if */

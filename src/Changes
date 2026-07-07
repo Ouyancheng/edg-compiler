@@ -41,7 +41,7 @@ more likely to be helpful in various compatibility modes.
 
 
 7/6/26   [EDGcpfe/28937]
-C++-generating back end: spelling of enum base types
+C++-generating back end: spelling of enum base types (IL CHANGE)
 
 Previously, the IL did not record the spelling of an explicitly-specified base
 type for each declaration of an enum.  For example, with --c++11:
@@ -56,8 +56,10 @@ type for each declaration of an enum.  For example, with --c++11:
   }
 
 Now, the base_type field of an enum type refers to the type specified in the
-enum definition.  Each opaque enum declaration specifies its base type in the
-declared_type field of the corresponding secondary source sequence entry.
+enum definition.  In configurations that maintain source sequence lists,
+including C++-generating back end configurations, each opaque enum declaration
+specifies its base type in the declared_type field of the corresponding
+secondary source sequence entry.
 
 
 6/25/26  [EDGcpfe/28920]
