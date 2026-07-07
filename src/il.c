@@ -5679,6 +5679,19 @@ fix them.
       if (sp != NULL) {
         an_expr_node_ptr expr = cp->expr;
         cp->expr = NULL;
+        if (mixed_regions_in_expr_tree(expr)) {
+          /* The backing expression tree spans both the file scope memory
+             region and a function scope memory region.  Anonymous expr
+             nodes left in the file scope region would be reachable only
+             through this function-scope tree, and expr nodes cannot be
+             recorded as file-scope orphans, so they would be lost on IL
+             write-read.  Copy the whole tree into the function scope memory
+             region so that it is self-contained. */
+          a_memory_region_number  save_region = curr_il_region_number;
+          switch_il_region(mem_region_for_routine(sp->variant.routine.ptr));
+          expr = copy_expr_tree(expr, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
+          switch_il_region(save_region);
+        }  /* if */
         make_local_expr_node_ref(expr, lerk_constant_expr, (char*)cp, sp);
       } else {
         cp->expr = NULL;
