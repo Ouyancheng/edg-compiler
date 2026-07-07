@@ -16912,6 +16912,7 @@ NULL pointer.
                                    ctws_state->orig_class_templ_params)->depth;
     for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
       check_assertion(prp->kind == prk_template_param);
+      new_prp = NULL;
       if (prp->coordinates->depth < orig_depth) {
         /* A reference to an enclosing template parameter pack. */
         new_prp = copy_pack_reference(prp);
@@ -16923,11 +16924,15 @@ NULL pointer.
              array. */
           const Dyn_array<a_template_param_ptr> &pack_mapping =
                                      *ctws_state->alias_parameter_pack_mapping;
-          check_assertion(static_cast<a_template_param_list_pos>(
-                                                         pack_mapping.length())
-                                                >= prp->coordinates->position);
-          new_tpp = pack_mapping[prp->coordinates->position - 1];
-          if (new_tpp == NULL) continue;
+          if (static_cast<a_template_param_list_pos>(pack_mapping.length())
+                                               >= prp->coordinates->position) {
+            new_tpp = pack_mapping[prp->coordinates->position - 1];
+            if (new_tpp == NULL) continue;
+          } else {
+            /* Pack reference from a template parameter list other than the
+               one covered by the mapping.  Leave it unchanged. */
+            new_prp = copy_pack_reference(prp);
+          }  /* if */
         } else {
           /* Look for the template parameter in the lists in ctws_state.
              First go through the class template params.  If it is not found
@@ -16961,10 +16966,12 @@ NULL pointer.
           }  /* if */
           check_assertion(new_tpp != NULL);
         }  /* if */
-        new_prp = alloc_pack_reference(prk_template_param);
-        new_prp->template_param = new_tpp;
-        new_prp->coordinates = coordinates_of_template_param(new_tpp);
-        new_prp->symbol = new_tpp->param_symbol;
+        if (new_prp == NULL) {
+          new_prp = alloc_pack_reference(prk_template_param);
+          new_prp->template_param = new_tpp;
+          new_prp->coordinates = coordinates_of_template_param(new_tpp);
+          new_prp->symbol = new_tpp->param_symbol;
+        }  /* if */
       }  /* if */
       /* Add the new entry to the end of the new list. */
       if (new_pedp == NULL) {
