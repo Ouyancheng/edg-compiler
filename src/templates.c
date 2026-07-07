@@ -34370,7 +34370,7 @@ that follows.
         } else {
           an_sssd_flag_set  flags = SSSD_AUTONOMOUS_TAG_DECL |
                                     SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
-          (void)update_src_seq_secondary_decl((char *)type, type,
+          (void)update_src_seq_secondary_decl((char *)type, NULL,
                                               (a_name_reference_ptr)NULL,
                                               flags, &decl_pos_block);
         }  /* if */

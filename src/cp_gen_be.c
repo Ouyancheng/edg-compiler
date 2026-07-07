@@ -14164,11 +14164,12 @@ this one is such a continuation.
         type->has_been_declared = TRUE;
       }  /* if */
       saved_has_been_declared = type->has_been_declared;
-      if (sec_decl != NULL && sec_decl->declared_type != NULL &&
-          type->kind == tk_typeref &&
+      if ((friend_decl || type_is(type, tk_typeref)) &&
+          sec_decl != NULL && sec_decl->declared_type != NULL &&
           type_is(sec_decl->declared_type, tk_typeref) &&
           is_lexical_typeref(sec_decl->declared_type)) {
-        /* A secondary declaration of a typedef: use the declared type. */
+        /* A friend declaration or a secondary declaration of a typedef: use
+           the declared type. */
         gen_type_reference(sec_decl->declared_type,
                            /*suppress_typename_kwd=*/TRUE,
                            /*is_declaration=*/TRUE);

@@ -2149,8 +2149,9 @@ typedef struct a_src_seq_secondary_decl {
 			   routine to which this entry corresponds, but it
 			   needn't be.  It appears on secondary declarations
 			   for enum types (where it specifies the base type as
-			   written) and typedefs, but NULL for secondary
-			   declarations of class, struct, and union types. */
+			   written), friends, and typedefs, but NULL for
+			   secondary declarations of class, struct, and union
+			   types. */
   a_name_reference_ptr
 		name_reference;
 			/* The form of the declarator used in the declaration
