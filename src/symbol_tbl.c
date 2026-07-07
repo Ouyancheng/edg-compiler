@@ -7206,7 +7206,8 @@ set).  Add new_guide to this set.
   check_assertion(new_guide->decl_seq != NO_DECL_SEQUENCE_NUMBER);
   /* Diagnose a redeclaration when new_guide has the same type and equivalent
      requires-clauses as an existing user-declared guide in the set.  Do not
-     add new_guide to the set if an error was issued. */
+     add new_guide to the set if check_for_deduction_guide_redeclaration
+     returns FALSE. */
   if (guide_set != NULL) {
     if (!check_for_deduction_guide_redeclaration(new_guide, guide_set)) {
       return;
@@ -7324,6 +7325,41 @@ the same type and equivalent requires-clauses (template-head and trailing).
 }  /* deduction_guides_are_redeclarations */
 
 
+static a_boolean deduction_guide_redeclaration_is_cross_context(
+                                                   a_symbol_ptr  sym1,
+                                                   a_symbol_ptr  sym2)
+/*
+Return TRUE if sym1 and sym2 are deduction guides that redeclare each other
+but were introduced in different contexts, in which case the redeclaration
+should be permitted.  Cross-context redeclarations include a guide from a
+module and one from a source file, or guides from different modules.
+
+Use module_for_symbol (not lookup_module_for_symbol) to identify the module
+that introduced a guide: Exported module entities are globally visible, so
+lookup_module_for_symbol returns NULL for them, which would not distinguish
+an exported module guide from a source guide.
+*/
+{
+  a_symbol_ptr   fund_sym1 = sym1, fund_sym2 = sym2;
+  a_boolean      result = FALSE;
+
+  reduce_projection_symbol_to_fundamental_symbol(fund_sym1);
+  reduce_projection_symbol_to_fundamental_symbol(fund_sym2);
+  if (fund_sym1->from_module_code != fund_sym2->from_module_code) {
+    result = TRUE;
+  } else if (fund_sym1->from_module_code) {
+    a_module_ptr mod1 = skip_module_partitions(module_for_symbol(fund_sym1));
+    a_module_ptr mod2 = skip_module_partitions(module_for_symbol(fund_sym2));
+
+    /* Treat an unknown module identity as a distinct context. */
+    if (mod1 != mod2 || mod1 == NULL || mod2 == NULL) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* deduction_guide_redeclaration_is_cross_context */
+
+
 static a_type_ptr deduction_guide_routine_type(a_symbol_ptr sym)
 /*
 Return the routine type of sym, a deduction guide represented as either a
@@ -7371,8 +7407,11 @@ static a_boolean check_for_deduction_guide_redeclaration(
                                                    a_symbol_ptr  guide_set)
 /*
 If new_guide has the same type and equivalent requires-clauses as an
-existing user-declared deduction guide in guide_set, issue an error.
-Return FALSE if an error was issued, TRUE otherwise.  Ill-formed guides
+existing user-declared deduction guide in guide_set, issue an error unless
+the redeclaration is permitted because the guides were introduced in
+different contexts.  Return FALSE if new_guide should not be added to
+guide_set (because an error was issued or because a permitted cross-context
+redeclaration was detected).  Return TRUE otherwise.  Ill-formed guides
 (with invalid return types) are ignored.
 */
 {
@@ -7401,6 +7440,10 @@ Return FALSE if an error was issued, TRUE otherwise.  Ill-formed guides
           deduction_guide_return_type_is_strictly_valid(existing_rout_type,
                                                         ct_sym) &&
           deduction_guides_are_redeclarations(new_guide, sym)) {
+        if (deduction_guide_redeclaration_is_cross_context(new_guide, sym)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
         pos_error(ec_deduction_guide_redeclaration, &new_guide->decl_position,
                   new_type, &sym->decl_position);
         result = FALSE;
@@ -7416,9 +7459,14 @@ Return FALSE if an error was issued, TRUE otherwise.  Ill-formed guides
         deduction_guide_return_type_is_strictly_valid(existing_rout_type,
                                                       ct_sym) &&
         deduction_guides_are_redeclarations(new_guide, guide_set)) {
-      pos_error(ec_deduction_guide_redeclaration, &new_guide->decl_position,
-                new_type, &guide_set->decl_position);
-      result = FALSE;
+      if (deduction_guide_redeclaration_is_cross_context(new_guide,
+                                                       guide_set)) {
+        result = FALSE;
+      } else {
+        pos_error(ec_deduction_guide_redeclaration, &new_guide->decl_position,
+                  new_type, &guide_set->decl_position);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
 done:
