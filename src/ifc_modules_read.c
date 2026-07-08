@@ -3650,6 +3650,7 @@ static an_opname_kind opname_from_dyadic_op(
 Map an IFC DyadicOperator to an_opname_kind.
 */
 {
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   an_opname_kind op;
 
   switch (dyadic_op) {
@@ -3758,6 +3759,7 @@ Map an IFC DyadicOperator to an_opname_kind.
     default_is_unexpected_str("Unexpected DyadicOperator");
   }  /* switch */
   return op;
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* opname_from_dyadic_op */
 
 

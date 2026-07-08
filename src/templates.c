@@ -16906,7 +16906,7 @@ NULL pointer.
     a_pack_reference_ptr	new_prp;
     a_pack_reference_ptr	new_prp_tail = NULL;
     a_template_param_ptr	old_tpp;
-    a_template_param_ptr	new_tpp;
+    a_template_param_ptr	new_tpp = NULL;
     a_template_nesting_depth	orig_depth;
     orig_depth = coordinates_of_template_param(
                                    ctws_state->orig_class_templ_params)->depth;
