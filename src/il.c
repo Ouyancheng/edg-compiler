@@ -5671,6 +5671,21 @@ fix them.
 #endif /* DO_IL_LOWERING */
       if (!lowering) {
         sp = get_innermost_function_scope();
+        if (cp->expr != NULL &&
+            expr_has_reference_to_routine_scope_variable(cp->expr)) {
+          /* The backing expression names a variable local to a function that
+             could be different from the current function (e.g. when a nontype 
+             template argument value carrying such a reference is substituted
+             while instantiating an unrelated function).  So obtain the scope
+             to refer to from the variable. */
+          an_expr_node_ptr  vnode = get_routine_scope_variable_node_found();
+          a_routine_ptr     var_rp = node_variable(vnode)
+                                           ->source_corresp.enclosing_routine;
+          if (var_rp != NULL) {
+            a_scope_ptr  var_scope = scope_for_routine_or_null(var_rp);
+            if (var_scope != NULL) sp = var_scope;
+          }  /* if */
+        }  /* if */
         if (sp == NULL) {
           rp = cp->source_corresp.enclosing_routine;
           if (rp != NULL) sp = scope_for_routine_or_null(rp);
