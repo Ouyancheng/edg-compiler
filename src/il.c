@@ -5674,7 +5674,7 @@ fix them.
         if (cp->expr != NULL &&
             expr_has_reference_to_routine_scope_variable(cp->expr)) {
           /* The backing expression names a variable local to a function that
-             could be different from the current function (e.g. when a nontype 
+             could be different from the current function (e.g., when a nontype
              template argument value carrying such a reference is substituted
              while instantiating an unrelated function).  So obtain the scope
              to refer to from the variable. */
