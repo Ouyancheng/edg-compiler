@@ -1,5 +1,14 @@
 Version 6.9
 
+7/8/26   [EDGcpfe/28909]
+Internal error in copy_pack_expansion_descr_with_substitution
+
+In some fairly complex cases involving class template argument deduction (CTAD)
+for alias templates, the changes for EDGcpfe/28857 (not in a release) could
+lead to an internal error in copy_pack_expansion_descr_with_substitution.  That
+is now fixed.
+
+
 7/8/26   [EDGcpfe/28924]
 Pack expansion in CTAD for alias templates
 
