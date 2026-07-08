@@ -1154,7 +1154,7 @@ int main(int argc, char *argv[])
       me_error("cannot open %s", doc_output_file_name);
     }  /* if */
     if (rst_doc) {
-      fputs(".. _error-messages:\n\n");
+      fputs(".. _error-messages:\n\n", doc_output_file);
       fputs("==============\nError Messages\n==============\n\n"
             ".. list-table::\n\n",
             doc_output_file);
