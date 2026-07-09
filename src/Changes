@@ -1,6 +1,24 @@
 Version 6.9
 
-7/9/26i   [EDGcpfe/24502,EDGcpfe/27855,EDGcpfe/28923]
+7/9/26   [EDGcpfe/28922]
+_Float32 vs. float after a user-defined conversion
+
+When ranking two user-defined conversion sequences that share the same
+conversion function, a same-representation floating-point conversion (for
+example, float to _Float32) was incorrectly preferred over an identity
+conversion or a floating-point promotion.  For example, with --gnu=140200
+--c++23:
+
+  float g(float);
+  _Float32 g(_Float32);
+  template<typename T> struct X { operator T() const; };
+  using R = decltype(g(X<float>{}));
+    // R was previously _Float32; now float.
+
+That is now fixed.
+
+
+7/9/26   [EDGcpfe/24502,EDGcpfe/27855,EDGcpfe/28923]
 GCC/Clang compatibility: Character zeros as null pointer constants
 
 In C++11 and later modes, GCC 7 and later no longer treat a zero of character

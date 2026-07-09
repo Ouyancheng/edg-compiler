@@ -8055,20 +8055,10 @@ apply that would make one better than the other, and return
 
     /* Some arguments have no parameter type (e.g., an ellipsis match). */
     if (param_type1 != NULL && param_type2 != NULL) {
-      if (arg_match1->conversion.std.flt_identical_representations !=
-          arg_match2->conversion.std.flt_identical_representations) {
-        /* A match between an extended floating point type and another
-           floating point type with the same representation is better than
-           a match between different representations. */
-        if (arg_match1->conversion.std.flt_identical_representations) {
-          cmp = 1;
-        } else {
-          cmp = -1;
-        }  /* if */
-      } else if (arg_match1->conversion.std.promotion &&
-                 arg_match2->conversion.std.promotion &&
-                 is_floating_type(param_type1) &&
-                 is_floating_type(param_type2)) {
+      if (arg_match1->conversion.std.promotion &&
+          arg_match2->conversion.std.promotion &&
+          is_floating_type(param_type1) &&
+          is_floating_type(param_type2)) {
         /* Prefer promotion to float (which is currently only possible from
            type __fp16) over promotion to double. */
         if (skip_typerefs(param_type1)->variant.float_kind == fk_float) {
