@@ -2219,10 +2219,13 @@ for any diagnostics issued.
   clear_constant(new_constant, (a_constant_repr_kind)ck_error);
   /* Preserve the null_pointer_constant_ruled_out flag. */
   if (cpp11_mode && !is_implicit_cast &&
-      !(microsoft_mode && ms_permissive) && !gpp_mode) {
+      !(microsoft_mode && ms_permissive) &&
+      !gpp_version_is(any_version)) {
     /* The resolution of Core issue 903 only allows zero literals to produce
        null pointer constants.  Explicit casts are not permitted (i.e.,
-       something like "int(0)" is not a null pointer constant). */
+       something like "int(0)" is not a null pointer constant).  GNU C++
+       modes are excluded here because g++ still treats some casts of zero
+       literals as null pointer constants; Clang does not. */
     new_constant->null_pointer_constant_ruled_out = TRUE;
   } else {
     new_constant->null_pointer_constant_ruled_out =
@@ -2249,8 +2252,13 @@ for any diagnostics issued.
                     (in_front_end && is_template_dependent_type(new_type))));
   if (identical_types(constant_type, new_type) &&
       (is_implicit_cast || !template_case)) {
-    /* The current and new types are the same, so no change is required. */
+    /* The current and new types are the same, so no change is required.
+       Preserve null_pointer_constant_ruled_out: copy_constant would
+       otherwise restore the source constant's flag and undo the Core
+       issue 903 handling above (e.g., for an explicit cast "(int)0"). */
+    a_boolean  ruled_out = new_constant->null_pointer_constant_ruled_out;
     copy_constant(constant, new_constant);
+    new_constant->null_pointer_constant_ruled_out = ruled_out;
     /* Put in the actual type wanted, as it may have typedefs. */
     new_constant->type = new_type_with_typedefs;
     goto done_with_folding;
@@ -2879,15 +2887,15 @@ Return TRUE if the given constant is a null pointer constant.
 {
   a_boolean is_null_pointer = FALSE;
 
-  if (constant->kind == (a_constant_repr_kind)ck_integer) {
+  if (constant_is(constant, ck_integer)) {
     /* A null pointer constant either has a nullptr type or it has the
        value zero, perhaps cast to "void *" in C.  Only certain kinds of
        casts are allowed. */
     a_type_ptr  tp = skip_typerefs(constant->type);
-    if (tp->kind == (a_type_kind)tk_nullptr) {
+    if (type_is(tp, tk_nullptr)) {
       is_null_pointer = TRUE;
     } else if (((!constant->null_pointer_constant_ruled_out &&
-                 (tp->kind != (a_type_kind)tk_pointer || !gcc_mode ||
+                 (!type_is(tp, tk_pointer) || !gcc_mode ||
                   is_void_star_type(tp))) ||
                 (gnu_mode && gnu_version < 40500 &&
                   /* g++/gcc allow (int)(int *)0 as a null pointer
@@ -2903,6 +2911,18 @@ Return TRUE if the given constant is a null pointer constant.
                  is_bool_type(tp)) {
         /* The resolution of Core issue 903 removed "false" from the set of
            valid null pointer constants. */
+      } else if (cpp11_mode && !microsoft_mode &&
+                 (clang_mode || gpp_version_is(>=70000)) &&
+                 (is_character_type(tp) ||
+                  (is_integral_type(tp) &&
+                   (tp->variant.integer.wchar_t_type ||
+                    tp->variant.integer.char8_t_type ||
+                    tp->variant.integer.char16_t_type ||
+                    tp->variant.integer.char32_t_type)))) {
+        /* Beginning with GCC 7, and in Clang, a zero of character type
+           (including wide-character types) is not a null pointer
+           constant.  Microsoft still treats such zeros as null pointer
+           constants. */
       } else {
         is_null_pointer = TRUE;
       }  /* if */
