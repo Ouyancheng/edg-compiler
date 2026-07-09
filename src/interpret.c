@@ -24550,10 +24550,23 @@ the value representation of the integer value.
                 info_one_past_end_of_array(dst, expr, ips);
               } else if (is_runtime_data_address(dst)) {
                 /* Cannot modify the value of an object whose lifetime began
-                   outside the current evaluation. */
-                do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_access_to_runtime_storage,
-                              &expr->position, ips);
+                   outside the current evaluation, except that assignment of
+                   an empty class with trivial copy semantics does not
+                   actually access or modify storage. */
+                if (is_immediate_class_type(tp) &&
+                    tp->variant.class_struct_union.is_empty_class &&
+                    is_trivially_copyable_type(tp)) {
+                  if (expr->is_lvalue || expr->is_xvalue) {
+                    *(a_constexpr_address*)result_storage = *dst;
+                  } else {
+                    init_subobject_to_zero(ips, result_storage, tp,
+                                           complete_object);
+                  }  /* if */
+                } else {
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                                &expr->position, ips);
+                }  /* if */
               } else if (dst->address == NULL) {
                 /* An attempt to write through a null pointer. */
                 do_constexpr_fail(result);

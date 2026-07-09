@@ -1,5 +1,20 @@
 Version 6.9
 
+7/9/26   [EDGcpfe/28913]
+Assignment of empty class objects during constant evaluation
+
+Assignment of an empty class type with trivial copy semantics does not
+actually access or modify storage.  The front end previously rejected such an
+assignment when the destination object's lifetime began outside the constant
+evaluation, reporting an attempt to access run-time storage.  For example:
+
+  struct E {} x;
+  constexpr E y{};
+  constexpr auto r = (x = y);  // Previously an error.  Now okay.
+
+That is now fixed.
+
+
 7/9/26   [EDGcpfe/28922]
 _Float32 vs. float after a user-defined conversion
 
