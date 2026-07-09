@@ -2911,8 +2911,7 @@ Return TRUE if the given constant is a null pointer constant.
                  is_bool_type(tp)) {
         /* The resolution of Core issue 903 removed "false" from the set of
            valid null pointer constants. */
-      } else if (cpp11_mode && !microsoft_mode &&
-                 (clang_mode || gpp_version_is(>=70000)) &&
+      } else if (cpp11_mode && (clang_mode || gpp_version_is(>=70000)) &&
                  (is_character_type(tp) ||
                   (is_integral_type(tp) &&
                    (tp->variant.integer.wchar_t_type ||
