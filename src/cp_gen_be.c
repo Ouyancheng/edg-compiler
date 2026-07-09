@@ -2370,9 +2370,9 @@ Restore the current source sequence list scan state from *state.
 {
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   curr_source_sequence_entry = state->curr_source_sequence_entry;
-END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   sublist_parent_source_sequence_entry =
                                state->sublist_parent_source_sequence_entry;
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* restore_source_sequence_scan_state */
 
 
@@ -24820,9 +24820,7 @@ declarator (or NULL if it wasn't recorded).
              Temporarily restore the state to before that so embedded
              declarations can be encountered. */
           save_source_sequence_scan_state(&curr_state);
-BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           restore_source_sequence_scan_state(saved_state);
-END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         }  /* if */
         f_skip_embedded_declarations(/*end_of_construct_marked=*/TRUE);
       }  /* if */
