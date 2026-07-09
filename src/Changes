@@ -1,5 +1,23 @@
 Version 6.9
 
+7/9/26   [EDGcpfe/28915]
+Diagnosis of non-C-like unnamed classes
+
+The front end now issues a diagnostic in C++ modes when an unnamed class type
+containing non-C-like constructs acquires a name for linkage purposes. For
+example:
+
+  typedef struct {
+    struct N {
+      void f(void) {}
+    };
+  } S;  // Now elicits a diagnostic.
+
+The diagnostic is a discretionary error in strict mode and in non-permissive
+Microsoft C++ modes with microsoft_version >= 1926.  In other modes, the
+diagnostic is a warning.
+
+
 7/9/26   [EDGcpfe/28913]
 Assignment of empty class objects during constant evaluation
 
@@ -33,7 +51,7 @@ conversion or a floating-point promotion.  For example, with --gnu=140200
 That is now fixed.
 
 
-7/9/26   [EDGcpfe/24502,EDGcpfe/27855,EDGcpfe/28923]
+7/9/26i   [EDGcpfe/24502,EDGcpfe/27855,EDGcpfe/28923]
 GCC/Clang compatibility: Character zeros as null pointer constants
 
 In C++11 and later modes, GCC 7 and later no longer treat a zero of character
