@@ -1754,11 +1754,13 @@ write out the precompiled header file.
 void check_create_pch_file_created(void)
 /*
 If the --create_pch option was specified but no precompiled header file was
-written, issue a warning.
+written, issue a warning.  The warning is suppressed if any errors were
+issued, since a PCH file would not be created in that case anyway.
 */
 {
   if (create_precompiled_header && !precompiled_header_file_created) {
-    if (!suppress_pch_messages) {
+    if (!suppress_pch_messages &&
+        diagnostic_counters.total.all_error_types() == 0) {
       str_warning(ec_create_pch_file_not_created,
                   format_file_name(pch_output_file_name));
     }  /* if */
