@@ -2368,11 +2368,9 @@ static void restore_source_sequence_scan_state(
 Restore the current source sequence list scan state from *state.
 */
 {
-BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   curr_source_sequence_entry = state->curr_source_sequence_entry;
   sublist_parent_source_sequence_entry =
                                state->sublist_parent_source_sequence_entry;
-END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* restore_source_sequence_scan_state */
 
 
@@ -24812,7 +24810,7 @@ declarator (or NULL if it wasn't recorded).
       a_boolean  embedded_constructs =
                 sec_decl == NULL ? rout->embedded_source_sequence_entries
                                  : sec_decl->embedded_source_sequence_entries;
-      a_source_sequence_scan_state  curr_state;
+      a_source_sequence_scan_state  curr_state = {};
       if (embedded_constructs) {
         if (state_was_saved) {
           /* We may have advanced past declarative entries to get to entries
