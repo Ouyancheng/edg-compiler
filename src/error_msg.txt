@@ -3659,6 +3659,12 @@ ec_create_pch_file_not_created;;"precompiled header file %sq was not created"
 ec_top_templates_instances;INTERNAL;" instances ("
 ec_top_templates_defs_of;INTERNAL;" defs) of "
 ec_top_templates_unknown;INTERNAL;"<unknown>"
+ec_non_c_like_typedef_for_linkage;;"anonymous non-C-like type given name for linkage purposes by typedef or alias declaration"
+ec_non_c_like_because_of_base_class;;"type is not C-like because of this base class"
+ec_non_c_like_because_of_default_member_init;;"type is not C-like because of this default member initializer"
+ec_non_c_like_because_of_friend;;"type is not C-like because of this friend declaration"
+ec_non_c_like_because_of_member;;"type is not C-like because of this member declaration"
+ec_non_c_like_because_of_lambda;;"type is not C-like because of this lambda expression"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

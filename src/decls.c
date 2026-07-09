@@ -12231,53 +12231,145 @@ Issue a diagnostic if the modifier is invalid.
 
 #endif /* DECL_MODIFIERS_IN_USE */
 
-static void check_class_with_name_for_linkage_purposes(a_type  *class_type)
+typedef struct a_non_c_like_violation {
+  a_source_position  *position;
+  an_error_code      error_code;
+} a_non_c_like_violation;
+
+
+static a_source_position *friend_decl_position(an_il_entity_list_entry  *ielep)
 /*
-The given unnamed class type is acquiring a "name for linkage purposes" through
-a typedef or alias declaration.  The standard prohibits most non-C-like members
-in such a case: Diagnose violations of that rule if applicable.
+ielep points to an entry on a class friends list.  Return the source position
+of the friend declaration, or NULL if no position is available.
 */
 {
-  an_error_severity  sev = es_warning;
-  a_base_class       *bcp = base_classes_of(class_type);
-  a_scope            *scope = class_type_supp(class_type)->assoc_scope;
+  a_source_position  *result = NULL;
+
+  if (ielep->entity.kind == iek_routine) {
+    result = &((a_routine*)ielep->entity.ptr)->source_corresp.decl_position;
+  } else if (ielep->entity.kind == iek_type) {
+    result = &((a_type*)ielep->entity.ptr)->source_corresp.decl_position;
+  } else if (ielep->entity.kind == iek_template) {
+    result = &((a_template*)ielep->entity.ptr)->source_corresp.decl_position;
+  }  /* if */
+  return result;
+}  /* friend_decl_position */
+
+
+static a_boolean find_non_c_like_violation(a_type                  *class_type,
+                                           a_non_c_like_violation  *violation)
+/*
+Search the given class type for a construct that makes it not C-like (see
+N5046 [dcl.typedef]/5).  Member classes are checked recursively.  If a
+violation is found, return TRUE and record its position and error code in
+*violation; otherwise return FALSE.
+*/
+{
+  a_boolean                    found = FALSE;
+  a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
+  a_scope_ptr                  scope;
+  a_base_class_ptr             bcp;
+
+  check_assertion(is_immediate_class_type(class_type));
+  if (ctsp == NULL || ctsp->assoc_scope == NULL) {
+    goto done;
+  }  /* if */
+  scope = ctsp->assoc_scope;
+  bcp = base_classes_of(class_type);
+  if (bcp != NULL) {
+    while (!bcp->direct) bcp = bcp->next;
+    violation->position = &bcp->decl_position;
+    violation->error_code = ec_non_c_like_because_of_base_class;
+    found = TRUE;
+    goto done;
+  }  /* if */
+  if (ctsp->has_field_initializer) {
+    for (a_field  *fp = fields_of(class_type); fp != NULL; fp = fp->next) {
+      if (fp->has_initializer) {
+        violation->position = &fp->source_corresp.decl_position;
+        violation->error_code = ec_non_c_like_because_of_default_member_init;
+        found = TRUE;
+        goto done;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  for (an_il_entity_list_entry_ptr  ielep = ctsp->friends;
+       ielep != NULL;
+       ielep = ielep->next) {
+    a_source_position  *friend_pos = friend_decl_position(ielep);
+    if (friend_pos != NULL) {
+      violation->position = friend_pos;
+      violation->error_code = ec_non_c_like_because_of_friend;
+      found = TRUE;
+      goto done;
+    }  /* if */
+  }  /* for */
+  /* Static data members (the entries on the scope's variables list) are not
+     checked here: A static data member in an unnamed class already elicits
+     its own error, so a second diagnostic would not be helpful. */
+  for (a_routine_ptr  rp = scope->routines; rp != NULL; rp = rp->next) {
+    if (!rp->compiler_generated) {
+      violation->position = &rp->source_corresp.decl_position;
+      violation->error_code = ec_non_c_like_because_of_member;
+      found = TRUE;
+      goto done;
+    }  /* if */
+  }  /* for */
+  for (a_type_ptr  tp = scope->types; tp != NULL; tp = tp->next) {
+    if (is_immediate_enum_type(tp)) {
+      continue;
+    } else if (is_immediate_class_type(tp)) {
+      if (is_lambda_closure_type(tp)) {
+        violation->position = &tp->source_corresp.decl_position;
+        violation->error_code = ec_non_c_like_because_of_lambda;
+        found = TRUE;
+        goto done;
+      } else if (!is_incomplete_type(tp) &&
+                 find_non_c_like_violation(tp, violation)) {
+        found = TRUE;
+        goto done;
+      }  /* if */
+    } else {
+      /* A nested typedef/alias. */
+      check_assertion(type_is_typedef(tp));
+      violation->position = &tp->source_corresp.decl_position;
+      violation->error_code = ec_non_c_like_because_of_member;
+      found = TRUE;
+      goto done;
+    }  /* if */
+  }  /* for */
+done:
+  return found;
+}  /* find_non_c_like_violation */
+
+
+static void check_class_with_name_for_linkage_purposes(
+                                              a_type            *class_type,
+                                              a_symbol_locator  *locator)
+/*
+The given unnamed class type is acquiring a "name for linkage purposes" through
+the typedef or alias declaration described by locator.  Issue a diagnostic if
+the class is not C-like (see N5046 [dcl.typedef]/5).
+*/
+{
+  a_non_c_like_violation  violation;
+  an_error_severity       sev = es_warning;
+  a_diag_list             diag_list;
+  a_diagnostic_ptr        dp;
 
   if (strict_ansi_mode || (mscpp_version_is(>1925) && !ms_permissive)) {
     sev = es_discretionary_error;
   }  /* if */
-  if (bcp != NULL) {
-    while (!bcp->direct) bcp = bcp->next;
-    pos_diagnostic(sev, ec_base_class_of_class_type_with_typedef_name,
-                   &bcp->decl_position);
+  if (!find_non_c_like_violation(class_type, &violation)) {
+    goto done;
   }  /* if */
-  for (a_routine  *rp = scope->routines; rp != NULL; rp = rp->next) {
-    if (!rp->compiler_generated) {
-      pos_diagnostic(sev, ec_member_function_of_class_type_with_typedef_name,
-                     &rp->source_corresp.decl_position);
-      break;
-    }  /* if */
-  }  /* for */
-  for (a_type  *tp = scope->types; tp != NULL; tp = tp->next) {
-    if (!is_immediate_enum_type(tp) && !is_immediate_class_type(tp)) {
-      pos_diagnostic(sev, ec_member_type_of_class_type_with_typedef_name,
-                     &tp->source_corresp.decl_position);
-      break;
-    } else if (is_immediate_class_type(tp) && is_lambda_closure_type(tp)) {
-      pos_diagnostic(mscpp_version_is(>=1900) ? es_discretionary_error : sev,
-                     ec_lambda_in_class_type_with_typedef_name,
-                     &tp->source_corresp.decl_position);
-      break;
-    }  /* if */
-  }  /* for */
-  if (class_type_supp(class_type)->has_field_initializer) {
-    for (a_field  *fp = fields_of(class_type); fp != NULL; fp = fp->next) {
-      if (fp->has_initializer) {
-        pos_diagnostic(sev, ec_field_init_in_class_type_with_typedef_name,
-                       &fp->source_corresp.decl_position);
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
+  dp = pos_start_diagnostic(sev, ec_non_c_like_typedef_for_linkage,
+                            &locator->source_position);
+  clear_diag_list(&diag_list);
+  more_info(&diag_list, violation.error_code, violation.position);
+  add_more_info_list(dp, &diag_list);
+  end_diagnostic(dp);
+done:;
 }  /* check_class_with_name_for_linkage_purposes */
 
 
@@ -12681,7 +12773,7 @@ symbol entry, and return a pointer to it in state->sym.
                                     locator->symbol_header);
           }  /* if */
           if (is_immediate_class_type(tp)) {
-            check_class_with_name_for_linkage_purposes(tp);
+            check_class_with_name_for_linkage_purposes(tp, locator);
           }  /* if */
 #if NEED_NAME_MANGLING
           if (recompute_discriminator) {
