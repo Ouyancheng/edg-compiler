@@ -12432,6 +12432,67 @@ specialization.  Otherwise, return NULL.
 }  /* find_variable_template_partial_specialization */
 
 
+static a_symbol_ptr create_error_variable(a_symbol_ptr  template_sym,
+                                          a_boolean     is_nonreal)
+/*
+Create an error variable based on the variable template specified by
+template_sym.  is_nonreal is TRUE if the instantiation would have been nonreal.
+Return a symbol pointing to that variable.
+*/
+{
+  a_symbol_ptr             sym;
+  a_variable_ptr           var;
+  a_template_instance_ptr  tip;
+  a_template_arg_ptr       tap;
+  a_template_param_ptr     templ_param_list;
+  a_memory_region_number   region_to_switch_back_to;
+  a_master_instance_ptr    mip;
+  a_variable_template_info_ptr
+                           vtip;
+  a_template_symbol_supplement_ptr
+                           tssp;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  tssp = template_supplement_for_symbol(template_sym);
+  sym = make_template_variable_symbol(template_sym);
+  sym->is_error = TRUE;
+  var = alloc_variable(sc_extern);
+  var->is_template_variable = TRUE;
+  var->is_nonreal = is_nonreal;
+  vtip = alloc_variable_template_info();
+  var->template_info = vtip;
+  var->type = is_nonreal ? type_of_unknown_templ_param_nontype : error_type();
+  var->source_corresp.name_linkage = nlk_cplusplus_external;
+  var->source_corresp.access = access_for_symbol(template_sym);
+  sym->variant.variable.ptr = var;
+  vtip->assoc_template = tssp->il_template_entry;
+  templ_param_list = tssp->variant.variable.decl_cache->decl_info->parameters;
+  /* Create an appropriate argument list and fill it with error values. */
+  vtip->template_arg_list = create_initial_template_arg_list(
+                                          templ_param_list,
+                                          (a_template_arg_ptr)NULL,
+                                          /*is_templ_templ_param_check=*/FALSE,
+                                          (a_source_position_ptr)NULL);
+  begin_template_arg_list_traversal_simple(vtip->template_arg_list, &tap);
+  for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
+    set_template_arg_to_error(tap);
+  }  /* for */
+  set_source_corresp(&var->source_corresp, sym);
+  set_membership_in_source_corresp(&var->source_corresp, sym);
+  tip = alloc_template_instance();
+  tip->template_sym = template_sym;
+  tip->instance_sym = sym;
+  tip->suppress_instantiation = TRUE;
+  mip = alloc_master_instance();
+  mip->instance = tip;
+  mip->already_instantiated = TRUE;
+  tip->master_instance = mip;
+  sym->variant.variable.instance_ptr = tip;
+  switch_back_to_original_region(region_to_switch_back_to);
+  return sym;
+}  /* create_error_variable */
+
+
 a_symbol_ptr find_template_variable(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	*new_templ_arg_list,
@@ -12450,7 +12511,9 @@ If a new template instance is created, the template argument list is attached
 to that new instance.  *new_templ_arg_list is set to (a copy of) the template
 argument list used for instantiation.
 
-If template constraints are not satisfied, return NULL.
+If template constraints are not satisfied, return NULL.  If the template
+argument list involves an error entity, return an error variable symbol
+instead of creating a real instantiation.
 */
 {
   a_symbol_ptr				sym = NULL;
@@ -12526,15 +12589,27 @@ If template constraints are not satisfied, return NULL.
        point to the symbol in the hash table. */
     sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
   }  /* if */
-  if (sym == NULL && !is_nonreal &&
-      !check_template_constraints(template_sym, list_for_instantiation,
-                                  diagnose)) {
-    if (list_copied) {
-      free_template_arg_list(list_for_instantiation);
+  if (sym == NULL) {
+    a_boolean  err = FALSE;
+    if (template_arg_list_involves_error_entity(list_for_instantiation)) {
+      /* If the argument list contains an error entity, don't create a real
+         instantiation.  Instead, create an error variable that can be used in
+         place of the variable that would normally be returned. */
+      sym = create_error_variable(template_sym, is_nonreal);
+      err = TRUE;
+    } else if (!is_nonreal &&
+               !check_template_constraints(template_sym,
+                                           list_for_instantiation, diagnose)) {
+      err = TRUE;
     }  /* if */
-    free_template_arg_list(*new_templ_arg_list);
-    *new_templ_arg_list = NULL;
-    goto done;
+    if (err) {
+      if (list_copied) {
+        free_template_arg_list(list_for_instantiation);
+      }  /* if */
+      free_template_arg_list(*new_templ_arg_list);
+      *new_templ_arg_list = NULL;
+      goto done;
+    }  /* if */
   }  /* if */
   if (sym != NULL) {
     tip = template_instance_for_symbol(sym);
@@ -30510,7 +30585,7 @@ return an error variable template symbol.
 
   orig_var = variable_for_symbol(orig_sym);
   check_assertion(symbol_is(orig_sym, sk_variable));
-  if (!orig_var->is_nonreal) {
+  if (!orig_var->is_nonreal && !orig_sym->is_error) {
     pos_sy_error(ec_bad_partial_specialization, &locator->source_position,
                  orig_sym);
     decl_state->decl_scope_err = TRUE;
