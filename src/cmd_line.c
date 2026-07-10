@@ -5739,8 +5739,10 @@ before this routine is called.
       deleted_functions_enabled = TRUE;
       defaulted_special_members_enabled = TRUE;
     }  /* if */
-    if (!option_kind_used[(int)optk_lambdas] && gnu_version >= 40500
-        && !clang_mode) {
+    if (!option_kind_used[(int)optk_lambdas] &&
+        (gpp_version_is(>= 40500) || clangcpp_version_is(>= 190000))) {
+      /* Some versions of GCC and Clang  accept (non-generic) lambda
+         expressions with a warning in their pre-C++11 modes. */
       lambdas_enabled = TRUE;
     }  /* if */
     if (gnu_version >= 40700 && !clang_mode) {
@@ -5858,8 +5860,12 @@ before this routine is called.
          modes. */
       selection_initializers_enabled = TRUE;
       constexpr_if_enabled = TRUE;
-      generic_lambdas_enabled = TRUE;
-      generic_lambdas_can_implicitly_capture = TRUE;
+      if (cpp11_mode) {
+        /* Generic lambdas are not accepted in the pre-C++11 modes in which
+           Clang 19 (and later) accepts ordinary lambdas. */
+        generic_lambdas_enabled = TRUE;
+        generic_lambdas_can_implicitly_capture = TRUE;
+      }  /* if */
       init_capture_enabled = TRUE;
     }  /* if */
     if (clang_version >= 130000) {

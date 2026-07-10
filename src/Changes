@@ -1,5 +1,13 @@
 Version 6.9
 
+7/10/26  [EDGcpfe/28926]
+Lambda expressions in Clang C++03 mode
+
+Lambda expressions are now accepted with a warning in Clang C++03 mode
+when clang_version >= 190000.
+
+
+The front end now accepts enum-type name qualifiers with a warning in Clang
 7/10/26  [EDGcpfe/28925]
 Enum-type name qualifiers in Clang C++03 mode
 
