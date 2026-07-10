@@ -2436,11 +2436,12 @@ by octl.
         /* Generally, use the appropriate boolean type (i.e., "bool" for C++
            and C23, "_Bool" for C99), but use the underlying type if none of
            those types are available. */
-        octl->output_str((char *)(octl->render_as_bool
-#if !C_GEN_BE_GENERATES_C23
-                                                       ? "_Bool" :
-#endif /* !C_GEN_BE_GENERATES_C23 */
-                                                                   "bool"),
+        octl->output_str(
+#if C_GEN_BE_GENERATES_C23
+                         "bool",
+#else /* !C_GEN_BE_GENERATES_C23 */
+                         octl->render_as_bool ? "_Bool" : "bool",
+#endif /* C_GEN_BE_GENERATES_C23 */
                          octl);
       } else {
         /* Normal integer type. */
