@@ -7838,7 +7838,7 @@ etc.).
     } else if (curr_token == tok_lbracket &&
                (struct_bindings_enabled ||
                 (cpp11_mode && gpp_version_is(>= 70000)) ||
-                (cpp11_mode && clangcpp_version_is(>= 40000))) &&
+                clangcpp_version_is(>= 40000)) &&
                specifiers_type != NULL && !abstract_declarator_allowed &&
                !state->in_class_scope) {
       /* This looks like the bracket introducing a list of structured
