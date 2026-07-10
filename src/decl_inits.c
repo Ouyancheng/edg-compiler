@@ -1493,6 +1493,18 @@ Issue any diagnostics at the given position.
   a_constant_ptr      elem_con = NULL;
   a_constant_ptr      folded_value = local_constant();
   a_diag_list         diag_list;
+  /* Within the operand of the noexcept operator, a class-type member's default
+     member initializer must not be folded away to a bare constant: since C++17
+     (P0003R5) the (notionally performed) constructor call it contains is
+     potentially throwing even when it is a constant expression, and only the
+     unfolded dik_constructor form (wrapped in a ck_dynamic_init constant
+     below) keeps that visible to the noexcept determination.  This is limited
+     to immediate class-type members. */
+  a_boolean           keep_dynamic_init_for_noexcept =
+                             expr_stack != NULL &&
+                             expr_stack->in_noexcept_operand_expression &&
+                             !core_constant_expr_is_noexcept &&
+                             is_immediate_class_type(skip_typerefs(fp->type));
 
   if (fp->has_initializer) {
     scan_field_initializer_if_needed(fp, aggr_type);
@@ -1534,7 +1546,8 @@ Issue any diagnostics at the given position.
   } else if (interpret_dynamic_init(dip, diag_pos, fp->type,
                                     /*is_constant_evaluated=*/FALSE,
                                     folded_value, &diag_list) &&
-             is_static_init_constant(folded_value)) {
+             is_static_init_constant(folded_value) &&
+             !keep_dynamic_init_for_noexcept) {
     /* A constant initializer. */
     if (folded_value->is_partially_initialized) {
       is->partial_initializer = TRUE;
@@ -4043,7 +4056,19 @@ particular situation.
     /* We're representing an aggregate class object initialized with "{}",
        i.e., "value initialization". */
     dip->variant.constructor.value_initialization = TRUE;
-    if (ctor->is_constexpr) {
+    if (!ctor->is_constexpr) {
+      is->constant_expr_ruled_out = TRUE;
+    } else if (expr_stack != NULL &&
+               expr_stack->in_noexcept_operand_expression &&
+               !core_constant_expr_is_noexcept) {
+      /* Within the operand of the noexcept operator, leave the construction
+         unfolded so that its (notionally performed) constructor call remains
+         visible to the noexcept determination: Since C++17 (P0003R5) such a
+         call is potentially throwing even when it is a constant expression.
+         The constructor's own exception specification then supplies the
+         answer (and, e.g., correctly disregards the elements of an array
+         member). */
+    } else {
       a_constant_ptr  con = local_constant();
       if (fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE,
                               /*check_constexpr=*/FALSE,
@@ -4069,8 +4094,6 @@ particular situation.
       } else {
         release_local_constant(&con);
       }  /* if */
-    } else {
-      is->constant_expr_ruled_out = TRUE;
     }  /* if */
     if (dip != NULL) {
       if (dtor != NULL) {

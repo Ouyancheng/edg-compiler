@@ -26466,6 +26466,23 @@ Set tblock->result to TRUE if so.
         }
         break;
       case dik_constant:
+        /* Within the operand of the noexcept operator, a constructor call that
+           was folded to a constant is still potentially throwing since C++17
+           (P0003R5).  Recover and examine the original (backing) call so that
+           the fold does not hide it from the noexcept determination.  This is
+           reached for the class-type member initializers deliberately left in
+           dik_constant form under a ck_dynamic_init for this purpose (see
+           aggr_init_constant_from_field_initializer). */
+        if (expr_stack != NULL &&
+            expr_stack->in_noexcept_operand_expression &&
+            !core_constant_expr_is_noexcept) {
+          an_expr_node_ptr  backing =
+                           expr_node_from_constant(dip->variant.constant.ptr);
+          if (backing != NULL && expr_might_throw(backing)) {
+            might_throw = TRUE;
+          }  /* if */
+        }  /* if */
+        break;
       default:
         /* Others do not throw at this level.  The subtree might still
            throw. */
@@ -26663,13 +26680,35 @@ Return TRUE if evaluating the given initialization might cause an exception to
 be thrown.
 */
 {
-  an_expr_or_stmt_traversal_block tblock;
+  a_boolean         result = FALSE;
+  an_expr_node_ptr  backing = NULL;
 
-  set_up_might_throw_traversal_block(&tblock);
-  if (exceptions_enabled) {
-    traverse_dynamic_init(dip, &tblock);
+  if (exceptions_enabled && dyn_init_is(dip, dik_constant)) {
+    backing = expr_node_from_constant(dip->variant.constant.ptr);
   }  /* if */
-  return tblock.result;
+  if (!exceptions_enabled) {
+    /* Nothing can be thrown. */
+  } else if (backing != NULL) {
+    /* The initializer is a single call (e.g., to a constructor) that was
+       folded to a constant.  Although folded, running the enclosing default
+       constructor still notionally performs that call, which since C++17
+       (P0003R5) is potentially throwing unless it has a non-throwing
+       exception specification.  Examine the original (backing) expression
+       rather than the constant, which by itself carries no such information.
+       Aggregate initializers (e.g., for arrays) do not have such a top-level
+       backing expression and are handled by the normal traversal below. */
+    result = expr_might_throw(backing);
+    if (!result && dip->destructor != NULL &&
+        !is_non_throwing_routine(dip->destructor)) {
+      result = TRUE;
+    }  /* if */
+  } else {
+    an_expr_or_stmt_traversal_block  tblock;
+    set_up_might_throw_traversal_block(&tblock);
+    traverse_dynamic_init(dip, &tblock);
+    result = tblock.result;
+  }  /* if */
+  return result;
 }  /* dynamic_init_might_throw */
 
 

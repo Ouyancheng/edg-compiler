@@ -13398,6 +13398,38 @@ comparisons rp may just be a friend of class_type).
                                        rp, class_type, variants, p_throw_any);
       }  /* if */
     }  /* if */
+    if (fp->is_anonymous_parent_object && !rp->is_inheriting_ctor &&
+        sfkind == sfk_constructor && no_params &&
+        type_is(fp->type, tk_union)) {
+      /* An anonymous union has no constructor of its own.  The enclosing
+         class's default constructor initializes the (at most one) variant
+         member that has a default member initializer; other variant members
+         are left uninitialized.  Account for the exception specification of
+         that initialization here, since there is no union constructor to
+         merge above. */
+      a_field_ptr  variants = fields_of(skip_typerefs(fp->type));
+      for (; variants != NULL; variants = variants->next) {
+        if (variants->has_initializer) {
+          /* The variant's default member initializer might not have been
+             scanned yet.  Force it to be scanned, but only when the enclosing
+             class is already complete: While the class is still being
+             completed the initializer-fixup machinery cannot process it, and
+             an initializer that remains unscanned here (as can happen in
+             strict ANSI mode) is simply left unexamined below. */
+          if (variants->initializer == NULL && !class_type->incomplete &&
+              !class_symbol_supp(symbol_for(class_type))
+                                               ->scanning_field_initializer) {
+            ensure_all_field_initializers_scanned(class_type);
+          }  /* if */
+          if (variants->initializer != NULL &&
+              dynamic_init_might_throw(variants->initializer)) {
+            throw_any = TRUE;
+            goto found_throw;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      continue;
+    }  /* if */
     if (field_sym != NULL && field_sym->is_error) {
       /* Don't attempt to process error fields since that may very well just
          trigger additional unhelpful errors. */
@@ -13463,6 +13495,7 @@ comparisons rp may just be a friend of class_type).
       break;
     }  /* if */
   }  /* for */
+found_throw:
   if (throw_any) {
     *p_throw_any = TRUE;
   }  /* if */

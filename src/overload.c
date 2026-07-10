@@ -26221,7 +26221,16 @@ TRUE, the result *p_dip and *p_constant are not constructed.
         /* Otherwise, use a dik_constructor entry.  For a nonreal class,
            ctor_routine is NULL to indicate the constructor is unknown.
            If the constructor is constexpr, fold to a constant if possible. */
-        a_constant_ptr folded_con;
+        a_constant_ptr  folded_con;
+        a_boolean       fold_ctor_call;
+        /* Do not fold the constructor call to a constant within the operand
+           of the noexcept operator: since C++17 (P0003R5) such a call is
+           potentially throwing even when it is a constant expression, and
+           folding it away (here, without a backing expression) would hide that
+           from the noexcept determination. */
+        fold_ctor_call = !(expr_stack != NULL &&
+                           expr_stack->in_noexcept_operand_expression &&
+                           !core_constant_expr_is_noexcept);
         dip = alloc_expr_ctor_dynamic_init(ctor_routine,
                                            (an_expr_node_ptr)NULL,
                                            dest_type,
@@ -26230,10 +26239,11 @@ TRUE, the result *p_dip and *p_constant are not constructed.
                                            /*implied_source=*/FALSE,
                                            /*value_init=*/TRUE,
                                            /*sequenced_args=*/FALSE,
-                                           /*fold_constexpr=*/TRUE,
+                                           /*fold_constexpr=*/fold_ctor_call,
                                            /*check_constexpr=*/FALSE,
                                            pos);
-        if ((folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
+        if (fold_ctor_call &&
+            (folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
             folded_con->is_result_of_constexpr_call) {
           /* The constructor is declared constexpr and the construction has
              been folded to a constant. */
