@@ -638,6 +638,7 @@ a smaller subset).
 /*lint -esym(769,ec_defaulted_functions_is_cpp11)*/
 /*lint -esym(769,ec_alias_declaration_is_cpp11)*/
 /*lint -esym(769,ec_alias_template_is_cpp11)*/
+/*lint -esym(769,ec_enum_qualifier_is_cpp11)*/
 /*lint -esym(769,ec_cl_clang_mode_only_in_cplusplus)*/
 /*lint -esym(769,ec_incompatible_ifunc_resolver_type)*/
 /*lint -esym(769,ec_ifunc_cant_be_alias)*/

@@ -25955,6 +25955,12 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_is_type = TRUE;
           qualifier_type_is_class = FALSE;
           qualifier_is_enum = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+          if (clang_mode) {
+            report_gnu_cpp11_extension_if_needed(&error_position,
+                                                 ec_enum_qualifier_is_cpp11);
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         } else if ((qualifier_sym->kind == (a_symbol_kind)sk_type &&
                     (is_template_param_type(qualifier_sym->variant.type.ptr) ||
                      is_vacuous_dtor_or_finalizer)) ||

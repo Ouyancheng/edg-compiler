@@ -3665,6 +3665,7 @@ ec_non_c_like_because_of_default_member_init;;"type is not C-like because of thi
 ec_non_c_like_because_of_friend;;"type is not C-like because of this friend declaration"
 ec_non_c_like_because_of_member;;"type is not C-like because of this member declaration"
 ec_non_c_like_because_of_lambda;;"type is not C-like because of this lambda expression"
+ec_enum_qualifier_is_cpp11;;"an enum-type name qualifier is a C++11 feature"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

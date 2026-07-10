@@ -5835,6 +5835,11 @@ before this routine is called.
       if (clang_version >= 30600) {
         nested_namespace_definitions_enabled = TRUE;
       }  /* if */
+      if (clang_version >= 30700) {
+        /* Clang accepts (with a warning) enum types as name qualifiers in
+           pre-C++11 modes. */
+        enum_qualifiers_enabled = TRUE;
+      }  /* if */
     }  /* if */
     if (clang_version >= 60000) {
       /* Enabled by default (with a warning if in non-C++17 mode). */
