@@ -12048,11 +12048,10 @@ The IL is already available when this routine is called.
          "double and long double must be the same size when generating K&R C");
   }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-  /* The C++ type "bool" and the C99 type "_Bool" are rendered as their
-     underlying type (typically, char or int).  If the target compiler is a
-     C99 compiler, octl.render_c99_bool can be set to TRUE to render _Bool
-     instead. */
-  octl.render_c99_bool = FALSE;
+  /* The C++ type "bool" and the C type "_Bool/bool" are rendered as the
+     appropriate boolean type unless octl.render_as_bool is set to FALSE in
+     which case the underlying type (typically, char or int) is used. */
+  octl.render_as_bool = TRUE;
   curr_default_fp_contract = (a_stdc_pragma_value)stdc_pv_default;
   curr_default_fenv_access = (a_stdc_pragma_value)stdc_pv_default;
   curr_default_cx_limited_range = (a_stdc_pragma_value)stdc_pv_default;

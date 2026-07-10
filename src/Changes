@@ -1,5 +1,16 @@
 Version 6.9
 
+7/10/26  [EDGcpfe/28942]
+Use "_Bool/bool" types in generated C by default
+
+In C-generating configurations, a C++ "bool" type had been emitted in the
+generated C code as the underlying type (typically "char" or "int").  A
+change has been made to now use "_Bool" or "bool" (if C_GEN_BE_GENERATES_C23 is
+TRUE).  If the back end C compiler doesn't support these types ("_Bool" has
+been available since C99), the previous behavior can be restored by setting
+octl.render_as_bool to FALSE in c_gen_be_init.
+
+
 7/10/26  [EDGcpfe/28941]
 GNU and Clang C++ compatibility: unrestricted unions in pre-C++11 modes
 

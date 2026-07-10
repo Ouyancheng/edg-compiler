@@ -135,7 +135,7 @@ Clear an output control block to default values.
   octl->gen_pcc_code              = FALSE;
   octl->suppress_typedefs         = FALSE;
   octl->suppress_local_typedefs   = FALSE;
-  octl->render_c99_bool           = FALSE;
+  octl->render_as_bool            = FALSE;
   octl->c_generating_back_end     = FALSE;
   octl->cpp_generating_back_end   = FALSE;
   octl->for_diagnostics           = FALSE;
@@ -2432,10 +2432,15 @@ by octl.
           octl->output_str("char32_t", octl);
         }  /* if */
       } else if (type->variant.integer.bool_type &&
-                 (!is_for_c_gen_be(octl) || octl->render_c99_bool)) {
-        /* Output a bool type as "bool", except in the C generating
-           back end, where it is output as its underlying type. */
-        octl->output_str((char *)(octl->render_c99_bool ? "_Bool" : "bool"),
+                 (!is_for_c_gen_be(octl) || octl->render_as_bool)) {
+        /* Generally, use the appropriate boolean type (i.e., "bool" for C++
+           and C23, "_Bool" for C99), but use the underlying type if none of
+           those types are available. */
+        octl->output_str((char *)(octl->render_as_bool
+#if !C_GEN_BE_GENERATES_C23
+                                                       ? "_Bool" :
+#endif /* !C_GEN_BE_GENERATES_C23 */
+                                                                   "bool"),
                          octl);
       } else {
         /* Normal integer type. */

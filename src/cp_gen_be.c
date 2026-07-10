@@ -26505,7 +26505,7 @@ Initialize for the C++/C-generating back end.
   octl.cpp_generating_back_end = TRUE;
   /* In C99 mode we want to see "_Bool" rather than "bool" or the type
      underlying _Bool. */
-  octl.render_c99_bool = c99_mode || gcc_mode;
+  octl.render_as_bool = c99_mode || gcc_mode;
   /* The Microsoft compiler has a bug that causes it to issue spurious
      errors for parenthesized pointer-to-data-member declarators, and
      similarly for g++ versions 4.5.0 through 4.5.2. */
