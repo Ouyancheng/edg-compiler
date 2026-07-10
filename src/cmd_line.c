@@ -5739,6 +5739,12 @@ before this routine is called.
       deleted_functions_enabled = TRUE;
       defaulted_special_members_enabled = TRUE;
     }  /* if */
+    if (!option_kind_used[(int)optk_unrestricted_unions] &&
+        (gpp_version_is(>= 40600) || clangcpp_version_is(>= 30100))) {
+      /* GCC (since 4.6) and Clang (since 3.1) accept unrestricted unions with
+         a warning in their pre-C++11 modes. */
+      unrestricted_unions_enabled = TRUE;
+    }  /* if */
     if (!option_kind_used[(int)optk_lambdas] &&
         (gpp_version_is(>= 40500) || clangcpp_version_is(>= 190000))) {
       /* Some versions of GCC and Clang  accept (non-generic) lambda
@@ -13776,6 +13782,9 @@ indicate that no warning should be issued in that case.
       break;
     case ec_delegating_constructor_is_cpp11:
       result = option_kind_used[(int)optk_delegating_constructors];
+      break;
+    case ec_unrestricted_unions_is_cpp11:
+      result = option_kind_used[(int)optk_unrestricted_unions];
       break;
     default:
       result = FALSE;

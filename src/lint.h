@@ -636,6 +636,7 @@ a smaller subset).
 /*lint -esym(769,ec_field_initializers_is_cpp11)*/
 /*lint -esym(769,ec_deleted_functions_is_cpp11)*/
 /*lint -esym(769,ec_defaulted_functions_is_cpp11)*/
+/*lint -esym(769,ec_unrestricted_unions_is_cpp11)*/
 /*lint -esym(769,ec_alias_declaration_is_cpp11)*/
 /*lint -esym(769,ec_alias_template_is_cpp11)*/
 /*lint -esym(769,ec_enum_qualifier_is_cpp11)*/

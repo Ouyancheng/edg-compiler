@@ -19438,6 +19438,16 @@ for the union type (class_type).
          will be repeated when a real instantiation of the enclosing union is
          performed. */
     } else if (unrestricted_unions_enabled) {
+      if (has_nontrivial_ctor(cssp) || has_nontrivial_destructor(cssp) ||
+          ((cssp->makes_copy_assignment_nontrivial ||
+            cssp->makes_move_assignment_nontrivial) &&
+           class_has_nontrivial_copy_assignment(tp))) {
+        /* This member could not appear in a union under the traditional
+           pre-C++11 rules.  Warn when unrestricted unions are accepted as an
+           extension in a non-C++11 GNU or Clang mode. */
+        report_gnu_cpp11_extension_if_needed(pos,
+                                             ec_unrestricted_unions_is_cpp11);
+      }  /* if */
       /* Record a nontrivial default constructor.  For anonymous union fields,
          nontriviality due to default member initializers should be ignored,
          but we can instead propagate the flag

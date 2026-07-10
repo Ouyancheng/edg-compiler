@@ -3666,6 +3666,7 @@ ec_non_c_like_because_of_friend;;"type is not C-like because of this friend decl
 ec_non_c_like_because_of_member;;"type is not C-like because of this member declaration"
 ec_non_c_like_because_of_lambda;;"type is not C-like because of this lambda expression"
 ec_enum_qualifier_is_cpp11;;"an enum-type name qualifier is a C++11 feature"
+ec_unrestricted_unions_is_cpp11;;"unrestricted unions are a C++11 feature"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
