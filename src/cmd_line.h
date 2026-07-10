@@ -1835,7 +1835,7 @@ warning (triggered by variable_templates_enabled being FALSE) in most GNU and
 Clang C++ modes. */
 #define variable_templates_may_be_enabled                                    \
   (variable_templates_enabled ||                                             \
-   (cpp11_mode && (gpp_version_is(>=50000) || clangcpp_version_is(>=30400))))
+   gpp_version_is(>=50000) || clangcpp_version_is(>=30400))
 
 EXTERN_THREAD a_boolean
 		constexpr_if_enabled;
