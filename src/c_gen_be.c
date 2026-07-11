@@ -12049,9 +12049,9 @@ The IL is already available when this routine is called.
   }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   /* The C++ type "bool" and the C type "_Bool/bool" are rendered as the
-     appropriate boolean type unless octl.render_as_bool is set to FALSE in
+     appropriate boolean type unless octl.render_as_C_bool is set to FALSE in
      which case the underlying type (typically, char or int) is used. */
-  octl.render_as_bool = TRUE;
+  octl.render_as_C_bool = TRUE;
   curr_default_fp_contract = (a_stdc_pragma_value)stdc_pv_default;
   curr_default_fenv_access = (a_stdc_pragma_value)stdc_pv_default;
   curr_default_cx_limited_range = (a_stdc_pragma_value)stdc_pv_default;

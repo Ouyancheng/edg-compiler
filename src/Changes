@@ -30,7 +30,7 @@ generated C code as the underlying type (typically "char" or "int").  A
 change has been made to now use "_Bool" or "bool" (if C_GEN_BE_GENERATES_C23 is
 TRUE).  If the back end C compiler doesn't support these types ("_Bool" has
 been available since C99), the previous behavior can be restored by setting
-octl.render_as_bool to FALSE in c_gen_be_init.
+octl.render_as_C_bool to FALSE in c_gen_be_init.
 
 
 7/10/26  [EDGcpfe/28941]
