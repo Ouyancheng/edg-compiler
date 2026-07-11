@@ -266,10 +266,9 @@ typedef struct an_il_to_str_output_control_block {
 			   i.e., skip over them and don't show them in the
 			   output. */
   a_byte_boolean
-	render_as_C_bool;
-			/* TRUE if a boolean type should be rendered as a
-			   C boolean type (either "_Bool" or "bool").
-			   Otherwise, the underlying type is used. */
+	render_c99_bool;
+			/* TRUE if the C99 boolean type should be rendered as
+			   "_Bool".  Otherwise, the underlying type is used. */
   a_byte_boolean
 	c_generating_back_end;
 			/* TRUE if the output is being done for the
