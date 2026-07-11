@@ -7264,8 +7264,7 @@ the set.
 }  /* remove_deduction_guide */
 
 
-a_requires_clause_ptr function_template_head_requires_clause(
-                                                              a_symbol_ptr sym)
+a_requires_clause_ptr function_template_head_requires_clause(a_symbol_ptr sym)
 /*
 Return the template-head requires-clause for sym if it is a function
 template; otherwise return NULL.
@@ -7307,21 +7306,23 @@ the same type and equivalent requires-clauses (template-head and trailing).
   a_type_ptr             type1, type2;
   a_routine_ptr          rp1, rp2;
   a_requires_clause_ptr  head_rcp1, head_rcp2;
+  a_boolean              result = FALSE;
 
   type1 = function_or_template_symbol_type(sym1);
   type2 = function_or_template_symbol_type(sym2);
-  if (!identical_types(type1, type2)) {
-    return FALSE;
+  if (identical_types(type1, type2)) {
+    rp1 = func_sym_routine(sym1);
+    rp2 = func_sym_routine(sym2);
+    if (equiv_requires_clauses(trailing_requires_clause(rp1),
+                               trailing_requires_clause(rp2))) {
+      head_rcp1 = function_template_head_requires_clause(sym1);
+      head_rcp2 = function_template_head_requires_clause(sym2);
+      if (equiv_requires_clauses(head_rcp1, head_rcp2)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
-  rp1 = func_sym_routine(sym1);
-  rp2 = func_sym_routine(sym2);
-  if (!equiv_requires_clauses(trailing_requires_clause(rp1),
-                              trailing_requires_clause(rp2))) {
-    return FALSE;
-  }  /* if */
-  head_rcp1 = function_template_head_requires_clause(sym1);
-  head_rcp2 = function_template_head_requires_clause(sym2);
-  return equiv_requires_clauses(head_rcp1, head_rcp2);
+  return result;
 }  /* deduction_guides_are_redeclarations */
 
 
@@ -7329,10 +7330,9 @@ static a_boolean deduction_guide_redeclaration_is_cross_context(
                                                    a_symbol_ptr  sym1,
                                                    a_symbol_ptr  sym2)
 /*
-Return TRUE if sym1 and sym2 are deduction guides that redeclare each other
-but were introduced in different contexts, in which case the redeclaration
-should be permitted.  Cross-context redeclarations include a guide from a
-module and one from a source file, or guides from different modules.
+Return TRUE if sym1 and sym2 are duplicate deduction guides introduced
+in different contexts (i.e., in different modules, or one in a module
+and one not), in which case the redeclaration should be permitted.
 
 Use module_for_symbol (not lookup_module_for_symbol) to identify the module
 that introduced a guide: Exported module entities are globally visible, so
@@ -7352,7 +7352,7 @@ an exported module guide from a source guide.
     a_module_ptr mod2 = skip_module_partitions(module_for_symbol(fund_sym2));
 
     /* Treat an unknown module identity as a distinct context. */
-    if (mod1 != mod2 || mod1 == NULL || mod2 == NULL) {
+    if (mod1 != mod2 || mod1 == NULL) {
       result = TRUE;
     }  /* if */
   }  /* if */
