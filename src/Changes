@@ -156,7 +156,7 @@ In GNU C++ modes, casting a zero literal to a non-character integer type (for
 example, (int)0) can still produce a null pointer constant, matching g++.
 
 
-7/9/26   [EDGcpfe/28938]
+7/9/26   [EDGcpfe/28704,EDGcpfe/28938]
 Internal error in record_substitution_for_type during constraint checking
 
 Previously, constraint checking involving a failed variable template
