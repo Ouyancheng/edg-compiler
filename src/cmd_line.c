@@ -5747,7 +5747,7 @@ before this routine is called.
     }  /* if */
     if (!option_kind_used[(int)optk_lambdas] &&
         (gpp_version_is(>= 40500) || clangcpp_version_is(>= 190000))) {
-      /* Some versions of GCC and Clang  accept (non-generic) lambda
+      /* Some versions of GCC and Clang accept (non-generic) lambda
          expressions with a warning in their pre-C++11 modes. */
       lambdas_enabled = TRUE;
     }  /* if */
