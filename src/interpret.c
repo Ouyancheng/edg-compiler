@@ -22136,7 +22136,7 @@ the value representation of the integer value.
                               ips);
               } else {
                 a_base_class_ptr  bcp = *(a_base_class_ptr*)src->address;
-                a_type_ptr        derived_class;
+                a_type_ptr        derived_class = NULL;
                 if (bcp != NULL) {
                   if (type_is(tp, tk_pointer)) {
                     derived_class = skip_typerefs(tp->variant.pointer.type);

@@ -26886,7 +26886,7 @@ p_fatal and p_copy_error are NULL by default.
          evaluation that should have its own notes sequence if needed. */
       an_ovl_res_descr_ptr descr = ovl_res_descr();
       a_boolean            notes_pass = FALSE;
-      a_diagnostic_ptr     saved_curr_diagnostic;
+      a_diagnostic_ptr     saved_curr_diagnostic = NULL;
       if (descr.has_value() && descr->emit_note_diagnostics) {
         notes_pass = TRUE;
         saved_curr_diagnostic = descr->curr_diagnostic;

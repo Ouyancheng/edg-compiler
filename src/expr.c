@@ -19935,7 +19935,7 @@ where <typename-or-default> is either a type name or the keyword "default".
   a_type_ptr           selector_type = NULL, type;
   a_boolean            err = FALSE, default_seen = FALSE;
   a_boolean            selector_is_type = FALSE;
-  a_source_position    start_pos, type_pos;
+  a_source_position    start_pos, type_pos{};
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position    end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

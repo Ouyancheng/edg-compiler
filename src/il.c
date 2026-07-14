@@ -21151,7 +21151,7 @@ options is a set of substitution options.
       break;
     case enk_pack_index:
       {
-        an_expr_node_ptr new_pack_expr, new_index_expr;
+        an_expr_node_ptr new_pack_expr = NULL, new_index_expr = NULL;
         a_constant_ptr   alloc_con_1 = NULL, alloc_con_2 = NULL;
 
         new_pack_expr = copy_template_param_expr(
