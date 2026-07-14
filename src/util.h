@@ -4130,9 +4130,12 @@ signed numbering system with the given base.  Note this function does not count
 the negative sign as a digit (i.e., 3 and -3 are both considered 1 digit).
 */
 {
-  return value != 0 && (value / base) != 0 ?
-    (1 + integral_digits(an_Integral_type(value / base), base)) :
-    1;
+  size_t digits = 1;
+
+  for (; value != 0 && (value / base) != 0; ++digits) {
+    value = static_cast<an_Integral_type>(value / base);
+  }  /* for */
+  return digits;
 }  /* integral_digits */
 
 
@@ -4146,9 +4149,12 @@ Given a value, return the number of digits required to represent it for a
 unsigned numbering system with the given base.
 */
 {
-  return value != 0 && (value / base) != 0 ?
-    (1 + integral_digits(an_Integral_type(value / base), base)) :
-    1;
+  size_t digits = 1;
+
+  for (; value != 0 && (value / base) != 0; ++digits) {
+    value = static_cast<an_Integral_type>(value / base);
+  }  /* for */
+  return digits;
 }  /* integral_digits */
 
 
