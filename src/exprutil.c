@@ -18319,7 +18319,23 @@ successful folding.
              result constant's substructure into that local memory. */
           (void)copy_constant_full(folded_con, folded_con, CE_NO_OPTIONS);
         }  /* if */
-        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() ||
+            (exceptions_enabled && innermost_function_scope == NULL &&
+             ctor_routine != NULL &&
+             !is_non_throwing_routine(ctor_routine))) {
+          /* A backing expression is normally recorded only in the contexts
+             identified by the macro above.  But folding a potentially-throwing
+             constructor call to a bare constant would otherwise hide the
+             (notionally performed) call from the later noexcept determination:
+             Since C++17 (P0003R5) such a call is potentially throwing even
+             when it is a constant expression.  This matters, e.g., for a
+             class-type member's default member initializer that feeds the
+             implicit exception specification of a defaulted default
+             constructor.  Retain the backing expression in that case as well.
+             Doing so is limited to constructions outside of any function body,
+             where the constant and the constructor call reside in the same
+             (non-local) memory region and the expression can be attached
+             directly. */
           add_temp_init_backing_expression(folded_con, orig_dip);
         }  /* if */
       } else {
