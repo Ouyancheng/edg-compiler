@@ -3,7 +3,7 @@
 #                                                             \  ___  /       #
 # Edison Design Group C++ Front End                             /   \         #
 #                                                            - | \^/ | -      #
-# Copyright 1992-2025 Edison Design Group, Inc.                 \   /         #
+# Copyright 1992-2026 Edison Design Group, Inc.                 \   /         #
 # All rights reserved.  Consult your license                  /  | |  \       #
 # regarding permissions and restrictions.                        [_]          #
 #                                                                             #
