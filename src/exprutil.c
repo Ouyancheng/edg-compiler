@@ -18321,8 +18321,7 @@ successful folding.
         }  /* if */
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() ||
             (exceptions_enabled && innermost_function_scope == NULL &&
-             ctor_routine != NULL &&
-             !is_non_throwing_routine(ctor_routine))) {
+             ctor_routine != NULL)) {
           /* A backing expression is normally recorded only in the contexts
              identified by the macro above.  But folding a potentially-throwing
              constructor call to a bare constant would otherwise hide the
