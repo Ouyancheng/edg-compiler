@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2002-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2002-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -182,6 +182,6 @@ architecture from the host compiler.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2002-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2002-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

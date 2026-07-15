@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -35,6 +35,6 @@ expr_hdrs.h -- Inclusion of header files used by files involved in expression
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
