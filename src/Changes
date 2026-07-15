@@ -1,5 +1,16 @@
 Version 6.9
 
+7/14/26  [EDGcpfe/28954]
+C++26: value of __cplusplus
+
+The value of the predefined __cplusplus macro in non-emulation C++26 modes
+has been changed from its placeholder value of 202600L to the value given
+in the C++26 Draft International Standard, 202603L.  As of this writing,
+g++ (16.1.0) and clang (22.1.x) use the placeholder value of 202400L, and
+MSVC (19.52) uses 199711L; the front end follows suit in its respective
+emulation modes.
+
+
 7/10/26  [EDGcpfe/26127,EDGcpfe/28803,EDGcpfe/28868,EDGcpfe/28930]
 Exception specification of a defaulted default constructor with a folded
 default member initializer

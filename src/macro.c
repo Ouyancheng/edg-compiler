@@ -11898,8 +11898,13 @@ command line -D options.
     a_const_char *gnu_cpp17_date = "201500L";
     a_const_char *clang_cpp17_date = "201406L";
     a_const_char *cpp17_date = "201703L";
+    a_const_char *gnu_clang_cpp26_date = "202400L";
     if (cpp26_mode && !microsoft_mode) {
-      val = "202600L";  /* Temporary value until standard is ratified. */
+      if (gnu_version_is(any_version) || clang_version_is(any_version)) {
+        val = gnu_clang_cpp26_date;
+      } else {
+        val = "202603L";
+      }  /* if */
     } else if (cpp23_mode && !microsoft_mode) {
       val = "202302L";
     } else if (cpp20_mode && !microsoft_mode) {

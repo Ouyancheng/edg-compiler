@@ -250,7 +250,7 @@ static constexpr an_attr_descr known_attr_table[] = {
   { "unlikely", "", "c+(202002-|G(80300-))", ak_unlikely },
   { "no_unique_address", "", "c+(202002-|G(80300-)|C(90000-))",
     ak_no_unique_address },
-  { "indeterminate", "", "c+(202600-)", ak_indeterminate },
+  { "indeterminate", "", "c+(202603-)", ak_indeterminate },
 
   /* C standard attributes (C23 and later).  Also accepted by default when
      gnu_version >= 100000, microsoft_version >= 1934, or clang_version >=

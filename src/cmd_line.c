@@ -6084,7 +6084,7 @@ command line switches.
     C++17               std_version >= 201703            --c++17
     C++20               std_version >= 202002            --c++20
     C++23               std_version >= 202302            --c++23
-    C++26               std_version >= 202600?           --c++26
+    C++26               std_version >= 202603            --c++26
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
@@ -11852,11 +11852,8 @@ enable_microsoft_mode:
         type_traits_helpers_enabled = opt_value;
         break;
       case optk_cpp26_mode:
-        /* Enable C++ features added as part of C++26.  The value used for
-           std_version below is just a placeholder until the official value
-           (and standard name) is known (also elsewhere, such as in attribute
-           descriptions). */
-        std_version = 202600;
+        /* Enable C++ features added as part of C++26. */
+        std_version = 202603;
         set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_cpp23_mode:
