@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -506,6 +506,6 @@ allocation failed.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

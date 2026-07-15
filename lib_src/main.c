@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -60,6 +60,6 @@ version 3.0 of the NIH libraries.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

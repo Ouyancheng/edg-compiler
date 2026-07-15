@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -45,6 +45,6 @@ Free the memory pointed to by ptr.  size specifies the size of the object.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
