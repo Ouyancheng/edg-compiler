@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1996-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1996-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -8756,6 +8756,6 @@ END_DISABLE_GCC_WARNING_RET_LOCAL_ADDR
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1996-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1996-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
