@@ -4,7 +4,7 @@
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 2002-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2002-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -222,6 +222,6 @@ namespace abi = __cxxabiv1;
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 2018-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2018-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1995-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1995-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -36,6 +36,6 @@ This file is provided for compatibility with older programs that use
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1995-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1995-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

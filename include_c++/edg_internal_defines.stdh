@@ -4,7 +4,7 @@
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 2017-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2017-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -59,6 +59,6 @@ edg_internal_defines -- EDG-specific defines used in standard header files
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 2017-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 2017-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

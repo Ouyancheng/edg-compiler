@@ -4,7 +4,7 @@
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -205,6 +205,6 @@ void operator delete[](void*, __EDG_STD_NAMESPACE::align_val_t,
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2025 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2026 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
