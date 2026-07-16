@@ -18324,7 +18324,7 @@ successful folding.
              ctor_routine != NULL && scope_stack_top().in_field_initializer)) {
           /* A backing expression is normally recorded only when
              curr_expr_kind_is_one_in_which_const_exprs_are_recorded() is
-             TRUE.  But folding a constructor call to a bare constant in a
+             TRUE.  However, folding a constructor call to a bare constant in a
              default member initializer hides that call from a later noexcept
              determination: Since C++17 (P0003R5) such a call is potentially
              throwing even when it is a constant expression.  This matters,
