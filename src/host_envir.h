@@ -2598,11 +2598,7 @@ modes, causes universal-character-names in narrow strings to be translated
 to Latin-1.
 */
 #ifndef UNICODE_SOURCE_SUPPORTED
-#if EDG_WIN32
 #define UNICODE_SOURCE_SUPPORTED TRUE
-#else /* !EDG_WIN32 */
-#define UNICODE_SOURCE_SUPPORTED FALSE
-#endif /* EDG_WIN32 */
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 /*
@@ -2737,10 +2733,10 @@ enum a_unicode_source_kind {
 /*
 The kind of Unicode encoding to be assumed for a source file that has
 no initial byte order mark.  usk_none means assume such a file is not
-Unicode.  MSVC compatibility requires usk_none.
+Unicode.
 */
 #ifndef DEFAULT_UNICODE_SOURCE_KIND
-#define DEFAULT_UNICODE_SOURCE_KIND usk_none
+#define DEFAULT_UNICODE_SOURCE_KIND usk_utf8
 #endif /* DEFAULT_UNICODE_SOURCE_KIND */
 
 EXTERN_THREAD a_unicode_source_kind

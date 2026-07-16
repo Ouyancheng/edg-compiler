@@ -1,5 +1,14 @@
 Version 6.9
 
+7/15/26  [EDGcpfe/28936]
+Default encoding for source files
+
+Most implementations now accept source files encoded as UTF-8.  Consequently,
+the front end has now been changed to accept that encoding by default.  To
+restore the previous behavior, UNICODE_SOURCE_SUPPORTED should be set to
+FALSE and DEFAULT_UNICODE_SOURCE_KIND should be usk_none.
+
+
 7/14/26  [EDGcpfe/28954]
 C++26: value of __cplusplus
 
