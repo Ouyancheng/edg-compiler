@@ -18321,15 +18321,15 @@ successful folding.
         }  /* if */
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() ||
             (exceptions_enabled && innermost_function_scope == NULL &&
-             ctor_routine != NULL)) {
-          /* A backing expression is normally recorded only in the contexts
-             identified by the macro above.  But folding a potentially-throwing
-             constructor call to a bare constant would otherwise hide the
-             (notionally performed) call from the later noexcept determination:
-             Since C++17 (P0003R5) such a call is potentially throwing even
-             when it is a constant expression.  This matters, e.g., for a
-             class-type member's default member initializer that feeds the
-             implicit exception specification of a defaulted default
+             ctor_routine != NULL && scope_stack_top().in_field_initializer)) {
+          /* A backing expression is normally recorded only when
+             curr_expr_kind_is_one_in_which_const_exprs_are_recorded() is
+             TRUE.  But folding a constructor call to a bare constant in a
+             default member initializer hides that call from a later noexcept
+             determination: Since C++17 (P0003R5) such a call is potentially
+             throwing even when it is a constant expression.  This matters,
+             e.g., for a class-type member's default member initializer that
+             feeds the implicit exception specification of a defaulted default
              constructor.  Retain the backing expression in that case as well.
              Doing so is limited to constructions outside of any function body,
              where the constant and the constructor call reside in the same
