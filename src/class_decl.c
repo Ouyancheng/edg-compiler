@@ -3159,9 +3159,20 @@ and for member functions of template classes.
           }  /* if */
           if (rfp->process_exception_spec && !is_friend &&
               (is_real_template_instantiation || do_proto_inst_for_sym)) {
-            a_routine_ptr  proto_rp = sym->variant.template_info
-                                         ->variant.function.routine;
-            instantiate_exception_spec_if_needed(symbol_for(proto_rp));
+            /* When exceptions are disabled and exception specifications are
+               not part of the function type, a noexcept operand may still be
+               recorded so it can be prototype-instantiated and then discarded.
+               During a real class instantiation a fresh cache may be recorded;
+               instantiating that here would evaluate the operand with
+               substituted class template arguments, contrary to Core issue
+               1330 (exception specifications are instantiated only when
+               needed). */
+            if (!(is_real_template_instantiation && !exceptions_enabled &&
+                  !exc_spec_in_func_type)) {
+              a_routine_ptr  proto_rp = sym->variant.template_info
+                                           ->variant.function.routine;
+              instantiate_exception_spec_if_needed(symbol_for(proto_rp));
+            }  /* if */
           }  /* if */
         }  /* if */
       } else if (daefp != NULL || rfp->process_exception_spec) {

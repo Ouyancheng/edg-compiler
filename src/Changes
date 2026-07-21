@@ -1,5 +1,21 @@
 Version 6.10
 
+7/21/26  [EDGcpfe/20633,EDGcpfe/28306]
+Spurious exception specification instantiation error with exceptions disabled
+
+Previously, in modes with exceptions disabled and where the exception
+specification is not part of the function type, the front end would instantiate
+a member function template exception specification when the enclosing class
+template was instantiated.  For example, with --c++11 --no_exceptions:
+
+  template<typename T>
+  struct C {
+    template<typename>
+    void f(int) noexcept(T::v);  // Previously a spurious error, now okay.
+  };
+  C<int> c;
+
+
 7/21/26  [EDGcpfe/24978,EDGcpfe/25610,EDGcpfe/26815,EDGcpfe/27444,
           EDGcpfe/27490,EDGcpfe/28447]
 Braced initializers for template parameter initialization
