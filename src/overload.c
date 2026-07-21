@@ -28852,6 +28852,68 @@ aggregate constant.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static an_init_component_ptr copy_init_component(
+                                   an_init_component_ptr     orig_icp,
+                                   an_expr_copy_options_set  expr_copy_options)
+/*
+Create a deep copy of the init component with the given expression copy
+options.
+*/
+{
+  an_init_component_ptr copy =
+                  alloc_init_component((an_init_component_kind)orig_icp->kind);
+
+  copy->contains_designator = orig_icp->contains_designator;
+  copy->check_narrowing = orig_icp->check_narrowing;
+  copy->braced_init_in_parentheses = orig_icp->braced_init_in_parentheses;
+  copy->constant_expr_ruled_out = orig_icp->constant_expr_ruled_out;
+  copy->consteval_function_designator_seen =
+                                  orig_icp->consteval_function_designator_seen;
+  copy->preserved_deduced_pack = orig_icp->preserved_deduced_pack;
+  copy->direct_init_designator = orig_icp->direct_init_designator;
+  copy->pack_expansion_descr = orig_icp->pack_expansion_descr;
+  switch (orig_icp->kind) {
+    case ick_expression:
+      { an_operand_ptr  orig_op = operand_of_arg_list_elem(orig_icp),
+                        copy_op = operand_of_arg_list_elem(copy);
+        copy_operand(orig_op, copy_op);
+        if (is_expression_operand(copy_op)) {
+          copy_op->variant.expression =
+                                    copy_expr_tree(copy_op->variant.expression,
+                                                   expr_copy_options);
+        }  /* if */
+        copy_op->ref_entries_list =
+                                copy_ref_entry_list(orig_op->ref_entries_list);
+        copy->detached_ref_entries = orig_icp->detached_ref_entries;
+        break;
+      }
+    case ick_braced:
+      { an_init_component_ptr child, last_child_copy = NULL;
+        copy->variant.braced = orig_icp->variant.braced;
+        copy->variant.braced.list = NULL;
+        for (child = orig_icp->variant.braced.list; child != NULL;
+             child = next_elem(child)) {
+          an_init_component_ptr  child_copy =
+                                 copy_init_component(child, expr_copy_options);
+          if (last_child_copy == NULL) {
+            copy->variant.braced.list = child_copy;
+          } else {
+            append_elem(last_child_copy, child_copy);
+          }  /* if */
+          last_child_copy = child_copy;
+        }  /* for */
+      }  /* case */
+      break;
+    case ick_designator:
+      copy->variant.designator = orig_icp->variant.designator;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return copy;
+}  /* copy_init_component */
+
+
 a_boolean nontype_templ_arg_of_class_type_matches(an_operand  *operand,
                                                   a_type_ptr  param_type,
                                                   a_constant  *class_con)
@@ -28866,66 +28928,125 @@ the converted constant value.  param_type may be a placeholder type.
 
   if (is_class_template_placeholder_type(param_type)) {
     /* If param_type is a placeholder type, perform deduction first. */
-    an_arg_list_elem  *alep = alloc_arg_list_elem_for_operand(operand);
+    an_arg_list_elem  *alep;
     a_boolean         still_dependent = FALSE, deduced;
+    if (is_braced_init_list_operand(operand)) {
+      alep = operand->variant.braced_init_list;
+    } else {
+      alep = alloc_arg_list_elem_for_operand(operand);
+    }  /* if */
     deduced = deduce_class_template_args(param_type, /*is_direct_init=*/FALSE,
                                          /*parenthesized_init=*/FALSE,
                                          /*keep_placeholder=*/FALSE,
                                          alep, &operand->position,
                                          &param_type, &still_dependent);
-    free_init_component_list(alep);
+    if (!is_braced_init_list_operand(operand)) {
+      free_init_component_list(alep);
+    }  /* if */
     if (!deduced || is_error_type(param_type)) {
       goto done;
     }  /* if */
   }  /* if */
-  determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,
-                            (a_param_type_ptr)NULL,
-                            /*param_type_is_deduced=*/FALSE,
-                            /*try_user_conversions=*/constexpr_enabled,
-                            /*allow_expl_conv_funcs=*/FALSE,
-                            &arg_summary);
-  if (arg_summary.match_level != aml_none) {
-    /* A conversion is possible, but now we have to determine whether that
-       conversion can be computed as a constant.  This requires applying the
-       conversion and interpreting the resulting structure.  Unfortunately,
-       applying the conversion may cause the representation of the source
-       operand to be modified.  So we must create a "deep" copy of that
-       operand. */
+  if (is_braced_init_list_operand(operand)) {
+    /* List-initialize a temporary and verify its constant value. */
     an_expr_stack_entry      expr_stack_entry;
     an_expr_stack_entry_ptr  saved_expr_stack;
     an_operand               opnd;
-    a_dynamic_init_ptr       dip;
-    /* Set up the expression stack for an unevaluated expression and suppress
-       diagnostics.  If there is already something on the stack, save it, clear
-       the stack, and restore it later. */
-    copy_operand(operand, &opnd);
-    if (is_expression_operand(&opnd)) {
-      opnd.variant.expression = copy_expr_tree(opnd.variant.expression,
-                                               CE_COPY_NOT_EVALUATED);
-    }  /* if */
+    an_expr_node_ptr         temp_init_node;
+    an_init_component_ptr    init_copy;
+
+    init_copy = copy_init_component(operand->variant.braced_init_list,
+                                    CE_COPY_NOT_EVALUATED);
     save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/TRUE);
     expr_stack->suppress_diagnostics = TRUE;
-    prep_elision_initializer_operand(&opnd, param_type, /*fill_in_dtor=*/TRUE,
-                                     CCO_NONTYPE_TEMPLATE_ARG, ec_no_error,
-                                     (a_boolean *)NULL, &dip);
+    prep_list_initializer(init_copy, param_type,
+                          /*is_direct_init=*/FALSE,
+                          /*check_narrowing=*/TRUE,
+                          /*warning_on_narrowing=*/FALSE,
+                          CCO_NONTYPE_TEMPLATE_ARG,
+                          /*fill_in_dtor=*/TRUE,
+                          /*force_temp=*/FALSE,
+                          /*make_lvalue_temp=*/FALSE,
+                          &opnd, (an_init_state *)NULL,
+                          (an_arg_match_summary *)NULL);
     if (!expr_stack->any_suppressed_error) {
-      a_diag_list     diag_list;
-      clear_diag_list(&diag_list);
-      if (interpret_dynamic_init(dip, &operand->position, param_type,
-                                 /*is_constant_evaluated=*/TRUE, class_con,
-                                 &diag_list)) {
+      if (is_constant_operand(&opnd)) {
+        copy_constant(&opnd.variant.constant, class_con);
         result = TRUE;
+      } else if (is_expression_operand(&opnd) &&
+                 operand_is_temp_init_full(&opnd, &temp_init_node)) {
+        a_diag_list  diag_list;
+
+        clear_diag_list(&diag_list);
+        if (interpret_dynamic_init(temp_init_node->variant.init.dynamic_init,
+                                   &operand->position, param_type,
+                                   /*is_constant_evaluated=*/TRUE, class_con,
+                                   &diag_list)) {
+          result = TRUE;
+        }  /* if */
+        discard_more_info_list(&diag_list);
       }  /* if */
-      discard_more_info_list(&diag_list);
     }  /* if */
     if (is_expression_operand(&opnd)) {
       reclaim_fs_nodes_of_operand(&opnd);
     }  /* if */
+    free_init_component_list(init_copy);
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
+  } else {
+    determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,
+                              (a_param_type_ptr)NULL,
+                              /*param_type_is_deduced=*/FALSE,
+                              /*try_user_conversions=*/constexpr_enabled,
+                              /*allow_expl_conv_funcs=*/FALSE,
+                              &arg_summary);
+    if (arg_summary.match_level != aml_none) {
+      /* A conversion is possible, but now we have to determine whether that
+         conversion can be computed as a constant.  This requires applying the
+         conversion and interpreting the resulting structure.  Unfortunately,
+         applying the conversion may cause the representation of the source
+         operand to be modified.  So we must create a "deep" copy of that
+         operand. */
+      an_expr_stack_entry      expr_stack_entry;
+      an_expr_stack_entry_ptr  saved_expr_stack;
+      an_operand               opnd;
+      a_dynamic_init_ptr       dip;
+      /* Set up the expression stack for an unevaluated expression and suppress
+         diagnostics.  If there is already something on the stack, save it,
+         clear the stack, and restore it later. */
+      copy_operand(operand, &opnd);
+      if (is_expression_operand(&opnd)) {
+        opnd.variant.expression = copy_expr_tree(opnd.variant.expression,
+                                                 CE_COPY_NOT_EVALUATED);
+      }  /* if */
+      save_expr_stack(&saved_expr_stack);
+      push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                      /*force_object_lifetime=*/FALSE,
+                      /*suppress_object_lifetime=*/TRUE);
+      expr_stack->suppress_diagnostics = TRUE;
+      prep_elision_initializer_operand(&opnd, param_type,
+                                       /*fill_in_dtor=*/TRUE,
+                                       CCO_NONTYPE_TEMPLATE_ARG, ec_no_error,
+                                       (a_boolean *)NULL, &dip);
+      if (!expr_stack->any_suppressed_error) {
+        a_diag_list     diag_list;
+        clear_diag_list(&diag_list);
+        if (interpret_dynamic_init(dip, &operand->position, param_type,
+                                   /*is_constant_evaluated=*/TRUE, class_con,
+                                   &diag_list)) {
+          result = TRUE;
+        }  /* if */
+        discard_more_info_list(&diag_list);
+      }  /* if */
+      if (is_expression_operand(&opnd)) {
+        reclaim_fs_nodes_of_operand(&opnd);
+      }  /* if */
+      pop_expr_stack();
+      restore_expr_stack(saved_expr_stack);
+    }  /* if */
   }  /* if */
 done:
   return result;
@@ -28947,6 +29068,20 @@ if so.
     compatible = nontype_templ_arg_of_class_type_matches(operand, param_type,
                                                          con);
     release_local_constant(&con);
+  } else if (is_braced_init_list_operand(operand)) {
+    /* A braced-init-list is matched via list initialization. */
+    an_arg_match_summary  arg_summary;
+    prep_list_initializer(operand->variant.braced_init_list, param_type,
+                          /*is_direct_init=*/FALSE,
+                          /*check_narrowing=*/TRUE,
+                          /*warning_on_narrowing=*/FALSE,
+                          CCO_NONTYPE_TEMPLATE_ARG,
+                          /*fill_in_dtor=*/FALSE,
+                          /*force_temp=*/FALSE,
+                          /*make_lvalue_temp=*/FALSE,
+                          (an_operand *)NULL, (an_init_state *)NULL,
+                          &arg_summary);
+    compatible = (arg_summary.match_level != aml_none);
   } else {
     an_arg_match_summary arg_summary;
     determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,

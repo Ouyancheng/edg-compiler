@@ -678,17 +678,24 @@ TRUE and FALSE is returned.
   }  /* if */
   if (is_class_template) {
     /* This is a class template argument deduction case. */
+    a_boolean  allocated_alep = FALSE;
     *type_after_deduction = void_type();
     *still_dependent = FALSE;
     if (initializer_operand != NULL) {
       check_assertion(initializer_alep == NULL);
-      initializer_alep = alloc_arg_list_elem_for_operand(initializer_operand);
+      if (is_braced_init_list_operand(initializer_operand)) {
+        /* Use the braced-init-list already attached to the operand. */
+        initializer_alep = initializer_operand->variant.braced_init_list;
+      } else {
+        initializer_alep =alloc_arg_list_elem_for_operand(initializer_operand);
+        allocated_alep = TRUE;
+      }  /* if */
     }  /* if */
     result = deduce_class_template_args(orig_type, is_direct_init,
                                         parenthesized_init, keep_placeholder,
                                         initializer_alep, source_pos,
                                         deduced_auto_type, still_dependent);
-    if (initializer_operand != NULL) {
+    if (allocated_alep) {
       free_arg_list(initializer_alep);
     }  /* if */
     if (result) {
@@ -702,8 +709,10 @@ TRUE and FALSE is returned.
   } else {
     /* decltype(auto) succeeds unless the initializer is a braced initializer
        list. */
-    result = !(initializer_alep != NULL &&
-              is_braced_init_component(initializer_alep));
+    result = !((initializer_alep != NULL &&
+                is_braced_init_component(initializer_alep)) ||
+               (initializer_operand != NULL &&
+                is_braced_init_list_operand(initializer_operand)));
     if (result) {
       a_boolean   no_parens_matters;
       an_operand  *p_operand;
@@ -788,6 +797,7 @@ processed so far.  arg_list and param_list are NULL by default.
   a_boolean              still_dependent = FALSE;
   an_operand	         local_operand;
   an_operand_ptr         p_operand;
+  a_boolean              is_direct_init;
 
   /* If a constant is supplied, create an operand from it.  Otherwise, use
      the supplied operand. */
@@ -822,10 +832,12 @@ processed so far.  arg_list and param_list are NULL by default.
     a_boolean  is_class_template =
                               is_class_template_placeholder_type(bottom_type);
     check_assertion(is_class_template || is_auto_type(bottom_type));
+    /* A braced constant template argument is copy-list-initialized. */
+    is_direct_init = !is_braced_init_list_operand(p_operand);
     if (deduce_placeholder_type(
                          bottom_type->variant.template_param.is_decltype_auto,
                          is_class_template,
-                         /*is_direct_init=*/TRUE,
+                         is_direct_init,
                          /*parenthesized_init=*/FALSE,
                          /*for_template_arg=*/TRUE,
                          param_type, bottom_type,
@@ -53068,12 +53080,27 @@ memory region).  Do various error checks.
     implicit_cast(constant, make_reference_type(param_type));
   } else {
     /* Convert to the required type if necessary.  Do not use user-defined
-       conversions, except if the conversion is "constexpr". */
-    prep_initializer_operand(operand, param_type, (a_boolean *)NULL,
-                             (a_conv_descr_ptr)NULL,
-                             /*is_copy_initialization=*/TRUE,
-                             CCO_NONTYPE_TEMPLATE_ARG,
-                             ec_bad_nontype_template_arg);
+       conversions, except if the conversion is "constexpr".  A
+       braced-init-list is converted via list initialization. */
+    if (is_braced_init_list_operand(operand)) {
+      /* The braced-init-list is permanently allocated with the operand. */
+      prep_list_initializer(operand->variant.braced_init_list, param_type,
+                            /*is_direct_init=*/FALSE,
+                            /*check_narrowing=*/TRUE,
+                            /*warning_on_narrowing=*/FALSE,
+                            CCO_NONTYPE_TEMPLATE_ARG,
+                            /*fill_in_dtor=*/TRUE,
+                            /*force_temp=*/FALSE,
+                            /*make_lvalue_temp=*/FALSE,
+                            operand, (an_init_state *)NULL,
+                            (an_arg_match_summary *)NULL);
+    } else {
+      prep_initializer_operand(operand, param_type, (a_boolean *)NULL,
+                               (a_conv_descr_ptr)NULL,
+                               /*is_copy_initialization=*/TRUE,
+                               CCO_NONTYPE_TEMPLATE_ARG,
+                               ec_bad_nontype_template_arg);
+    }  /* if */
     /* Make a constant from the operand. */
     if (!is_constant_operand(operand)) {
       force_operand_to_constant_if_possible_full(
@@ -53313,7 +53340,11 @@ are NULL by default.
     scope_stack_top().source_sequence_entries_disallowed = TRUE;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  if (list_init_enabled && curr_token == tok_lbrace) {
+    scan_braced_init_list_as_operand(&result);
+  } else {
+    scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (curr_il_region_number != file_scope_region_number) {
     source_sequence_entries_disallowed = saved_sses_disallowed;
@@ -53556,10 +53587,14 @@ free_arg_operand_list to free the entry.
   expr_stack_entry.is_template_arg_expression = TRUE;
   /* Adjust the object lifetime to avoid error recovery problems. */
   curr_object_lifetime = il_header.primary_scope->lifetime;
-  /* Scan the constant expression. */
+  /* Scan the constant expression or braced-init-list. */
   arg_operand = alloc_arg_operand();
   opnd = &arg_operand->operand;
-  scan_expr(opnd, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  if (list_init_enabled && curr_token == tok_lbrace) {
+    scan_braced_init_list_as_operand(opnd);
+  } else {
+    scan_expr(opnd, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  }  /* if */
   check_nontype_template_argument_type(opnd);
   if (is_constant_operand(opnd)) {
     con = &opnd->variant.constant;

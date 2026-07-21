@@ -1,3 +1,18 @@
+Version 6.10
+
+7/21/26  [EDGcpfe/24978,EDGcpfe/25610,EDGcpfe/26815,EDGcpfe/27444,
+          EDGcpfe/27490,EDGcpfe/28447]
+Braced initializers for template parameter initialization
+
+The front end now supports braced initializers to initialize non-type template
+parameters as specified in WG21 paper P2308R1 (adopted as a Defect Report).
+For example, with --c++11:
+
+  template<int>
+  struct C { };
+  C<{}> c0;
+
+
 Version 6.9, July 20, 2026
 
 7/16/26  [EDGcpfe/28936]
