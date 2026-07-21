@@ -10,7 +10,7 @@ For example, with --c++11:
 
   template<int>
   struct C { };
-  C<{}> c0;
+  C<{}> c0;  // Previously a spurious error, now okay.
 
 
 Version 6.9, July 20, 2026
