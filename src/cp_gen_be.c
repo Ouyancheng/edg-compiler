@@ -17960,6 +17960,7 @@ Generate code for the given lambda.
   a_scope_ptr   closure_scope;
   a_routine_ptr rp = lambda->lambda_routine;
   a_boolean     saved_proto_context = in_prototype_instantiation_context;
+  a_boolean     template_param_mappings_saved = FALSE;
 
   if (lambda->is_generic) {
     /* The code for a generic lambda should be handled as a prototype
@@ -18039,6 +18040,8 @@ Generate code for the given lambda.
            ones. */
         a_template_parameter_ptr next = last_expl_param->next;
         last_expl_param->next = NULL;
+        save_template_param_mappings();
+        template_param_mappings_saved = TRUE;
         gen_template_header(rp->assoc_template->template_decl,
                             /*parent_class=*/NULL,
                             /*is_cppcli_generic=*/FALSE,
@@ -18089,6 +18092,13 @@ Generate code for the given lambda.
     pop_name_context();
   }  /* if */
   lambda->closure_class->has_been_defined = TRUE;
+  if (template_param_mappings_saved) {
+    /* In some cases (e.g., a lambda appearing in a requires clause) the
+       coordinates of the lambda's parameters may duplicate those of the
+       outer template.  Restore the outer template's parameter name
+       mappings in case they were overwritten. */
+    restore_template_param_mappings();
+  }  /* if */
   in_prototype_instantiation_context = saved_proto_context;
 }  /* gen_lambda */
 
