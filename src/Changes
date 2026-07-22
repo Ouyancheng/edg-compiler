@@ -18,7 +18,7 @@ For example, with --c++20 --gnu_version=140200 --parse_templates:
   void foo() {}
 
 
-7/21/26  [EDGcpfe/20633,EDGcpfe/28306]
+7/21/26  [EDGcpfe/20633,EDGcpfe/24974,EDGcpfe/28306]
 Spurious exception specification instantiation error with exceptions disabled
 
 Previously, in modes with exceptions disabled and where the exception
