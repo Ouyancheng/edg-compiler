@@ -567,18 +567,18 @@ inline a_template_decl_info_ptr templ_decl_info_of(a_symbol_ptr  template_sym)
 Return the template declaration information associated with the given template.
 */
 {
-  a_template_decl_info_ptr  dip;
+  a_template_decl_info_ptr  decl_info;
   a_template_symbol_supplement_ptr
                             tssp = template_sym->variant.template_info;
 
   if (symbol_is(template_sym, sk_function_template)) {
-    dip = tssp->variant.function.decl_cache->decl_info;
+    decl_info = tssp->variant.function.decl_cache->decl_info;
   } else if (symbol_is(template_sym, sk_variable_template)) {
-    dip = tssp->variant.variable.decl_cache->decl_info;
+    decl_info = tssp->variant.variable.decl_cache->decl_info;
   } else {
-    dip = tssp->cache->decl_info;
+    decl_info = tssp->cache->decl_info;
   }  /* if */
-  return dip;
+  return decl_info;
 }  /* templ_decl_info_of */
 
 
@@ -588,10 +588,10 @@ Return the template declaration for the given template.
 */
 {
   a_template_decl_ptr       tdp;
-  a_template_decl_info_ptr  dip = templ_decl_info_of(template_sym);
+  a_template_decl_info_ptr  decl_info = templ_decl_info_of(template_sym);
 
-  if (dip != NULL) {
-    tdp = dip->template_decl;
+  if (decl_info != NULL) {
+    tdp = decl_info->template_decl;
   } else {
     /* Use the IL entry when decl_info has not been set yet. */
     tdp = template_sym->variant.template_info->il_template_entry
