@@ -562,23 +562,51 @@ extern an_expr_node_ptr scan_type_constraint(
                                         a_boolean     for_requirement = FALSE);
 
 
+inline a_template_decl_info_ptr templ_decl_info_of(a_symbol_ptr  template_sym)
+/*
+Return the template declaration information associated with the given template.
+*/
+{
+  a_template_decl_info_ptr  dip;
+  a_template_symbol_supplement_ptr
+                            tssp = template_sym->variant.template_info;
+
+  if (symbol_is(template_sym, sk_function_template)) {
+    dip = tssp->variant.function.decl_cache->decl_info;
+  } else if (symbol_is(template_sym, sk_variable_template)) {
+    dip = tssp->variant.variable.decl_cache->decl_info;
+  } else {
+    dip = tssp->cache->decl_info;
+  }  /* if */
+  return dip;
+}  /* templ_decl_info_of */
+
+
+inline a_template_decl_ptr templ_decl_of(a_symbol_ptr  template_sym)
+/*
+Return the template declaration for the given template.
+*/
+{
+  a_template_decl_ptr       tdp;
+  a_template_decl_info_ptr  dip = templ_decl_info_of(template_sym);
+
+  if (dip != NULL) {
+    tdp = dip->template_decl;
+  } else {
+    /* Use the IL entry when decl_info has not been set yet. */
+    tdp = template_sym->variant.template_info->il_template_entry
+                                             ->template_decl;
+  }  /* if */
+  return tdp;
+}  /* templ_decl_of */
+
+
 inline a_template_param_ptr templ_params_of(a_symbol_ptr  template_sym)
 /*
 Return the list of template parameters for the given template.
 */
 {
-  a_template_param_ptr  params;
-  a_template_symbol_supplement_ptr
-                        tssp = template_sym->variant.template_info;
-
-  if (symbol_is(template_sym, sk_function_template)) {
-    params = tssp->variant.function.decl_cache->decl_info->parameters;
-  } else if (symbol_is(template_sym, sk_variable_template)) {
-    params = tssp->variant.variable.decl_cache->decl_info->parameters;
-  } else {
-    params = tssp->cache->decl_info->parameters;
-  }  /* if */
-  return params;
+  return templ_decl_info_of(template_sym)->parameters;
 }  /* templ_params_of */
 
 

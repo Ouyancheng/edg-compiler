@@ -11613,8 +11613,7 @@ TRUE, issue a diagnostic explaining the failure.
   a_boolean              result = TRUE;
   a_template_symbol_supplement_ptr
                          tssp = template_sym->variant.template_info;
-  a_template_ptr         il_entry = tssp->il_template_entry;
-  a_template_decl_ptr    tdp = il_entry->template_decl;
+  a_template_decl_ptr    tdp = templ_decl_of(template_sym);
   a_source_position      diag_pos = error_position;
   a_requires_clause_ptr  rcp = NULL;
 

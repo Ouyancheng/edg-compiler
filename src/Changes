@@ -1,5 +1,21 @@
 Version 6.10
 
+7/22/26  [EDGcpfe/28965]
+Spurious constraint satisfaction error with class template redeclaration
+
+Previously, a redeclaration of a constrained class template could result in a
+spurious constraint satisfaction error when using parameter packs in the
+requires clause.  For example, with --c++20:
+
+  template<typename ... Ts>
+  concept X = sizeof ... (Ts) == 2;
+  template<typename ... Ts> requires X<Ts ...>
+  struct B;
+  template<typename ... Ts> requires X<Ts ...>
+  struct B { };
+  B<int, int> b;  // Previously a spurious error, now okay.
+
+
 7/21/26  [EDGcpfe/28957]
 C++-generating back end: template parameter names with nested generic lambda
 
