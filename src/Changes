@@ -1,5 +1,18 @@
 Version 6.10
 
+7/23/26  [EDGcpfe/28971]
+Abort in type_pointed_to on address cast to integer
+
+Consider:
+
+  void f(void *);
+  void g() { f((void*)(long)(const void*)"a"); }
+
+In some modes and configurations, this could result in an internal error in
+type_pointed_to (which was passed an integer type of a ck_address constant).
+That is now fixed.
+
+
 7/23/26  [EDGcpfe/28974]
 Explicitly-defaulted destructors and constexpr
 

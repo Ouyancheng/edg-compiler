@@ -5507,9 +5507,11 @@ variant path.
     }  /* if */
     cap->address += i_offset;
   }  /* for */
-  if (type_is(obj_type, tk_array)) {
+  if (type_is(obj_type, tk_array) && is_pointer_type(con->type)) {
     /* con points to an array as a whole or to just its first element.
-       Set the CA_ARRAY_ELEMENT flag in the latter case. */
+       Set the CA_ARRAY_ELEMENT flag in the latter case.  (Address constants
+       can have a non-pointer type after being cast to an integral type; skip
+       this processing in such cases.) */
     a_type_ptr  con_addr_type = type_pointed_to(con->type);
     if (!identical_types(obj_type, con_addr_type)) {
       cap->flags |= CA_ARRAY_ELEMENT;
