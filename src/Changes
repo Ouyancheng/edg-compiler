@@ -1,5 +1,13 @@
 Version 6.10
 
+7/23/26  [EDGcpfe/28956]
+is_empty_class_type
+
+The function is_empty_class_type did not ensure that a template class passed
+to it is instantiated before testing if it is empty.  This could, for example,
+lead to wrong results from reflection queries.  That is now fixed.
+
+
 7/23/26  [EDGcpfe/28971]
 Abort in type_pointed_to on address cast to integer
 

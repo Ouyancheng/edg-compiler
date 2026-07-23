@@ -501,6 +501,31 @@ incomplete (because the definition is not done yet).
 }  /* class_type_has_body */
 
 
+a_boolean is_empty_class_type(a_type_ptr type)
+/*
+Returns TRUE if the type passed as argument is a class type with no nonstatic
+data members, no virtual functions or virtual bases, no nonempty bases and
+(except in ABIs compatible with versions prior to 3.0 and in the IA-64 ABI)
+no empty bases that take up their own space (making the size of the object
+larger than targ_minimum_struct_alignment).  Otherwise, FALSE is returned.
+*/
+{
+  a_boolean result = TRUE;
+
+  type = skip_typerefs(type);
+  if (!is_immediate_class_type(type)) {
+    result = FALSE;
+  } else {
+    complete_class_type_is_needed(type);
+    result = type->variant.class_struct_union.is_empty_class;
+#if !IA64_ABI && ABI_COMPATIBILITY_VERSION >= 300
+    result = result && (type->size == targ_minimum_struct_alignment);
+#endif /* !IA64_ABI && ABI_COMPATIBILITY_VERSION >= 300 */
+  }  /* if */
+  return result;
+}  /* is_empty_class_type */
+
+
 a_boolean class_type_has_variant_member(a_type_ptr  tp)
 /*
 Return TRUE if the given class type has a variant member.

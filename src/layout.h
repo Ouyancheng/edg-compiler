@@ -73,8 +73,6 @@ extern a_targ_alignment current_pack_pragma_value(void);
 extern a_targ_alignment alignment_of_field_full(a_field_ptr  field,
                                                 a_boolean    for_alignof);
 
-extern a_boolean is_empty_class_type(a_type_ptr  type);
-
 extern void do_class_layout(a_type_ptr  class_type);
  
 #if IA64_ABI
