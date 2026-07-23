@@ -3487,7 +3487,6 @@ handle_class_type_supplement_for_class:
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #endif /* DO_IL_LOWERING */
         }  /* if */
-#if NEED_NAME_MANGLING
 #if !NEEDED_FLAG_WALK
         if (ctsp->defined_in_variable_initializer) {
           remap_ptr(ctsp->lambda_parent.variable, a_variable_ptr,
@@ -3498,7 +3497,6 @@ handle_class_type_supplement_for_class:
           remap_ptr(ctsp->lambda_parent.routine, a_routine_ptr, iek_routine);
         }  /* if */
 #endif /* !NEEDED_FLAG_WALK */
-#endif /* NEED_NAME_MANGLING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_ptr_not_needed(ctsp->corresponding_basic_type, a_type_ptr,
                             iek_type);

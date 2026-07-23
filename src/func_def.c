@@ -2595,11 +2595,9 @@ member declaration (allowed in some Microsoft modes only).
     check_assertion(rp != NULL);
     perform_deferred_access_checks_for_function(rp);
   }  /* if */
-#if NEED_NAME_MANGLING
   if (func_info->any_default_args) {
     set_parent_routine_for_closure_types_in_default_args(type_ptr, sym);
   }  /* if */
-#endif /* NEED_NAME_MANGLING */
   /* If a lint-style "argsused" or "varargs" comment appeared, record that in
      the function type.  That will suppress any warnings about unused
      parameters or variable arguments.  Note that this is done before calling

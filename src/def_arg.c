@@ -342,12 +342,10 @@ which the default argument is associated.
   }  /* if */
   scan_default_arg_expr(param_type_entry, /*is_member_or_friend=*/TRUE,
                         for_consteval_func);
-#if NEED_NAME_MANGLING
   set_parent_entity_for_closure_types(
           param_type_entry->entities_defined_in_default_arg,
           is_simple_function_symbol(rout_sym) ? rout_sym : (a_symbol_ptr)NULL,
           param_type_entry->default_arg_appeared_in_class_definition);
-#endif /* NEED_NAME_MANGLING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (discard_default_arg) {
     /* Treat the parameter as not having a default argument for error recovery

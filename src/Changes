@@ -1,5 +1,30 @@
 Version 6.10
 
+7/23/26  [EDGcpfe/26485,EDGcpfe/28496]
+Internal error on generic lambda in a variable template member (IL CHANGE when
+NEED_NAME_MANGLING is FALSE)
+
+When instantiating a generic lambda in the initializer of a variable template
+member of a class template, the front end could fail to restore the enclosing
+variable template's instantiation context.  This could trigger an internal
+error or lookup failures when the lambda called a function template with
+another generic lambda.  For example, with --c++17:
+
+  template<typename T>
+  auto f(T t) -> decltype(t(0));
+  template<int>
+  struct C {
+    template<typename>
+    static constexpr auto l = [] (auto) { return f([] (auto) { return 0; }); };
+  };
+  int i = C<1>::l<int>(0);  // Previously triggered an internal error.
+                            // Now okay.
+
+With this change, the IL now always retains a lambda closure class's parent
+entity information (previously, this was only done in configurations with
+NEED_NAME_MANGLING set to TRUE).
+
+
 7/22/26  [EDGcpfe/25686,EDGcpfe/28289,EDGcpfe/28965]
 Spurious constraint satisfaction error with class template redeclaration
 

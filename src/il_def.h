@@ -8936,14 +8936,12 @@ typedef struct a_class_type_supplement {
 			/* TRUE if the class contains an anonymous union
 			   member (which makes it a union-like class in C++11
 			   parlance). */
-#if NEED_NAME_MANGLING
   a_bit_field	defined_in_variable_initializer:1;
 			/* TRUE if the class is a closure class defined
 			   directly in the initializer for a static data member
 			   or variable (closure classes nested in such closure
 			   classes do not necessarily have this flag set to
 			   TRUE). */
-#endif /* NEED_NAME_MANGLING */
   a_bit_field	defined_in_field_initializer:1;
 			/* TRUE if the class is a closure class defined
 			   directly in the initializer for a field (closure
@@ -9148,7 +9146,6 @@ typedef struct a_class_type_supplement {
 			   default arguments); -1 for non-template classes
 			   and for template classes in which all template
 			   arguments were always explicitly specified. */
-#if NEED_NAME_MANGLING
   union {
     /* When defined_in_variable_initializer and
        defined_in_field_initializer are both FALSE: */
@@ -9172,7 +9169,6 @@ typedef struct a_class_type_supplement {
 			   in the initializer of a field, this points to that
 			   field. */
   } lambda_parent;
-#endif /* NEED_NAME_MANGLING */
   a_hash_value
 		hash_value;
 			/* A hash value computed for this class type, or

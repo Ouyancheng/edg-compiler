@@ -518,9 +518,7 @@ the entry pointed to by dps->routine_fixup.
   }  /* if */
   if (!rfp->deferred) free_routine_fixup(rfp);
   dps->routine_fixup = NULL;
-#if NEED_NAME_MANGLING
   set_parent_routine_for_closure_types_in_default_args(dps->type, sym);
-#endif /* NEED_NAME_MANGLING */
 }  /* scan_cached_default_args */
 
 
@@ -2699,8 +2697,8 @@ the fields implied by the lambda's capture list).
   ctsp = class_type_supp(type);
   ctsp->is_lambda_closure_class = TRUE;
   if (scope_stack_top().in_field_initializer) {
-#if NEED_NAME_MANGLING
     ctsp->lambda_parent.field = curr_initializer_field();
+#if NEED_NAME_MANGLING
     cssp->discriminator = get_discriminator_for_field_initializer();
 #endif /* NEED_NAME_MANGLING */
     ctsp->defined_in_field_initializer = TRUE;
@@ -2722,9 +2720,9 @@ the fields implied by the lambda's capture list).
           if (tip != NULL) {
             cssp->lambda_subject_to_trans_unit_corresp = TRUE;
           }  /* if */
-#if NEED_NAME_MANGLING
           ctsp->defined_in_variable_initializer = TRUE;
           ctsp->lambda_parent.variable = vp;
+#if NEED_NAME_MANGLING
           /* If the parent variable is a template instance, use the
              instantiation scope stack entry to count discriminators, which
              ensures that the count is local to this instance.  In other
@@ -17915,12 +17913,10 @@ decl_member_function_template.
         rp->is_consteval = TRUE;
       }  /* if */
     }  /* if */
-#if NEED_NAME_MANGLING
     /* Record the parent routine for lambdas defined in any default
        arguments. */
     set_parent_routine_for_closure_types_in_default_args(rp->type,
                                                          symbol_for(rp));
-#endif /* NEED_NAME_MANGLING */
   }  /* if */
   if (lambda->is_generic) {
     /* A generic lambda: Pop the template declaration scope. */

@@ -906,19 +906,20 @@ discriminators now.  (Currently, this only applies to closure types.)
                                          (a_symbol_ptr)NULL);
 }  /* compute_default_arg_name_collision_discriminators */
 
+#endif /* NEED_NAME_MANGLING */
+
 
 void set_parent_entity_for_closure_types(
                    an_il_entity_list_entry_ptr  elp,
                    a_symbol_ptr                 parent_sym,
                    a_boolean                    subject_to_trans_unit_corresp)
 /*
-Record the given symbol as the parent entity for name mangling purposes in
-each of the non-nested closure types in the given list of entities.  If
-subject_to_trans_unit_corresp is TRUE, the lambda expressions defining the
-closure types may appear in multiple translation units and each such lambda
-expression then defines the same closure type (this routine records a flag
-in the symbol supplement for the closure type to indicate this).  (parent_sym
-may be NULL in error cases.)
+Record the given symbol as the parent entity in each of the non-nested closure
+types in the given list of entities.  If subject_to_trans_unit_corresp is TRUE,
+the lambda expressions defining the closure types may appear in multiple
+translation units and each such lambda expression then defines the same closure
+type (this routine records a flag in the symbol supplement for the closure type
+to indicate this).  (parent_sym may be NULL in error cases.)
 */
 {
   for (; elp != NULL; elp = elp->next) {
@@ -961,9 +962,8 @@ void set_parent_routine_for_closure_types_in_default_args(
                                                        a_type_ptr    rtp,
                                                        a_symbol_ptr  rout_sym)
 /*
-The given routine was declared with the given type.  Make sure that any
-closure types defined in default arguments have the routine recorded as a
-parent for name mangling purposes.
+The given routine was declared with the given type.  Make sure that any closure
+types defined in default arguments have the routine recorded as a parent.
 */
 {
   check_assertion(is_simple_function_symbol(rout_sym));
@@ -983,7 +983,6 @@ parent for name mangling purposes.
   }  /* if */
 }  /* set_parent_routine_for_closure_types_in_default_args */
 
-#endif /* NEED_NAME_MANGLING */
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_scope_depth get_curr_lambda_depth(void)
@@ -4693,6 +4692,78 @@ static void push_simple_instantiation_scope(
                             a_template_arg_ptr		template_arg_list,
                             a_push_scope_options_set	options);
 
+static void reactivate_variable_context(a_template_decl_info_ptr  decl_info,
+                                        a_symbol_ptr              var_sym,
+                                        a_push_scope_options_set  options)
+/*
+Unlike functions and classes, a variable template instance does not have its
+own scope, but its template parameters need to be reactivated.  This routine is
+called when that needs to be done.  decl_info is the declaration information
+for the variable template for which var_sym is an instance.  options are the
+push_scope options being used.
+*/
+{
+  a_template_instance_ptr  tip;
+  a_variable_ptr           var_ptr;
+  a_template_arg_ptr       template_arg_list;
+
+  var_ptr = variable_for_symbol(var_sym);
+  tip = template_instance_for_symbol(var_sym);
+  template_arg_list = templ_arg_list_for_variable(var_ptr);
+  push_simple_instantiation_scope(decl_info, (a_type_ptr)NULL,
+                                  (a_routine_ptr)NULL, var_sym,
+                                  tip->template_sym, template_arg_list,
+                                  options);
+}  /* reactivate_variable_context */
+
+
+static a_symbol_ptr variable_instance_for_reactivation(
+                                        a_symbol_ptr              var_sym,
+                                        a_routine_ptr             encl_routine,
+                                        a_push_scope_options_set  options)
+/*
+Return the variable template instance that should be used when reactivating the
+instantiation context for var_sym.  encl_routine is the enclosing function
+being reactivated, if any; options are the push_scope options for the
+reactivation.  If var_sym is a prototype instance but the reactivation is for a
+real instantiation, a non-prototype instance of the same template is preferred
+so that template parameters are bound to real arguments.
+*/
+{
+  a_symbol_ptr    result = var_sym;
+  a_variable_ptr  var_ptr = variable_for_symbol(var_sym);
+
+  if (var_ptr->is_prototype_instantiation &&
+      (options & PS_PROTOTYPE_INSTANTIATION) == 0) {
+    a_template_instance_ptr  tip = template_instance_for_symbol(var_sym);
+    a_symbol_ptr             template_sym = tip->template_sym;
+
+    /* Prefer the variable recorded as the parent of the enclosing lambda
+       closure, when that is a real instance of the same template. */
+    if (encl_routine != NULL &&
+        encl_routine->source_corresp.is_class_member) {
+      a_type_ptr  parent_class = parent_class_of(encl_routine);
+      a_class_type_supplement_ptr
+                  ctsp = class_type_supp(parent_class);
+      if (ctsp->is_lambda_closure_class &&
+          ctsp->defined_in_variable_initializer &&
+          ctsp->lambda_parent.variable != NULL) {
+        a_symbol_ptr parent_var_sym = symbol_for(ctsp->lambda_parent.variable);
+        if (is_template_variable_symbol(parent_var_sym)) {
+          a_template_instance_ptr parent_tip =
+                                  template_instance_for_symbol(parent_var_sym);
+          if (parent_tip->template_sym == template_sym &&
+              !ctsp->lambda_parent.variable->is_prototype_instantiation) {
+            result = parent_var_sym;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* variable_instance_for_reactivation */
+
+
 static void reactivate_parent_context(
 			a_template_decl_info_ptr	decl_info,
 			a_scope_ptr			scope,
@@ -4859,6 +4930,12 @@ for information about the parameters.
          already visible from the surrounding instantiation context. */
       if (decl_info == NULL) {
         is_template = FALSE;
+      } else if (decl_info->variable_instance_sym != NULL) {
+        /* A generic lambda inside a variable template initializer: do not pass
+           the variable template's decl_info to the enclosing class
+           reactivation.  The variable template context is restored after the
+           parent is reactivated. */
+        parent_tdip = NULL;
       } else {
         parent_tdip = decl_info->enclosing_template_decl;
       }  /* if */
@@ -4878,6 +4955,15 @@ for information about the parameters.
     reactivate_parent_context(parent_tdip, parent, (a_type_ptr)NULL,
                               instance_sym, assoc_type, assoc_routine,
                               options);
+  }  /* if */
+  if (decl_info != NULL && decl_info->variable_instance_sym != NULL) {
+    /* Restore the enclosing variable template instantiation after the
+       class/namespace context has been reactivated. */
+    reactivate_variable_context(decl_info->enclosing_template_decl,
+                                variable_instance_for_reactivation(
+                                              decl_info->variable_instance_sym,
+                                              rp, options),
+                                options);
   }  /* if */
   if (is_template) {
     /* For a function template, push the instantiation scope for the
@@ -5480,32 +5566,6 @@ template declaration scope or a template instantiation scope.
 				            ps_options);
   }  /* if */
 }  /* push_instantiation_scope_for_templ_param_rescan */
-
-
-static void reactivate_variable_context(
-				a_template_decl_info_ptr	decl_info,
-				a_symbol_ptr			var_sym,
-				a_push_scope_options_set	options)
-/*
-Unlike functions and classes, a variable template instance does not have its
-own scope, but its template parameters need to be reactivated.  This routine
-is called when that needs to be done.  decl_info is the declaration information
-for the variable template for which var_sym is an instance.  options are the
-push_scope options being used.
-*/
-{
-  a_template_instance_ptr	tip;
-  a_variable_ptr		var_ptr;
-  a_template_arg_ptr		template_arg_list;
-
-  var_ptr = variable_for_symbol(var_sym);
-  tip = template_instance_for_symbol(var_sym);
-  template_arg_list = templ_arg_list_for_variable(var_ptr);
-  push_simple_instantiation_scope(decl_info, (a_type_ptr)NULL,
-                                  (a_routine_ptr)NULL, var_sym,
-                                  tip->template_sym, template_arg_list,
-                                  options);
-}  /* reactivate_variable_context */
 
 
 a_boolean push_template_instantiation_scope(

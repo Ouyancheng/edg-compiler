@@ -1871,9 +1871,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->has_lambda_conversion_function    = FALSE;
   ctsp->has_initializer_list_ctor         = FALSE;
   ctsp->has_anonymous_union_member        = FALSE;
-#if NEED_NAME_MANGLING
   ctsp->defined_in_variable_initializer   = FALSE;
-#endif /* NEED_NAME_MANGLING */
   ctsp->defined_in_field_initializer      = FALSE;
   ctsp->befriending_classes               = NULL;
   ctsp->assoc_template                    = NULL;
@@ -1887,9 +1885,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* DO_IL_LOWERING */
   ctsp->min_template_arguments            = -1;
-#if NEED_NAME_MANGLING
   ctsp->lambda_parent.routine             = NULL;
-#endif /* NEED_NAME_MANGLING */
   ctsp->hash_value = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ctsp->corresponding_basic_type          = NULL;

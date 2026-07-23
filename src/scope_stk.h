@@ -2309,6 +2309,8 @@ extern void cancel_name_collision_discriminator(a_symbol_ptr   sym,
 extern
 void compute_default_arg_name_collision_discriminators(a_param_type_ptr  ptp);
 
+#endif /* NEED_NAME_MANGLING */
+
 extern void set_parent_entity_for_closure_types(
                    an_il_entity_list_entry_ptr  elp,
                    a_symbol_ptr                 parent_sym,
@@ -2317,7 +2319,6 @@ extern void set_parent_entity_for_closure_types(
 extern void set_parent_routine_for_closure_types_in_default_args(
                                                        a_type_ptr    rtp,
                                                        a_symbol_ptr  rout_sym);
-#endif /* NEED_NAME_MANGLING */
 
 #if DO_IL_LOWERING
 extern a_boolean parent_is_lambda_closure(a_routine_ptr	routine,

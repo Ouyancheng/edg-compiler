@@ -7758,11 +7758,9 @@ Display the indicated class type supplement entry.
   if (ptr->has_anonymous_union_member) {
     disp_boolean("has_anonymous_union_member", TRUE);
   }  /* if */
-#if NEED_NAME_MANGLING
   if (ptr->defined_in_variable_initializer) {
     disp_boolean("defined_in_variable_initializer", TRUE);
   }  /* if */
-#endif /* NEED_NAME_MANGLING */
   if (ptr->defined_in_field_initializer) {
     disp_boolean("defined_in_field_initializer", TRUE);
   }  /* if */
@@ -7861,7 +7859,6 @@ Display the indicated class type supplement entry.
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
   disp_int32("min_template_arguments", ptr->min_template_arguments);
-#if NEED_NAME_MANGLING
   if (ptr->defined_in_variable_initializer) {
     disp_ptr("lambda_parent.variable", (char*)ptr->lambda_parent.variable,
              iek_variable);
@@ -7872,7 +7869,6 @@ Display the indicated class type supplement entry.
     disp_ptr("lambda_parent.routine", (char*)ptr->lambda_parent.routine,
              iek_routine);
   }  /* if */
-#endif /* NEED_NAME_MANGLING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->corresponding_basic_type != NULL) {
     disp_ptr("corresponding_basic_type",
