@@ -24611,6 +24611,17 @@ members.
             }  /* if */
           }  /* if */
         }  /* if */
+      } else if (special_kind_is(rp, sfk_destructor) && !rp->is_deleted) {
+        /* An explicitly-defaulted, non-deleted destructor is constexpr
+           exactly when the implicitly-declared one would be, i.e., when
+           every subobject destructor is usable in a constant expression.
+           gsfd->dtor_not_constexpr records that condition for the subobjects,
+           so this mirrors the handling for the implicit case in
+           generate_destructor. */
+        if (constexpr_enabled && !gsfd->dtor_not_constexpr &&
+            constexpr_dynamic_alloc_enabled) {
+          rp->is_constexpr = TRUE;
+        }  /* if */
       }  /* if */
       if (instantiate_extern_inline && rp->is_inline && !rp->is_deleted &&
           !rp->is_consteval) {

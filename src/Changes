@@ -1,5 +1,24 @@
 Version 6.10
 
+7/23/26  [EDGcpfe/28974]
+Explicitly-defaulted destructors and constexpr
+
+Consider, in C++20 mode:
+
+  struct X { int x; constexpr ~X() {} };
+  struct S {
+    X m;
+    ~S() = default;  // Previously not considered constexpr.
+  };
+  constexpr S s{};   // Previously an error.  Now okay.
+
+The front end previously did not mark an explicitly-defaulted destructor as
+constexpr even though an equivalent implicitly-generated destructor would have
+been so marked.  This is the case for the S::~S() destructor in the example
+above, leading to a spurious error about the initializer of s not being
+constant.  That is now fixed.
+
+
 7/23/26  [EDGcpfe/26485,EDGcpfe/28496]
 Internal error on generic lambda in a variable template member (IL CHANGE when
 NEED_NAME_MANGLING is FALSE)
