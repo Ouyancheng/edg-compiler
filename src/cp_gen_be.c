@@ -13844,24 +13844,26 @@ this one is such a continuation.
 */
 {
   a_type_ptr                   type;
-  a_src_seq_secondary_decl_ptr sec_decl = NULL;
-  a_type_kind                  kind;
-  a_boolean                    is_definition = FALSE, friend_decl;
-  a_boolean                    is_specialization = FALSE;
-  a_boolean                    suppress_closing_punct = FALSE;
-  a_boolean                    need_to_unset_typedefs = FALSE;
-  a_template_arg_ptr           template_arg_list = NULL;
-  a_scope_ptr                  common_scope = NULL, orig_scope = NULL;
-  a_boolean                    need_extern_C_closing_brace = FALSE;
-  a_template_decl_ptr          template_decl = NULL;
-  a_template_ptr               assoc_template = NULL;
-  a_boolean                    template_param_mappings_saved = FALSE;
+  a_src_seq_secondary_decl_ptr       sec_decl = NULL;
+  a_type_kind                        kind;
+  a_boolean                          is_definition = FALSE, friend_decl;
+  a_boolean                          is_specialization = FALSE;
+  a_boolean                          suppress_closing_punct = FALSE;
+  a_boolean                          need_to_unset_typedefs = FALSE;
+  a_template_arg_ptr                 template_arg_list = NULL;
+  a_scope_ptr                        common_scope = NULL, orig_scope = NULL;
+  a_boolean                          need_extern_C_closing_brace = FALSE;
+  a_template_decl_ptr                template_decl = NULL;
+  a_template_ptr                     assoc_template = NULL;
+  a_boolean                          template_param_mappings_saved = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
-  a_boolean                    marked_as_gnu_extension = FALSE;
+  a_boolean                          marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  an_attribute_ptr             attributes = NULL;
-  a_boolean                    saved_suppress_nontype_expr =
+  an_attribute_ptr                   attributes = NULL;
+  a_boolean                          saved_suppress_nontype_expr =
                                              octl.suppress_expr_in_nontype_arg;
+  a_saved_template_param_mapping_ptr prev_templ_param_mappings = NULL;
+
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr  saved_sse = NULL;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -14014,7 +14016,7 @@ this one is such a continuation.
            overwritten by the friend's template header are restored after
            the declaration. */
         template_param_mappings_saved = TRUE;
-        save_template_param_mappings();
+        prev_templ_param_mappings = save_template_param_mappings();
       }  /* if */
       if (assoc_template->canonical_template->is_exported) gen_export();
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -14286,7 +14288,7 @@ this one is such a continuation.
       /* Make sure template parameter name mappings that may have been
          overwritten by a friend declaration are restored to the correct
          values. */
-      restore_template_param_mappings();
+      restore_template_param_mappings(prev_templ_param_mappings);
     }  /* if */
   }  /* if */
   octl.suppress_expr_in_nontype_arg = saved_suppress_nontype_expr;
@@ -17957,10 +17959,12 @@ static void gen_lambda(a_lambda_ptr lambda)
 Generate code for the given lambda.
 */
 {
-  a_scope_ptr   closure_scope;
-  a_routine_ptr rp = lambda->lambda_routine;
-  a_boolean     saved_proto_context = in_prototype_instantiation_context;
-  a_boolean     template_param_mappings_saved = FALSE;
+  a_scope_ptr                        closure_scope;
+  a_routine_ptr                      rp = lambda->lambda_routine;
+  a_boolean                          saved_proto_context =
+                                            in_prototype_instantiation_context;
+  a_boolean                          template_param_mappings_saved = FALSE;
+  a_saved_template_param_mapping_ptr prev_templ_param_mappings = NULL;
 
   if (lambda->is_generic) {
     /* The code for a generic lambda should be handled as a prototype
@@ -17985,12 +17989,13 @@ Generate code for the given lambda.
   } else {
     /* Render the lambda from the associated routine. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-    a_memory_region_number  scope_region_number = mem_region_for_routine(rp);
+    a_memory_region_number       scope_region_number =
+                                                    mem_region_for_routine(rp);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-    a_scope_ptr             scope;
-    a_function_state        state;
-    a_source_sequence_scan_state
-                            saved_state;
+    a_scope_ptr                  scope;
+    a_function_state             state;
+    a_source_sequence_scan_state saved_state;
+
     /* Push the closure class on the name context stack so that references to
        fields (which stand for captured variables) show up without
        qualification. */
@@ -18040,7 +18045,7 @@ Generate code for the given lambda.
            ones. */
         a_template_parameter_ptr next = last_expl_param->next;
         last_expl_param->next = NULL;
-        save_template_param_mappings();
+        prev_templ_param_mappings = save_template_param_mappings();
         template_param_mappings_saved = TRUE;
         gen_template_header(rp->assoc_template->template_decl,
                             /*parent_class=*/NULL,
@@ -18097,7 +18102,7 @@ Generate code for the given lambda.
        coordinates of the lambda's parameters may duplicate those of the
        outer template.  Restore the outer template's parameter name
        mappings in case they were overwritten. */
-    restore_template_param_mappings();
+    restore_template_param_mappings(prev_templ_param_mappings);
   }  /* if */
   in_prototype_instantiation_context = saved_proto_context;
 }  /* gen_lambda */

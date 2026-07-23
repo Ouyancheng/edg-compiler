@@ -584,9 +584,18 @@ extern void form_lvalue_address_constant(
 
 #if BACK_END_IS_CP_GEN_BE
 
-extern void save_template_param_mappings(void);
+/*
+Opaque declaration of a_saved_template_param_mapping_ptr to allow
+checkpointing mappings for parameters of nested templates and generic
+lambdas.
+*/
+struct a_saved_template_param_mapping;
+typedef a_saved_template_param_mapping *a_saved_template_param_mapping_ptr;
 
-extern void restore_template_param_mappings(void);
+extern a_saved_template_param_mapping_ptr save_template_param_mappings(void);
+
+extern
+void restore_template_param_mappings(a_saved_template_param_mapping_ptr);
 
 extern void remap_template_param(a_template_param_coordinate_ptr  coord,
                                  a_source_correspondence_ptr      scp);

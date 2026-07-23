@@ -2021,45 +2021,58 @@ typedef struct a_saved_template_param_mapping {
 
 STATIC_THREAD a_saved_template_param_mapping_ptr
 		saved_template_param_mappings;
-			/* Template parameter mappings to be restored by
-			   restore_template_param_mapping. */
+			/* A stack of template parameter mappings to be
+			   restored by restore_template_param_mapping.
+			   Each call to save_template_param_mappings begins
+			   the mappings for a new template or generic
+			   lambda, which will be pushed on top of the
+			   mappings for any containing templates or
+			   lambdas. */
 
 STATIC_THREAD a_saved_template_param_mapping_ptr
 		avail_template_param_mappings;
 			/* Free template parameter mappings that are
 			   available for reuse. */
 
-STATIC_THREAD a_boolean
-		saving_template_param_mappings;
-			/* When TRUE, remap_template_param will save the
+STATIC_THREAD int
+		depth_saved_templ_param_mappings;
+			/* When non-zero, remap_template_param will save the
 			   existing mapping before overwriting it with the
 			   new mapping. */
 
 
-void save_template_param_mappings(void)
+a_saved_template_param_mapping_ptr save_template_param_mappings(void)
 /*
 Begin saving the existing template parameter mappings before overwriting
-them in remap_template_param.
+them in remap_template_param.  Return the current top of the mapping stack,
+which should be passed to restore_template_param_mappings to pop the stack
+back to this point.
 */
 {
-  check_assertion(!saving_template_param_mappings);
-  saving_template_param_mappings = TRUE;
+  ++depth_saved_templ_param_mappings;
+  return saved_template_param_mappings;
 }  /* save_template_param_mappings */
 
 
-void restore_template_param_mappings(void)
+void restore_template_param_mappings(
+                                   a_saved_template_param_mapping_ptr prev_top)
 /*
-Restore template parameter mappings that were overwritten by
-remap_template_param.
+Restore any template parameter mappings that were overwritten by
+remap_template_param for the most recent template or generic lambda.  The
+mappings for the template or lambda containing the most recent one begin
+with prev_top, which was returned by save_template_param_mappings, so the
+stack is popped back to that point.
 */
 {
   a_template_param_map_level_ptr level;
 
-  check_assertion(saving_template_param_mappings);
-  saving_template_param_mappings = FALSE;
+  check_assertion(depth_saved_templ_param_mappings > 0 &&
+                  (depth_saved_templ_param_mappings > 1 ||
+                   prev_top == NULL));
+  --depth_saved_templ_param_mappings;
   /* Loop through the active mappings and restore the table to its previous
      contents. */
-  while (saved_template_param_mappings != NULL) {
+  while (saved_template_param_mappings != prev_top) {
     a_saved_template_param_mapping_ptr saved_mapping =
                                                  saved_template_param_mappings;
     saved_template_param_mappings = saved_mapping->next;
@@ -2134,7 +2147,7 @@ correspondence entry.
                       sizeof(a_source_correspondence_ptr)*level->max_position);
       level->max_position = new_max_pos;
     }  /* if */
-    if (saving_template_param_mappings) {
+    if (depth_saved_templ_param_mappings > 0) {
       /* Save the old mapping so it can be restored later. */
       if (avail_template_param_mappings != NULL) {
         /* Reuse an existing entry. */
@@ -8614,7 +8627,7 @@ file is processed.
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   saved_template_param_mappings = NULL;
-  saving_template_param_mappings = FALSE;
+  depth_saved_templ_param_mappings = 0;
 #endif /* BACK_END_IS_CP_GEN_BE */
 }  /* il_to_str_init */
 
