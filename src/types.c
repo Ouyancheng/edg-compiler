@@ -500,6 +500,7 @@ incomplete (because the definition is not done yet).
   return has_body;
 }  /* class_type_has_body */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_empty_class_type(a_type_ptr type)
 /*
@@ -525,6 +526,7 @@ larger than targ_minimum_struct_alignment).  Otherwise, FALSE is returned.
   return result;
 }  /* is_empty_class_type */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean class_type_has_variant_member(a_type_ptr  tp)
 /*

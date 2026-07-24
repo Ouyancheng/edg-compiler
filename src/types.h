@@ -144,7 +144,9 @@ extern a_boolean is_incomplete_array_type(a_type_ptr tp);
 extern a_boolean is_sizeless_type(a_type_ptr tp);
 extern a_boolean is_flexible_array_type(a_type_ptr tp);
 extern a_boolean class_type_has_body(a_type_ptr tp);
+#if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean is_empty_class_type(a_type_ptr  type);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 extern a_boolean class_type_has_variant_member(a_type_ptr tp);
 extern a_boolean is_object_type(a_type_ptr tp);
 extern a_boolean is_complete_object_type(a_type_ptr tp);
