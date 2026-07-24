@@ -13843,7 +13843,7 @@ is TRUE if the current declaration is a continuation of a comma list, and
 this one is such a continuation.
 */
 {
-  a_type_ptr                   type;
+  a_type_ptr                         type;
   a_src_seq_secondary_decl_ptr       sec_decl = NULL;
   a_type_kind                        kind;
   a_boolean                          is_definition = FALSE, friend_decl;

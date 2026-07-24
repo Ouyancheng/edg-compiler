@@ -84,17 +84,17 @@ requires clause.  For example, with --c++20:
 7/21/26  [EDGcpfe/28957]
 C++-generating back end: template parameter names with nested generic lambda
 
-In some cases involving a generic lambda with explicit template arguments
+In some cases involving a generic lambda with explicit template parameters
 nested inside another template, the C++-generating back end replaced the
 name of a template parameter of the outer template with the name of the
 corresponding template parameter of the generic lambda.  This is how fixed.
 For example, with --c++20 --gnu_version=140200 --parse_templates:
 
   template <auto f> struct S {
-      template <class T> static constexpr bool value = true;
+    template <typename T> static constexpr bool value = true;
   };
-  template <class T>
-    requires S<[]<class U>() { return 0; }>::
+  template <typename T>
+    requires S<[]<typename U>() { return 0; }>::
       template value<T>   // Previously generated as "value<U>"
   void foo() {}
 
