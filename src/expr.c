@@ -2845,8 +2845,7 @@ given options and PREC_LOWEST precedence.
      used, we may merge the lifetime into a parent expression lifetime. */
   if (bundle && curr_object_lifetime != NULL && !curr_expr_kind_is_const()) {
     saved_curr_lifetime = curr_object_lifetime;
-    if (curr_object_lifetime->kind == 
-                                 (an_object_lifetime_kind)olk_expr_temporary) {
+    if (curr_object_lifetime->kind == olk_expr_temporary) {
       curr_object_lifetime = curr_object_lifetime->parent_lifetime;
     }  /* if */
     push_object_lifetime((an_il_entry_kind)iek_expr_node,
@@ -35529,26 +35528,38 @@ processed expression.
 }  /* process_boolean_attribute_expression */
 
 
-an_expr_node_ptr scan_expr_for_attribute(int  precedence)
+an_expr_node_ptr scan_expr_for_attribute(int        precedence,
+                                         a_boolean  evaluated)
 /*
-Scan a top-level expression that appears as an argument in an attribute.
+Scan a top-level expression that appears as an argument in an attribute.  If
+evaluated is TRUE, the expression is potentially-evaluated; otherwise, it is
+unevaluated (i.e., treated much like a sizeof operand).
 */
 {
-  an_expr_node_ptr      result;
-  an_operand            operand;
-  an_expr_stack_entry   *saved_expr_stack;
-  an_expr_stack_entry   expr_stack_entry;
-
+  an_expr_node_ptr        result;
+  an_operand              operand;
+  an_expr_stack_entry     *saved_expr_stack;
+  an_expr_stack_entry     expr_stack_entry;
+  an_object_lifetime_ptr  saved_object_lifetime = NULL;
+  
   save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+  if (evaluated && curr_object_lifetime != NULL &&
+      curr_object_lifetime->kind == olk_expr_temporary) {
+    saved_object_lifetime = curr_object_lifetime;
+    curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+  }  /* if */
+  push_expr_stack(evaluated ? ek_normal : ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/TRUE);
+                  /*suppress_object_lifetime=*/!evaluated);
   /* Scan the expression. */
   scan_expr(&operand, precedence, EOPT_DISALLOW_COMMA_OPERATOR);
   eliminate_unusual_operand_kinds(&operand);
   result = make_node_from_operand(&operand);
   result = wrap_up_full_expression(result);
   pop_expr_stack();
+  if (saved_object_lifetime != NULL) {
+    curr_object_lifetime = saved_object_lifetime;
+  }  /* if */
   restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = operand.end_position;

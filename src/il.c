@@ -29119,10 +29119,8 @@ entry is needed.)
     /* Ordinarily, an object lifetime cannot be the child of a lifetime for a
        temporary.  The one exception is a lifetime embedded in a GNU statement
        expression. */
-    check_assertion_str2(curr_object_lifetime->kind !=
-                                (an_object_lifetime_kind)olk_expr_temporary ||
-                         (gpp_mode &&
-                          (an_il_entry_kind)entity_kind == iek_scope),
+    check_assertion_str2(curr_object_lifetime->kind != olk_expr_temporary ||
+                         (gpp_mode && entity_kind == iek_scope),
                          "push_or_repush_object_lifetime:",
                          "pushing on top of olk_expr_temporary not allowed");
     /* Link the new entry into the object lifetime tree. */

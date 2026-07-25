@@ -20162,7 +20162,18 @@ Do IL lowering of the indicated statement and everything under it.
     stmt_expr = statement->expr;
     switch (statement->kind) {
       case stmk_empty:
-        /* No processing required. */
+        /* If the statement includes an [[assume(...)]] attribute, lower
+           its operand. */
+        for (an_attribute  *ap = statement->attributes;
+             ap != NULL;
+             ap = ap->next) {
+          if (ap->kind == ak_assume) {
+            an_expr_node  *expr = expr_node_from_attribute_arg(ap->arguments);
+            if (expr != NULL) {
+              lower_full_expr(expr, statement);
+            }  /* if */
+          }  /* if */
+        }  /* for */
         break;
 #if ASM_FUNCTION_ALLOWED
       case stmk_asm_func_body:

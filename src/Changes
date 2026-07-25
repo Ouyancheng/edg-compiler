@@ -1,5 +1,14 @@
 Version 6.10
 
+7/24/26  [EDGcpfe/28983]
+Operand of [[assume(...)]] attribute
+
+The front end previously processed the operand of the [[assume(...)]] attribute
+as an unevaluated operand (i.e., similar to the operand of a sizeof operand).
+Now it is handled as a potentially-evaluated operand.  If lowering is enabled,
+that operand is lowered.
+
+
 7/23/26  [EDGcpfe/28956]
 is_empty_class_type
 

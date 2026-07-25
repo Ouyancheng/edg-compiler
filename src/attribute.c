@@ -135,8 +135,10 @@ typedef struct an_attr_descr {
 			     "n": an identifier is expected
 			     "sn": a narrow string literal is expected
 			     "sx": a string literal is expected (wide/narrow)
-			     "X": an expression
-			     "Xc": a conditional-expression
+			     "X": an unevaluated expression
+			     "Xc": an unevaluated conditional-expression
+			     "Xe": an evaluated expression
+			     "Xce": an unevaluated conditional-expression
 			     "*": an arbitrary set of tokens is expected
 			          (this can only be for the last argument)
 			   A code can be followed by a "+" to indicate that
@@ -232,7 +234,7 @@ static constexpr an_attr_descr known_attr_table[] = {
   /* C++ standard attributes (C++11 and later).  Note the use of "c+" to
      indicate these are valid in C++ modes only. */
   { "align", "(ct)", "c+", ak_align },
-  { "assume", "(Xc)", "c+(202302-|G(130000-)|C(190000-))", ak_assume },
+  { "assume", "(Xce)", "c+(202302-|G(130000-)|C(190000-))", ak_assume },
   { "base_check", "", "c+", ak_base_check },
   { "carries_dependency", "", "c+", ak_carries_dependency },
   { "deprecated", "?(sx)", "c+(201402-|M(1910-))", ak_deprecated },
@@ -1742,18 +1744,21 @@ return a pointer to the argument's representation.
 
 
 static an_attribute_arg_ptr scan_attr_expr_arg(an_attribute_ptr  ap,
-                                               int               precedence)
+                                               int               precedence,
+                                               a_boolean         evaluated)
 /*
 Scan an expression argument for the given attribute with the given initial
 precedence.  If an error occurs, set ap->kind to ak_unrecognized and return
 NULL.  Otherwise, return a pointer to the argument's representation.
+evaluated is TRUE if the expression is potentially-evaluated; if FALSE, the
+expression is unevaluated (like a sizeof operand).
 */
 {
   an_attribute_arg_ptr  aap = NULL;
   a_source_position     arg_pos = pos_curr_token;
   an_expr_node_ptr      expr;
 
-  expr = scan_expr_for_attribute(precedence);
+  expr = scan_expr_for_attribute(precedence, evaluated);
   if (!is_error_node(expr)) {
     aap = alloc_attribute_arg();
     aap->kind = aak_expression;
@@ -2122,12 +2127,17 @@ ak_unrecognized.
           break;
         case 'X':
           /* Scan an expression. */
-          { int  precedence = PREC_LOWEST;
+          { int        precedence = PREC_LOWEST;
+            a_boolean  evaluated = FALSE;
             if (*sig == 'c') {
               precedence = PREC_QUEST_MARK;
               ++sig;
             }  /* if */
-            *p_aap = scan_attr_expr_arg(ap, precedence);
+            if (*sig == 'e') {
+              evaluated = TRUE;
+              ++sig;
+            }  /* if */
+            *p_aap = scan_attr_expr_arg(ap, precedence, evaluated);
           }  /* if */
           break;
         case '*':

@@ -1096,7 +1096,8 @@ extern a_boolean concept_id_value(an_expr_node_ptr  node,
 extern an_expr_node_ptr process_boolean_attribute_expression(
                                                         an_expr_node_ptr expr);
 
-extern an_expr_node_ptr scan_expr_for_attribute(int  precedence);
+extern an_expr_node_ptr scan_expr_for_attribute(int        precedence,
+                                                a_boolean  evaluated);
 
 extern void scan_annotation_value(an_attribute_arg  *aap);
 
