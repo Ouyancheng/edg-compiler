@@ -5104,14 +5104,17 @@ typerefs are dropped from *p_base_type.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static an_integer_kind kind_of_explicit_enumeration_base(
-                                                      a_type_ptr explicit_base)
+                                                      a_type_ptr explicit_base,
+                                                      a_boolean  *bool_type)
 /*
 Return the integer kind associated with the given explicit base type of an
-enumeration.  If the explicit base is NULL, return ik_none.
+enumeration.  If the explicit base is NULL, return ik_none.  *bool_type is
+set to TRUE if the underlying type is the bool type (and FALSE otherwise).
 */
 {
   an_integer_kind result;
 
+  *bool_type = FALSE;
   if (explicit_base == NULL) {
     result = ik_none;
   } else if (is_template_dependent_type(explicit_base) ||
@@ -5125,6 +5128,7 @@ enumeration.  If the explicit base is NULL, return ik_none.
        explicit base was used. */
     check_assertion(underlying_type->kind == tk_integer);
     result = underlying_type->variant.integer.int_kind;
+    *bool_type = underlying_type->variant.integer.bool_type;
   }  /* if */
   return result;
 }  /* kind_of_explicit_enumeration_base */
@@ -5132,7 +5136,8 @@ enumeration.  If the explicit base is NULL, return ik_none.
 
 static an_integer_kind scan_explicit_enum_base_type(
                                                a_type_ptr         *p_base_type,
-                                               a_source_position  *pos_type)
+                                               a_source_position  *pos_type,
+                                               a_boolean          *bool_type)
 /*
 In some modes (e.g., C++11), we accept the explicit specification of an
 enumeration type's underlying integer type.  For example:
@@ -5141,7 +5146,8 @@ If such a base type was specified, the current token is the colon, and this
 routine scans it along with the specified type.  The integer kind to be used
 for the underlying type is returned, and *p_base_type is set to the type as
 scanned if it is valid.  If no base type was specified, ik_none is returned
-and *p_base_type is left unchanged.
+and *p_base_type is left unchanged.  *bool_type is set to TRUE if the
+underlying type is bool (and FALSE otherwise).
 */
 {
   if (curr_token == tok_colon && explicit_enum_base_enabled) {
@@ -5204,7 +5210,7 @@ and *p_base_type is left unchanged.
       }  /* if */
     }  /* if */
   }  /* if */
-  return kind_of_explicit_enumeration_base(*p_base_type);
+  return kind_of_explicit_enumeration_base(*p_base_type, bool_type);
 }  /* scan_explicit_enum_base_type */
 
 
@@ -5212,6 +5218,7 @@ static void set_enum_representation(a_type_ptr         enum_type,
                                     a_source_position  *pos_enum_tag,
                                     a_boolean          diag_range,
                                     an_integer_kind    explicit_base_kind,
+                                    a_boolean          bool_type,
                                     a_boolean          min_max_set,
                                     a_constant_ptr     min_value,
                                     a_constant_ptr     max_value)
@@ -5224,7 +5231,8 @@ of "char", "signed char", "unsigned char", "short", "unsigned short", and
 enum_types_can_be_larger_than_int (e.g., in strict C++ mode), is there any
 point in trying "unsigned int" and larger integer types.
 In some C++ modes, the underlying integer type can be specified explicitly:
-In that case, explicit_base_kind will indicate the specified integer type.
+In that case, explicit_base_kind will indicate the specified integer type (and
+bool_type will indicate if the underlying integer type is the bool type).
 If the range of constants has been determined, min_max_set will be TRUE, and
 the constants *min_value and *max_value will describe that range.
 diag_range is FALSE if diagnostics about the representation range are likely
@@ -5242,6 +5250,7 @@ base specifier.
   if (explicit_base_kind != (an_integer_kind)ik_none) {
     /* The underlying type is already determined: Record it. */
     enum_type->variant.integer.int_kind = explicit_base_kind;
+    enum_type->variant.integer.bool_type = bool_type;
   } else if (enum_type->variant.integer.is_scoped_enum) {
     /* The underlying type for a scoped enum is "int" (unless explicitly
        specified). */
@@ -5464,15 +5473,17 @@ integer type and adjust the associated integer values if needed.
 }  /* change_enum_constants_type */
 
 
-static an_integer_kind explicit_base_kind_of_enumeration(a_type_ptr enum_type)
+static an_integer_kind explicit_base_kind_of_enumeration(a_type_ptr enum_type,
+                                                         a_boolean  *bool_type)
 /*
 Return the integer kind associated with the given enumeration's explicit base.
-If no explicit base was specified, return ik_none.
+If no explicit base was specified, return ik_none.  *bool_type is set to TRUE
+if the type is the bool type (and FALSE otherwise).
 */
 {
   a_type_ptr explicit_base = integer_type_supp(enum_type)->base_type;
 
-  return kind_of_explicit_enumeration_base(explicit_base);
+  return kind_of_explicit_enumeration_base(explicit_base, bool_type);
 }  /* explicit_base_kind_of_enumeration */
 
 
@@ -5491,6 +5502,7 @@ there was an error; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
+  a_boolean bool_type = FALSE;
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (source_range != NULL) {
@@ -5501,7 +5513,7 @@ there was an error; otherwise, return FALSE.
   a_boolean       is_scoped_enum = enum_type->variant.integer.is_scoped_enum;
   a_type_ptr      explicit_base = integer_type_supp(enum_type)->base_type;
   an_integer_kind explicit_base_kind =
-                                 explicit_base_kind_of_enumeration(enum_type);
+                      explicit_base_kind_of_enumeration(enum_type, &bool_type);
   a_type_ptr      fixed_type = explicit_base;
   /* The underlying type of a C++11 enumeration type is said to be fixed
      if it is explicitly specified or if the enumeration type is scoped.
@@ -5600,6 +5612,7 @@ is updated to reflect relevant positions of this definition.
                                     enum_type->variant.integer.is_scoped_enum;
   a_boolean          is_dependent_enum = FALSE;
   a_boolean          done, min_max_set, diag_range = TRUE;
+  a_boolean          bool_type = FALSE;
   a_constant_ptr     constant_list = NULL, end_of_enum_con_list, enum_con;
   a_constant_ptr     max_value = local_constant();
   a_constant_ptr     min_value = local_constant();
@@ -5642,7 +5655,8 @@ is updated to reflect relevant positions of this definition.
   }  /* if */
   check_assertion_or_expect_error(curr_token == tok_lbrace);
   essp = tag_sym->variant.enumeration.extra_info;
-  explicit_base_kind = explicit_base_kind_of_enumeration(enum_type);
+  explicit_base_kind = explicit_base_kind_of_enumeration(enum_type,
+                                                         &bool_type);
   definition_pos = pos_curr_token;
   /* We associate a curr-construct pragma with this enum type only if this
      is a definition.  Otherwise this is assumed to be part of a declaration
@@ -6124,7 +6138,7 @@ is updated to reflect relevant positions of this definition.
   add_end_of_construct_source_sequence_entry((char *)enum_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   set_enum_representation(enum_type, &enum_type->source_corresp.decl_position,
-                          diag_range, explicit_base_kind,
+                          diag_range, explicit_base_kind, bool_type,
                           min_max_set, min_value, max_value);
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && !is_scoped_enum &&
@@ -6240,6 +6254,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   a_boolean                    is_opaque_enum_decl = FALSE;
   a_token_sequence_number      tsn_for_enum;
   a_boolean                    unnamed = FALSE;
+  a_boolean                    bool_type = FALSE;
   a_boolean                    is_template_specialization =
                                      (dsi_flags & DSI_IS_SPECIALIZATION) != 0;
 
@@ -6483,7 +6498,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     end_potential_abbr_func_templ_caching(dps);
     if (explicit_enum_base_enabled) {
       explicit_base_kind = scan_explicit_enum_base_type(&explicit_base,
-                                                        &pos_explicit_base);
+                                                        &pos_explicit_base,
+                                                        &bool_type);
       if (C_mode() && explicit_base_kind != ik_none && tag_sym != NULL &&
           !type_symbol_type(tag_sym)->variant.integer.has_explicit_enum_base) {
         /* Something like "enum E; enum E: int;".  Note that "enum E;" is
@@ -7026,7 +7042,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     /* No brace-enclosed list follows. */
     if (is_opaque_enum_decl) {
       set_enum_representation(enum_type, &tag_position, !err,
-                              explicit_base_kind,
+                              explicit_base_kind, bool_type,
                               /*min_max_set=*/FALSE, min_value, max_value);
       enum_type->incomplete = FALSE;
       set_type_size(enum_type);

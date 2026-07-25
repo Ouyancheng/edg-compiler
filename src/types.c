@@ -83,9 +83,11 @@ predicates.
   (type_kind_is_integer(tp) && !(tp)->variant.integer.is_scoped_enum)
 
 /* The bool type is an integral type that is tagged as bool.  It only
-   exists when bool_is_keyword is TRUE, or in C99 mode. */
+   exists when bool_is_keyword is TRUE, or in C99 mode.  Do not include
+   enum types whose underlying type is bool. */
 #define is_bool(tp) \
-  (type_kind_is_integer(tp) && (tp)->variant.integer.bool_type)
+  (type_kind_is_integer(tp) && (tp)->variant.integer.bool_type && \
+   !(tp)->variant.integer.enum_type)
 
 /* The nullptr type is the type of the nullptr keyword in C++ (i.e.,
    std::nullptr_t) and also includes the managed nullptr type in
