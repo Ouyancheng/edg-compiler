@@ -20,12 +20,13 @@ assertion in find_allocated_name_reference.  For example, with --c++14:
 
 
 7/25/26  [EDGcpfe/28952]
-Underlying type of scoped bool enum types
+Enumerations with a fixed underlying type of bool
 
-The underlying type of a scoped bool enum type (e.g., "enum E : bool;") had
-been an integer type (as given by the TARG_BOOL_INT_KIND and
-TARG_C_BOOL_INT_KIND configuration macros) but now retains the fact that the
-underlying type is bool (i.e., a_type::variant.integer.bool_type is now TRUE).
+Enumerations with a fixed underlying type of bool (e.g., "enum E : bool;") had
+been assigned an underlying integer type (as given by the TARG_BOOL_INT_KIND
+and TARG_C_BOOL_INT_KIND configuration macros) but now retains the fact that
+the underlying type is bool (i.e., a_type::variant.integer.bool_type is now
+TRUE).
 
 
 7/24/26  [EDGcpfe/28983]
