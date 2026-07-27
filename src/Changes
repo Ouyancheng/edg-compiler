@@ -1,5 +1,24 @@
 Version 6.10
 
+7/27/26  [EDGcpfe/28979]
+Abort in find_allocated_name_reference in some configurations
+
+In configurations with DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE, an
+explicitly-specified non-type template argument referring to a local constexpr
+variable could in some cases trigger an internal error due to a failed
+assertion in find_allocated_name_reference.  For example, with --c++14:
+
+  using uint = unsigned;
+  template<uint, int = 0> void f();
+  auto l = [](auto) {
+    constexpr uint U = 1 + 1;
+    return [&](auto v) {
+      f<U, sizeof v>();
+      f<U>();  // Previously triggered an internal error, now okay.
+    };
+  };
+
+
 7/25/26  [EDGcpfe/28952]
 Underlying type of scoped bool enum types
 

@@ -6290,6 +6290,7 @@ just copied if those fields should not apply to the copy.
 #if ONE_INSTANTIATION_PER_OBJECT
   scp->per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  scp->name_references = NULL;
 }  /* clear_source_corresp_for_copy */
 
 
