@@ -33,7 +33,7 @@ TRUE).
 Operand of [[assume(...)]] attribute
 
 The front end previously processed the operand of the [[assume(...)]] attribute
-as an unevaluated operand (i.e., similar to the operand of a sizeof operand).
+as an unevaluated operand (i.e., similar to the operand of a sizeof operator).
 Now it is handled as a potentially-evaluated operand.  If lowering is enabled,
 that operand is lowered.
 
