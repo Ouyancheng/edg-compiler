@@ -1,5 +1,25 @@
 Version 6.10
 
+7/27/26  [EDGcpfe/28527]
+Internal error on pack expansion for non-pack alias template parameter
+
+A pack expansion used as an argument for a non-pack parameter of an alias
+template could leave a later non-pack parameter without an argument, resulting
+in an error type entry being inserted into the IL tree.  In some
+configurations, that error type entry reached the mangling routines and
+triggered an assertion failure in record_substitution_for_type.  Such uses are
+now diagnosed, implementing the current direction of Core issue 1430 (which is
+still open).  For example, with --c++11:
+
+  template<typename T>
+  using A1 = T;
+  template<typename T, typename U, typename ... Vs>
+  using A2 = A1<U>;
+  template<typename ... Ts>
+  using A3 = A2<Ts...>;  // Previously an internal error.
+                         // Now an error.
+
+
 7/27/26  [EDGcpfe/28979]
 Abort in find_allocated_name_reference in some configurations
 

@@ -21582,6 +21582,7 @@ next_builtin_pack_element:
     }  /* if */
     while (any_args) {
       a_boolean  is_secondary_builtin_pack_elem = FALSE;
+      a_boolean  stop_matching_params = FALSE;
       any_args_in_list = TRUE;
       if (!in_pack && param_ptr != NULL && param_ptr->is_pack) {
         /* Create a start of parameter pack placeholder. */
@@ -21866,20 +21867,52 @@ next_builtin_pack_element:
       }  /* if */
       if (arg_ptr->is_pack &&
           (!param_ptr->is_pack ||
-           (orig_param_ptr != NULL && !orig_param_ptr->is_pack)) &&
-          curr_token == tok_comma) {
+           (orig_param_ptr != NULL && !orig_param_ptr->is_pack))) {
         /* A pack expansion is being used as an argument to a non-pack
-           in a template definition context.  We can't match the
-           remaining arguments with parameters.  Scan the remaining
-           arguments as an "unknown" argument list. */
-        a_template_arg_ptr	other_args;
-        (void)get_token();
-        other_args = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE,
-                                                    (a_boolean*)NULL);
-        last_arg->next = other_args;
-        while (last_arg->next != NULL) last_arg = last_arg->next;
-        param_ptr = NULL;
-      } else {
+           parameter. */
+        a_boolean  alias_pack_for_nonpack = FALSE;
+        if (!param_ptr->is_pack) {
+          a_symbol_ptr    named_sym = argument_template != NULL ?
+                                              argument_template : template_sym;
+          a_template_ptr  underlying_templ;
+          a_symbol_ptr    underlying_sym;
+          underlying_templ = skip_simple_alias_templates(
+                 template_supplement_for_symbol(named_sym)->il_template_entry);
+          underlying_sym = symbol_for(underlying_templ);
+          if (symbol_is(underlying_sym, sk_class_template) &&
+              is_alias_template_symbol(underlying_sym) &&
+              is_prototype_instantiation_context()) {
+            /* The direction of Core issue 1430 (still open) is that a pack
+               expansion cannot be an argument for a non-pack parameter of an
+               alias template. */
+            a_source_position  *err_pos = &error_position;
+            if (arg_ptr->pack_expansion_descr != NULL &&
+                arg_ptr->pack_expansion_descr->ellipsis_position.seq != 0) {
+              err_pos = &arg_ptr->pack_expansion_descr->ellipsis_position;
+            }  /* if */
+            pos_sy2_error(ec_pack_expansion_for_non_pack_alias_param,
+                          err_pos, param_ptr->param_symbol, named_sym);
+            *any_errors = TRUE;
+            alias_pack_for_nonpack = TRUE;
+          }  /* if */
+        }  /* if */
+        if (alias_pack_for_nonpack || curr_token == tok_comma) {
+          /* Stop matching further parameters.  If more arguments remain, scan
+             them as an unknown argument list. */
+          if (curr_token == tok_comma) {
+            a_template_arg_ptr  other_args;
+            (void)get_token();
+            other_args = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE,
+                                                        (a_boolean*)NULL);
+            last_arg->next = other_args;
+            while (last_arg->next != NULL) last_arg = last_arg->next;
+          }  /* if */
+          param_ptr = NULL;
+          if (alias_pack_for_nonpack) orig_param_ptr = NULL;
+          stop_matching_params = TRUE;
+        }  /* if */
+      }  /* if */
+      if (!stop_matching_params) {
         /* Advance to the next template parameter, unless the current
            parameter is a pack. */
         if (!param_ptr->is_pack || param_ptr->is_pack_element) {
