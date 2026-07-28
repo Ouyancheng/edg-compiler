@@ -35529,37 +35529,71 @@ processed expression.
 
 
 an_expr_node_ptr scan_expr_for_attribute(int        precedence,
-                                         a_boolean  evaluated)
+                                         a_boolean  evaluated,
+                                         a_boolean  convert_to_bool)
 /*
 Scan a top-level expression that appears as an argument in an attribute.  If
 evaluated is TRUE, the expression is potentially-evaluated; otherwise, it is
-unevaluated (i.e., treated much like a sizeof operand).
+unevaluated (i.e., treated much like a sizeof operand).  If convert_to_bool
+is TRUE, the argument is a predicate (e.g., the operand of "[[assume(...)]]")
+and is contextually converted to bool.
 */
 {
   an_expr_node_ptr        result;
   an_operand              operand;
   an_expr_stack_entry     *saved_expr_stack;
   an_expr_stack_entry     expr_stack_entry;
-  an_object_lifetime_ptr  saved_object_lifetime = NULL;
-  
+  an_object_lifetime_ptr  saved_object_lifetime;
+  a_memory_region_number  region_to_switch_back_to;
+
   save_expr_stack(&saved_expr_stack);
+  /* The argument may refer to entities of an enclosing function even when the
+     entity to which the attribute appertains is allocated in the file scope
+     memory region.  That is the case for
+       void f(int x) {
+         void g(void) __attribute((diagnose_if(x > 0, "m", "warning")));
+       }
+     where g, and therefore the attribute, is allocated in the file scope
+     memory region while x is allocated in the memory region of f.  Allocate
+     the argument, and any object lifetime pushed for it, in the memory region
+     of the enclosing function, so that apply_one_attribute can make the
+     argument reachable from the attribute (see
+     make_local_expr_node_refs_for_args). */
+  switch_to_scope_region_and_lifetime(
+                                scope_depth_to_allocate_unevaluated_operand(),
+                                &region_to_switch_back_to,
+                                &saved_object_lifetime);
   if (evaluated && curr_object_lifetime != NULL &&
       curr_object_lifetime->kind == olk_expr_temporary) {
-    saved_object_lifetime = curr_object_lifetime;
     curr_object_lifetime = curr_object_lifetime->parent_lifetime;
   }  /* if */
   push_expr_stack(evaluated ? ek_normal : ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/!evaluated);
+  if (!evaluated) {
+    /* The argument is recorded in the attribute and is therefore preserved
+       even though it is unevaluated: The scopes and source sequence entries
+       created for a GNU statement expression in it, as in
+       "[[gnu::assume(({ int i = 3; i > x; }))]];", must be preserved as
+       well. */
+    expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  }  /* if */
   /* Scan the expression. */
   scan_expr(&operand, precedence, EOPT_DISALLOW_COMMA_OPERATOR);
   eliminate_unusual_operand_kinds(&operand);
+  if (convert_to_bool) {
+    /* Convert the predicate to bool here, i.e., while the full expression is
+       still being formed: A temporary materialized by a user-defined
+       conversion, as in "[[assume(S{})]];" with S having a conversion
+       function to bool, then belongs to the object lifetime of the argument
+       and is destroyed at the end of it. */
+    process_boolean_controlling_expression(&operand);
+  }  /* if */
   result = make_node_from_operand(&operand);
   result = wrap_up_full_expression(result);
   pop_expr_stack();
-  if (saved_object_lifetime != NULL) {
-    curr_object_lifetime = saved_object_lifetime;
-  }  /* if */
+  switch_back_region_and_lifetime(region_to_switch_back_to,
+                                  saved_object_lifetime);
   restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = operand.end_position;

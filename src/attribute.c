@@ -138,9 +138,13 @@ typedef struct an_attr_descr {
 			     "X": an unevaluated expression
 			     "Xc": an unevaluated conditional-expression
 			     "Xe": an evaluated expression
-			     "Xce": an unevaluated conditional-expression
+			     "Xce": an evaluated conditional-expression
 			     "*": an arbitrary set of tokens is expected
 			          (this can only be for the last argument)
+			   An expression code can be followed by a "b" to
+			   indicate that the expression is a predicate and is
+			   therefore contextually converted to bool (e.g.,
+			   "Xceb" for the operand of "[[assume(...)]]").
 			   A code can be followed by a "+" to indicate that
 			   one or more arguments of that kind are expected.
 			   A "?" indicates that the argument list may
@@ -234,7 +238,7 @@ static constexpr an_attr_descr known_attr_table[] = {
   /* C++ standard attributes (C++11 and later).  Note the use of "c+" to
      indicate these are valid in C++ modes only. */
   { "align", "(ct)", "c+", ak_align },
-  { "assume", "(Xce)", "c+(202302-|G(130000-)|C(190000-))", ak_assume },
+  { "assume", "(Xceb)", "c+(202302-|G(130000-)|C(190000-))", ak_assume },
   { "base_check", "", "c+", ak_base_check },
   { "carries_dependency", "", "c+", ak_carries_dependency },
   { "deprecated", "?(sx)", "c+(201402-|M(1910-))", ak_deprecated },
@@ -273,7 +277,7 @@ static constexpr an_attr_descr known_attr_table[] = {
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
   { "alias", "(sn)", "gx", ak_alias },
-  { "assume", "(Xc)", "gx(130000-)", ak_assume },
+  { "assume", "(Xcb)", "gx(130000-)", ak_assume },
   { "aligned", "?(ci)", "gx", ak_align },
   { "alloc_size", "(ci?,ci)", "gx(40200-)", ak_alloc_size },
   { "always_inline", "", "gx", ak_always_inline },
@@ -439,7 +443,7 @@ static constexpr an_attr_descr known_attr_table[] = {
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
   /* Clang-specific attributes. */
-  { "assume", "(Xc)", "lx(190000-)", ak_assume },
+  { "assume", "(Xcb)", "lx(190000-)", ak_assume },
   { "availability", "(*)", "lx{clang}", ak_availability },
   { "unavailable", "?(sn)", "lx(30500-)", ak_unavailable },
   { "using_if_exists", "", "l+{clang}", ak_using_if_exists },
@@ -1743,22 +1747,25 @@ return a pointer to the argument's representation.
 }  /* scan_attr_type_arg */
 
 
-static an_attribute_arg_ptr scan_attr_expr_arg(an_attribute_ptr  ap,
-                                               int               precedence,
-                                               a_boolean         evaluated)
+static an_attribute_arg_ptr scan_attr_expr_arg(
+                                          an_attribute_ptr  ap,
+                                          int               precedence,
+                                          a_boolean         evaluated,
+                                          a_boolean         convert_to_bool)
 /*
 Scan an expression argument for the given attribute with the given initial
 precedence.  If an error occurs, set ap->kind to ak_unrecognized and return
 NULL.  Otherwise, return a pointer to the argument's representation.
 evaluated is TRUE if the expression is potentially-evaluated; if FALSE, the
-expression is unevaluated (like a sizeof operand).
+expression is unevaluated (like a sizeof operand).  convert_to_bool is TRUE if
+the expression is a predicate that must be contextually converted to bool.
 */
 {
   an_attribute_arg_ptr  aap = NULL;
   a_source_position     arg_pos = pos_curr_token;
   an_expr_node_ptr      expr;
 
-  expr = scan_expr_for_attribute(precedence, evaluated);
+  expr = scan_expr_for_attribute(precedence, evaluated, convert_to_bool);
   if (!is_error_node(expr)) {
     aap = alloc_attribute_arg();
     aap->kind = aak_expression;
@@ -2129,6 +2136,7 @@ ak_unrecognized.
           /* Scan an expression. */
           { int        precedence = PREC_LOWEST;
             a_boolean  evaluated = FALSE;
+            a_boolean  convert_to_bool = FALSE;
             if (*sig == 'c') {
               precedence = PREC_QUEST_MARK;
               ++sig;
@@ -2137,7 +2145,12 @@ ak_unrecognized.
               evaluated = TRUE;
               ++sig;
             }  /* if */
-            *p_aap = scan_attr_expr_arg(ap, precedence, evaluated);
+            if (*sig == 'b') {
+              convert_to_bool = TRUE;
+              ++sig;
+            }  /* if */
+            *p_aap = scan_attr_expr_arg(ap, precedence, evaluated,
+                                        convert_to_bool);
           }  /* if */
           break;
         case '*':
@@ -3910,6 +3923,44 @@ including (a) the string descr, (b) a rendering of the given attribute, and
 
 #endif /* DEBUG */
 
+static void make_local_expr_node_refs_for_args(an_attribute_ptr ap)
+/*
+All attributes are allocated in the file scope memory region, but an argument
+expression can reside in a function scope memory region: That is the case for
+the operand of "[[assume(x > 0)]];" appearing in the body of a function with a
+parameter x, for example.  Use a local expr node reference to "point" to each
+such argument expression of the given attribute, so that the expression can
+still be retrieved once the function scope memory region is discarded.
+*/
+{
+  an_attribute_arg_ptr aap;
+
+  for (aap = ap->arguments; aap != NULL; aap = aap->next) {
+    if (aap->kind == aak_expression && !aap->local_expr_ref &&
+        !in_file_scope(aap->variant.expr)) {
+      /* The mechanism for local-expr-nodes assumes that all "referrers" are
+         IL entities whose first field is of type a_source_correspondence.
+         Allocate a "dummy" a_scoped_expression IL entry that has such a field.
+         No values are actually used in this IL entry (except that
+         source_corresp.enclosing_routine is set and later used to find the
+         original expression).  The function scope is not necessarily the one
+         indicated by innermost_function_scope: For a lambda declarator, as in
+         "auto a = [] [[assume(true)]] () {};", the scope of the enclosing
+         function must be located in the scope stack. */
+      a_scope_ptr          function_scope = get_innermost_function_scope();
+      a_scoped_expression  *sexpr;
+
+      check_assertion(function_scope != NULL);
+      sexpr = alloc_scoped_expression();
+      make_local_expr_node_ref(aap->variant.expr, lerk_scoped_expr,
+                               (char*)sexpr, function_scope);
+      aap->local_expr_ref = TRUE;
+      aap->variant.sexpr = sexpr;
+    }  /* if */
+  }  /* for */
+}  /* make_local_expr_node_refs_for_args */
+
+
 static char* apply_one_attribute(an_attribute_ptr   ap,
                                  char               *entity,
                                  an_il_entry_kind   entity_kind)
@@ -3920,7 +3971,9 @@ as encoded in known_attr_appl_table.  Return the resulting entity (which is
 often the same as the given entity, but not always since attributes can
 potentially produce a new entity of the same kind as the original entity).
 The application of the attribute may result in diagnostics and may cause
-the attribute to get marked as unrecognized.
+the attribute to get marked as unrecognized.  Whether the attribute is applied
+or not, its argument expressions are made retrievable from the file scope
+memory region in which the attribute itself resides.
 */
 {
   a_const_char *constr = known_attr_appl_table[ap->kind].target_constraints;
@@ -3934,6 +3987,10 @@ the attribute to get marked as unrecognized.
       db_log_attribute_action("apply", ap, entity, entity_kind);
     }  /* if */
   }  /* if */
+  /* An attribute that was not applied -- e.g., because it doesn't appertain to
+     this kind of entity -- remains recorded in the IL, so its arguments have
+     to be made retrievable in that case too. */
+  make_local_expr_node_refs_for_args(ap);
   return entity;
 }  /* apply_one_attribute */
 
@@ -4505,11 +4562,16 @@ an error.
                                               parent_class, &ctws_state, &err);
                 break;
               case aak_expression:
-                (*p_aap)->variant.expr = substitute_attribute_expr(
-                                          expr_node_from_attribute_arg(*p_aap),
-                                          t_args, t_params,
-                                          &((*p_aap)->position),
-                                          &err, &ctws_state);
+                { an_expr_node_ptr  expr = expr_node_from_attribute_arg(aap);
+                  /* The copy stores the substituted expression directly, and
+                     therefore does not reach it through the local expr node
+                     reference that the original argument may have. */
+                  (*p_aap)->local_expr_ref = FALSE;
+                  (*p_aap)->variant.expr = substitute_attribute_expr(
+                                            expr, t_args, t_params,
+                                            &((*p_aap)->position),
+                                            &err, &ctws_state);
+                }
                 break;
               default_is_unexpected();
             }  /* switch */
@@ -4756,33 +4818,6 @@ and make new_attr unrecognized.
 }  /* exclude_prior_attribute_kind */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-static void make_local_expr_node_ref_if_needed(an_attribute_arg_ptr aap)
-/*
-In cases where an attribute argument expression is in the function scope,
-use a local expr node reference to "point" to it (because all attributes are
-allocated in the file scope memory region).
-*/
-{
-  an_expr_node_ptr expr = aap->variant.expr;
-
-  check_assertion(aap->kind == aak_expression && expr != NULL);
-  if (!in_file_scope(expr)) {
-    /* The mechanism for local-expr-nodes assumes that all "referrers" are
-       IL entities whose first field is of type a_source_correspondence.
-       Allocate a "dummy" a_scoped_expression IL entry that has such a field.
-       No values are actually used in this IL entry (except that
-       source_corresp.enclosing_routine is set and later used to find the
-       original expression). */
-    check_assertion(innermost_function_scope != NULL);
-    a_scoped_expression *sexpr = alloc_scoped_expression();
-    make_local_expr_node_ref(expr, lerk_scoped_expr, (char*)sexpr,
-                             innermost_function_scope);
-    aap->local_expr_ref = TRUE;
-    aap->variant.sexpr = sexpr;
-  }  /* if */
-}  /* make_local_expr_node_ref_if_needed */
-
 
 static char* apply_align_attr(an_attribute_ptr  ap,
                               char              *entity,
@@ -5066,29 +5101,21 @@ static char* apply_assume_attr(an_attribute_ptr             ap,
                                ARG_UNUSED an_il_entry_kind  entity_kind)
 /*
 Apply the given "assume" attribute to the null statement (pointed to by
-entity).
+entity).  The predicate argument was contextually converted to bool when it
+was scanned, so all that remains to be checked here is that the statement the
+attribute appertains to is indeed a null statement.
 */
 {
   an_attribute_arg_ptr  aap = ap->arguments;
-  an_expr_node_ptr      expr;
   a_statement_ptr       stmt;
 
   check_assertion(entity_kind == iek_statement &&
                   aap != NULL &&
                   aap->kind == aak_expression &&
                   aap->next == NULL);
+  check_assertion(!is_error_node(expr_node_from_attribute_arg(aap)));
   stmt = (a_statement_ptr)entity;
-  expr = expr_node_from_attribute_arg(aap);
-  check_assertion(!is_error_node(expr));
-  expr = process_boolean_attribute_expression(expr);
-  aap->variant.expr = expr;
-  /* It's likely that the expression resides in a function scope memory
-     region, so fix that if needed. */
-  make_local_expr_node_ref_if_needed(aap);
-  if (is_error_node(expr)) {
-    /* The expression must be convertible to bool. */
-    make_attr_unrecognized(ap);
-  } else if (stmt->kind != stmk_empty) {
+  if (stmt->kind != stmk_empty) {
     /* The attribute should only apply to null statements. */
     an_error_severity  sev = (gpp_mode && !clang_mode) ? es_warning : es_error;
     pos_diagnostic(sev, ec_assume_statement_applies_to_null_statements,
@@ -5963,9 +5990,6 @@ to it and return the entity.
   check_assertion(!is_error_node(expr));
   expr = process_boolean_attribute_expression(expr);
   aap->variant.expr = expr;
-  /* It's possible that the expression is in a function scope memory region;
-     if so, use a local_expr_ref for it. */
-  make_local_expr_node_ref_if_needed(aap);
   if (is_error_node(expr)) {
     /* The expression must be convertible to bool. */
     make_attr_unrecognized(ap);

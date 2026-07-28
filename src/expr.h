@@ -1097,7 +1097,8 @@ extern an_expr_node_ptr process_boolean_attribute_expression(
                                                         an_expr_node_ptr expr);
 
 extern an_expr_node_ptr scan_expr_for_attribute(int        precedence,
-                                                a_boolean  evaluated);
+                                                a_boolean  evaluated,
+                                                a_boolean  convert_to_bool);
 
 extern void scan_annotation_value(an_attribute_arg  *aap);
 

@@ -22177,6 +22177,23 @@ one that yields the value) of a statement expression.
   kind = statement->kind;
   /* Process pragmas, macros, etc. */
   (void)process_preprocessing_directives();
+  /* The attributes that precede a statement are scanned before the source
+     sequence entry for the statement itself is recorded, so the entries for a
+     GNU statement expression in an attribute argument precede that entry.
+     That happens both for an attribute that appertains to the statement, as in
+     "[[gnu::assume(({ int i = 3; i > x; }))]];", and for one that appertains
+     to a declaration, as in
+     "[[gnu::assume(({ int i = 3; i > x; }))]] int y;".  Skip those entries
+     here: Those of each such statement expression are picked up again when the
+     attribute is rendered (see gen_statement_expression). */
+  while (curr_src_seq_entry_is_for_statement_expression() &&
+         ss_entry_ptr(curr_source_sequence_entry, a_statement_ptr) !=
+                                                                  statement) {
+    skip_block_statement();
+    /* Process pragmas, macros, etc. recorded at the end of the statement
+       expression. */
+    (void)process_preprocessing_directives();
+  }  /* while */
   /* Check the current source sequence entry. */
   if (kind == (a_statement_kind)stmk_init) {
     /* An stmk_init has no source sequence entry. */
