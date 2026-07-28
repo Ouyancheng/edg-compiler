@@ -4086,15 +4086,13 @@ of the entity, and whose application a second time would repeat any
 diagnostics they produce.
 */
 {
-  an_attribute_ptr  ap;
-
   if (entity != NULL) {
     an_attribute_ptr  *p_list = get_attribute_link(entity, entity_kind);
     *last_attribute_link(p_list) = attributes;
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("trace_attributes")) {
-    for (ap = attributes; ap != NULL; ap = ap->next) {
+    for (an_attribute  *ap = attributes; ap != NULL; ap = ap->next) {
       db_log_attribute_action("attach", ap, entity, entity_kind);
     }  /* for */
   }  /* if */
