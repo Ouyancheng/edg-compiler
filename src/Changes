@@ -1,5 +1,18 @@
 Version 6.10
 
+7/28/26  [EDGcpfe/24913,EDGcpfe28969]
+Spurious error on redeclaration of typedef with calling convention
+
+Consider, in GNU C++ mode (in configurations supporting x86-32 calling
+conventions):
+
+  typedef void __attribute__((__stdcall__)) f(void);
+  typedef void __attribute__((__stdcall__)) f(void);
+
+Previously, this triggered a spurious redeclaration incompatibility error.
+That is now fixed.
+
+
 7/27/26  [EDGcpfe/28527]
 Internal error on pack expansion for non-pack alias template parameter
 

@@ -12391,6 +12391,9 @@ symbol entry, and return a pointer to it in state->sym.
   a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
   a_namespace_ptr          nsp;
   a_symbol_ptr             loc_sym;
+#if GNU_X86_ATTRIBUTES_ALLOWED
+  an_attribute_ptr         calling_convention_attributes = NULL;
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 
   db_enter(3, "decl_typedef");
   /* typedefs (and alias declarations, which also come through here) are
@@ -12414,6 +12417,22 @@ symbol entry, and return a pointer to it in state->sym.
      */
   transform_type_with_gnu_attributes(&type_ptr, state->id_attributes,
                                      (void*)state);
+#if GNU_X86_ATTRIBUTES_ALLOWED
+  /* Apply the GNU calling convention attributes early as well, so that the
+     declared type records its calling convention before it is compared with
+     the type of an earlier declaration of the same name.  For example, the
+     two declarations of "F" in
+       typedef void __attribute__((__stdcall__)) F(void);
+       typedef void __attribute__((__stdcall__)) F(void);
+     must be seen to declare the same type.  The attributes are removed from
+     the declaration and are attached below, once the symbol is known. */
+  extract_and_apply_calling_conventions(&type_ptr, &state->id_attributes,
+                                        &calling_convention_attributes,
+                                        (void*)state);
+  extract_and_apply_calling_conventions(&type_ptr, &state->prefix_attributes,
+                                        &calling_convention_attributes,
+                                        (void*)state);
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   sym = curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED);
   loc_sym = locator->specific_symbol;
   if (loc_sym != NULL && loc_sym->kind == (a_symbol_kind)sk_projection) {
@@ -12920,6 +12939,17 @@ symbol entry, and return a pointer to it in state->sym.
   /* Return the type name symbol to the caller. */
   state->sym = sym;
   attach_decl_attributes(state, /*primary_decl=*/!is_redecl);
+#if GNU_X86_ATTRIBUTES_ALLOWED
+  if (calling_convention_attributes != NULL) {
+    an_il_entry_kind  entity_kind;
+    char              *entity = il_entry_for_symbol(sym, &entity_kind);
+    if (!is_redecl) {
+      mark_primary_decl_attributes(calling_convention_attributes);
+    }  /* if */
+    attach_attributes_without_applying(calling_convention_attributes, entity,
+                                       entity_kind);
+  }  /* if */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
   if (!is_redecl && !is_error_type(type_ptr)) {
     if (!tp->source_corresp.is_deprecated_or_unavailable) {
       /* Check if a deprecated or unavailable type was involved in this

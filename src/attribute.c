@@ -4013,6 +4013,97 @@ construct produces *p_type.
 }  /* transform_type_with_gnu_attributes */
 
 
+#if GNU_X86_ATTRIBUTES_ALLOWED
+
+static a_boolean is_calling_convention_attribute(an_attribute_ptr  ap)
+/*
+Return TRUE if the given attribute is one of the GNU calling convention
+attributes ("cdecl", "fastcall", and "stdcall").
+*/
+{
+  return is_gcc_attribute(ap) &&
+         (ap->kind == ak_cdecl || ap->kind == ak_fastcall ||
+          ap->kind == ak_stdcall);
+}  /* is_calling_convention_attribute */
+
+
+void extract_and_apply_calling_conventions(a_type_ptr        *p_type,
+                                           an_attribute_ptr  *p_attributes,
+                                           an_attribute_ptr  *p_applied,
+                                           void              *assoc_info)
+/*
+Remove the GNU calling convention attributes from the list of attributes
+pointed to by p_attributes, apply each of them in turn to the function type
+underlying *p_type (setting *p_type to the resulting type), and append them to
+the list pointed to by p_applied.  assoc_info is the value that should be
+recorded in the assoc_info field of an attribute while it is applied to the
+type: Normally, it is a pointer to the a_decl_parse_state associated with the
+construct that produces *p_type.  The removed attributes are not attached to
+any IL entry; the caller is expected to attach them with
+attach_attributes_without_applying once the entity they belong to is known,
+because applying them a second time would repeat their diagnostics.
+(This routine is used to handle GNU calling convention attributes on typedefs,
+whose type must record its calling convention before it can be compared with
+the type of an earlier declaration of the same name.)
+*/
+{
+  an_attribute_ptr  ap = *p_attributes;
+  an_attribute_ptr  *p_kept = p_attributes;
+
+  /* Append to the end of the list of already-applied attributes, so that the
+     attributes are applied in the order in which they were written. */
+  while (*p_applied != NULL) {
+    p_applied = &(*p_applied)->next;
+  }  /* while */
+  *p_kept = NULL;
+  while (ap != NULL) {
+    /* Save the "next" pointer, and detach the attribute from the list, before
+       the attribute is applied. */
+    an_attribute_ptr  next_ap = ap->next;
+    ap->next = NULL;
+    if (is_calling_convention_attribute(ap)) {
+      ap->assoc_info = assoc_info;
+      *p_type = (a_type_ptr)apply_one_attribute(ap, (char*)*p_type, iek_type);
+      ap->assoc_info = NULL;
+      *p_applied = ap;
+      p_applied = &ap->next;
+    } else {
+      *p_kept = ap;
+      p_kept = &ap->next;
+    }  /* if */
+    ap = next_ap;
+  }  /* while */
+}  /* extract_and_apply_calling_conventions */
+
+
+void attach_attributes_without_applying(an_attribute_ptr  attributes,
+                                        char              *entity,
+                                        an_il_entry_kind  entity_kind)
+/*
+Attach the given list of attributes to the given IL entry without applying
+them.  This is used for attributes that have already been applied to the type
+of the entity, and whose application a second time would repeat any
+diagnostics they produce.
+*/
+{
+  an_attribute_ptr  ap;
+
+  if (entity != NULL) {
+    an_attribute_ptr  *p_list = get_attribute_link(entity, entity_kind);
+    *last_attribute_link(p_list) = attributes;
+  }  /* if */
+#if DEBUG
+  if (db_flag_is_set("trace_attributes")) {
+    for (ap = attributes; ap != NULL; ap = ap->next) {
+      db_log_attribute_action("attach", ap, entity, entity_kind);
+    }  /* for */
+  }  /* if */
+#endif /* DEBUG */
+}  /* attach_attributes_without_applying */
+
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+
+
 a_type_ptr make_typeref_with_attributes(a_type_ptr        tp,
                                         an_attribute_ptr  attributes)
 /*
