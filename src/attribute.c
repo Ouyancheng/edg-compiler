@@ -5106,7 +5106,9 @@ was scanned, so all that remains to be checked here is that the statement the
 attribute appertains to is indeed a null statement.
 */
 {
+#if CHECKING
   an_attribute_arg_ptr  aap = ap->arguments;
+#endif /* CHECKING */
   a_statement_ptr       stmt;
 
   check_assertion(entity_kind == iek_statement &&
