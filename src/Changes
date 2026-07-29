@@ -13,6 +13,20 @@ Previously, this triggered a spurious redeclaration incompatibility error.
 That is now fixed.
 
 
+7/28/26  [EDGcpfe/28959]
+Mem-initializer named with a template-id
+
+Consider, in Microsoft mode (or in configurations in which class name injection
+is disabled):
+
+  template <class ...P> struct S : S<void, P>... {
+    S(int i) : S<>(i) { }   // Previously bound to base class S<void, P>.
+  };
+
+The mem-initializer for S<> was previously bound to a base class that merely
+shares the identifier S.  That is now fixed.
+
+
 7/27/26  [EDGcpfe/28527]
 Internal error on pack expansion for non-pack alias template parameter
 

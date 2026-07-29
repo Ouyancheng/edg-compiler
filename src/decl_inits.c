@@ -7631,7 +7631,8 @@ through *p_array_type (in non-array cases, *p_array_type is left unchanged).
     }  /* if */
     if ((!class_name_injection_enabled || microsoft_mode) &&
         !is_error_locator(locator_for_curr_id) &&
-          !locator_for_curr_id.is_qualified_name) {
+          !locator_for_curr_id.is_qualified_name &&
+        !locator_for_curr_id.is_template_id) {
       /* If no symbol was returned from the lookup, or if the symbol returned
          was not a base class or member of the current class, see if the name
          (if it was unqualified) matches the name of a base class. This can be
@@ -7649,7 +7650,16 @@ through *p_array_type (in non-array cases, *p_array_type is left unchanged).
          rather obscure cases.
          This check is done in Microsoft mode even though class name injection
          is enabled because, in Microsoft mode, the injected name is ignored
-         for most lookups. */
+         for most lookups.
+         A template-id is excluded because the check that follows matches on
+         the identifier alone, which for a template-id would pick up a base
+         class that is a different specialization of the template that was
+         named, as in
+           template <class ...P> struct S : S<void, P>... {
+             S(int i) : S<>(i) { }
+           };
+         where S<> is fully determined by the template-id and is none of the
+         base classes S<void, P>. */
       a_boolean  check_base_classes;
       if (member_or_base_sym == NULL) {
         check_base_classes = TRUE;
