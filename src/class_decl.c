@@ -11850,7 +11850,7 @@ that the lexical class of the definition can be recovered.
   clep->class_type = class_type;
   head = rout_befriending_classes(rout_ptr);
   if (is_defining_decl || head == NULL || !rout_ptr->defined_in_friend_decl) {
-    /* The defining class is kept at the head of the list */
+    /* The defining class is kept at the head of the list. */
     clep->next = head;
     rout_ptr->friends_or_originator.befriending_classes = clep;
   } else {
