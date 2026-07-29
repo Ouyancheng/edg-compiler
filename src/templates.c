@@ -20770,7 +20770,8 @@ function a friend and update the friend information.
   a_class_list_entry_ptr   clep;
 
   for (clep = tssp->befriending_classes; clep != NULL; clep = clep->next) {
-    update_friend_function_info(rout_ptr, clep->class_type);
+    update_friend_function_info(rout_ptr, clep->class_type,
+                                /*is_defining_decl=*/FALSE);
   }  /* for */
   if (tssp->prototype_template != NULL) {
     /* This function is an instance of a member template declared in a
@@ -20865,7 +20866,8 @@ do nothing.
                  the specialization. */
               for (clep = rout_tssp->befriending_classes;
                    clep != NULL; clep = clep->next) {
-                update_friend_function_info(list_rout, clep->class_type);
+                update_friend_function_info(list_rout, clep->class_type,
+                                            /*is_defining_decl=*/FALSE);
               }  /* for */
               goto done;
             }  /* if */
@@ -31303,7 +31305,8 @@ been instantiated, update the befriending information for the instances.
        tip != NULL; tip = tip->next) {
     a_symbol_ptr  instance_sym = tip->instance_sym;
     a_routine_ptr rout_ptr = instance_sym->variant.routine.ptr;
-    update_friend_function_info(rout_ptr, class_declared_in);
+    update_friend_function_info(rout_ptr, class_declared_in,
+                                /*is_defining_decl=*/FALSE);
   }  /* for */
   if (tssp->subordinate_templates != NULL) {
     /* This is a member function template declared in a class template.

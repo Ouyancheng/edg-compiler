@@ -1,5 +1,26 @@
 Version 6.10
 
+7/29/26  [EDGcpfe/28765]
+Class members not found in lambdas instantiated from friend definitions
+
+Previously, the front end failed to find enclosing class members by unqualified
+name lookup from a lambda inside a function defined in a friend declaration
+when that lambda was instantiated at a later point (e.g., while checking a
+dependent noexcept specifier).  For example, with --c++14:
+
+  template<typename T>
+  int f(T t) noexcept(noexcept(t(1)));
+  struct C {
+    using type = int;
+    friend int g(C) {
+      return f([] (auto a) {
+        return type{a};  // Previously a spurious error, now okay.
+      });
+    }
+  };
+  int i = g(C());
+
+
 7/29/26  [EDGcpfe/28966]
 Clang compatibility: Clang 23 builtins
 

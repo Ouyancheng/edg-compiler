@@ -334,7 +334,8 @@ extern a_boolean is_assignment_operator_for_copy(
 
 extern
 void update_friend_function_info(a_routine_ptr rout_ptr,
-                                 a_type_ptr    class_type);
+                                 a_type_ptr    class_type,
+                                 a_boolean     is_defining_decl);
 
 extern void check_for_invalid_friend_declaration(
 					a_type_ptr		parent_type,

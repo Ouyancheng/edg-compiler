@@ -13444,7 +13444,8 @@ function template.  If sym is NULL, it is simply ignored.
                       /*for_friend_template=*/FALSE,
                       (a_decl_pos_block*)NULL);
   } else if (is_simple_function_symbol(sym)) {
-    update_friend_function_info(sym->variant.routine.ptr, class_type);
+    update_friend_function_info(sym->variant.routine.ptr, class_type,
+                                /*is_defining_decl=*/FALSE);
   } else if (symbol_is(sym, sk_function_template)) {
     add_friend_function_to_lookup_list_for_class(sym, class_type);
     add_befriending_class_to_function_template(sym->variant.template_info,

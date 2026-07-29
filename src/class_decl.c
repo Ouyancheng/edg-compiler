@@ -11820,14 +11820,19 @@ p_tp may equal &rp->type.
 
 
 void update_friend_function_info(a_routine_ptr rout_ptr,
-                                 a_type_ptr    class_type)
+                                 a_type_ptr    class_type,
+                                 a_boolean     is_defining_decl)
 /*
 Update the list of befriending classes associated with rout_ptr to reflect
 that it is now a friend of class_type.  Also update class_type to indicate
-that the routine indicated by rout_ptr is a friend.
+that the routine indicated by rout_ptr is a friend.  is_defining_decl is
+TRUE when this friend declaration supplies the function definition; in that
+case class_type is placed at the head of the befriending_classes list so
+that the lexical class of the definition can be recovered.
 */
 {
   a_class_list_entry_ptr      clep;
+  a_class_list_entry_ptr      head;
   a_class_type_supplement_ptr ctsp;
   an_il_entity_list_entry_ptr rlep;
 
@@ -11843,8 +11848,17 @@ that the routine indicated by rout_ptr is a friend.
   /* Add a friend declaration to the befriending_classes list. */
   clep = alloc_list_entry_for_class_full(&rout_ptr->source_corresp);
   clep->class_type = class_type;
-  clep->next = rout_befriending_classes(rout_ptr);
-  rout_ptr->friends_or_originator.befriending_classes = clep;
+  head = rout_befriending_classes(rout_ptr);
+  if (is_defining_decl || head == NULL || !rout_ptr->defined_in_friend_decl) {
+    /* The defining class is kept at the head of the list */
+    clep->next = head;
+    rout_ptr->friends_or_originator.befriending_classes = clep;
+  } else {
+    /* A later non-defining friend declaration is inserted after the head so
+       the class that defined the friend remains first. */
+    clep->next = head->next;
+    head->next = clep;
+  }  /* if */
   /* Now add the routine to the friends list for the current class. */
   ctsp = class_type->variant.class_struct_union.extra_info;
   rlep = alloc_il_entity_list_entry_with(&class_type->source_corresp);
@@ -12487,7 +12501,8 @@ possibility.
   } else {
     if (!class_type->variant.class_struct_union.is_nonreal_class ||
         prototype_instantiations_in_il) {
-      update_friend_function_info(sym->variant.routine.ptr, class_type);
+      update_friend_function_info(sym->variant.routine.ptr, class_type,
+                                  func_info->is_definition);
     }  /* if */
     if (strict_ansi_mode && func_info->any_default_args) {
       if (sym->is_class_member) {

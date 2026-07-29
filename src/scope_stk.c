@@ -4943,7 +4943,18 @@ for information about the parameters.
   } else {
     parent = scope->parent;
   }  /* if */
-  if (scope_is(parent, sck_file) && !scope_is(parent, sck_namespace)) {
+  if (rp != NULL && rp->defined_in_friend_decl &&
+      rout_befriending_classes(rp) != NULL) {
+    /* A routine defined in a friend declaration is lexically in the scope of
+       the befriending class, but that class does not appear in the routine's
+       parent scope chain.  Reactivate the defining class (kept at the head of
+       befriending_classes) so that unqualified references to class members can
+       be resolved. */
+    reactivate_class_context(parent_tdip,
+                             rout_befriending_classes(rp)->class_type,
+                             instance_sym, assoc_type, assoc_routine,
+                             options);
+  } else if (scope_is(parent, sck_file) && !scope_is(parent, sck_namespace)) {
     /* Nothing to do. */
   } else if (scope_is(parent, sck_class_struct_union)) {
     /* For a class scope, get the class type to be reactivated. */

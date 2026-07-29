@@ -13056,7 +13056,9 @@ typedef struct a_routine {
 			   to the source language: in the source the
 			   befriended routine is declared in the befriending
 			   class; this list records the befriending class
-			   in the befriended routine. */
+			   in the befriended routine.  When
+			   defined_in_friend_decl is TRUE, the first entry is
+			   the class in which the friend definition appeared.*/
     /* When is_inheriting_ctor == TRUE. */
     a_routine_ptr
 		inherited_routine;
