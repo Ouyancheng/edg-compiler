@@ -1,5 +1,22 @@
 Version 6.10
 
+7/30/26  [EDGcpfe/28517]
+Spurious deduction failure with braced-init-list pack expansion
+
+Deduction for a function template call could spuriously fail when substituting
+template arguments into an expression containing a call with a braced-init-list
+argument that contained a pack expansion.  For example, with --c++11:
+
+  template<int> using A = int;
+  struct C {
+    static constexpr int f(int i) { return i; }
+    template<int ... Is> using type = A<f({Is ...})>;
+  };
+  template<typename T, typename = typename T::template type<1>>
+  int g();
+  int i = g<C>();  // Previously failed deduction, now okay.
+
+
 7/29/26  [EDGcpfe/26296,EDGcpfe/26412,EDGcpfe/26993,EDGcpfe/28172,
           EDGcpfe/28765]
 Class members not found in lambdas instantiated from friend definitions

@@ -53934,7 +53934,8 @@ static void rescan_braced_init_list(an_expr_node_ptr       expr,
 /*
 expr is an expression that represents a braced initializer list,
 encountered while redoing semantic analysis on an expression as part of
-template deduction.  Make an operand in *result for a copy of the
+template deduction.  It can also be an enk_temp_init node for a generic
+braced construction.  Make an operand in *result for a copy of the
 braced-init-list after template substitution.  rcblock provides the
 deduction context, e.g., the template argument list being tried.  It
 also has an error_detected flag, which is set to TRUE if any
@@ -53942,12 +53943,20 @@ error is detected during the processing.
 */
 {
   an_arg_list_elem_ptr          list, alep;
+  an_expr_node_ptr              init_list;
   an_expr_rescan_info_entry_ptr eriep;
 
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
-  check_assertion(expr->kind == (an_expr_node_kind)enk_braced_init_list);
-  list = rescan_expr_list(expr->variant.braced_init_list, rcblock);
-  alep = alloc_init_component((an_init_component_kind)ick_braced);
+  if (expr->kind == enk_temp_init) {
+    /* The constructor arguments of the generic construction represent the
+       elements of the braced-init-list. */
+    init_list = expr->variant.init.dynamic_init->variant.constructor.args;
+  } else {
+    check_assertion(expr->kind == enk_braced_init_list);
+    init_list = expr->variant.braced_init_list;
+  }  /* if */
+  list = rescan_expr_list(init_list, rcblock);
+  alep = alloc_init_component(ick_braced);
   alep->variant.braced.list = list;
   alep->variant.braced.start_pos = eriep->saved_operand.position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -54792,6 +54801,11 @@ set accordingly.
         operator_token = tok_typename;  /* Representing a generic cast. */
       }  /* if */
       *unary = TRUE;
+    } else if (dip->kind == dik_constructor &&
+               dip->variant.constructor.ptr == NULL &&
+               dip->is_braced_initializer) {
+      /* A generic braced construction, rescan it as a braced-init-list. */
+      operator_token = tok_lbrace;
     } else {
       rescannable = FALSE;
     }  /* if */
