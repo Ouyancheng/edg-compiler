@@ -1,6 +1,7 @@
 Version 6.10
 
-7/29/26  [EDGcpfe/28765]
+7/29/26  [EDGcpfe/26296,EDGcpfe/26412,EDGcpfe/26993,EDGcpfe/28172,
+          EDGcpfe/28765]
 Class members not found in lambdas instantiated from friend definitions
 
 Previously, the front end failed to find enclosing class members by unqualified
