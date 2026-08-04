@@ -18584,17 +18584,20 @@ from "tpp".  Return TRUE if the lists match.
 static void check_template_template_argument_types(
 				a_template_arg_ptr	templ_arg_list,
 				a_template_param_ptr	templ_param_list,
+				a_symbol_ptr		template_sym,
 				a_source_position	*source_pos,
 				a_boolean		*copy_error,
 				a_ctws_state_ptr	ctws_state)
 /*
-For any template template parameters in templ_param_list that depend on
-other template parameters, go through the template parameters of the
-template template parameter and create a substituted version of the
-template parameter.  The substituted parameter is then compared with
-the corresponding template from the template argument list.  If the
-substitution process results in an error, or if the templates parameters
-do not match, copy_error is set to TRUE.
+For any template template parameters in templ_param_list that depend on other
+template parameters, check that the corresponding template argument from
+templ_arg_list is compatible.  template_sym identifies the template whose
+parameters are being checked.  When generalized template template matching is
+enabled, the dependent template template parameter is rescanned so its
+parameter list reflects the substituted argument values, then checked for C++17
+compatibility.  Otherwise the parameter lists are substituted and compared for
+equivalence.  If that process results in an error, or if the templates are not
+compatible, copy_error is set to TRUE.
 */
 {
   a_template_arg_ptr	tap;
@@ -18607,9 +18610,6 @@ do not match, copy_error is set to TRUE.
        parameter list of the template template parameter.  Don't attempt
        to check a template template argument if any of the earlier
        arguments do not have values yet. */
-    a_template_param_ptr		param;
-    a_template_param_ptr		templ_param;
-    a_template_symbol_supplement_ptr	arg_template;
     if (!template_arg_has_value(tap)) break;
     /* Only consider template template arguments. */
     if (!is_template_templ_arg(tap)) continue;
@@ -18622,16 +18622,76 @@ do not match, copy_error is set to TRUE.
        flag that indicates the check has been done. */
     if (tap->template_template_param_checked) continue;
     tap->template_template_param_checked = TRUE;
-    arg_template = template_supplement_for_template(tap->variant.templ.ptr);
-    param = arg_template->cache->decl_info->parameters;
-    templ_param = tpp->variant.templ->cache->decl_info->parameters;
-    if (!equiv_substituted_templ_param_lists(param, templ_param,
-                                             templ_arg_list, templ_param_list,
-                                             source_pos, copy_error,
-                                             ctws_state)) {
-      /* The template parameter list don't match.  Report a copy error. */
-      subst_fail(*copy_error);
-      break;
+    if (generalized_template_template_matching) {
+      a_template_arg_ptr    prev_tap = NULL, scan_tap;
+      a_template_param_ptr  cache_tpp, first_rescan_tpp, scan_tpp;
+      a_template_ptr        param_template;
+      uint32_t              first_rescan_param_num;
+      /* An implicit deduction guide prepends the class template parameters to
+         the guide's parameter list, shifting tpp->param_num relative to tpp's
+         cache parameter list.  Locate tpp's counterpart in the cache list to
+         determine the shift and apply it to the first parameter:
+         first_rescan_param_num is where the rescan context begins in
+         templ_param_list numbering.  For ordinary templates the shift is
+         zero. */
+      cache_tpp = tpp->cache.decl_info->parameters;
+      while (cache_tpp != NULL &&
+             cache_tpp->cache.tokens.ptr() != tpp->cache.tokens.ptr()) {
+        cache_tpp = cache_tpp->next;
+      }  /* while */
+      check_assertion(cache_tpp != NULL &&
+                      tpp->param_num >= cache_tpp->param_num);
+      first_rescan_param_num = tpp->param_num - cache_tpp->param_num +
+                               tpp->cache.decl_info->parameters->param_num;
+      first_rescan_tpp = templ_param_list;
+      while (first_rescan_tpp != NULL &&
+             first_rescan_tpp->param_num != first_rescan_param_num) {
+        first_rescan_tpp = first_rescan_tpp->next;
+      }  /* while */
+      check_assertion(first_rescan_tpp != NULL);
+      begin_special_variadic_template_arg_list_traversal(templ_param_list,
+                                                         templ_arg_list,
+                                                         &scan_tpp, &scan_tap);
+      while (scan_tpp != first_rescan_tpp) {
+        special_variadic_advance_to_next_template_arg(&scan_tpp, &scan_tap);
+      }  /* while */
+      if (tap == scan_tap) {
+        scan_tap = NULL;
+      } else {
+        /* The rescan only uses arguments preceding this parameter. */
+        for (prev_tap = scan_tap;
+             prev_tap != NULL && prev_tap->next != tap;
+             prev_tap = prev_tap->next) {
+        }  /* for */
+        check_assertion(prev_tap != NULL && prev_tap->next == tap);
+        prev_tap->next = NULL;
+      }  /* if */
+      param_template = rescan_template_template_parameter(template_sym, tpp,
+                                                          scan_tap);
+      if (prev_tap != NULL) prev_tap->next = tap;
+      tap->variant.templ.substituted_param_template = param_template;
+      if (!template_template_arg_is_compatible_with_param(
+                                                        tap->variant.templ.ptr,
+                                                        param_template)) {
+        subst_fail(*copy_error);
+        break;
+      }  /* if */
+    } else {
+      a_template_param_ptr              param;
+      a_template_param_ptr              templ_param;
+      a_template_symbol_supplement_ptr  arg_template;
+      arg_template = template_supplement_for_template(tap->variant.templ.ptr);
+      param = arg_template->cache->decl_info->parameters;
+      templ_param = tpp->variant.templ->cache->decl_info->parameters;
+      if (!equiv_substituted_templ_param_lists(param, templ_param,
+                                               templ_arg_list,
+                                               templ_param_list,
+                                               source_pos, copy_error,
+                                               ctws_state)) {
+        /* The template parameter lists don't match.  Report a copy error. */
+        subst_fail(*copy_error);
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
 }  /* check_template_template_argument_types */
@@ -18958,7 +19018,7 @@ are flags passed down to the substitution routines.
            this can be done). */
         init_ctws_state(&ctws_state);
         check_template_template_argument_types(templ_arg_list,
-                                               templ_param_list,
+                                               templ_param_list, templ_sym,
                                                &templ_sym->decl_position,
                                                &copy_error, &ctws_state);
       }  /* if */

@@ -1,5 +1,33 @@
 Version 6.10
 
+8/4/26   [EDGcpfe/28795]
+Spurious deduction failure with dependent template template parameter
+
+Previously, when a template template parameter depends on another template
+parameter, the front end rejected a valid template template argument under the
+C++17 "at least as specialized" matching rules, causing spurious deduction
+failures.  For example, with --c++17:
+
+  template<typename T, T>
+  struct C { };
+  template<typename T, template<typename, T> class TT>
+  struct D { };
+  template<typename T, template<typename, T> class TT1>
+  void f(D<T, TT1>) { }
+  void g() { f(D<int, C>{}); }  // Previously failed deduction, now okay.
+
+In addition, when substituting into a template template parameter, a spurious
+"hides template parameter" warning was issued if one of its parameters had the
+same name as an enclosing template parameter declared after the template
+template parameter.  For example, with --c++17:
+
+  template<typename T, T>
+  struct C { };
+  template<template<typename T, T> class TT, typename T>
+  struct D { };
+  D<C, int> d;  // Previously a spurious warning, now okay.
+
+
 7/30/26  [EDGcpfe/28517]
 Spurious deduction failure with braced-init-list pack expansion
 

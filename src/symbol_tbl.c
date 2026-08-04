@@ -5641,6 +5641,13 @@ symbol must be added to the inactive list.
           if (!suppress_error &&
               !ms_extensions &&
               !is_injected_class_symbol(sym_ptr) &&
+              /* Don't diagnose a redeclaration or hiding of a template
+                 parameter when rescanning a dependent template template
+                 parameter: enclosing parameters declared after the
+                 template template parameter are already visible during
+                 the rescan, so the diagnostic would be an artifact of
+                 the rescan. */
+              !scope_stack[depth_scope_stack].is_template_param_rescan &&
               is_redeclared_template_param(sym_ptr, &severity)) {
             if (severity == es_error) {
               /* A template parameter name has been reused in the first scope

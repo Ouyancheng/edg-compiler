@@ -1088,6 +1088,10 @@ typedef struct a_scope_stack_entry {
   a_bit_field	is_rescan:1;
 			/* TRUE if the scope being pushed is an instantiation
 			   scope for template rescan purposes. */
+  a_bit_field	is_template_param_rescan:1;
+			/* TRUE if the scope is a template declaration scope
+			   pushed for the rescan of a dependent template
+			   template parameter. */
   a_bit_field	in_concept_rescan:1;
 			/* TRUE if we are currently rescanning the constraint
 			   expression of a concept. */

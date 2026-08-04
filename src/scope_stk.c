@@ -3103,6 +3103,7 @@ the scope being pushed.
     }  /* if */
   }  /* if */
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
+  ssep->is_template_param_rescan =(options & PS_IS_TEMPLATE_PARAM_RESCAN) != 0;
   ssep->in_concept_rescan = FALSE;
   ssep->error_detected = FALSE;
   if (depth_scope_stack > 0 && (ssep-1)->module_load_context_count > 0) {
