@@ -18595,7 +18595,7 @@ templ_arg_list is compatible.  template_sym identifies the template whose
 parameters are being checked.  When generalized template template matching is
 enabled, the dependent template template parameter is rescanned so its
 parameter list reflects the substituted argument values, then checked for C++17
-compatibility.  Otherwise the parameter lists are substituted and compared for
+compatibility.  Otherwise, the parameter lists are substituted and compared for
 equivalence.  If that process results in an error, or if the templates are not
 compatible, copy_error is set to TRUE.
 */
@@ -18628,9 +18628,9 @@ compatible, copy_error is set to TRUE.
       a_template_ptr        param_template;
       uint32_t              first_rescan_param_num;
       /* An implicit deduction guide prepends the class template parameters to
-         the guide's parameter list, shifting tpp->param_num relative to tpp's
-         cache parameter list.  Locate tpp's counterpart in the cache list to
-         determine the shift and apply it to the first parameter:
+         the guide's parameter list, shifting tpp->param_num relative to the
+         parameter list in tpp's cache.  Locate tpp's counterpart in the cache
+         to determine the shift and apply it to the first parameter:
          first_rescan_param_num is where the rescan context begins in
          templ_param_list numbering.  For ordinary templates the shift is
          zero. */
