@@ -8533,7 +8533,7 @@ size_con is not valid, set *p_err to TRUE.
        made for vectors of bool type; in that case each element takes a single
        bit (and rounded up to a size that is a power of two). */
     if (is_bool_type(elem_type)) {
-      if (size <= targ_char_bit) {
+      if (size <= (a_host_large_integer)targ_char_bit) {
         size = 1;
       } else {
         check_assertion(targ_char_bit != 0);
