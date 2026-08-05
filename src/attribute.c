@@ -3989,7 +3989,7 @@ memory region in which the attribute itself resides.
   }  /* if */
   /* An attribute that was not applied -- e.g., because it doesn't appertain to
      this kind of entity -- remains recorded in the IL, so its arguments have
-     to be made retrievable in that case too. */
+     to be made retrievable in that case, too. */
   make_local_expr_node_refs_for_args(ap);
   return entity;
 }  /* apply_one_attribute */
@@ -4563,7 +4563,7 @@ an error.
                 break;
               case aak_expression:
                 { an_expr_node_ptr  expr = expr_node_from_attribute_arg(aap);
-                  /* The copy stores the substituted expression directly, and
+                  /* The copy stores the substituted expression directly and
                      therefore does not reach it through the local expr node
                      reference that the original argument may have. */
                   (*p_aap)->local_expr_ref = FALSE;

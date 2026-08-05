@@ -22190,7 +22190,7 @@ one that yields the value) of a statement expression.
          ss_entry_ptr(curr_source_sequence_entry, a_statement_ptr) !=
                                                                   statement) {
     skip_block_statement();
-    /* Process pragmas, macros, etc. recorded at the end of the statement
+    /* Process pragmas, macros, etc., recorded at the end of the statement
        expression. */
     (void)process_preprocessing_directives();
   }  /* while */
