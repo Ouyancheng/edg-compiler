@@ -1,5 +1,22 @@
 Version 6.10
 
+8/5/26   [EDGcpfe/28996]
+Spurious partial specialization matching failure with alias in function type
+
+With the changes for EDGcpfe/21155,EDGcpfe/28528 (in version 6.9), a partial
+specialization could fail to match (due to duplicated deduced pack elements)
+when its argument list contains a function type with a parameter pack along
+with an alias that is discarded when the pattern is processed.  For example,
+with --c++17:
+
+  template<typename T> using A = int;
+  template<typename T, T> struct C;
+  template<typename R, typename ... Args, R fn(int, Args...)>
+  struct C<R(*)(A<R>, Args...), fn> { };
+  int f(int, int);
+  C<int(*)(int, int), &f> c;  // Previously a spurious error, now okay.
+
+
 8/4/26   [EDGcpfe/28795]
 Spurious deduction failure with dependent template template parameter
 
