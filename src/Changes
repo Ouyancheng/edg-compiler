@@ -1,5 +1,21 @@
 Version 6.10
 
+8/5/26   [EDGcpfe/28995]
+Regression resulting in loss of pragma preceding #if preprocessor directive
+
+The changes for EDGcpfe/28636 (in version 6.9) introduced a regression in
+pragma processing where a pragma preceding an #if preprocessor directive is
+never processed.  For example, with --c++20:
+
+  #pragma pack(push, 1)
+  struct P {};
+  #pragma pack(pop)
+  #if (0 + 1)
+  #endif
+  struct NP { char c; long long l; };
+  static_assert(sizeof(NP) == 16);  // Previously failed, now okay.
+
+
 8/5/26   [EDGcpfe/28997]
 Infinite loop on invalid structured binding pack
 

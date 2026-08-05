@@ -4433,10 +4433,12 @@ cache rescan strategies.
        last (so that it's processed first). */
     cached_token_rescan_stack->emplace_back(move_from(&pragma_tok));
   }  /* if */
-  /* Clear the current token's pragmas so that the next get_token call can move
-     off of this token and into the token cache without triggering pragma
-     processing. */
-  curr_token_pragmas->clear();
+  if (!suppress_pragma_processing) {
+    /* Clear the current token's pragmas so that the next get_token call can
+       move off of this token and into the token cache without triggering
+       pragma processing. */
+    curr_token_pragmas->clear();
+  }  /* if */
 }  /* push_current_token_to_rescan_stack */
 
 
