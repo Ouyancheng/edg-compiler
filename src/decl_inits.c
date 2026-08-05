@@ -7486,14 +7486,14 @@ A ctor-initializer list contains an initializer for a type init_type that has
 not been found in the base class list.  Assume the type is a base class, create
 a new a_constructor_init to represent the initializer, and add the newly
 created initializer to the list of constructor init entries cibp as a direct
-base class.  Also call complete_class_type_is_needed for that presumed base
-class so that it will be instantiated if necessary; base classes must be
-complete.  The function returns the newly created a_constructor_init.
+base class.  The function returns the newly created a_constructor_init.
+The presumed base class is not required to be complete here: Whether it really
+is a base class -- and must therefore be complete -- is only known when the
+template containing the ctor-initializer is instantiated.
 */
 {
   a_constructor_init_ptr new_cip = alloc_ctor_init(
                                (a_constructor_init_kind)cik_direct_base_class);
-  complete_class_type_is_needed(init_type);
   new_cip->variant.base_class = alloc_base_class();
   new_cip->variant.base_class->type = init_type;
   new_cip->variant.base_class->direct = TRUE;
@@ -7537,10 +7537,11 @@ up this identifier and return the associated symbol (or NULL if none).
 
 
 static a_constructor_init_ptr scan_mem_initializer_id(
-                                             a_type_ptr         class_type,
-                                             a_ctor_init_block  *cibp,
-                                             a_type_ptr         *p_init_type,
-                                             a_type_ptr         *p_array_type)
+                                          a_type_ptr         class_type,
+                                          a_ctor_init_block  *cibp,
+                                          a_type_ptr         *p_init_type,
+                                          a_type_ptr         *p_array_type,
+                                          a_boolean          *p_presumed_base)
 /*
 Scan a mem-initializer-id (i.e., the name of a field or base class, a decltype,
 or a C++26 type pack-index-specifier that denotes a base class to be
@@ -7550,6 +7551,9 @@ tracks the state of the constructor init entries for the constructor currently
 being defined.  *p_init_type is the type to be initialized; in the case of an
 array, it is the underlying element type and the array type itself is returned
 through *p_array_type (in non-array cases, *p_array_type is left unchanged).
+*p_presumed_base is set to TRUE if the mem-initializer-id names a type that is
+only presumed to be a base class because the base classes of class_type are not
+all known yet; it is left unchanged otherwise.
 */
 {
   a_symbol_ptr               member_or_base_sym = NULL;
@@ -7904,6 +7908,7 @@ through *p_array_type (in non-array cases, *p_array_type is left unchanged).
            For these cases, we make up a nonvirtual base class node. */
         new_cip = add_new_unresolved_base_ctor_init(cibp,init_type);
         new_cip->orig_type = orig_type;
+        *p_presumed_base = TRUE;
       } else {
         /* No valid match found. */
         if (indirect_nonvirtual_base_class_found) {
@@ -8096,16 +8101,20 @@ the pack expansions were empty.
 
 
 static void scan_parenthesized_mem_init_args(
-                                           a_routine_ptr           ctor,
-                                           a_constructor_init_ptr  cip,
-                                           a_type_ptr              init_type,
-                                           a_type_ptr              array_type)
+                                       a_routine_ptr           ctor,
+                                       a_constructor_init_ptr  cip,
+                                       a_type_ptr              init_type,
+                                       a_type_ptr              array_type,
+                                       a_boolean               presumed_base)
 /*
 Scan the arguments for a mem-initializer enclosed in parentheses, and update
 *cip accordingly.  ctor is the constructor being defined.
 init_type is the type to be initialized; in the case of an array, it is the
 underlying element type and the array type itself is array_type (in non-array
-cases, array_type is NULL).
+cases, array_type is NULL).  presumed_base is TRUE if init_type is only
+presumed to be a base class, in which case the initialization is treated like
+that of a dependent type: It is analyzed when the enclosing template is
+instantiated and the base classes are known.
 */
 {
   a_type_ptr                     class_type = parent_class_of(ctor);
@@ -8125,7 +8134,8 @@ cases, array_type is NULL).
     dependent_class_init = FALSE;
   } else {
     flex_array_init = FALSE;
-    dependent_class_init = could_be_dependent_class_type(init_type);
+    dependent_class_init = could_be_dependent_class_type(init_type) ||
+                           presumed_base;
   }  /* if */
   if (is_class_struct_union_type(init_type) &&
       (array_type == NULL || curr_token == tok_rparen) && !flex_array_init) {
@@ -8408,6 +8418,7 @@ static void scan_mem_init_args(a_routine_ptr                ctor,
                                a_constructor_init_ptr       cip,
                                a_type_ptr                   init_type,
                                a_type_ptr                   array_type,
+                               a_boolean                    presumed_base,
                                ARG_UNUSED a_source_position *pos)
 /*
 Scan the arguments of a mem-initializer (including the delimiting parentheses
@@ -8416,8 +8427,10 @@ associated.  cip describes this particular mem-initializer (it can be NULL in
 error cases).  For non-array (sub)objects, init_type is the type being
 initialized and array_type is NULL.
 For array subobjects, init_type is the underlying element type being
-initialized and array_type is the array type.  pos is the start position of
-the mem-initializer.
+initialized and array_type is the array type.  presumed_base is TRUE if
+init_type is only presumed to be a base class, in which case the analysis of
+the initialization is deferred to the instantiation of the enclosing template.
+pos is the start position of the mem-initializer.
 */
 {
   scope_stack_top().in_ctor_initializer = TRUE;
@@ -8430,7 +8443,8 @@ the mem-initializer.
       (void)get_token();
     } else if (curr_token == tok_lparen) {
       /* A classic (i.e., parenthesized) mem-initializer argument. */
-      scan_parenthesized_mem_init_args(ctor, cip, init_type, array_type);
+      scan_parenthesized_mem_init_args(ctor, cip, init_type, array_type,
+                                       presumed_base);
     } else {
       /* A braced (i.e., C++11-style) mem-initializer argument. */
       a_type_ptr  dtype = (array_type != NULL) ? array_type : init_type;
@@ -8471,6 +8485,7 @@ entries are replaced as needed for each mem-initializer that is encountered.
 {
   a_type_ptr              init_type, array_type = NULL;
   a_constructor_init_ptr  new_cip = NULL;
+  a_boolean               presumed_base = FALSE;
   a_source_position       init_start_pos;
 
   init_start_pos = pos_curr_token;
@@ -8521,7 +8536,7 @@ entries are replaced as needed for each mem-initializer that is encountered.
          base class, or (in C++11 mode) a decltype that denotes a base
          class. */
       new_cip = scan_mem_initializer_id(class_type, cibp, &init_type,
-                                        &array_type);
+                                        &array_type, &presumed_base);
     }  /* if */
     /* The initialization described by mem-initializers must occur in the order
        that the corresponding members are declared in.  That can be different
@@ -8538,7 +8553,8 @@ entries are replaced as needed for each mem-initializer that is encountered.
        arguments immediately, but must detach any created lifetimes as they may
        be linked in the incorrect order.  These lifetimes must be relinked
        later in the appropriate place. */
-    scan_mem_init_args(ctor, new_cip, init_type, array_type, &init_start_pos);
+    scan_mem_init_args(ctor, new_cip, init_type, array_type, presumed_base,
+                       &init_start_pos);
     if (new_cip != NULL) {
       check_assertion(new_cip->initializer != NULL);
       detach_dynamic_init_lifetimes(new_cip->initializer);
@@ -8892,7 +8908,8 @@ constructor, the scanned type is stored for later use.
           /* Skip over the class name. */
           (void)get_token();
         }  /* if */
-        scan_mem_init_args(ctor, cip, tp, (a_type_ptr)NULL, &pos);
+        scan_mem_init_args(ctor, cip, tp, (a_type_ptr)NULL,
+                           /*presumed_base=*/FALSE, &pos);
         dip = cip->initializer;
         check_assertion(dip != NULL);
         if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
