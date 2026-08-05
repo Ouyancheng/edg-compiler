@@ -1,5 +1,18 @@
 Version 6.10
 
+8/5/26   [EDGcpfe/28997]
+Infinite loop on invalid structured binding pack
+
+Previously, a structured binding pack whose container type has no components to
+bind to could cause the front end to go into an infinite loop.  For example,
+with --c++26:
+
+  void f(auto v) {
+    auto [... p] = v;  // Error, but previously caused the front end to enter
+  }                    // an infinite loop.
+  template void f(int);
+
+
 8/5/26   [EDGcpfe/28996]
 Spurious partial specialization matching failure with alias in function type
 

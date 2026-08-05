@@ -19558,7 +19558,8 @@ can be fully determined.
       }  /* if */
     }  /* if */
     /* Update the type of the variable describing the binding. */
-    if (vp->is_pack && is_real_instantiation_context()) {
+    if (!err && !dependent_case && vp->is_pack &&
+        is_real_instantiation_context()) {
       an_il_entity_list_entry_ptr  list_entry;
       if (in_file_scope(container)) {
         switch_to_file_scope_region(&region_to_switch_back_to);
