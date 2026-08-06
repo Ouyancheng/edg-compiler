@@ -53202,13 +53202,10 @@ memory region).  Do various error checks.
                  struct L { int m = Val<n>::value; };
                }
 
-             where the template argument for Val names n.  Obtain an
-             enclosing function scope from that variable so the
-             local-expr-node-ref mechanism can anchor the expression there.
-             Looking for the variable walks the whole expression, so do it
-             only when a class defined within a function puts such a scope
-             within reach; there is none for the nontype template arguments
-             of a namespace-scope template, which are the common case. */
+             where the template argument for Val names n.  Obtain an enclosing
+             function scope from that variable so the local-expr-node-ref
+             mechanism can anchor the expression there.  This is only an issue
+             within local classes. */
           an_expr_node_ptr  vnode = get_routine_scope_variable_node_found();
           a_routine_ptr     rp = node_variable(vnode)
                                            ->source_corresp.enclosing_routine;
