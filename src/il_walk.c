@@ -2865,6 +2865,7 @@ default values.
   tblock->process_non_dynamic_constants = FALSE;
   tblock->process_expressions_for_constants = FALSE;
   tblock->process_template_parameter_constants_and_expressions = FALSE;
+  tblock->visited_nodes = NULL;
   tblock->follow_addressing_path = FALSE;
   tblock->follow_class_rvalue_addressing_path = FALSE;
   tblock->has_recursive_aggregate_constant = FALSE;
@@ -2919,6 +2920,10 @@ specified in the control block.  A constant can have a "tree" when
 it's the initializer for an aggregate.
 */
 {
+  if (tblock->visited_nodes != NULL) {
+    if (tblock->visited_nodes->contains(constant)) goto end_of_routine;
+    tblock->visited_nodes->add(constant);
+  }  /* if */
   if (constant->expr != NULL &&
       tblock->process_expressions_for_constants) {
     /* This constant is the result of folding a constant expression.
@@ -3433,6 +3438,10 @@ Walk the tree of the given expression.  Call user-provided routines
 as specified in the control block.
 */
 {
+  if (tblock->visited_nodes != NULL) {
+    if (tblock->visited_nodes->contains(expr)) goto end_of_routine;
+    tblock->visited_nodes->add(expr);
+  }  /* if */
   if (tblock->process_type != NULL && !tblock->skip_expr_process_type) {
     tblock->process_type(expr->type, tblock);
     if (tblock->terminate) goto end_of_routine;

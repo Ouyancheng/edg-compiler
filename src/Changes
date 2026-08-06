@@ -1,5 +1,17 @@
 Version 6.10
 
+8/5/26   [EDGcpfe/28998]
+Performance regression for programs with many non-type template arguments
+
+The changes for EDGcpfe/28295 in release 6.9 added a check, applied whenever a
+non-type template argument is prepared, for a reference to a variable of an
+enclosing function scope.  That check involved an IL traversal that could come
+to dominate compile time (or even trigger an abort due to exceeding call stack
+limits).  This has been fixed by reducing the circumstances in which the check
+is performed and by having the traversal performance by the check be more
+efficient.
+
+
 8/5/26   [EDGcpfe/28995]
 Regression resulting in loss of pragma preceding #if preprocessor directive
 

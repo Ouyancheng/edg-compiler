@@ -307,6 +307,22 @@ typedef struct an_expr_or_stmt_traversal_block {
   a_boolean	process_template_parameter_constants_and_expressions;
 			/* If TRUE, constants and expressions that appear in
 			   ck_template_parameter constants are also walked. */
+  Ptr_set<a_void_ptr>
+		*visited_nodes;
+			/* If non-NULL, the set of expression nodes and
+			   constants the walk has already reached.  Each of
+			   them is processed just once: on reaching one a
+			   second time, neither the user-provided routines nor
+			   the subtree walk are repeated for it.  This matters
+			   because the expressions recorded for folded
+			   constants are shared, so a walk that follows them
+			   (see process_expressions_for_constants) covers a
+			   graph rather than a tree, and repeating shared
+			   subgraphs costs time exponential in the depth of
+			   that graph.  Supply a set only for a walk whose
+			   outcome does not depend on how often a node is
+			   reached, such as a predicate asking whether the
+			   tree holds any node with a given property. */
   a_boolean	follow_addressing_path;
 			/* If TRUE, the subtree walk visits only the operands
 			   that lead to the ultimate underlying object for

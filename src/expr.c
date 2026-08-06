@@ -53189,14 +53189,26 @@ memory region).  Do various error checks.
           }  /* if */
         }  /* if */
         if (scope_for_local_ref == NULL && expr != NULL &&
+            inside_local_class &&
             expr_has_reference_to_routine_scope_variable(expr)) {
-          /* When parsing a default template argument in a lambda header,
-             innermost_function_scope is NULL because the closure class scope
-             is on top of the scope stack (it clears innermost_function_scope).
-             However, the expression may still reference a constexpr local
-             variable of the enclosing function.  Search the scope stack for
-             an enclosing function scope so the local-expr-node-ref mechanism
-             can anchor the expression there. */
+          /* A class scope pushed inside a function clears
+             innermost_function_scope, so it is NULL while a local class or a
+             lambda header is being parsed even though the enclosing
+             function's scope is still open.  The expression may nonetheless
+             reference a constexpr local variable of that function, as in
+
+               void f() {
+                 constexpr int n = 11;
+                 struct L { int m = Val<n>::value; };
+               }
+
+             where the template argument for Val names n.  Obtain an
+             enclosing function scope from that variable so the
+             local-expr-node-ref mechanism can anchor the expression there.
+             Looking for the variable walks the whole expression, so do it
+             only when a class defined within a function puts such a scope
+             within reach; there is none for the nontype template arguments
+             of a namespace-scope template, which are the common case. */
           an_expr_node_ptr  vnode = get_routine_scope_variable_node_found();
           a_routine_ptr     rp = node_variable(vnode)
                                            ->source_corresp.enclosing_routine;

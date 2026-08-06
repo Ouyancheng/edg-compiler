@@ -26171,6 +26171,37 @@ treat_as_potential_prvalue should always be FALSE when called during lowering
 }  /* is_invariant_expr */
 
 
+static a_boolean expr_tree_has_matching_node(
+                        an_expr_node_ptr                      expr,
+                        a_traversal_expr_process_function_ptr check_node)
+/*
+Return TRUE if check_node reports a match for one of the nodes of the
+expression tree rooted in expr, which may be NULL.  check_node is called for
+each node in turn and reports a match by setting the result and terminate
+flags of the traversal block passed to it.  The walk covers constants, the
+expressions recorded for folded constants, and the constants and expressions
+inside template parameter constants; it reaches each node only once, which is
+all a query of this form requires.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+  a_boolean                       result = FALSE;
+
+  if (expr != NULL) {
+    Ptr_set<a_void_ptr>  visited_nodes(/*mask_width=*/6u);
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = check_node;
+    tblock.process_non_dynamic_constants = TRUE;
+    tblock.process_expressions_for_constants = TRUE;
+    tblock.process_template_parameter_constants_and_expressions = TRUE;
+    tblock.visited_nodes = &visited_nodes;
+    traverse_expr(expr, &tblock);
+    result = tblock.result;
+  }  /* if */
+  return result;
+}  /* expr_tree_has_matching_node */
+
+
 static void check_for_reference_to_local_entity(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
@@ -26199,19 +26230,8 @@ Return TRUE if any of the nodes in the expression tree rooted in expr
 local scope or an enk_statement node allocated in function-scope memory.
 */
 {
-  an_expr_or_stmt_traversal_block tblock;
-  a_boolean                       result = FALSE;
-
-  if (expr != NULL) {
-    clear_expr_or_stmt_traversal_block(&tblock);
-    tblock.process_expr = check_for_reference_to_local_entity;
-    tblock.process_non_dynamic_constants = TRUE;
-    tblock.process_expressions_for_constants = TRUE;
-    tblock.process_template_parameter_constants_and_expressions = TRUE;
-    traverse_expr(expr, &tblock);
-    result = tblock.result;
-  }  /* if */
-  return result;
+  return expr_tree_has_matching_node(expr,
+                                     check_for_reference_to_local_entity);
 }  /* expr_has_reference_to_local_entity */
 
 
@@ -26258,21 +26278,10 @@ file-scope memory region and nodes that are allocated in a local memory
 region or designate a block-scope variable; otherwise, return FALSE.
 */
 {
-  an_expr_or_stmt_traversal_block tblock;
-  a_boolean                       result = FALSE;
-
-  if (expr != NULL) {
-    tree_has_file_scope_node = FALSE;
-    tree_has_local_node = FALSE;
-    clear_expr_or_stmt_traversal_block(&tblock);
-    tblock.process_expr = check_node_for_mixed_memory_regions;
-    tblock.process_non_dynamic_constants = TRUE;
-    tblock.process_expressions_for_constants = TRUE;
-    tblock.process_template_parameter_constants_and_expressions = TRUE;
-    traverse_expr(expr, &tblock);
-    result = tblock.result;
-  }  /* if */
-  return result;
+  tree_has_file_scope_node = FALSE;
+  tree_has_local_node = FALSE;
+  return expr_tree_has_matching_node(expr,
+                                     check_node_for_mixed_memory_regions);
 }  /* mixed_regions_in_expr_tree */
 
 
@@ -26306,19 +26315,7 @@ Return TRUE if any of the nodes in the expression tree rooted in expr
 local scope.
 */
 {
-  an_expr_or_stmt_traversal_block tblock;
-  a_boolean                       result = FALSE;
-
-  if (expr != NULL) {
-    clear_expr_or_stmt_traversal_block(&tblock);
-    tblock.process_expr = check_for_routine_scope_variable;
-    tblock.process_non_dynamic_constants = TRUE;
-    tblock.process_expressions_for_constants = TRUE;
-    tblock.process_template_parameter_constants_and_expressions = TRUE;
-    traverse_expr(expr, &tblock);
-    result = tblock.result;
-  }  /* if */
-  return result;
+  return expr_tree_has_matching_node(expr, check_for_routine_scope_variable);
 }  /* expr_has_reference_to_routine_scope_variable */
 
 
