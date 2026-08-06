@@ -2866,6 +2866,7 @@ default values.
   tblock->process_expressions_for_constants = FALSE;
   tblock->process_template_parameter_constants_and_expressions = FALSE;
   tblock->visited_nodes = NULL;
+  tblock->node_visit_budget = 0;
   tblock->follow_addressing_path = FALSE;
   tblock->follow_class_rvalue_addressing_path = FALSE;
   tblock->has_recursive_aggregate_constant = FALSE;
@@ -2923,6 +2924,10 @@ it's the initializer for an aggregate.
   if (tblock->visited_nodes != NULL) {
     if (tblock->visited_nodes->contains(constant)) goto end_of_routine;
     tblock->visited_nodes->add(constant);
+  } else if (tblock->node_visit_budget != 0 &&
+             --tblock->node_visit_budget == 0) {
+    tblock->terminate = TRUE;
+    goto end_of_routine;
   }  /* if */
   if (constant->expr != NULL &&
       tblock->process_expressions_for_constants) {
@@ -3441,6 +3446,10 @@ as specified in the control block.
   if (tblock->visited_nodes != NULL) {
     if (tblock->visited_nodes->contains(expr)) goto end_of_routine;
     tblock->visited_nodes->add(expr);
+  } else if (tblock->node_visit_budget != 0 &&
+             --tblock->node_visit_budget == 0) {
+    tblock->terminate = TRUE;
+    goto end_of_routine;
   }  /* if */
   if (tblock->process_type != NULL && !tblock->skip_expr_process_type) {
     tblock->process_type(expr->type, tblock);

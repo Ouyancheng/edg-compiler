@@ -26171,6 +26171,34 @@ treat_as_potential_prvalue should always be FALSE when called during lowering
 }  /* is_invariant_expr */
 
 
+static void set_up_matching_node_walk(
+                        an_expr_or_stmt_traversal_block_ptr    tblock,
+                        a_traversal_expr_process_function_ptr  check_node)
+/*
+Prepare tblock for a walk that offers each node of an expression tree to
+check_node.  The walk covers constants, the expressions recorded for folded
+constants, and the constants and expressions inside template parameter
+constants.
+*/
+{
+  clear_expr_or_stmt_traversal_block(tblock);
+  tblock->process_expr = check_node;
+  tblock->process_non_dynamic_constants = TRUE;
+  tblock->process_expressions_for_constants = TRUE;
+  tblock->process_template_parameter_constants_and_expressions = TRUE;
+}  /* set_up_matching_node_walk */
+
+
+/*
+The number of nodes a walk performed by expr_tree_has_matching_node may reach
+before it is abandoned in favor of one that records the nodes it has already
+seen.  Trees that hold fewer nodes than this are the overwhelming majority,
+and for most of those the record would cost more than the repeated visits it
+saves.
+*/
+#define MAX_NODE_VISITS_WITHOUT_RECORDING  10000
+
+
 static a_boolean expr_tree_has_matching_node(
                         an_expr_node_ptr                      expr,
                         a_traversal_expr_process_function_ptr check_node)
@@ -26178,24 +26206,30 @@ static a_boolean expr_tree_has_matching_node(
 Return TRUE if check_node reports a match for one of the nodes of the
 expression tree rooted in expr, which may be NULL.  check_node is called for
 each node in turn and reports a match by setting the result and terminate
-flags of the traversal block passed to it.  The walk covers constants, the
-expressions recorded for folded constants, and the constants and expressions
-inside template parameter constants; it reaches each node only once, which is
-all a query of this form requires.
+flags of the traversal block passed to it; its verdict must not depend on how
+often it is offered a given node, as a node may be reached more than once.
+
+Following the expressions recorded for folded constants means walking a graph,
+because those expressions are shared, and the repeated visits that come of
+covering such a graph as though it were a tree grow exponentially with its
+depth.  A walk that finds no match within MAX_NODE_VISITS_WITHOUT_RECORDING
+nodes is therefore abandoned and performed again, this time recording the
+nodes it reaches so that none of them is walked twice.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
   a_boolean                       result = FALSE;
 
   if (expr != NULL) {
-    Ptr_set<a_void_ptr>  visited_nodes(/*mask_width=*/6u);
-    clear_expr_or_stmt_traversal_block(&tblock);
-    tblock.process_expr = check_node;
-    tblock.process_non_dynamic_constants = TRUE;
-    tblock.process_expressions_for_constants = TRUE;
-    tblock.process_template_parameter_constants_and_expressions = TRUE;
-    tblock.visited_nodes = &visited_nodes;
+    set_up_matching_node_walk(&tblock, check_node);
+    tblock.node_visit_budget = MAX_NODE_VISITS_WITHOUT_RECORDING;
     traverse_expr(expr, &tblock);
+    if (!tblock.result && tblock.node_visit_budget == 0) {
+      Ptr_set<a_void_ptr>  visited_nodes(/*mask_width=*/6u);
+      set_up_matching_node_walk(&tblock, check_node);
+      tblock.visited_nodes = &visited_nodes;
+      traverse_expr(expr, &tblock);
+    }  /* if */
     result = tblock.result;
   }  /* if */
   return result;

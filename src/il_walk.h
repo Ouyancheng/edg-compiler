@@ -311,18 +311,33 @@ typedef struct an_expr_or_stmt_traversal_block {
 		*visited_nodes;
 			/* If non-NULL, the set of expression nodes and
 			   constants the walk has already reached.  Each of
-			   them is processed just once: on reaching one a
+			   them is processed just once: When reaching one a
 			   second time, neither the user-provided routines nor
 			   the subtree walk are repeated for it.  This matters
 			   because the expressions recorded for folded
-			   constants are shared, so a walk that follows them
-			   (see process_expressions_for_constants) covers a
-			   graph rather than a tree, and repeating shared
+			   constants may be shared, so a walk that follows
+			   them (see process_expressions_for_constants) covers
+			   a graph rather than a tree, and repeating shared
 			   subgraphs costs time exponential in the depth of
 			   that graph.  Supply a set only for a walk whose
 			   outcome does not depend on how often a node is
 			   reached, such as a predicate asking whether the
-			   tree holds any node with a given property. */
+			   tree holds any node with a given property.
+			   Obtaining and releasing the set costs more than a
+			   short walk does, so a walk that usually covers few
+			   nodes should use node_visit_budget. */
+  unsigned long	node_visit_budget;
+			/* If nonzero, the number of expression nodes and
+			   constants the walk may still reach.  Each one
+			   reached decrements it, and the walk terminates once
+			   it runs out.  A caller that walks without a
+			   visited_nodes set can thereby bound what the graph
+			   case described above may cost it: A budget left at
+			   zero says the walk was cut short, and walking again
+			   with a set then costs little more than the
+			   abandoned walk did.  This is ignored when
+			   visited_nodes is supplied, as the set already keeps
+			   the walk to one visit per node. */
   a_boolean	follow_addressing_path;
 			/* If TRUE, the subtree walk visits only the operands
 			   that lead to the ultimate underlying object for
