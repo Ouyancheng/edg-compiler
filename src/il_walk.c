@@ -3075,6 +3075,17 @@ it's the initializer for an aggregate.
           traverse_expr(
               (an_expr_node*)constant->variant.reflection.entity.ptr, tblock);
           break;
+        case iek_data_member_spec:
+          /* Visit the spec's referenced member type.  (Its annotation
+             constants are reached through their own IL entries, as elsewhere
+             in this traversal, so they are not walked from here.) */
+          if (tblock->process_type != NULL) {
+            a_data_member_spec  *spec = (a_data_member_spec*)
+                                  constant->variant.reflection.entity.ptr;
+            tblock->process_type(spec->type, tblock);
+            if (tblock->terminate) goto end_of_routine;
+          }  /* if */
+          break;
         default:
           break;
       }  /* switch */

@@ -433,6 +433,13 @@ struct a_meta_field_descr {
 		bit_width;
 			/* Bit width of the field to synthesize.
 			   Zero if it should not be a bit field. */
+  a_boolean	no_unique_address;
+			/* TRUE if the field should carry the
+			   [[no_unique_address]] attribute. */
+  an_attribute_ptr
+		annotations;
+			/* Head of a list of ak_annotation attributes to attach
+			   to the field, or NULL if none. */
 };
 
 namespace detail {

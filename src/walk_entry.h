@@ -1039,8 +1039,19 @@ handle_next_entry:
             break;
           case ck_reflection:
             { an_il_entry_kind  kind = eptr->variant.reflection.entity.kind;
+              /* Unlike a reflected routine, scope, or namespace (each of which
+                 is written from its own memory region and so is merely
+                 remapped here) a reflected type must be written wherever it is
+                 reached.  A type reflected inside an uninstantiated template
+                 can be reachable only through the reflection that designates
+                 it (e.g. a dependent type used as a name qualifier), so it is
+                 walked, like the other entities below, rather than just
+                 remapped.  A data member specification is likewise reachable
+                 only through the reflection that describes it. */
               if (kind == iek_expr_node || kind == iek_constant ||
-                  kind == iek_token_sequence) {
+                  kind == iek_token_sequence ||
+                  kind == iek_data_member_spec ||
+                  kind == iek_type) {
                 walk_ptr(eptr->variant.reflection.entity.ptr, a_char_ptr,
                          kind);
               } else {
@@ -4216,6 +4227,13 @@ handle_class_type_supplement_for_class:
       walk_ptr(eptr->expr, an_expr_node_ptr, iek_expr_node);
 #undef eptr
       break;
+    case iek_data_member_spec:
+#define eptr ((a_data_member_spec*)entry_ptr)
+      walk_ptr(eptr->type, a_type_ptr, iek_type);
+      walk_string_ptr(eptr->name, iek_id_name, 0);
+      walk_list(eptr->annotations, an_attribute_ptr, iek_attribute);
+#undef eptr
+      break;
     case iek_id_name:
     case iek_string_text:
     case iek_other_text:
@@ -4384,6 +4402,8 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(an_attribute_ptr, iek_attribute);
   walk_orphan_entry_list_for_entry_kind(a_token_sequence_ptr,
                                         iek_token_sequence);
+  walk_orphan_entry_list_for_entry_kind(a_data_member_spec_ptr,
+                                        iek_data_member_spec);
   /* Note that no orphan list walking is needed for iek_source_sequence_entry
      nor for its subordinate entries like iek_src_seq_secondary_decl
      and iek_src_seq_end_of_construct, since such entries will

@@ -281,6 +281,13 @@ typedef struct an_il_to_str_output_control_block {
 	for_diagnostics;
 			/* TRUE if the output is being done for diagnostic
 			   text. */
+  a_byte_boolean
+	reflection_display_form;
+			/* TRUE if a reflection should be rendered the way
+			   std::meta::display_string_of describes the entity it
+			   designates: without the prefix naming the kind of
+			   entity and with the full signature of a function
+			   rather than just its name. */
 #if DEBUG
   a_byte_boolean
 	debug_output;	/* TRUE if the generated string is part of debug

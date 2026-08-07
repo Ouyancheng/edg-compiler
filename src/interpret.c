@@ -42,6 +42,8 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "templates.h"
 
+#include "il_to_str.h"
+
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
@@ -2040,6 +2042,19 @@ may not be in the map already.
       }  /* if */                                                            \
     }  /* for */                                                             \
   }  /* if */                                                                \
+}
+
+
+/*
+Like map_or_replace_ptr, but for the callers that have no use for the data
+pointer that was mapped before, if any.  Assigning the discarded pointer to
+itself keeps certain compilers and tools from reporting it as unused.
+*/
+#define map_or_replace_ptr_discarding_old(map, iptr, dptr)                   \
+{                                                                            \
+  a_byte  *old_dptr;                                                         \
+  map_or_replace_ptr(map, iptr, dptr, old_dptr);                             \
+  *(a_byte**)&old_dptr = old_dptr;                                           \
 }
 
 
@@ -7021,11 +7036,7 @@ by implied_src.
   }  /* switch */
   if (dip->is_reused_value && result) {
     /* Record the location of a value to reuse. */
-    a_byte  *discard;
-    map_or_replace_ptr(&ips->map, dip, dst_addr.address, discard);
-    *(a_byte**)&discard = discard;
-                        /* To avoid spurious warnings from certain
-                           compilers and tools. */
+    map_or_replace_ptr_discarding_old(&ips->map, dip, dst_addr.address);
   }  /* if */
   return result;
 }  /* do_constexpr_dynamic_init */
@@ -9966,6 +9977,127 @@ p_result will be set to FALSE.
 }  /* do_constexpr_write_source_function */
 
 
+static a_boolean build_source_location_value(
+                                    an_interpreter_state *ips,
+                                    a_source_position    *use_pos,
+                                    a_boolean            use_current_function,
+                                    a_type_ptr           result_class_type,
+                                    a_byte               *result_storage,
+                                    a_byte               *complete_obj,
+                                    a_boolean            *p_result)
+/*
+Build a std::source_location value describing use_pos.  A __impl object holding
+its file name, function name, line, and column is allocated and populated.  How
+its address is delivered depends on result_class_type:
+__builtin_source_location yields the __impl pointer directly, so
+result_class_type is NULL and the address is stored (as a scalar pointer) at
+result_storage.  std::meta::source_location_of instead returns a
+std::source_location object by value, so result_class_type is that class type:
+The address is stored in the object's single pointer member and both that
+member and the object are marked initialized as subobjects of complete_obj
+(complete_obj is unused in the scalar case).  If use_current_function is TRUE
+the function-name field is set as for __builtin_source_location (the enclosing
+function's __func__ string); otherwise it is set to the empty string, which is
+what source_location_of uses since an entity's function field is
+implementation-defined.  On any construction failure *p_result is set to FALSE
+(any needed diagnostic having been issued).  Return TRUE if the source-location
+type was valid (so the builtin/intrinsic was handled), FALSE if it was an error
+type (which has already been diagnosed).
+*/
+{
+  a_boolean                       handled = TRUE;
+  a_gnu_source_location_type_info interp_inf;
+
+  /* Load the type information; if the type is invalid, silently fail (this has
+     already been diagnosed). */
+  interp_inf = gnu_source_location_impl();
+  if (is_error_type(interp_inf.impl_type)) {
+    ips->input_error = TRUE;
+    do_constexpr_fail(*p_result);
+    handled = FALSE;
+  } else {
+    a_byte  *obj_storage;
+    /* Allocate the source location __impl object. */
+    alloc_storage_promotable_object(ips, interp_inf.impl_type, &obj_storage,
+                                    p_result);
+    if (*p_result) {
+      /* Populate the source location __impl object.  The fields (and their
+         associated types) are guaranteed to have been validated when the
+         source-location type was first used. */
+      a_field_ptr   file_name_fp = interp_inf.file_field;
+      a_byte_count  file_name_f_offset;
+      get_mapped_byte_count(&persistent_map, file_name_fp, file_name_f_offset);
+      a_byte        *file_name_f_bytes = obj_storage + file_name_f_offset;
+      do_constexpr_write_source_file(ips, use_pos, file_name_f_bytes,
+                                     p_result);
+      mark_subobject_initialized(file_name_f_bytes, obj_storage);
+
+      a_field_ptr   function_name_fp = interp_inf.function_field;
+      a_byte_count  function_name_f_offset;
+      get_mapped_byte_count(&persistent_map, function_name_fp,
+                            function_name_f_offset);
+      a_byte        *function_name_f_bytes = obj_storage +
+                                                        function_name_f_offset;
+      if (use_current_function) {
+        do_constexpr_write_source_function(ips, function_name_f_bytes,
+                                           p_result);
+      } else {
+        do_constexpr_write_cstring(ips, "", function_name_f_bytes, p_result);
+      }  /* if */
+      mark_subobject_initialized(function_name_f_bytes, obj_storage);
+
+      a_field_ptr   line_fp = interp_inf.line_field;
+      a_byte_count  line_f_offset;
+      get_mapped_byte_count(&persistent_map, line_fp, line_f_offset);
+      a_byte        *line_f_bytes = obj_storage + line_f_offset;
+      do_constexpr_write_source_line(ips, use_pos, line_fp->type, line_f_bytes,
+                                     p_result);
+      mark_subobject_initialized(line_f_bytes, obj_storage);
+
+      a_field_ptr   column_fp = interp_inf.column_field;
+      a_byte_count  column_f_offset;
+      get_mapped_byte_count(&persistent_map, column_fp, column_f_offset);
+      a_byte        *column_f_bytes = obj_storage + column_f_offset;
+      do_constexpr_write_source_column(ips, use_pos, column_fp->type,
+                                       column_f_bytes, p_result);
+      mark_subobject_initialized(column_f_bytes, obj_storage);
+
+      if (result_class_type == NULL) {
+        /* Scalar (pointer) result: result_storage is the __impl pointer. */
+        clear_address(result_storage, obj_storage);
+        mark_complete_object_initialized(result_storage);
+      } else {
+        /* Class result: store the __impl address in the source_location
+           object's single pointer member and mark the member and the object
+           initialized as subobjects of complete_obj, mirroring
+           make_reflective_string_view. */
+        a_field_ptr  slfp = next_alloc_field(fields_of(result_class_type));
+        a_boolean    impl_done = FALSE;
+        for (; slfp != NULL; slfp = next_alloc_field(slfp->next)) {
+          a_type_ptr    sftp = skip_typerefs(slfp->type);
+          a_byte_count  soffset;
+          get_mapped_byte_count(&persistent_map, slfp, soffset);
+          if (type_is(sftp, tk_pointer) && !impl_done) {
+            clear_address(result_storage + soffset, obj_storage);
+            mark_subobject_initialized(result_storage + soffset, complete_obj);
+            impl_done = TRUE;
+          } else {
+            do_constexpr_fail(*p_result);
+          }  /* if */
+        }  /* for */
+        if (impl_done) {
+          mark_subobject_initialized(result_storage, complete_obj);
+          record_complete_object_type(result_class_type, complete_obj);
+        } else {
+          do_constexpr_fail(*p_result);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return handled;
+}  /* build_source_location_value */
+
+
 static void do_constexpr_write_source_funcsig(
                                           an_interpreter_state *ips,
                                           a_byte               *result_storage,
@@ -10700,6 +10832,43 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }  /* if */
       break;
+    case bfk_is_string_literal:
+      {
+        interpreted = TRUE;
+        if (args == NULL || args->next != NULL) {
+          unexpected_condition();
+        } else {
+          a_type_ptr    tp = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+          a_boolean     answer = FALSE;
+          if (!*p_result) break;
+          if (!alloc_complete_object(ips, n_bytes, tp, arg1_bytes) ||
+              !do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
+            do_constexpr_fail(*p_result);
+          } else {
+            a_constexpr_address  *cap = (a_constexpr_address*)arg1_bytes;
+            /* A string-literal pointer denotes the first character of a
+               ck_string object.  If it is still a run-time-data address, its
+               underlying constant is a ck_address decaying a ck_string; once
+               the string has been materialized in interpreter storage, the
+               address instead points at those bytes, which are reverse-mapped
+               to the ck_string constant.  Any other object (for example a
+               "const char a[] = ..." array, a subobject, or a pointer into the
+               middle of a literal) is not a string literal. */
+            if (is_runtime_data_address(cap)) {
+              answer = constant_is_pointer_to_string_literal(
+                                   cap->variant.addr_con, (a_constant**)NULL);
+            } else if (cap->address != NULL && !is_function_address(cap)) {
+              a_byte  *mapped;
+              get_stack_bytes(ips, cap->address, mapped);
+              answer = (mapped != NULL &&
+                        constant_is((a_constant*)mapped, ck_string));
+            }  /* if */
+            *(an_integer_value*)result_storage = answer ? one_int : zero_int;
+          }  /* if */
+        }  /* if */
+      }
+      break;
    case bfk_abs:
       {
         interpreted = TRUE;
@@ -11285,70 +11454,12 @@ to FALSE and the reason for the failure is recorded in *ips.
         if (check_constexpr_source_pos_deferred(ips)) {
           do_constexpr_fail(*p_result);
         } else {
-          a_gnu_source_location_type_info interp_inf;
-
-          /* Load the type information; if the type is invalid, silently fail
-             the interpretation (this has already been diagnosed). */
-          interp_inf = gnu_source_location_impl();
-          if (is_error_type(interp_inf.impl_type)) {
-            ips->input_error = TRUE;
-            do_constexpr_fail(*p_result);
-          } else {
-            a_byte  *obj_storage;
-
-            interpreted = TRUE;
-            /* Allocate the source location __impl object. */
-            alloc_storage_promotable_object(ips, interp_inf.impl_type,
-                                            &obj_storage, p_result);
-            if (*p_result) {
-              a_source_position *use_pos = get_constexpr_source_pos();
-
-              /* Populate the source location __impl object with the values for
-                 use_pos.  Note that the fields (and their associated types)
-                 are guaranteed to have been validated upon use of the
-                 builtin. */
-              a_field_ptr   file_name_fp = interp_inf.file_field;
-              a_byte_count  file_name_f_offset;
-              get_mapped_byte_count(&persistent_map, file_name_fp,
-                                  file_name_f_offset);
-              a_byte        *file_name_f_bytes = obj_storage +
-                                                            file_name_f_offset;
-              do_constexpr_write_source_file(ips, use_pos, file_name_f_bytes,
-                                             p_result);
-              mark_subobject_initialized(file_name_f_bytes, obj_storage);
-
-              a_field_ptr   function_name_fp = interp_inf.function_field;
-              a_byte_count  function_name_f_offset;
-              get_mapped_byte_count(&persistent_map, function_name_fp,
-                                    function_name_f_offset);
-              a_byte        *function_name_f_bytes = obj_storage +
-                                                        function_name_f_offset;
-              do_constexpr_write_source_function(ips, function_name_f_bytes,
-                                                 p_result);
-              mark_subobject_initialized(function_name_f_bytes, obj_storage);
-
-              a_field_ptr   line_fp = interp_inf.line_field;
-              a_byte_count  line_f_offset;
-              get_mapped_byte_count(&persistent_map, line_fp, line_f_offset);
-              a_byte        *line_f_bytes = obj_storage + line_f_offset;
-              do_constexpr_write_source_line(ips, use_pos, line_fp->type,
-                                             line_f_bytes, p_result);
-              mark_subobject_initialized(line_f_bytes, obj_storage);
-
-              a_field_ptr   column_fp = interp_inf.column_field;
-              a_byte_count  column_f_offset;
-              get_mapped_byte_count(&persistent_map, column_fp,
-                                    column_f_offset);
-              a_byte        *column_f_bytes = obj_storage + column_f_offset;
-              do_constexpr_write_source_column(ips, use_pos, column_fp->type,
-                                               column_f_bytes, p_result);
-              mark_subobject_initialized(column_f_bytes, obj_storage);
-
-              /* Update the pointer to point to the allocated object. */
-              clear_address(result_storage, obj_storage);
-              mark_complete_object_initialized(result_storage);
-            }  /* if */
-          }  /* if */
+          interpreted = build_source_location_value(
+                                      ips, get_constexpr_source_pos(),
+                                      /*use_current_function=*/TRUE,
+                                      /*result_class_type=*/NULL,
+                                      result_storage, result_storage,
+                                      p_result);
         }  /* if */
       }
       break;
@@ -11484,189 +11595,152 @@ static a_constexpr_allocation_ptr do_constexpr_dynamic_alloc(
                                            a_constexpr_address   *cap,
                                            a_byte_count          *p_elem_size);
 
-static a_boolean make_infovec(an_interpreter_state          *ips,
-                              a_type_ptr                    tp,
-                              Dyn_array<a_reflection_value> *reflections,
-                              a_source_position             *diag_pos,
-                              a_byte                        *result_storage,
-                              a_byte                        *complete_obj)
+static a_boolean make_info_vector(
+                                an_interpreter_state          *ips,
+                                a_routine_ptr                 callee,
+                                an_expr_node_ptr              call_node,
+                                Dyn_array<a_reflection_value> *reflections,
+                                a_byte                        *result_storage,
+                                a_byte                        *complete_obj);
+
+
+static void push_entity_reflection(
+                                Dyn_array<a_reflection_value>  *reflections,
+                                void                           *entity,
+                                an_il_entry_kind                kind,
+                                a_scope_number                  scope_number)
 /*
-Initialize an infovec (type tp, which is struct std::meta::__infovec) at
-result_storage (part of the complete object at complete_obj) with the given
-sequence of reflections.  ips is the current interpreter state and diag_pos is
-the position associated with any diagnostics.  The type tp is assumed to be a
-class type with three fields: One pointer to be set to some dynamically
-allocated storage and two integers representing the capacity and length of the
-sequence, respectively.  This function sets the capacity and length both to
-the length of the given sequence of reflections.
+Append to *reflections a reflection of the entity whose IL entry is entity and
+whose kind is kind.  scope_number identifies the entity's nearest enclosing
+scope when it is local, and is FILE_SCOPE_NUMBER otherwise.
+FIXME reflection: Check callers to see if they can reserve storage to avoid
+reallocation on push_back.
 */
 {
-  a_boolean     result = TRUE, other_fields = FALSE;
-  int           n_ptr_fields = 0, n_integral_fields = 0;
-  a_byte_count  length = (a_byte_count)reflections->length();
-  a_type_ptr    info_type = reflection_type();
-  a_byte_count  info_size = value_bytes_for_type(ips, info_type, &result);
-  a_field_ptr   fp;
-  a_constexpr_address
-                *cap = NULL;
+  a_reflection_value  rv;
 
-  check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
-  if (base_classes_of(tp) != NULL) {
-    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
+  rv.entity.ptr = (char*)entity;
+  rv.entity.kind = kind;
+  rv.local_scope_number = scope_number;
+  reflections->push_back(rv);
+}  /* push_entity_reflection */
+
+
+static a_boolean collect_via_reflection_range_plan(
+                                   an_interpreter_state          *ips,
+                                   a_reflection_range_plan_ptr   plan,
+                                   a_constexpr_address           *range_ref,
+                                   Dyn_array<a_reflection_value> *reflections,
+                                   a_source_position             *diag_pos)
+/*
+Collect the std::meta::info elements of a reflection_range by replaying the
+iteration plan that build_reflection_range_plan built (once per range type) at
+parse time.  The plan supplies the __range/__begin/__end variables, an element
+variable (plan->iterator, of type std::meta::info), and the "__begin != __end",
+"++__begin", and "*__begin" constructs of an equivalent range-based for loop.
+This handles any std::ranges::input_range of info.  range_ref is the reference
+passed for the R&& argument: its value is bound to
+the (initializer-less) __range variable so that begin/end operate on the actual
+argument object.  The collected reflections are returned in *reflections (which
+is cleared first).  ips is the interpreter state and diag_pos positions any
+diagnostics.  Returns TRUE on success; otherwise a diagnostic has been recorded
+and FALSE is returned.
+*/
+{
+  a_boolean              result = TRUE;
+  a_storage_stack_state  saved_stack;
+  a_variable_ptr         vp[4];
+  a_byte                 *var_storage[4];
+  int                    k;
+  a_dynamic_init_ptr     iter_dip;
+
+  vp[0] = plan->iterator;
+  vp[1] = plan->range;
+  vp[2] = plan->begin;
+  vp[3] = plan->end;
+  if (vp[0] == NULL || vp[1] == NULL || vp[2] == NULL || vp[3] == NULL ||
+      vp[0]->init_kind != initk_dynamic ||
+      vp[0]->initializer.dynamic == NULL) {
+    /* Only possible if the plan was somehow incomplete. */
+    info_with_pos(ec_uniterable_reflection_range, &ips->position, ips);
     do_constexpr_fail(result);
     goto done;
   }  /* if */
-  /* Store the pointer to the allocation and the length/capacity in the
-     returned object. */
-  fp = fields_of(tp);
-  fp = next_alloc_field(fp);
-  for (; fp != NULL; fp = next_alloc_field(fp->next)) {
-    a_type_ptr    ftp = skip_typerefs(fp->type);
-    a_byte_count  offset;
-    get_mapped_byte_count(&persistent_map, fp, offset);
-    if (type_is(ftp, tk_pointer) && n_ptr_fields == 0) {
-      /* We found the pointer field of the infovec object: Set it to point to
-         a dynamically-allocated array of length std::meta::info elements. */
-      cap = (a_constexpr_address*)(result_storage+offset);
-      if (do_constexpr_dynamic_alloc(ips, info_type, length, /*is_array=*/TRUE,
-                                     diag_pos, cap, &info_size) == NULL) {
-        result = FALSE;
-        goto done;
-      }  /* if */
-      mark_subobject_initialized(result_storage+offset, complete_obj);
-      n_ptr_fields += 1;
-    } else if (type_is(ftp, tk_integer) && n_integral_fields < 2) {
-      /* The length and/or the capacity field.  Both are set to the value of
-         length. */
-      set_integer_value((an_integer_value*)(result_storage+offset),
-                        (a_host_large_integer)length);
-      mark_subobject_initialized(result_storage+offset, complete_obj);
-      n_integral_fields += 1;
-    } else {
-      other_fields = TRUE;
+  iter_dip = vp[0]->initializer.dynamic;
+  save_storage_stack(ips, saved_stack);
+  /* Acquire storage for the iteration variables. */
+  for (k = 0; k<4; ++k) {
+    var_storage[k] = do_constexpr_alloc_variable(ips, vp[k], &result);
+    if (result) mark_complete_object_initialized(var_storage[k]);
+  }  /* for */
+  if (!result) goto unmap_storage;
+  /* Bind __range to the actual range argument.  The __range variable carries
+     no initializer, so copy the incoming reference value into its storage. */
+  *(a_constexpr_address*)var_storage[1] = *range_ref;
+  /* Initialize __begin and __end (i.e., begin(__range)/end(__range)). */
+  for (k = 2; k<4; ++k) {
+    if (!do_constexpr_init_variable(ips, vp[k], var_storage[k], diag_pos)) {
+      do_constexpr_fail(result);
       break;
     }  /* if */
   }  /* for */
-  if (other_fields || n_integral_fields != 2 || n_ptr_fields != 1) {
-    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
-    do_constexpr_fail(result);
-    goto done;
-  }  /* if */
-  mark_complete_object_initialized(complete_obj);
-  /* Fill in the infovec contents. */
-  check_assertion(cap != NULL);
-  {
-    a_reflection_value  *rvp = (a_reflection_value*)cap->address;
-    a_byte              *array = cap->complete_object;
-    for (size_t k = 0; k < length; ++k, ++rvp) {
-      *rvp = (*reflections)[k];
-      mark_subobject_initialized((a_byte*)rvp, array);
-    }  /* if */
-  }
-done:
-  return result;
-}  /* make_infovec */
-
-
-static a_boolean load_infovec(an_interpreter_state          *ips,
-                              a_type_ptr                    tp,
-                              Dyn_array<a_reflection_value> *reflections,
-                              a_source_position             *diag_pos,
-                              a_byte                        *result_storage,
-                              a_byte                        *complete_obj)
-/*
-Load an infovec (type tp, which is struct std::meta::__infovec) stored at
-result_storage (part of the complete object at complete_obj) into *reflections.
-ips is the current interpreter state and diag_pos is the position associated
-with any diagnostics (e.g., if the infovec is not initialized).  The type tp
-is assumed to be a class type with three fields: One pointer to some
-dynamically-allocated storage and two integers representing the capacity and
-length of the sequence, respectively.
-*/
-{
-  a_boolean     result = TRUE, other_fields = FALSE;
-  int           n_ptr_fields = 0, n_integral_fields = 0;
-  a_byte_count  length = 0;
-  a_field_ptr   fp;
-  a_constexpr_address
-                *cap = NULL;
-
-  check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
-  if (base_classes_of(tp) != NULL) {
-    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
-    do_constexpr_fail(result);
-    goto done;
-  }  /* if */
-  /* Store the pointer to the allocation and the length/capacity in the
-     returned object. */
-  fp = fields_of(tp);
-  fp = next_alloc_field(fp);
-  for (; fp != NULL; fp = next_alloc_field(fp->next)) {
-    a_type_ptr    ftp = skip_typerefs(fp->type);
-    a_byte_count  offset;
-    get_mapped_byte_count(&persistent_map, fp, offset);
-    if (type_is(ftp, tk_pointer) && n_ptr_fields == 0) {
-      /* We found the pointer field of the infovec object: Set it to point to
-         a dynamically-allocated array of length std::meta::info elements. */
-      cap = (a_constexpr_address*)(result_storage+offset);
-      n_ptr_fields += 1;
-    } else if (type_is(ftp, tk_integer) && n_integral_fields < 2) {
-      /* The length and/or the capacity field.  Retain the shorter one as the
-         length. */
-      if (!subobject_is_initialized(result_storage+offset, complete_obj)) {
-        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
+  reflections->clear();
+  if (result) {
+    an_expr_node_ptr      ne = plan->ne_call_expr, incr = plan->incr_call_expr;
+    a_type_ptr            ne_tp = skip_typerefs(ne->type),
+                          incr_tp = skip_typerefs(incr->type);
+    a_byte                *ne_value, *incr_value;
+    a_byte_count          n_bytes;
+    a_boolean             ovfl = FALSE;
+    a_host_large_integer  bool_val = 0;
+    n_bytes = expr_result_size(ips, ne, ne_tp, &result);
+    if (!result) goto unmap_storage;
+    result = alloc_complete_object(ips, n_bytes, ne_tp, ne_value);
+    if (!result) goto unmap_storage;
+    n_bytes = expr_result_size(ips, incr, incr_tp, &result);
+    if (!result) goto unmap_storage;
+    result = alloc_complete_object(ips, n_bytes, incr_tp, incr_value);
+    if (!result) goto unmap_storage;
+    do {
+      /* Evaluate the "__begin != __end" test. */
+      if (cost_exceeded(ips)) {
+        more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
                              &ips->diag_list);
         do_constexpr_fail(result);
-        goto done;
+      } else {
+        do_constexpr_full_expression(ips, ne, ne_value, ne_value, result);
+        release_address_structures(ne, ne_tp, ne_value);
+        ips->cost += 1;
       }  /* if */
-      a_host_large_integer  value;
-      a_boolean             ovfl = FALSE;
-      get_int_val_from(result_storage+offset, ftp, value, ovfl);
-      if (n_integral_fields == 0 || (a_byte_count)value < length) {
-        length = (a_byte_count)value;
+      if (result) {
+        get_int_val_from(ne_value, ne_tp, bool_val, ovfl);
+        if (!ovfl && bool_val) {
+          a_constexpr_address  iter_addr;
+          /* Initialize the element variable to "*__begin". */
+          set_active_address(ips, &iter_addr, var_storage[0], var_storage[0]);
+          if (!do_constexpr_dynamic_init(ips, iter_dip, diag_pos, iter_addr)) {
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
+          /* The element variable now holds the std::meta::info for *__begin
+             (do_constexpr_dynamic_init succeeded above); read it out. */
+          reflections->push_back(*(a_reflection_value*)var_storage[0]);
+          /* Evaluate "++__begin". */
+          do_constexpr_full_expression(ips, incr, incr_value, incr_value,
+                                       result);
+          release_address_structures(incr, incr_tp, incr_value);
+        }  /* if */
       }  /* if */
-      n_integral_fields += 1;
-    } else {
-      other_fields = TRUE;
-      break;
-    }  /* if */
+    } while (result && !ovfl && bool_val);
+  }  /* if */
+unmap_storage:
+  for (k = 4; k--;) {
+    do_constexpr_unmap_variable(ips, vp[k]);
   }  /* for */
-  if (other_fields || n_integral_fields != 2 || n_ptr_fields != 1) {
-    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
-    do_constexpr_fail(result);
-    goto done;
-  }  /* if */
-  /* Load the infovec contents. */
-  check_assertion(cap != NULL);
-  if (length != 0 && !is_initialized(cap)) {
-    more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
-                         &ips->diag_list);
-    do_constexpr_fail(result);
-    goto done;
-  } else if (!is_array_element(cap)) {
-    more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
-                         &ips->diag_list);
-    do_constexpr_fail(result);
-    goto done;
-  } else {
-    a_reflection_value  *rvp = (a_reflection_value*)cap->address;
-    a_byte              *array = cap->complete_object;
-    reflections->clear();
-    reflections->reserve(length);
-    for (int k = 0; k<(int)length; ++k, ++rvp) {
-      if (cannot_dereference(cap) ||
-          !subobject_is_initialized((a_byte*)rvp, array)) {
-        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
-                             &ips->diag_list);
-        do_constexpr_fail(result);
-        goto done;
-      }  /* if */
-      reflections->push_back(*rvp);
-    }  /* for */
-  }
+  restore_storage_stack(ips, saved_stack, result);
 done:
   return result;
-}  /* load_infovec */
+}  /* collect_via_reflection_range_plan */
 
 
 static a_boolean copy_interpreter_object_to_constant(
@@ -11776,6 +11850,49 @@ done:
 }  /* do_constexpr_std_meta_make_constexpr_array */
 
 
+static a_constant_ptr make_object_reflection_variable(
+                                              a_type_ptr         obj_type,
+                                              a_constant_ptr     init_cp,
+                                              a_const_char       *name_prefix,
+                                              a_source_position  *pos)
+/*
+Create an internal-linkage, namespace-scope constexpr variable of type obj_type
+initialized by the file-scope constant init_cp, and return a ck_address
+constant -- marked is_object_reflection and moved to file-scope IL -- that
+addresses that variable.  This is the object-reflection representation shared
+by __reflect_constant_array, reflect_constant (for class/union values), and
+constant_of.  Must be called with the file-scope memory region active;
+name_prefix seeds the synthesized variable's (unique) name and pos positions
+its declaration.
+*/
+{
+  a_variable_ptr      vp = make_variable(obj_type, sc_static, NO_SCOPE_DEPTH);
+  a_constant_ptr      result_cp;
+  a_symbol_ptr        sym;
+  a_symbol_locator    loc;
+  STATIC_THREAD long  n = 0;
+
+  add_temporary_to_front_of_variables_list(
+                                    vp, curr_translation_unit->primary_scope);
+  vp->init_kind = initk_static;
+  vp->initializer.constant = init_cp;
+  vp->is_constexpr = TRUE;
+  Small_string<100> name(name_prefix, ++n);
+  clear_locator(&loc, pos);
+  (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
+  sym = make_symbol(sk_variable, &loc);
+  sym->variant.variable.ptr = vp;
+  set_source_corresp(&vp->source_corresp, sym);
+  result_cp = local_constant();
+  set_variable_address_constant(vp, result_cp,
+                                /*set_address_taken_flag=*/FALSE);
+  result_cp->type = obj_type;
+  result_cp->variant.address.is_object_reflection = TRUE;
+  result_cp = move_local_constant_to_il(&result_cp);
+  return result_cp;
+}  /* make_object_reflection_variable */
+
+
 static a_boolean do_constexpr_std_meta_reflect_result(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -11784,35 +11901,226 @@ static a_boolean do_constexpr_std_meta_reflect_result(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::reflect_result<T>(T val).  It creates IL (a_constant) for
-the value val and returns a reflection value referring to that constant.
+Implement std::meta::reflect_result<T>(T val), which underlies
+std::meta::reflect_constant.  For a scalar value it creates IL (an a_constant)
+for the value and returns an iek_constant value reflection.  For a class or
+union value it instead materializes a namespace-scope constexpr object holding
+the value and returns an object reflection for that object (is_object is true),
+matching reflect_constant's treatment of a class value as a
+template-argument-equivalent object.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean           result = FALSE;
-  a_template_arg_ptr  tap = callee->template_arg_list;
-  a_type_ptr          val_type = tap->variant.type;
-  a_reflection_value  *rvp = (a_reflection_value*)result_storage;
-  a_constant_ptr      val_cp = local_constant();
+  a_boolean               result = FALSE;
+  a_template_arg_ptr      tap = callee->template_arg_list;
+  a_type_ptr              val_type = tap->variant.type;
+  a_reflection_value      *rvp = (a_reflection_value*)result_storage;
+  a_memory_region_number  region_to_switch_back_to;
+
+  if (is_class_struct_union_type(skip_typerefs(val_type))) {
+    a_constant_ptr  init_cp;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    init_cp = fs_constant(ck_error);
+    if (!copy_interpreter_object_to_constant(ips, p_arg_bytes[0],
+                                             p_arg_bytes[0], val_type,
+                                             init_cp)) {
+      switch_back_to_original_region(region_to_switch_back_to);
+      do_constexpr_fail(result);
+    } else {
+      a_constant_ptr  obj_cp = make_object_reflection_variable(
+                                   val_type, init_cp, "__ce_const_obj_",
+                                   &call_node->position);
+      rvp->entity.kind = iek_constant;
+      rvp->entity.ptr = (char*)obj_cp;
+      rvp->local_scope_number = FILE_SCOPE_NUMBER;
+      switch_back_to_original_region(region_to_switch_back_to);
+      mark_subobject_initialized(result_storage, complete_obj);
+      result = TRUE;
+    }  /* if */
+  } else {
+    a_constant_ptr  val_cp = local_constant();
+    if (!copy_interpreter_object_to_constant(ips, p_arg_bytes[0],
+                                             p_arg_bytes[0], val_type,
+                                             val_cp)) {
+      do_constexpr_fail(result);
+      release_local_constant(&val_cp);
+    } else {
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      val_cp = move_local_constant_to_il(&val_cp);
+      rvp->entity.kind = iek_constant;
+      rvp->entity.ptr = (char*)val_cp;
+      rvp->local_scope_number = FILE_SCOPE_NUMBER;
+      switch_back_to_original_region(region_to_switch_back_to);
+      mark_subobject_initialized(result_storage, complete_obj);
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_reflect_result */
+
+
+static a_boolean do_constexpr_std_meta_reflect_object(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::reflect_object<T>(T& obj).  The argument designates an
+object; the result is a reflection of that object (an "object reflection", as
+distinguished from a reflection of a pointer value that happens to hold the
+same address).  The object reflection is represented as an iek_constant whose
+constant is a ck_address that addresses the object and whose
+is_object_reflection flag is set; the constant's type is the object type (not a
+pointer type).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean            result = FALSE;
+  a_template_arg_ptr   tap = callee->template_arg_list;
+  a_type_ptr           obj_type = tap->variant.type;
+  a_reflection_value   *rvp = (a_reflection_value*)result_storage;
+  a_constant_ptr       obj_cp = local_constant();
 
   if (!copy_interpreter_object_to_constant(ips, p_arg_bytes[0], p_arg_bytes[0],
-                                           val_type, val_cp)) {
+                                           make_reference_type(obj_type),
+                                           obj_cp)) {
     do_constexpr_fail(result);
-    release_local_constant(&val_cp);
+    release_local_constant(&obj_cp);
+  } else if (!constant_is(obj_cp, ck_address)) {
+    /* A null reference or otherwise unusable operand. */
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+    release_local_constant(&obj_cp);
   } else {
     a_memory_region_number  region_to_switch_back_to;
     switch_to_file_scope_region(&region_to_switch_back_to);
-    val_cp = move_local_constant_to_il(&val_cp);
+    obj_cp->type = obj_type;
+    obj_cp->variant.address.is_object_reflection = TRUE;
+    obj_cp = move_local_constant_to_il(&obj_cp);
     rvp->entity.kind = iek_constant;
-    rvp->entity.ptr = (char*)val_cp;
+    rvp->entity.ptr = (char*)obj_cp;
     rvp->local_scope_number = FILE_SCOPE_NUMBER;
     switch_back_to_original_region(region_to_switch_back_to);
     mark_subobject_initialized(result_storage, complete_obj);
     result = TRUE;
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_reflect_result */
+}  /* do_constexpr_std_meta_reflect_object */
+
+
+static a_boolean do_constexpr_std_meta_reflect_function(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::reflect_function<T>(T& fn).  The argument designates a
+function; the result is a reflection of that function (an iek_routine
+reflection, just as ^^fn would produce).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean            result = TRUE;
+  a_reflection_value   *rvp = (a_reflection_value*)result_storage;
+  a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[0];
+
+  if (!is_function_address(cap) || cap->variant.routine == NULL) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+  } else {
+    a_routine_ptr  rp = cap->variant.routine;
+    rvp->entity.kind = iek_routine;
+    rvp->entity.ptr = (char*)rp;
+    rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    mark_subobject_initialized(result_storage, complete_obj);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_reflect_function */
+
+
+static a_boolean do_constexpr_std_meta___reflect_constant_array(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement the header helper std::meta::__reflect_constant_array<T>(const T* p,
+size_t n).  It creates IL for a constexpr namespace-scope array of n elements
+of type T with internal linkage, initialized from the n values pointed to by p,
+and returns an object reflection for that array object.  This underlies
+std::meta::reflect_constant_array and reflect_constant_string.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean            result = TRUE;
+  a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[0];
+
+  if (is_runtime_data_address(cap) || is_function_address(cap)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_access_to_runtime_storage,
+                  &call_node->position, ips);
+  } else if (cap->address == NULL) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_invalid_null_ptr_operation,
+                  &call_node->position, ips);
+  } else {
+    a_memory_region_number  region_to_switch_back_to;
+    a_template_arg_ptr      tap = callee->template_arg_list;
+    a_type_ptr              array_type, elem_type = tap->variant.type;
+    a_byte_count            elem_size, pos, len;
+    an_integer_value        *param2 = (an_integer_value*)p_arg_bytes[1];
+    a_host_large_integer    n_elems;
+    a_boolean               ovfl;
+    a_constant_ptr          init_cp, result_cp;
+    a_reflection_value      *rvp = (a_reflection_value*)result_storage;
+    get_array_pos(ips, cap, elem_type, &len, &pos, &elem_size, &result);
+    if (!result) goto done;
+    conv_integer_value_to_host_large_integer(param2, /*is_signed=*/FALSE,
+                                             &n_elems, &ovfl);
+    if (ovfl || n_elems > (a_host_large_integer)(len-pos)) {
+      do_constexpr_fail(result);
+      info_with_pos_num2(ec_constexpr_length_too_long_for_make_constexpr_array,
+                         &call_node->position, (int32_t)n_elems,
+                         (int32_t)(len-pos), ips);
+      goto done;
+    }  /* if */
+    array_type = alloc_type(tk_array);
+    array_type->variant.array.element_type = make_qualified_type(elem_type,
+                                                                 TQ_CONST);
+    array_type->variant.array.variant.number_of_elements =
+                                                       (a_targ_size_t)n_elems;
+    init_cp = fs_constant(ck_aggregate);
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    if (!copy_interpreter_object_to_constant(
+              ips, cap->address, cap->complete_object, array_type, init_cp)) {
+      switch_back_to_original_region(region_to_switch_back_to);
+      result = FALSE;
+      goto done;
+    }  /* if */
+    result_cp = make_object_reflection_variable(array_type, init_cp,
+                                                "__ce_const_array_",
+                                                &call_node->position);
+    rvp->entity.kind = iek_constant;
+    rvp->entity.ptr = (char*)result_cp;
+    rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    switch_back_to_original_region(region_to_switch_back_to);
+    mark_subobject_initialized(result_storage, complete_obj);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta___reflect_constant_array */
 
 
 static a_boolean handle_pm_case_for_extract(
@@ -11899,7 +12207,85 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     case iek_constant:
       { if (cp == NULL) cp = (a_constant*)rvp->entity.ptr;
         rt = cp->type;
-        if (identical_types_ignoring_qualifiers(rt, val_type)) {
+        if (constant_is(cp, ck_address) &&
+            cp->variant.address.is_object_reflection) {
+          /* An object reflection.  extract<T&>(r) yields an lvalue denoting
+             the object (the address held by the ck_address entry);
+             extract<T>(r) yields a copy of the object's value. */
+          if (is_reference_type(val_type) &&
+              identical_types_ignoring_qualifiers(rt,
+                                                  type_pointed_to(val_type))) {
+            a_constexpr_address  dst_addr;
+            set_active_address(ips, &dst_addr, result_storage, complete_obj);
+            result = extract_value_from_constant(ips, cp, dst_addr);
+          } else if (is_pointer_type(val_type) && is_array_type(rt) &&
+                     identical_types_ignoring_qualifiers(
+                              array_element_type(rt),
+                              type_pointed_to(val_type))) {
+            /* extract<T*>(r) for an object reflection of an array performs the
+               array-to-pointer decay: the result is a pointer to the first
+               element.  Build an array-element pointer (base + offset-0 path
+               with the array-to-pointer decay recorded via implicit_cast) and
+               return it as a run-time constant address, as
+               make_constexpr_array does, so the pointer survives being stored
+               in a persistent constexpr object.  The recorded decay makes a
+               later materialization mark the address as an array element
+               carrying the array's bounds, so subscripting/arithmetic
+               through it stay in range.  This underlies
+               std::define_static_string/array. */
+            a_constexpr_address  dst_addr;
+            a_constant_ptr       ptr_cp = local_constant();
+            copy_constant_full(cp, ptr_cp,
+                               CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
+            ptr_cp->type = val_type;
+            ptr_cp->implicit_cast = TRUE;
+            ptr_cp->variant.address.is_object_reflection = FALSE;
+            if (ptr_cp->variant.address.subobject_path == NULL) {
+              ptr_cp->variant.address.subobject_path = alloc_subobject_path();
+              ptr_cp->variant.address.subobject_path->is_offset = TRUE;
+              ptr_cp->variant.address.subobject_path->variant.ptr_offset = 0;
+            }  /* if */
+            /* Keep ptr_cp alive on the interpreter's constant list:
+               materializing it below records a reverse mapping from the
+               array's interpreter storage back to ptr_cp, which is consulted
+               when the resulting pointer is later captured into a constant
+               (for example when it is stored as a member of an aggregate such
+               as std::span). */
+            ptr_cp->next = ips->constants;
+            ips->constants = ptr_cp;
+            set_active_address(ips, &dst_addr, result_storage, complete_obj);
+            result = extract_value_from_constant(ips, ptr_cp, dst_addr);
+          } else if (!is_reference_type(val_type) &&
+                     identical_types_ignoring_qualifiers(rt, val_type)) {
+            a_constexpr_address     obj_addr, ptr_addr;
+            a_byte                  *ptr_bytes;
+            a_memory_region_number  region_to_switch_back_to;
+            a_constant_ptr          val_cp = fs_constant(ck_error);
+            (void)alloc_complete_object(ips, sizeof(a_constexpr_address),
+                                        make_pointer_type(rt), ptr_bytes);
+            clear_address(&ptr_addr, ptr_bytes);
+            /* Materialize the addressed object in interpreter storage and
+               snapshot its current value into a value constant. */
+            result = extract_value_from_constant(ips, cp, ptr_addr);
+            if (result) {
+              obj_addr = *(a_constexpr_address*)ptr_bytes;
+              switch_to_file_scope_region(&region_to_switch_back_to);
+              result = copy_interpreter_object_to_constant(
+                              ips, obj_addr.address, obj_addr.complete_object,
+                              rt, val_cp);
+              switch_back_to_original_region(region_to_switch_back_to);
+            }  /* if */
+            if (result) {
+              a_constexpr_address  dst_addr;
+              set_active_address(ips, &dst_addr, result_storage, complete_obj);
+              result = extract_value_from_constant(ips, val_cp, dst_addr);
+            }  /* if */
+          } else {
+            info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
+                                &call_node->position, val_type, rt, ips);
+            do_constexpr_fail(result);
+          }  /* if */
+        } else if (identical_types_ignoring_qualifiers(rt, val_type)) {
           a_constexpr_address  dst_addr;
           set_active_address(ips, &dst_addr, result_storage, complete_obj);
           result = extract_value_from_constant(ips, cp, dst_addr);
@@ -12110,9 +12496,186 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   if (cp != NULL) {
     result_rvp->entity.kind = iek_constant;
     result_rvp->entity.ptr = (char*)cp;
+    mark_subobject_initialized(result_storage, complete_obj);
   }  /* if */
   return result;
 }  /* do_constexpr_std_meta_value_of */
+
+
+static a_boolean is_object_reflection_constant(a_reflection_value  *rvp)
+/*
+Return TRUE if rvp is an object reflection (i.e., an iek_constant reflection
+whose constant is a ck_address entry marked is_object_reflection, as produced
+by std::meta::reflect_object, object_of, and reflect_constant_array).
+*/
+{
+  a_boolean       answer = FALSE;
+  a_constant_ptr  cp;
+
+  if (rvp->entity.kind == iek_constant) {
+    cp = (a_constant*)rvp->entity.ptr;
+    answer = (constant_is(cp, ck_address) &&
+              cp->variant.address.is_object_reflection);
+  }  /* if */
+  return answer;
+}  /* is_object_reflection_constant */
+
+
+static a_boolean do_constexpr_std_meta_object_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::object_of(r).  If r designates an object, a variable of
+static storage duration, or a reference, return an object reflection for the
+denoted object; if r is already an object reflection it is returned unchanged.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],
+                      *result_rvp = (a_reflection_value*)result_storage;
+
+  extract_reflected_entity(rvp);
+  if (is_object_reflection_constant(rvp)) {
+    *result_rvp = *rvp;
+  } else if (rvp->entity.kind == iek_variable) {
+    a_variable_ptr          vp = (a_variable*)rvp->entity.ptr;
+    a_type_ptr              vtp = skip_typerefs(vp->type);
+    a_memory_region_number  region_to_switch_back_to;
+    a_constant_ptr          cp = local_constant();
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    if (is_reference_type(vtp)) {
+      /* object_of a reference designates the referenced object.  The
+         reference's constant value is a ck_address for that object. */
+      a_constant_ptr  ref_cp = vp->is_constexpr &&
+                                   vp->init_kind == initk_static
+                                 ? vp->initializer.constant : NULL;
+      if (ref_cp != NULL && constant_is(ref_cp, ck_address)) {
+        (void)copy_constant_full(ref_cp, cp,
+                                 CE_COPYING_FOR_CONSTEXPR_MASTER_EXPR);
+        cp->type = type_pointed_to(vtp);
+        cp->variant.address.is_object_reflection = TRUE;
+      } else {
+        release_local_constant(&cp);
+        cp = NULL;
+      }  /* if */
+    } else {
+      set_variable_address_constant(vp, cp,
+                                    /*set_address_taken_flag=*/FALSE);
+      cp->type = vp->type;
+      cp->variant.address.is_object_reflection = TRUE;
+    }  /* if */
+    if (cp != NULL) {
+      cp = move_local_constant_to_il(&cp);
+      result_rvp->entity.kind = iek_constant;
+      result_rvp->entity.ptr = (char*)cp;
+      result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    } else {
+      info_with_pos(ec_invalid_reflection_for_intrinsic,
+                    &call_node->position, ips);
+      do_constexpr_fail(result);
+    }  /* if */
+    switch_back_to_original_region(region_to_switch_back_to);
+  } else {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+  }  /* if */
+  if (result) {
+    mark_subobject_initialized(result_storage, complete_obj);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_object_of */
+
+
+static a_boolean do_constexpr_std_meta_constant_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::constant_of(r), modeled as reflect_constant([:r:]).  If r
+represents a value it is returned unchanged.  If r is an object reflection of a
+class or union object it stays an object reflection (a class value is a
+template-argument-equivalent object); an object reflection of a scalar object
+is reduced to a value reflection of the scalar's value.  A constexpr class or
+union variable likewise yields an object reflection (via object_of).  Other
+reflections that denote a constant (for example an enumerator or a scalar
+constexpr variable) are reduced to a value reflection via value_of.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],
+                      *result_rvp = (a_reflection_value*)result_storage;
+
+  extract_reflected_entity(rvp);
+  if (is_object_reflection_constant(rvp) &&
+      is_class_struct_union_type(skip_typerefs(
+                                     ((a_constant*)rvp->entity.ptr)->type))) {
+    /* An object reflection of a class/union value is already the object
+       reflection reflect_constant would produce; keep it. */
+    *result_rvp = *rvp;
+  } else if (is_object_reflection_constant(rvp)) {
+    /* Materialize the value held by the addressed (scalar) object as a value
+       reflection.  The object reflection's ck_address entry addresses a
+       constexpr variable or constant; read the value it currently holds. */
+    a_constant_ptr          obj_cp = (a_constant*)rvp->entity.ptr;
+    a_type_ptr              obj_type = obj_cp->type;
+    a_byte                  *obj_bytes;
+    a_constexpr_address     obj_addr, ptr_addr;
+    a_memory_region_number  region_to_switch_back_to;
+    a_constant_ptr          val_cp;
+    (void)alloc_complete_object(ips, sizeof(a_constexpr_address),
+                                make_pointer_type(obj_type), obj_bytes);
+    clear_address(&ptr_addr, obj_bytes);
+    if (!extract_value_from_constant(ips, obj_cp, ptr_addr)) {
+      result = FALSE;
+    } else {
+      obj_addr = *(a_constexpr_address*)obj_bytes;
+      val_cp = fs_constant(ck_error);
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      if (!copy_interpreter_object_to_constant(ips, obj_addr.address,
+                                               obj_addr.complete_object,
+                                               obj_type, val_cp)) {
+        result = FALSE;
+      } else {
+        result_rvp->entity.kind = iek_constant;
+        result_rvp->entity.ptr = (char*)val_cp;
+        result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+      }  /* if */
+      switch_back_to_original_region(region_to_switch_back_to);
+    }  /* if */
+  } else if (rvp->entity.kind == iek_constant) {
+    /* Already a value reflection. */
+    *result_rvp = *rvp;
+  } else if (rvp->entity.kind == iek_variable &&
+             ((a_variable*)rvp->entity.ptr)->is_constexpr &&
+             is_class_struct_union_type(skip_typerefs(
+                                     ((a_variable*)rvp->entity.ptr)->type))) {
+    /* A constexpr class/union variable denotes a constant object; its
+       reflect_constant is an object reflection of that object. */
+    result = do_constexpr_std_meta_object_of(ips, callee, call_node,
+                                             p_arg_bytes, result_storage,
+                                             complete_obj);
+  } else {
+    result = do_constexpr_std_meta_value_of(ips, callee, call_node,
+                                            p_arg_bytes, result_storage,
+                                            complete_obj);
+  }  /* if */
+  if (result) {
+    mark_subobject_initialized(result_storage, complete_obj);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_constant_of */
 
 
 static inline void set_bool_value(a_boolean  value,
@@ -12125,677 +12688,744 @@ Store the given boolean value as an_integer_value in the given storage.
 }  /* set_bool_value */
 
 
-static a_boolean do_constexpr_std_meta_is_token_sequence(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+static a_type *routine_type_for_reflection(a_reflection_value  *rvp)
 /*
-Implement std::meta::is_token_sequence(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
+Return the routine type described by the reflection rvp, which must already
+have been normalized with strip_template_arg and extract_reflected_entity, or
+NULL when rvp represents something other than a function or a function type.
+This lets the queries about a function's type accept both a reflection of the
+function and a reflection of its type.
 */
 {
-  a_boolean           result = TRUE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_type  *func_type = NULL;
 
-  strip_template_arg(rvp);
-  set_bool_value(rvp->entity.kind == iek_token_sequence, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_token_sequence */
-
-
-static a_boolean do_constexpr_std_meta_is_empty_token_sequence(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_empty_token_sequence(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_token_sequence) {
-    a_token_sequence  *seq = (a_token_sequence*)rvp->entity.ptr;
-    a_token_cache     *cache = (a_token_cache*)seq->token_cache;
-    answer = cache->is_empty() ||
-             cache->get_first_token()->is(tok_end_of_source);
+  if (rvp->entity.kind == iek_type) {
+    func_type = skip_typerefs((a_type*)rvp->entity.ptr);
+    if (!type_is(func_type, tk_routine)) func_type = NULL;
+  } else if (rvp->entity.kind == iek_routine) {
+    func_type = skip_typerefs(((a_routine*)rvp->entity.ptr)->type);
   }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_empty_token_sequence */
+  return func_type;
+}  /* routine_type_for_reflection */
 
 
-static a_boolean do_constexpr_std_meta_is_annotation(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
 /*
-Implement std::meta::is_annotation(info).
+The macro DEFINE_entity_predicate expands to the definition of the function
+implementing one of the std::meta queries that ask a yes-or-no question about
+the entity a single reflection operand represents (see
+do_constexpr_intrinsic_call for the meaning of the function's parameters).
+The first and second macro arguments match the description of the function in
+interpret.h (see the macro NS_scope_constexpr_intrinsics).  The third must be a
+parenthesized lambda expression (the parentheses keep an embedded comma from
+being read as a macro argument separator) that answers the question by
+examining the reflection "rvp" -- normalized beforehand, so that a reflection
+of a template argument or of a reference to an entity is seen as a reflection
+of the entity itself -- and setting the boolean variable "answer", which starts
+out FALSE.  A reflection that represents nothing the query applies to is simply
+answered FALSE; a query that instead cannot be evaluated at all should set the
+boolean status variable "result" to FALSE.
 
-See do_constexpr_intrinsic_call for the meaning of the parameters.
+The type traits proper use the separate DEFINE_type_predicate and
+DEFINE_type_transform macros further below.
 */
-{
-  a_boolean           result = TRUE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  set_bool_value(rvp->entity.kind == iek_attribute &&
-                   ((an_attribute*)rvp->entity.ptr)->kind == ak_annotation,
-                 result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_annotation */
-
-
-static a_boolean do_constexpr_std_meta_is_type(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_type(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  set_bool_value(rvp->entity.kind == iek_type, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_type */
+#define DEFINE_entity_predicate(ns, name, ref_lambda_body)                   \
+static a_boolean do_constexpr_##ns##_##name(                                 \
+                                     an_interpreter_state  *ips,             \
+                                     a_routine_ptr         callee,           \
+                                     an_expr_node_ptr      call_node,        \
+                                     a_byte                **p_arg_bytes,    \
+                                     a_byte                *result_storage,  \
+                                     a_byte                *complete_obj)    \
+{                                                                            \
+  a_boolean           result = TRUE, answer = FALSE;                         \
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];            \
+                                                                             \
+  strip_template_arg(rvp);                                                   \
+  extract_reflected_entity(rvp);                                             \
+  ref_lambda_body();                                                         \
+  set_bool_value(answer, result_storage);                                    \
+  return result;                                                             \
+}
 
 
-static a_boolean do_constexpr_std_meta_is_alias(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_alias(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  answer = ((rvp->entity.kind == iek_type &&
-             type_is_typedef((a_type*)rvp->entity.ptr)) ||
-            rvp->entity.kind == iek_namespace);
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_alias */
+DEFINE_entity_predicate(std_meta, is_token_sequence,
+  ([&]{
+    answer = rvp->entity.kind == iek_token_sequence;
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_incomplete_type(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_incomplete_type(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  answer = (rvp->entity.kind == iek_type &&
-            is_incomplete_type((a_type*)rvp->entity.ptr));
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_incomplete_type */
+DEFINE_entity_predicate(std_meta, is_empty_token_sequence,
+  ([&]{
+    if (rvp->entity.kind == iek_token_sequence) {
+      a_token_sequence  *seq = (a_token_sequence*)rvp->entity.ptr;
+      a_token_cache     *cache = (a_token_cache*)seq->token_cache;
+      answer = cache->is_empty() ||
+               cache->get_first_token()->is(tok_end_of_source);
+    }  /* if */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_template(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_template(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  set_bool_value(rvp->entity.kind == iek_template, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_template */
+DEFINE_entity_predicate(std_meta, is_annotation,
+  ([&]{
+    answer = (rvp->entity.kind == iek_attribute &&
+              ((an_attribute*)rvp->entity.ptr)->kind == ak_annotation);
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_function_template(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_function_template(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  answer = (rvp->entity.kind == iek_template &&
-            ((a_template*)rvp->entity.ptr)->kind == templk_function);
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_function_template */
+DEFINE_entity_predicate(std_meta, is_type,
+  ([&]{
+    answer = rvp->entity.kind == iek_type;
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_variable_template(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_variable_template(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  answer = (rvp->entity.kind == iek_template &&
-            ((a_template*)rvp->entity.ptr)->kind == templk_variable);
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_variable_template */
+DEFINE_entity_predicate(std_meta, is_type_alias,
+  ([&]{
+    answer = (rvp->entity.kind == iek_type &&
+              type_is_typedef((a_type*)rvp->entity.ptr));
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_class_template(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_class_template(info).
+DEFINE_entity_predicate(std_meta, is_namespace_alias,
+  ([&]{
+    answer = rvp->entity.kind == iek_namespace;
+  }))
 
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
-  strip_template_arg(rvp);
-  answer = (rvp->entity.kind == iek_template &&
-            ((a_template*)rvp->entity.ptr)->kind == templk_class &&
-            is_immediate_class_type(((a_template*)rvp->entity.ptr)
+DEFINE_entity_predicate(std_meta, is_complete_type,
+  ([&]{
+    answer = (rvp->entity.kind == iek_type &&
+              !is_incomplete_type((a_type*)rvp->entity.ptr));
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_template,
+  ([&]{
+    answer = rvp->entity.kind == iek_template;
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_function_template,
+  ([&]{
+    answer = (rvp->entity.kind == iek_template &&
+              ((a_template*)rvp->entity.ptr)->kind == templk_function);
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_variable_template,
+  ([&]{
+    answer = (rvp->entity.kind == iek_template &&
+              ((a_template*)rvp->entity.ptr)->kind == templk_variable);
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_class_template,
+  ([&]{
+    answer = (rvp->entity.kind == iek_template &&
+              ((a_template*)rvp->entity.ptr)->kind == templk_class &&
+              is_immediate_class_type(((a_template*)rvp->entity.ptr)
                                              ->prototype_instantiation.type));
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_class_template */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_alias_template(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_alias_template(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  answer = (rvp->entity.kind == iek_template &&
-            ((a_template*)rvp->entity.ptr)->kind == templk_class &&
-            !is_immediate_class_type(((a_template*)rvp->entity.ptr)
+DEFINE_entity_predicate(std_meta, is_alias_template,
+  ([&]{
+    answer = (rvp->entity.kind == iek_template &&
+              ((a_template*)rvp->entity.ptr)->kind == templk_class &&
+              !is_immediate_class_type(((a_template*)rvp->entity.ptr)
                                              ->prototype_instantiation.type));
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_alias_template */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_concept(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_concept(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  answer = (rvp->entity.kind == iek_template &&
-            ((a_template*)rvp->entity.ptr)->kind == templk_concept);
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_concept */
+DEFINE_entity_predicate(std_meta, is_concept,
+  ([&]{
+    answer = (rvp->entity.kind == iek_template &&
+              ((a_template*)rvp->entity.ptr)->kind == templk_concept);
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_constant(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_constant(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_constant) {
-    answer = TRUE;
-  } else if (rvp->entity.kind == iek_expr_node) {
-    /* Produce a "true" result if the node is a prvalue and can be folded
-       to a constant (with std::is_constant_evaluated() == false). */
-    a_constant    *dummy_con = local_constant();
-    an_expr_node  *expr = (an_expr_node*)rvp->entity.ptr;
-    if (fold_expr(expr, dummy_con)) {
-      answer = TRUE;
+DEFINE_entity_predicate(std_meta, is_value,
+  ([&]{
+    if (rvp->entity.kind == iek_constant) {
+      /* An object reflection is also an iek_constant entry (a marked
+         ck_address); it denotes an object, not a value, so it is not a value
+         reflection. */
+      answer = !is_object_reflection_constant(rvp);
+    } else if (rvp->entity.kind == iek_expr_node) {
+      /* Produce a "true" result if the node is a prvalue and can be folded
+         to a constant (with std::is_constant_evaluated() == false). */
+      a_constant    *dummy_con = local_constant();
+      an_expr_node  *expr = (an_expr_node*)rvp->entity.ptr;
+      if (fold_expr(expr, dummy_con)) {
+        answer = TRUE;
+      }  /* if */
+      release_local_constant(&dummy_con);
     }  /* if */
-    release_local_constant(&dummy_con);
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_constant */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_variable(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_variable(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  set_bool_value(rvp->entity.kind == iek_variable, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_variable */
+DEFINE_entity_predicate(std_meta, is_variable,
+  ([&]{
+    answer = rvp->entity.kind == iek_variable;
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_function(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_function(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  set_bool_value(rvp->entity.kind == iek_routine, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_function */
+DEFINE_entity_predicate(std_meta, is_function,
+  ([&]{
+    answer = rvp->entity.kind == iek_routine;
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_function_parameter(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_function_parameter(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  set_bool_value(rvp->entity.kind == iek_param_type, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_function_parameter */
+DEFINE_entity_predicate(std_meta, is_function_parameter,
+  ([&]{
+    answer = rvp->entity.kind == iek_param_type;
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_explicit_object_parameter(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_explicit_object_parameter(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  set_bool_value((rvp->entity.kind == iek_param_type &&
-                  ((a_param_type*)rvp->entity.ptr)->is_explicit_this),
-                 result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_explicit_object_parameter */
+DEFINE_entity_predicate(std_meta, is_explicit_object_parameter,
+  ([&]{
+    answer = (rvp->entity.kind == iek_param_type &&
+              ((a_param_type*)rvp->entity.ptr)->is_explicit_this);
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_namespace(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_namespace(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  if (rvp->entity.kind == iek_namespace) {
-    answer = TRUE;
-  } else if (rvp->entity.kind == iek_scope) {
-    a_scope  *scope = (a_scope*)rvp->entity.ptr;
-    if (scope->kind == sck_file ||
-        scope->kind == sck_namespace ||
-        scope->kind == sck_namespace_extension) {
+DEFINE_entity_predicate(std_meta, is_namespace,
+  ([&]{
+    if (rvp->entity.kind == iek_namespace) {
       answer = TRUE;
+    } else if (rvp->entity.kind == iek_scope) {
+      a_scope  *scope = (a_scope*)rvp->entity.ptr;
+      if (scope->kind == sck_file ||
+          scope->kind == sck_namespace ||
+          scope->kind == sck_namespace_extension) {
+        answer = TRUE;
+      }  /* if */
     }  /* if */
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_namespace */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_nonstatic_data_member(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_nonstatic_data_member(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  set_bool_value(rvp->entity.kind == iek_field, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_nonstatic_data_member */
+DEFINE_entity_predicate(std_meta, is_nonstatic_data_member,
+  ([&]{
+    answer = rvp->entity.kind == iek_field;
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_base(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_base(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  set_bool_value(rvp->entity.kind == iek_base_class, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_base */
+DEFINE_entity_predicate(std_meta, is_base,
+  ([&]{
+    answer = rvp->entity.kind == iek_base_class;
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_constructor(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_constructor(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_routine) {
-    a_routine  *rp = (a_routine*)rvp->entity.ptr;
-    answer = special_kind_is(rp, sfk_constructor);
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_constructor */
-
-
-static a_boolean do_constexpr_std_meta_is_destructor(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_destructor(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_routine) {
-    a_routine  *rp = (a_routine*)rvp->entity.ptr;
-    answer = special_kind_is(rp, sfk_destructor);
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_destructor */
-
-
-static a_boolean do_constexpr_std_meta_is_special_member(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_special_member(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_routine) {
-    a_routine  *rp = (a_routine*)rvp->entity.ptr;
-    a_boolean  is_move;
-    a_type_qualifier_set
-               tqs;
-    if (special_kind_is(rp, sfk_constructor) &&
-        (is_default_constructor(rp, /*is_declarative_context=*/TRUE) ||
-         is_copy_constructor(rp, parent_class_of(rp), &tqs,
-                             /*includ_move_ctors=*/TRUE,
-                             /*is_declarative_context=*/TRUE))) {
-      answer = TRUE;
-    } else if (special_kind_is(rp, sfk_destructor)) {
-      answer = TRUE;
-    } else if (special_kind_is(rp, sfk_operator) &&
-               routine_is_copy_or_move_assign_operator(rp, &tqs, &is_move)) {
-      answer = TRUE;
+DEFINE_entity_predicate(std_meta, is_constructor,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      a_routine  *rp = (a_routine*)rvp->entity.ptr;
+      answer = special_kind_is(rp, sfk_constructor);
     }  /* if */
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_special_member */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_public(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+DEFINE_entity_predicate(std_meta, is_destructor,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      a_routine  *rp = (a_routine*)rvp->entity.ptr;
+      answer = special_kind_is(rp, sfk_destructor);
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_special_member_function,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      a_routine  *rp = (a_routine*)rvp->entity.ptr;
+      a_boolean  is_move;
+      a_type_qualifier_set
+                 tqs;
+      if (special_kind_is(rp, sfk_constructor) &&
+          (is_default_constructor(rp, /*is_declarative_context=*/TRUE) ||
+           is_copy_constructor(rp, parent_class_of(rp), &tqs,
+                               /*includ_move_ctors=*/TRUE,
+                               /*is_declarative_context=*/TRUE))) {
+        answer = TRUE;
+      } else if (special_kind_is(rp, sfk_destructor)) {
+        answer = TRUE;
+      } else if (special_kind_is(rp, sfk_operator) &&
+                 routine_is_copy_or_move_assign_operator(rp, &tqs, &is_move)) {
+        answer = TRUE;
+      }  /* if */
+    }  /* if */
+  }))
+
+
+static a_boolean reflection_has_access(a_reflection_value   *rvp,
+                                       an_access_specifier  access)
 /*
-Implement std::meta::is_public(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
+Return TRUE when the entity reflected by rvp is a base class or a class member
+declared with the given access, and FALSE for anything else (including an
+entity that is not a class member at all).  rvp must already have been
+normalized with strip_template_arg and extract_reflected_entity.
 */
 {
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_boolean  answer = FALSE;
 
-  extract_reflected_entity(rvp);
   if (rvp->entity.kind == iek_base_class) {
-    answer = ((a_base_class*)rvp->entity.ptr)->derivation->access == as_public;
+    answer = ((a_base_class*)rvp->entity.ptr)->derivation->access == access;
   } else {
     a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
     if (scp != NULL && scp->is_class_member) {
-      answer = scp->access == as_public;
+      answer = scp->access == access;
     }  /* if */
   }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_public */
+  return answer;
+}  /* reflection_has_access */
 
 
-static a_boolean do_constexpr_std_meta_is_protected(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+DEFINE_entity_predicate(std_meta, is_public,
+  ([&]{ answer = reflection_has_access(rvp, as_public); }))
+
+
+DEFINE_entity_predicate(std_meta, is_protected,
+  ([&]{ answer = reflection_has_access(rvp, as_protected); }))
+
+
+DEFINE_entity_predicate(std_meta, is_private,
+  ([&]{ answer = reflection_has_access(rvp, as_private); }))
+
+
+static a_boolean class_grants_member_access(a_type_ptr  viewpoint_class,
+                                            a_type_ptr  member_class)
 /*
-Implement std::meta::is_protected(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
+Return TRUE if code written in viewpoint_class has member access privilege to
+member_class, i.e., viewpoint_class is member_class itself or member_class has
+granted friendship to viewpoint_class.  This mirrors the friend/self test of
+have_member_access_from_class_scope for an explicit viewpoint.
 */
 {
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_boolean               result = FALSE;
+  a_class_list_entry_ptr  e;
 
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_base_class) {
-    answer = ((a_base_class*)rvp->entity.ptr)->derivation->access ==
-                                                                 as_protected;
-  } else {
-    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
-    if (scp != NULL && scp->is_class_member) {
-      answer = scp->access == as_protected;
-    }  /* if */
+  if (same_entities(viewpoint_class, member_class)) {
+    result = TRUE;
+  } else if (is_immediate_class_type(viewpoint_class) &&
+             viewpoint_class->variant.class_struct_union.extra_info != NULL) {
+    for (e = viewpoint_class->variant.class_struct_union.extra_info
+                                                       ->befriending_classes;
+         e != NULL; e = e->next) {
+      if (same_entities(e->class_type, member_class)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
   }  /* if */
-  set_bool_value(answer, result_storage);
   return result;
-}  /* do_constexpr_std_meta_is_protected */
+}  /* class_grants_member_access */
 
 
-static a_boolean do_constexpr_std_meta_is_private(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+static a_boolean function_grants_member_access(a_routine_ptr  f,
+                                               a_type_ptr     member_class)
 /*
-Implement std::meta::is_private(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
+Return TRUE if the function f is a friend of member_class (so that code in f
+has member access privilege to member_class).
 */
 {
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_boolean               result = FALSE;
+  a_class_list_entry_ptr  e;
 
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_base_class) {
-    answer = ((a_base_class*)rvp->entity.ptr)->derivation->access ==
-                                                                   as_private;
-  } else {
-    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
-    if (scp != NULL && scp->is_class_member) {
-      answer = scp->access == as_private;
+  for (e = rout_befriending_classes(f); e != NULL; e = e->next) {
+    if (same_entities(e->class_type, member_class)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* function_grants_member_access */
+
+
+static a_boolean protected_access_through_class(a_type_ptr  member_class,
+                                                a_type_ptr  access_class,
+                                                a_type_ptr  naming_class,
+                                                a_boolean   is_base_rel)
+/*
+Return TRUE if code with member access privilege to access_class may reach a
+protected member -- or a protected base-class relationship -- of member_class.
+access_class must derive from member_class along a path that itself admits
+protected access, which have_protected_access_from_derived_class checks
+(unlike a bare find_base_class_of test, it rejects e.g. a private intermediate
+derivation).  For a class member the [class.protected] restriction also
+requires the naming (designating, object) class to be access_class or derived
+from it; a base-class relationship is not subject to that extra restriction.
+*/
+{
+  a_boolean  accessible = FALSE;
+
+  if (is_immediate_class_type(access_class) &&
+      have_protected_access_from_derived_class(member_class, access_class) &&
+      (is_base_rel ||
+       naming_class == access_class ||
+       find_base_class_of(naming_class, access_class) != NULL)) {
+    accessible = TRUE;
+  }  /* if */
+  return accessible;
+}  /* protected_access_through_class */
+
+
+static a_boolean protected_access_via_befriended_class(
+                                    a_class_list_entry_ptr  befriending_list,
+                                    a_type_ptr              member_class,
+                                    a_type_ptr              naming_class,
+                                    a_boolean               is_base_rel)
+/*
+Return TRUE if a scope or function that is a friend of one of the classes on
+befriending_list can reach a protected member of member_class through that
+class.  This models the friend-of-a-derived-class case: a friend of a class
+derived from the entity's class has protected access to the entity, subject to
+the same path and [class.protected] restrictions as a member of that derived
+class (see protected_access_through_class).
+*/
+{
+  a_boolean               accessible = FALSE;
+  a_class_list_entry_ptr  e;
+
+  for (e = befriending_list; e != NULL && !accessible; e = e->next) {
+    accessible = protected_access_through_class(member_class,
+                                                skip_typerefs(e->class_type),
+                                                naming_class, is_base_rel);
+  }  /* for */
+  return accessible;
+}  /* protected_access_via_befriended_class */
+
+
+/*
+A structure describing the part of a std::meta::access_context that does not
+depend on the entity whose accessibility is being decided: the designating
+class, the innermost class scope enclosing the context's scope, the function
+that scope denotes (which may be a friend of the entity's class), and whether
+the context is the unchecked one, from which everything is accessible.  A query
+that asks about many entities, such as members_of, derives this once and hands
+it to reflection_accessible_in_context for each of them.
+*/
+struct a_meta_access_context {
+  a_type_ptr    designating_class;
+                        /* The class through which entities are named, or NULL
+                           to name each entity in its own class. */
+  a_scope_ptr   enclosing_class_scope;
+                        /* The innermost class scope from which access is
+                           granted, or NULL if there is none. */
+  a_routine_ptr context_routine;
+                        /* The function the context denotes, or NULL. */
+  a_boolean     is_unchecked;
+                        /* TRUE for access_context::unchecked(), whose null
+                           scope makes every entity accessible. */
+};
+
+
+static void decode_access_context(a_reflection_value     *scope_rvp,
+                                  a_reflection_value     *dc_rvp,
+                                  a_meta_access_context  *ctx)
+/*
+Derive from the scope reflection *scope_rvp and the designating-class
+reflection *dc_rvp of an access_context the entity-independent information
+recorded in *ctx (see a_meta_access_context).  A designating-class reflection
+that does not designate a class is treated as absent; load_access_context has
+already diagnosed that case.
+*/
+{
+  a_reflection_value  dc = *dc_rvp;
+
+  ctx->designating_class = NULL;
+  ctx->enclosing_class_scope = NULL;
+  ctx->context_routine = NULL;
+  ctx->is_unchecked = scope_rvp->entity.kind == iek_none;
+  strip_template_arg(&dc);
+  if (dc.entity.kind == iek_type) {
+    a_type_ptr  d = skip_typerefs((a_type_ptr)dc.entity.ptr);
+    if (is_immediate_class_type(d)) {
+      ctx->designating_class = d;
     }  /* if */
   }  /* if */
-  set_bool_value(answer, result_storage);
+  switch (scope_rvp->entity.kind) {
+    case iek_type:
+      { a_type_ptr  c = skip_typerefs((a_type_ptr)scope_rvp->entity.ptr);
+        if (is_immediate_class_type(c)) {
+          ctx->enclosing_class_scope = class_type_supp(c)->assoc_scope;
+        }  /* if */
+      }
+      break;
+    case iek_routine:
+      { a_routine_ptr  rp = (a_routine*)scope_rvp->entity.ptr;
+        ctx->context_routine = rp;
+        if (rp->source_corresp.is_class_member) {
+          a_type_ptr  c = skip_typerefs(parent_class_of(rp));
+          if (is_immediate_class_type(c)) {
+            ctx->enclosing_class_scope = class_type_supp(c)->assoc_scope;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case iek_scope:
+      ctx->enclosing_class_scope = (a_scope*)scope_rvp->entity.ptr;
+      break;
+    default:
+      /* A namespace or other scope grants no member access. */
+      break;
+  }  /* switch */
+}  /* decode_access_context */
+
+
+static a_boolean reflection_accessible_in_context(
+                                           a_reflection_value     *member_rvp,
+                                           a_meta_access_context  *ctx)
+/*
+Determine whether the entity reflected by member_rvp is accessible from the
+access_context described by *ctx.  This implements [N5046]
+[meta.reflection.access.queries]: the designating class (DESIGNATING-CLS) is
+the one the context records, or, when it records none, the class the entity
+belongs to.  A member (or base-class relationship) that is not reachable
+through the designating class is inaccessible.  Otherwise the unchecked
+context or a public entity is accessible; for a non-public entity,
+accessibility is decided from the classes lexically enclosing the context's
+scope and any friend function it denotes, naming the entity in the designating
+class.  A protected member is additionally accessible from a class suitably
+derived from its class -- or from a friend of such a derived class -- subject
+to the [class.protected] restriction that the designating (object) class be
+the accessing class or derived from it, and to the derivation path itself
+admitting protected access; that extra restriction does not apply to
+base-class relationships.
+*/
+{
+  a_boolean                 accessible = FALSE;
+  a_boolean                 is_base_rel = FALSE;
+  a_source_correspondence  *scp;
+  an_access_specifier        access = as_public;
+  a_symbol_ptr               member_sym;
+  a_type_ptr                 member_class = NULL;
+  a_type_ptr                 designating_class = ctx->designating_class;
+  a_type_ptr                 naming_class;
+  a_base_class_ptr           bcp;
+  a_routine_ptr              ctx_func = ctx->context_routine;
+  a_scope_ptr                w = ctx->enclosing_class_scope;
+
+  extract_reflected_entity(member_rvp);
+  /* Classify the reflected entity and find the class it belongs to. */
+  if (member_rvp->entity.kind == iek_base_class) {
+    bcp = (a_base_class*)member_rvp->entity.ptr;
+    is_base_rel = TRUE;
+    member_class = skip_typerefs(bcp->derived_class);
+    access = bcp->derivation->access;
+  } else {
+    scp = source_corresp_for_reflection(member_rvp);
+    if (scp == NULL || !scp->is_class_member) {
+      accessible = TRUE;
+      goto done;
+    }  /* if */
+    access = (an_access_specifier)scp->access;
+    member_sym = (a_symbol*)scp->assoc_info;
+    if (member_sym == NULL || !member_sym->is_class_member) {
+      accessible = TRUE;
+      goto done;
+    }  /* if */
+    member_class = skip_typerefs(sym_parent_class(member_sym));
+  }  /* if */
+  /* Rule for the designating class: a member must belong to it (directly or by
+     inheritance); a base-class relationship's derived class must be it or a
+     base of it.  find_base_class_of(a, b) is non-null when b is a base
+     of a. */
+  if (designating_class != NULL &&
+      designating_class != member_class &&
+      find_base_class_of(designating_class, member_class) == NULL) {
+    accessible = FALSE;
+    goto done;
+  }  /* if */
+  naming_class = designating_class != NULL ? designating_class : member_class;
+  /* For a member named through a class other than its own, use its effective
+     access in the naming class rather than its declared access: a
+     using-declaration in the naming class (or an intervening base) can, for
+     example, re-export an inherited protected member as public, and private or
+     protected inheritance can lower the access.  The declared access is used
+     for a base-class relationship, which has no naming-class distinction. */
+  if (!is_base_rel && naming_class != member_class) {
+    access = effective_access_of_member_in_class(member_sym, naming_class);
+  }  /* if */
+  /* A null scope (access_context::unchecked) or a public entity is accessible.
+     For a null designating class this matches the entity's own access, since
+     naming_class is then the entity's class. */
+  if (access == as_public || ctx->is_unchecked) {
+    accessible = TRUE;
+    goto done;
+  }  /* if */
+  while (w != NULL && !accessible) {
+    if (w->kind == sck_class_struct_union &&
+        w->variant.assoc_type != NULL) {
+      a_type_ptr              c = skip_typerefs(w->variant.assoc_type);
+      a_class_list_entry_ptr  befriended =
+          is_immediate_class_type(c) &&
+          c->variant.class_struct_union.extra_info != NULL
+              ? c->variant.class_struct_union.extra_info->befriending_classes
+              : NULL;
+      if (class_grants_member_access(c, member_class)) {
+        accessible = TRUE;
+      } else if (access == as_protected &&
+                 (protected_access_through_class(member_class, c,
+                                                 naming_class, is_base_rel) ||
+                  protected_access_via_befriended_class(befriended,
+                                                        member_class,
+                                                        naming_class,
+                                                        is_base_rel))) {
+        /* Protected access either from c itself (a class suitably derived from
+           the entity's class) or from a class c is a friend of that is so
+           derived. */
+        accessible = TRUE;
+      }  /* if */
+      /* Advance to the lexically enclosing scope of the class. */
+      w = c->source_corresp.parent_scope;
+    } else {
+      /* Namespaces, functions, and block scopes grant no member access. */
+      w = NULL;
+    }  /* if */
+  }  /* while */
+  if (!accessible && ctx_func != NULL) {
+    if (function_grants_member_access(ctx_func, member_class)) {
+      accessible = TRUE;
+    } else if (access == as_protected &&
+               protected_access_via_befriended_class(
+                                        rout_befriending_classes(ctx_func),
+                                        member_class, naming_class,
+                                        is_base_rel)) {
+      /* A friend of a class derived from the entity's class reaches its
+         protected member (the friend-of-derived case). */
+      accessible = TRUE;
+    }  /* if */
+  }  /* if */
+done:
+  return accessible;
+}  /* reflection_accessible_in_context */
+
+
+static a_boolean access_context_info_offsets(an_interpreter_state  *ips,
+                                             a_type_ptr            ctx_type,
+                                             a_byte_count          offsets[2],
+                                             int                   *p_count)
+/*
+Store in offsets the byte offsets of the std::meta::info members of the
+access_context type ctx_type -- the context's scope first, then its
+designating class -- and store in *p_count how many of them were found (at
+most two).  Reading and writing an access_context object both locate its
+members through this routine, so the two directions remain consistent
+about the layout.  Return FALSE if the layout of ctx_type cannot be
+determined.
+*/
+{
+  a_boolean    result = TRUE;
+  int          n = 0;
+
+  (void)value_bytes_for_type(ips, ctx_type, &result);
+  if (result) {
+    a_field_ptr  fp = next_alloc_field(fields_of(skip_typerefs(ctx_type)));
+    for (; fp != NULL && n < 2; fp = next_alloc_field(fp->next)) {
+      if (is_reflection_type(skip_typerefs(fp->type))) {
+        get_mapped_byte_count(&persistent_map, fp, offsets[n]);
+        n += 1;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  *p_count = n;
   return result;
-}  /* do_constexpr_std_meta_is_private */
+}  /* access_context_info_offsets */
+
+
+static a_boolean load_access_context(an_interpreter_state  *ips,
+                                     a_type_ptr            ctx_type,
+                                     a_byte                *ctx_bytes,
+                                     a_reflection_value    *scope_out,
+                                     a_reflection_value    *dc_out)
+/*
+Read the two std::meta::info members of an access_context object stored at
+ctx_bytes (whose type is ctx_type): the first is the context's scope and the
+second its designating class.  Both outputs are pre-initialized to the null
+reflection by the caller; only the info-typed fields are overwritten.
+
+Validate the designating class, which access_context::via records without
+checking: it must be either the null reflection (as for current/unprivileged/
+unchecked) or a reflection of a class type.  A non-null, non-class designating
+reflection (e.g., access_context::current().via(^^int)) is a precondition
+violation; issue a diagnostic and return FALSE.  Return TRUE otherwise.
+*/
+{
+  a_boolean     result;
+  a_byte_count  offsets[2];
+  int           n;
+
+  result = access_context_info_offsets(ips, ctx_type, offsets, &n);
+  if (n > 0) {
+    *scope_out = *(a_reflection_value*)(ctx_bytes+offsets[0]);
+  }  /* if */
+  if (n > 1) {
+    *dc_out = *(a_reflection_value*)(ctx_bytes+offsets[1]);
+  }  /* if */
+  { a_reflection_value  dc = *dc_out;
+    strip_template_arg(&dc);
+    if (dc.entity.kind != iek_none) {
+      a_boolean  is_class = FALSE;
+      if (dc.entity.kind == iek_type) {
+        is_class = is_immediate_class_type(
+                                     skip_typerefs((a_type_ptr)dc.entity.ptr));
+      }  /* if */
+      if (!is_class) {
+        info_with_pos(ec_invalid_reflection_for_intrinsic, &ips->position,
+                      ips);
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  }
+  return result;
+}  /* load_access_context */
+
+
+static a_boolean load_meta_query_context(
+                              an_interpreter_state  *ips,
+                              a_routine_ptr         callee,
+                              an_expr_node_ptr      call_node,
+                              a_byte                **p_arg_bytes,
+                              a_boolean             require_constant_eval,
+                              a_boolean             require_dynamic_alloc,
+                              a_reflection_value    *scope_out,
+                              a_reflection_value    *dc_out)
+/*
+Begin the evaluation of one of the std::meta queries whose second parameter is
+an access_context: set *scope_out and *dc_out to the reflections of that
+context's scope and designating class, each of which is the null reflection
+when the context does not constrain it.  Return FALSE, having issued a
+diagnostic, when the call must not be interpreted -- because a constant result
+is not needed and require_constant_eval says the query is expensive enough that
+it should then be skipped, because require_dynamic_alloc says the result
+requires constexpr dynamic allocation and that is unavailable, or because the
+access_context itself is invalid (see load_access_context).
+
+See do_constexpr_intrinsic_call for the meaning of ips, callee, call_node, and
+p_arg_bytes.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if ((require_constant_eval && !ips->is_constant_evaluated) ||
+      (require_dynamic_alloc && !constexpr_dynamic_alloc_enabled)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+  } else {
+    a_param_type_ptr  ptp;
+    check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
+    ptp = function_type_params(skip_typerefs(callee->type));
+    scope_out->entity.kind = iek_none;
+    scope_out->entity.ptr = NULL;
+    scope_out->local_scope_number = FILE_SCOPE_NUMBER;
+    *dc_out = *scope_out;
+    if (!load_access_context(ips, skip_typerefs(ptp->next->type),
+                             p_arg_bytes[1], scope_out, dc_out)) {
+      do_constexpr_fail(result);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* load_meta_query_context */
 
 
 static a_boolean do_constexpr_std_meta_is_accessible(
@@ -12806,387 +13436,673 @@ static a_boolean do_constexpr_std_meta_is_accessible(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::is_accessible(info).
+Implement std::meta::is_accessible(info, access_context).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean           result = TRUE, answer = FALSE;
+  a_boolean           result;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_reflection_value  scope_rv, dc_rv;
 
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_base_class) {
-    answer = is_accessible_base_class((a_base_class*)rvp->entity.ptr);
-  } else {
-    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
-    if (scp == NULL || !scp->is_class_member) {
-      answer = TRUE;
-    } else {
-      // FIXME: What should happen for unnamed entities?
-      answer = have_access_to_symbol((a_symbol*)scp->assoc_info);
-    }  /* if */
+  result = load_meta_query_context(ips, callee, call_node, p_arg_bytes,
+                                   /*require_constant_eval=*/FALSE,
+                                   /*require_dynamic_alloc=*/FALSE,
+                                   &scope_rv, &dc_rv);
+  if (result) {
+    a_meta_access_context  ctx;
+    decode_access_context(&scope_rv, &dc_rv, &ctx);
+    set_bool_value(reflection_accessible_in_context(rvp, &ctx),
+                   result_storage);
   }  /* if */
-  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_accessible */
 
 
-static a_boolean do_constexpr_std_meta_is_static_member(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_static_member(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_variable) {
-    a_variable  *vp = (a_variable*)rvp->entity.ptr;
-    if (vp->source_corresp.is_class_member) {
-      /* A static data member: Always return a true value. */
-      answer = TRUE;
+DEFINE_entity_predicate(std_meta, is_static_member,
+  ([&]{
+    if (rvp->entity.kind == iek_variable) {
+      a_variable  *vp = (a_variable*)rvp->entity.ptr;
+      if (vp->source_corresp.is_class_member) {
+        /* A static data member: Always return a true value. */
+        answer = TRUE;
+      }  /* if */
+    } else if (rvp->entity.kind == iek_routine) {
+      a_routine  *rp = (a_routine*)rvp->entity.ptr;
+      if (rp->source_corresp.is_class_member) {
+        answer = !routine_type_is_nonstatic_member_function(rp->type);
+      }  /* if */
     }  /* if */
-  } else if (rvp->entity.kind == iek_routine) {
-    a_routine  *rp = (a_routine*)rvp->entity.ptr;
-    if (rp->source_corresp.is_class_member) {
-      answer = !routine_type_is_nonstatic_member_function(rp->type);
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_virtual,
+  ([&]{
+    if (rvp->entity.kind == iek_base_class) {
+      answer = ((a_base_class*)rvp->entity.ptr)->is_virtual;
+    } else if (rvp->entity.kind == iek_routine) {
+      answer = ((a_routine*)rvp->entity.ptr)->is_virtual;
     }  /* if */
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_static_member */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_virtual(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_virtual(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_base_class) {
-    answer = ((a_base_class*)rvp->entity.ptr)->is_virtual;
-  } else if (rvp->entity.kind == iek_routine) {
-    answer = ((a_routine*)rvp->entity.ptr)->is_virtual;
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_virtual */
+DEFINE_entity_predicate(std_meta, is_deleted,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      answer = ((a_routine*)rvp->entity.ptr)->is_deleted;
+    }  /* if */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_deleted(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_deleted(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_routine) {
-    answer = ((a_routine*)rvp->entity.ptr)->is_deleted;
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_deleted */
+DEFINE_entity_predicate(std_meta, is_defaulted,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      answer = ((a_routine*)rvp->entity.ptr)->is_defaulted;
+    }  /* if */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_defaulted(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_defaulted(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_routine) {
-    answer = ((a_routine*)rvp->entity.ptr)->is_defaulted;
-  } else {
-    answer = FALSE;
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_defaulted */
+DEFINE_entity_predicate(std_meta, is_explicit,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      a_routine  *rp = (a_routine*)rvp->entity.ptr;
+      answer = rp->is_explicit_constructor ||
+               rp->is_explicit_conversion_function;
+    }  /* if */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_explicit(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_explicit(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_routine) {
-    a_routine  *rp = (a_routine*)rvp->entity.ptr;
-    answer = rp->is_explicit_constructor ||
-             rp->is_explicit_conversion_function;
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_explicit */
+DEFINE_entity_predicate(std_meta, is_override,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      answer = ((a_routine*)rvp->entity.ptr)->override;
+    }  /* if */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_override(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_override(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_routine) {
-    answer = ((a_routine*)rvp->entity.ptr)->override;
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_override */
+DEFINE_entity_predicate(std_meta, is_pure_virtual,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      answer = ((a_routine*)rvp->entity.ptr)->pure_virtual;
+    }  /* if */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_pure_virtual(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_pure_virtual(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_routine) {
-    answer = ((a_routine*)rvp->entity.ptr)->pure_virtual;
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_pure_virtual */
+DEFINE_entity_predicate(std_meta, is_bit_field,
+  ([&]{
+    if (rvp->entity.kind == iek_field) {
+      answer = ((a_field*)rvp->entity.ptr)->is_bit_field;
+    }  /* if */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_is_bit_field(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::is_bit_field(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_field) {
-    answer = ((a_field*)rvp->entity.ptr)->is_bit_field;
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_is_bit_field */
+DEFINE_entity_predicate(std_meta, has_static_storage_duration,
+  ([&]{
+    if (rvp->entity.kind == iek_variable) {
+      answer = var_has_static_storage_duration((a_variable*)rvp->entity.ptr);
+    }  /* if */
+  }))
 
 
-static a_boolean do_constexpr_std_meta_has_static_storage_duration(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::has_static_storage_duration(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_variable) {
-    answer = var_has_static_storage_duration((a_variable*)rvp->entity.ptr);
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_has_static_storage_duration */
-
-
-static a_boolean do_constexpr_std_meta_has_internal_linkage(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
 /*
 Implement std::meta::has_internal_linkage(info).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
+DEFINE_entity_predicate(std_meta, has_internal_linkage,
+  ([&]{
+    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
+    if (scp != NULL) {
+      answer = scp->name_linkage == nlk_internal;
+    }  /* if */
+  }))
+
+
+/*
+Implement std::meta::is_vararg_function(info).  The result is TRUE for a
+function (or function type) whose parameter list ends with a C-style ellipsis.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+DEFINE_entity_predicate(std_meta, is_vararg_function,
+  ([&]{
+    a_type  *func_type = routine_type_for_reflection(rvp);
+
+    if (func_type != NULL) {
+      answer = rout_type_supp(func_type)->has_ellipsis;
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, has_default_argument,
+  ([&]{
+    if (rvp->entity.kind == iek_param_type) {
+      answer = ((a_param_type*)rvp->entity.ptr)->has_default_arg;
+    }  /* if */
+  }))
+
+
+/*
+Implement std::meta::is_final(info).  The result is TRUE for a class declared
+"final" and for a virtual member function declared "final".
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+DEFINE_entity_predicate(std_meta, is_final,
+  ([&]{
+    if (rvp->entity.kind == iek_type) {
+      a_type  *tp = skip_typerefs((a_type*)rvp->entity.ptr);
+      if (is_immediate_class_type(tp)) {
+        answer = tp->variant.class_struct_union.final;
+      }  /* if */
+    } else if (rvp->entity.kind == iek_routine) {
+      answer = ((a_routine*)rvp->entity.ptr)->final;
+    }  /* if */
+  }))
+
+
+/*
+Implement std::meta::is_user_declared(info).  A function is user-declared when
+it was declared in the source, i.e., it is not implicitly declared by the
+compiler.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+DEFINE_entity_predicate(std_meta, is_user_declared,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      answer = !((a_routine*)rvp->entity.ptr)->compiler_generated;
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_user_provided,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      a_routine  *rp = (a_routine*)rvp->entity.ptr;
+      answer = (!rp->compiler_generated && !rp->is_deleted &&
+                !(rp->is_defaulted && !rp->defined_outside_of_parent));
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_noexcept,
+  ([&]{
+    a_type  *func_type = routine_type_for_reflection(rvp);
+
+    if (func_type != NULL) {
+      answer = is_nothrow_type(func_type);
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_enumerator,
+  ([&]{
+    if (rvp->entity.kind == iek_constant) {
+      a_constant  *cp = (a_constant*)rvp->entity.ptr;
+      answer = (has_name(cp) && is_enum_type(skip_typerefs(cp->type)));
+    }  /* if */
+  }))
+
+
+/*
+Implement std::meta::is_const(info).  The result is TRUE for a const-qualified
+type, a const variable, or a const-qualified non-static member function.
+*/
+DEFINE_entity_predicate(std_meta, is_const,
+  ([&]{
+    if (rvp->entity.kind == iek_type) {
+      a_type  *tp = (a_type*)rvp->entity.ptr;
+      if (is_const_qualified_type(tp)) {
+        answer = TRUE;
+      } else {
+        tp = skip_typerefs(tp);
+        answer = (type_is(tp, tk_routine) &&
+                  (rout_type_supp(tp)->qualifiers & TQ_CONST) != 0);
+      }  /* if */
+    } else if (rvp->entity.kind == iek_variable) {
+      answer = is_const_qualified_type(((a_variable*)rvp->entity.ptr)->type);
+    } else if (rvp->entity.kind == iek_routine) {
+      a_type  *tp = skip_typerefs(((a_routine*)rvp->entity.ptr)->type);
+      answer = (type_is(tp, tk_routine) &&
+                (rout_type_supp(tp)->qualifiers & TQ_CONST) != 0);
+    }  /* if */
+  }))
+
+
+/*
+Implement std::meta::is_volatile(info).  The result is TRUE for a volatile-
+qualified type, a volatile variable, or a volatile-qualified non-static member
+function.
+*/
+DEFINE_entity_predicate(std_meta, is_volatile,
+  ([&]{
+    if (rvp->entity.kind == iek_type) {
+      a_type  *tp = (a_type*)rvp->entity.ptr;
+      if (is_volatile_qualified_type(tp)) {
+        answer = TRUE;
+      } else {
+        tp = skip_typerefs(tp);
+        answer = (type_is(tp, tk_routine) &&
+                  (rout_type_supp(tp)->qualifiers & TQ_VOLATILE) != 0);
+      }  /* if */
+    } else if (rvp->entity.kind == iek_variable) {
+      a_variable  *vp = (a_variable*)rvp->entity.ptr;
+      answer = is_volatile_qualified_type(vp->type);
+    } else if (rvp->entity.kind == iek_routine) {
+      a_type  *tp = skip_typerefs(((a_routine*)rvp->entity.ptr)->type);
+      answer = (type_is(tp, tk_routine) &&
+                (rout_type_supp(tp)->qualifiers & TQ_VOLATILE) != 0);
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_mutable_member,
+  ([&]{
+    if (rvp->entity.kind == iek_field) {
+      answer = ((a_field*)rvp->entity.ptr)->is_mutable;
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_lvalue_reference_qualified,
+  ([&]{
+    a_type  *func_type = routine_type_for_reflection(rvp);
+
+    if (func_type != NULL) {
+      answer = rout_type_supp(func_type)->ref_qualifiers == rqk_lvalue;
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_rvalue_reference_qualified,
+  ([&]{
+    a_type  *func_type = routine_type_for_reflection(rvp);
+
+    if (func_type != NULL) {
+      answer = rout_type_supp(func_type)->ref_qualifiers == rqk_rvalue;
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, has_thread_storage_duration,
+  ([&]{
+    if (rvp->entity.kind == iek_variable) {
+      answer = var_has_thread_storage_duration((a_variable*)rvp->entity.ptr);
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, has_automatic_storage_duration,
+  ([&]{
+    if (rvp->entity.kind == iek_variable) {
+      a_variable  *vp = (a_variable*)rvp->entity.ptr;
+      answer = (!var_has_static_or_thread_storage_duration(vp) &&
+                vp->source_corresp.name_linkage == nlk_none);
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, has_external_linkage,
+  ([&]{
+    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
+    if (scp != NULL) {
+      answer = (scp->name_linkage == nlk_cplusplus_external ||
+                scp->name_linkage == nlk_external);
+    }  /* if */
+  }))
+
+
+/*
+Implement std::meta::has_module_linkage(info).  Our name-linkage model
+currently has no distinct "module" linkage kind, so this query is
+conservatively always FALSE.
+FIXME reflection
+*/
+DEFINE_entity_predicate(std_meta, has_module_linkage,
+  ([&]{
+    /* The answer does not depend on the reflection. */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, has_c_language_linkage,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      a_type  *func_type = skip_typerefs(((a_routine*)rvp->entity.ptr)->type);
+      if (type_is(func_type, tk_routine)) {
+        answer = rout_type_supp(func_type)->routine_name_linkage ==
+                                                                 nlk_external;
+      }  /* if */
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, has_linkage,
+  ([&]{
+    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
+    if (scp != NULL) {
+      answer = scp->name_linkage != nlk_none;
+    }  /* if */
+  }))
+
+
+static a_boolean type_is_enumerable(a_type_ptr  tp)
+/*
+Return TRUE if tp, whose typerefs must already have been skipped, is enumerable
+here, i.e., is a class type that is complete at this point or an enumeration
+type whose enum-specifier has been seen in its entirety.  A specialization of a
+templated class, or an enumeration declared in one, is instantiated when
+necessary, since the answer depends on its definition having been seen.  Note
+that completeness of the type is not the test in the enumeration case: an
+enumeration whose underlying type is fixed is a complete type before its
+enumerators are known, both while they are being scanned, as in
+  enum class E { A = is_enumerable_type(^^E) ? 1 : 2 };
+which gives A the value 2, and when only an opaque declaration has been seen.
+*/
 {
-  a_boolean                result = TRUE, answer = FALSE;
-  a_reflection_value       *rvp = (a_reflection_value*)p_arg_bytes[0];
-  a_source_correspondence  *scp;
+  a_boolean  result;
+
+  if (is_enum_type(tp)) {
+    instantiate_template_enum_if_needed(tp);
+    result = integer_type_supp(tp)->enumerator_list_complete;
+  } else {
+    complete_type_is_needed(tp);
+    result = is_immediate_class_type(tp) && !tp->incomplete;
+  }  /* if */
+  return result;
+}  /* type_is_enumerable */
+
+
+DEFINE_entity_predicate(std_meta, is_enumerable_type,
+  ([&]{
+    if (rvp->entity.kind == iek_type) {
+      answer = type_is_enumerable(skip_typerefs((a_type*)rvp->entity.ptr));
+    }  /* if */
+  }))
+
+
+/*
+Implement std::meta::is_object(info).  An object reflection (as distinct from a
+variable or value reflection) is produced by reflect_object, object_of, and
+reflect_constant_array; it is represented as an iek_constant reflection whose
+ck_address constant is marked is_object_reflection.
+*/
+DEFINE_entity_predicate(std_meta, is_object,
+  ([&]{
+    answer = is_object_reflection_constant(rvp);
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_structured_binding,
+  ([&]{
+    if (rvp->entity.kind == iek_variable) {
+      answer = ((a_variable*)rvp->entity.ptr)->is_struct_binding;
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_class_member,
+  ([&]{
+    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
+    if (scp != NULL) {
+      answer = scp->is_class_member;
+    }  /* if */
+  }))
+
+
+/*
+FIXME reflection: This should also return TRUE for file-scope members.
+*/
+DEFINE_entity_predicate(std_meta, is_namespace_member,
+  ([&]{
+    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
+    if (scp != NULL) {
+      answer = scp_is_namespace_member(scp);
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, has_default_member_initializer,
+  ([&]{
+    if (rvp->entity.kind == iek_field) {
+      answer = ((a_field*)rvp->entity.ptr)->has_initializer;
+    }  /* if */
+  }))
+
+
+static a_boolean do_constexpr_std_meta_variable_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::variable_of(info).  Following P3096, this is the
+current-evaluation-context parameter lookup facility: the operand must be a
+reflection of a function parameter (as produced by parameters_of) that belongs
+to the function whose evaluation is in progress, and the result is a reflection
+of the parameter variable introduced by that parameter in the current call.
+The correspondence with current_parameters is that variable_of applied to
+parameters_of(current-function)[i] yields current_parameters()[i].  Operands
+that are not parameters of the current function fail to evaluate.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],
+                      *result_rvp = (a_reflection_value*)result_storage;
+  a_param_type_ptr    target, ptp;
+  a_scope_ptr         fscope;
+  a_type_ptr          rtp;
+  a_variable_ptr      vp;
 
   strip_template_arg(rvp);
   extract_reflected_entity(rvp);
-  scp = source_corresp_for_reflection(rvp);
-  if (scp != NULL) {
-    answer = scp->name_linkage == nlk_internal;
+  if (rvp->entity.kind != iek_param_type) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  } else if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_no_current_parameters,
+                  &call_node->position, ips);
+  } else {
+    target = (a_param_type_ptr)rvp->entity.ptr;
+    fscope = scope_stack[depth_innermost_function_scope].il_scope;
+    rtp = skip_typerefs(fscope->variant.routine.ptr->type);
+    check_assertion(type_is(rtp, tk_routine));
+    /* Walk the current function's parameter types and parameter variables in
+       lockstep; the two lists are both in declaration order and align one to
+       one, so the variable matching the operand parameter is at the same
+       position. */
+    for (ptp = function_type_params(rtp),
+           vp = fscope->variant.routine.parameters;
+         ptp != NULL && vp != NULL;
+         ptp = ptp->next, vp = vp->next) {
+      if (ptp == target) {
+        result_rvp->entity.ptr = (char*)vp;
+        result_rvp->entity.kind = iek_variable;
+        result_rvp->local_scope_number = fscope->number;
+        break;
+      }  /* if */
+    }  /* for */
+    if (ptp == NULL || vp == NULL) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic,
+                    &call_node->position, ips);
+    }  /* if */
   }  /* if */
-  set_bool_value(answer, result_storage);
   return result;
-}  /* do_constexpr_std_meta_has_internal_linkage */
+}  /* do_constexpr_std_meta_variable_of */
 
 
-static a_boolean do_constexpr_std_meta_has_c_varargs(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+DEFINE_entity_predicate(std_meta, is_conversion_function,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      answer = special_kind_is((a_routine*)rvp->entity.ptr, sfk_conversion);
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_operator_function,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      answer = special_kind_is((a_routine*)rvp->entity.ptr, sfk_operator);
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_literal_operator,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      answer = special_kind_is((a_routine*)rvp->entity.ptr, sfk_udl_operator);
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_default_constructor,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      a_routine  *rp = (a_routine*)rvp->entity.ptr;
+      answer = (special_kind_is(rp, sfk_constructor) &&
+                is_default_constructor(rp, /*is_declarative_context=*/TRUE));
+    }  /* if */
+  }))
+
+
 /*
-Implement std::meta::has_c_varargs(info).
+Implement std::meta::is_copy_constructor(info).  Move constructors are excluded
+(they are reported by is_move_constructor).
+*/
+DEFINE_entity_predicate(std_meta, is_copy_constructor,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      a_routine             *rp = (a_routine*)rvp->entity.ptr;
+      a_type_qualifier_set  tqs;
+      answer = (special_kind_is(rp, sfk_constructor) &&
+                is_copy_constructor(rp, parent_class_of(rp), &tqs,
+                                    /*include_move_ctors=*/FALSE,
+                                    /*is_declarative_context=*/TRUE));
+    }  /* if */
+  }))
 
-See do_constexpr_intrinsic_call for the meaning of the parameters.
+
+DEFINE_entity_predicate(std_meta, is_move_constructor,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      answer = routine_is_move_constructor((a_routine*)rvp->entity.ptr);
+    }  /* if */
+  }))
+
+
+/*
+Implement std::meta::is_assignment(info).  The result is TRUE for any
+"operator=" function (whether or not it is a copy/move assignment operator).
+*/
+DEFINE_entity_predicate(std_meta, is_assignment,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      a_routine  *rp = (a_routine*)rvp->entity.ptr;
+      answer = (special_kind_is(rp, sfk_operator) &&
+                rp->variant.opname_kind == onk_assign);
+    }  /* if */
+  }))
+
+
+/*
+Implement std::meta::is_copy_assignment(info).  Move assignment operators are
+excluded (they are reported by is_move_assignment).
+*/
+DEFINE_entity_predicate(std_meta, is_copy_assignment,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      a_routine             *rp = (a_routine*)rvp->entity.ptr;
+      a_type_qualifier_set  tqs;
+      a_boolean             is_move;
+      answer = (routine_is_copy_or_move_assign_operator(rp, &tqs, &is_move) &&
+                !is_move);
+    }  /* if */
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_move_assignment,
+  ([&]{
+    if (rvp->entity.kind == iek_routine) {
+      answer =
+             routine_is_move_assignment_operator((a_routine*)rvp->entity.ptr);
+    }  /* if */
+  }))
+
+
+static a_routine_ptr template_prototype_routine(a_reflection_value  *rvp)
+/*
+Return the prototype routine of the function (or member-function) template
+reflected by rvp, or NULL when rvp does not reflect such a template.  rvp is
+normalized here with strip_template_arg.  This serves the queries that
+classify a function template by what kind of function it declares.
 */
 {
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-  a_type              *func_type = NULL;
+  a_routine  *rp = NULL;
 
   strip_template_arg(rvp);
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_type) {
-    func_type = skip_typerefs((a_type*)rvp->entity.ptr);
-    if (!type_is(func_type, tk_routine)) func_type = NULL;
-  } else if (rvp->entity.kind == iek_routine) {
-    func_type = skip_typerefs(((a_routine*)rvp->entity.ptr)->type);
+  if (rvp->entity.kind == iek_template) {
+    a_template  *templ = (a_template*)rvp->entity.ptr;
+    if (templ->kind == templk_function ||
+        templ->kind == templk_member_function) {
+      rp = templ->prototype_instantiation.routine;
+    }  /* if */
   }  /* if */
-  if (func_type != NULL) {
-    answer = rout_type_supp(func_type)->has_ellipsis;
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_has_c_varargs */
+  return rp;
+}  /* template_prototype_routine */
 
 
-static a_boolean do_constexpr_std_meta_has_default_argument(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+DEFINE_entity_predicate(std_meta, is_conversion_function_template,
+  ([&]{
+    a_routine           *rp = template_prototype_routine(rvp);
+
+    if (rp != NULL) answer = special_kind_is(rp, sfk_conversion);
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_operator_function_template,
+  ([&]{
+    a_routine           *rp = template_prototype_routine(rvp);
+
+    if (rp != NULL) answer = special_kind_is(rp, sfk_operator);
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_literal_operator_template,
+  ([&]{
+    a_routine           *rp = template_prototype_routine(rvp);
+
+    if (rp != NULL) answer = special_kind_is(rp, sfk_udl_operator);
+  }))
+
+
+DEFINE_entity_predicate(std_meta, is_constructor_template,
+  ([&]{
+    a_routine           *rp = template_prototype_routine(rvp);
+
+    if (rp != NULL) answer = special_kind_is(rp, sfk_constructor);
+  }))
+
+
+static void template_instance_for_reflection(a_reflection_value  *rvp,
+                                             a_template_ptr      *p_templ,
+                                             a_template_arg_ptr  *p_args)
 /*
-Implement std::meta::has_default_argument(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
+Decide whether the reflection rvp (which is normalized here with
+strip_template_arg) designates a specialization of a class, function, or
+variable template.  If it does, set *p_templ to the template that was
+specialized and *p_args to the template argument list of the specialization;
+otherwise set both to NULL.
 */
 {
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  if (rvp->entity.kind == iek_param_type) {
-    answer = ((a_param_type*)rvp->entity.ptr)->has_default_arg;
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_has_default_argument */
-
-
-static a_boolean do_constexpr_std_meta_has_consistent_name(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::has_consistent_name(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE, answer = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  if (rvp->entity.kind == iek_param_type) {
-    answer = !((a_param_type*)rvp->entity.ptr)->has_name_conflict;
-  }  /* if */
-  set_bool_value(answer, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_has_consistent_name */
-
-
-static a_template_ptr template_for_reflection(a_reflection_value  *rvp)
-/*
-Return the template associated with the given reflection if that reflection is
-for a template instance.  Otherwise, return NULL.
-*/
-{
-  a_template  *templ = NULL;
+  a_template      *templ = NULL;
+  a_template_arg  *args = NULL;
 
   strip_template_arg(rvp);
   switch (rvp->entity.kind) {
@@ -13194,8 +14110,10 @@ for a template instance.  Otherwise, return NULL.
       { a_type      *tp = (a_type*)rvp->entity.ptr;
         if (is_immediate_class_type(tp)) {
           templ = class_type_supp(tp)->assoc_template;
+          args = class_type_supp(tp)->template_arg_list;
         } else if (type_is(tp, tk_typeref)) {
           templ = tp->variant.typeref.extra_info->assoc_template;
+          args = tp->variant.typeref.extra_info->template_arg_list;
         }  /* if */
         if (templ != NULL && templ->kind != templk_class) {
           /* Ignore nested classes in class templates. */
@@ -13206,6 +14124,7 @@ for a template instance.  Otherwise, return NULL.
     case iek_routine:
       { a_routine  *rp = (a_routine*)rvp->entity.ptr;
         templ = rp->assoc_template;
+        args = rp->template_arg_list;
         if (templ != NULL && templ->kind != templk_function) {
           /* Ignore member functions of class templates. */
           templ = NULL;
@@ -13214,81 +14133,34 @@ for a template instance.  Otherwise, return NULL.
       break;
     case iek_variable:
       { a_variable  *vp = (a_variable*)rvp->entity.ptr;
-        if (vp->template_info != NULL &&
-            vp->template_info->assoc_template != NULL &&
-            vp->template_info->assoc_template->kind == templk_variable) {
-          templ = vp->template_info->assoc_template;
-        }  /* if */
-      }
-      break;
-    default:
-      break;
-  }  /* switch */
-  return templ;
-}  /* template_for_reflection */
-
-
-static a_boolean do_constexpr_std_meta_has_template_arguments(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::has_template_arguments(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = TRUE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  strip_template_arg(rvp);
-  set_bool_value(template_for_reflection(rvp) != NULL, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_has_template_arguments */
-
-
-static a_template_arg_ptr template_args_for_reflection(
-                                                     a_reflection_value  *rvp)
-/*
-Return the template arguments associated with the given reflection if that
-reflection is for a template instance.  Otherwise, return NULL.
-*/
-{
-  a_template_arg  *args = NULL;
-
-  switch (rvp->entity.kind) {
-    case iek_type:
-      { a_type      *tp = (a_type*)rvp->entity.ptr;
-        if (is_immediate_class_type(tp)) {
-          args = class_type_supp(tp)->template_arg_list;
-        } else if (type_is(tp, tk_typeref)) {
-          args = tp->variant.typeref.extra_info->template_arg_list;
-        }  /* if */
-      }
-      break;
-    case iek_routine:
-      { a_routine  *rp = (a_routine*)rvp->entity.ptr;
-        args = rp->template_arg_list;
-      }
-      break;
-    case iek_variable:
-      { a_variable  *vp = (a_variable*)rvp->entity.ptr;
         if (vp->template_info != NULL) {
           args = vp->template_info->template_arg_list;
+          if (vp->template_info->assoc_template != NULL &&
+              vp->template_info->assoc_template->kind == templk_variable) {
+            templ = vp->template_info->assoc_template;
+          }  /* if */
         }  /* if */
       }
       break;
     default:
       break;
   }  /* switch */
-  return args;
-}  /* template_args_for_reflection */
+  if (templ == NULL) args = NULL;
+  *p_templ = templ;
+  *p_args = args;
+}  /* template_instance_for_reflection */
 
 
-static a_boolean do_constexpr_std_meta_template_arguments__impl(
+DEFINE_entity_predicate(std_meta, has_template_arguments,
+  ([&]{
+    a_template      *templ;
+    a_template_arg  *t_args;
+    template_instance_for_reflection(rvp, &templ, &t_args);
+    answer = templ != NULL;
+  }))
+
+
+static a_boolean do_constexpr_std_meta_template_arguments_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -13296,36 +14168,38 @@ static a_boolean do_constexpr_std_meta_template_arguments__impl(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::template_arguments_of(info).
+Implement std::meta::template_arguments_of(info).  It returns a
+std::vector<std::meta::info> holding a reflection for each template argument of
+the given template specialization (in order).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_template          *templ;
+  a_template_arg      *t_args;
 
-  strip_template_arg(rvp);
-  if (template_for_reflection(rvp) != NULL) {
-    a_type_ptr  result_tp = skip_typerefs(call_node->type);
+  template_instance_for_reflection(rvp, &templ, &t_args);
+  if (templ != NULL) {
     Dyn_array<a_reflection_value>
                 result_reflections(0);
-    a_template_arg  *t_args = template_args_for_reflection(rvp);
     for (; t_args != NULL; t_args = t_args->next) {
       if (t_args->kind == tak_type || t_args->kind == tak_nontype ||
           t_args->kind == tak_template) {
-        a_reflection_value  arg_rv = { { iek_template_arg, (char*)t_args } };
-        result_reflections.push_back(arg_rv);
+        push_entity_reflection(&result_reflections, t_args,
+                               iek_template_arg, FILE_SCOPE_NUMBER);
       }  /* if */
     }  /* for */
-    result = make_infovec(ips, result_tp, &result_reflections,
-                          &call_node->position, result_storage, complete_obj);
+    result = make_info_vector(ips, callee, call_node, &result_reflections,
+                              result_storage, complete_obj);
   } else {
     info_with_pos(ec_intrinsic_requires_template_instance,
                   &call_node->position, ips);
     do_constexpr_fail(result);
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_template_arguments__impl */
+}  /* do_constexpr_std_meta_template_arguments_of */
 
 
 static a_boolean do_constexpr_std_meta_template_of(
@@ -13343,8 +14217,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 {
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-  a_template          *templ = template_for_reflection(rvp);
+  a_template          *templ;
+  a_template_arg      *t_args;
 
+  template_instance_for_reflection(rvp, &templ, &t_args);
   if (templ != NULL) {
     a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
     result_rvp->entity.kind = iek_template;
@@ -13441,16 +14317,11 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],
                       *result_rvp = (a_reflection_value*)result_storage;
-  a_type              *func_type = NULL;
+  a_type              *func_type;
 
   strip_template_arg(rvp);
   extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_type) {
-    func_type = skip_typerefs((a_type*)rvp->entity.ptr);
-    if (!type_is(func_type, tk_routine)) func_type = NULL;
-  } else if (rvp->entity.kind == iek_routine) {
-    func_type = skip_typerefs(((a_routine*)rvp->entity.ptr)->type);
-  }  /* if */
+  func_type = routine_type_for_reflection(rvp);
   if (func_type == NULL) {
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
@@ -13464,22 +14335,15 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_return_type_of */
 
 
-static a_boolean do_constexpr_std_meta_parent_of(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+static a_source_correspondence *source_corresp_for_parent_of(
+                                                  a_reflection_value  *rvp)
 /*
-Implement std::meta::parent_of(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
+Return the source correspondence whose enclosing scope is reported as the
+parent of the entity reflected by rvp (by parent_of and has_parent), or NULL
+when the entity has no reportable parent.  rvp is modified in place: its
+template argument, if any, is stripped and its entity is extracted.
 */
 {
-  a_boolean                result = TRUE;
-  a_reflection_value       *rvp = (a_reflection_value*)p_arg_bytes[0],
-                           *result_rvp = (a_reflection_value*)result_storage;
   a_source_correspondence  *scp = NULL;
 
   strip_template_arg(rvp);
@@ -13516,6 +14380,34 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     default:
       break;
   }  /* switch */
+  return scp;
+}  /* source_corresp_for_parent_of */
+
+
+DEFINE_entity_predicate(std_meta, has_parent,
+  ([&]{
+    answer = source_corresp_for_parent_of(rvp) != NULL;
+  }))
+
+
+static a_boolean do_constexpr_std_meta_parent_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::parent_of(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean                result = TRUE;
+  a_reflection_value       *rvp = (a_reflection_value*)p_arg_bytes[0],
+                           *result_rvp = (a_reflection_value*)result_storage;
+  a_source_correspondence  *scp = source_corresp_for_parent_of(rvp);
+
   if (scp == NULL) {
     do_constexpr_fail(result);
     info_with_pos(ec_invalid_reflection_for_intrinsic,
@@ -13562,6 +14454,39 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
   return result;
 }  /* do_constexpr_std_meta_dealias */
+
+
+static a_boolean do_constexpr_std_meta_is_same_type(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_same_type(info, info).  Set the boolean result to TRUE
+when both reflections represent the same type after any aliases are stripped,
+and to FALSE otherwise (including when either reflection does not represent a
+type).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp1 = (a_reflection_value*)p_arg_bytes[0],
+                      *rvp2 = (a_reflection_value*)p_arg_bytes[1];
+
+  strip_template_arg(rvp1);
+  strip_template_arg(rvp2);
+  extract_reflected_entity(rvp1);
+  extract_reflected_entity(rvp2);
+  if (rvp1->entity.kind == iek_type && rvp2->entity.kind == iek_type) {
+    answer = identical_types(skip_typedefs((a_type*)rvp1->entity.ptr),
+                             skip_typedefs((a_type*)rvp2->entity.ptr));
+  }  /* if */
+  set_bool_value(answer, result_storage);
+  return result;
+}  /* do_constexpr_std_meta_is_same_type */
 
 
 static a_boolean do_constexpr_std_meta_size_of(
@@ -13629,6 +14554,42 @@ done:
 }  /* do_constexpr_std_meta_size_of */
 
 
+static a_boolean store_member_offset(an_interpreter_state  *ips,
+                                     a_type_ptr            mo_type,
+                                     a_host_large_integer  bytes,
+                                     a_host_large_integer  bits,
+                                     a_byte                *result_storage,
+                                     a_byte                *complete_obj)
+/*
+Construct a std::meta::member_offset object (type mo_type) at result_storage
+(part of the complete object at complete_obj), setting its two integer members
+to bytes and then bits (in declaration order).  Return TRUE on success.
+*/
+{
+  a_boolean    result = TRUE;
+  a_field_ptr  fp;
+  int          n = 0;
+
+  (void)value_bytes_for_type(ips, mo_type, &result);
+  if (result) {
+    fp = next_alloc_field(fields_of(skip_typerefs(mo_type)));
+    for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+      a_type_ptr  ftp = skip_typerefs(fp->type);
+      if (is_integral_type(ftp)) {
+        a_byte_count  offset;
+        get_mapped_byte_count(&persistent_map, fp, offset);
+        set_integer_value((an_integer_value*)(result_storage+offset),
+                          (n == 0) ? bytes : bits);
+        mark_subobject_initialized(result_storage+offset, complete_obj);
+        n += 1;
+      }  /* if */
+    }  /* for */
+    mark_complete_object_initialized(complete_obj);
+  }  /* if */
+  return result;
+}  /* store_member_offset */
+
+
 static a_boolean do_constexpr_std_meta_offset_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -13637,33 +14598,39 @@ static a_boolean do_constexpr_std_meta_offset_of(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::offset_of(info).
+Implement std::meta::offset_of(info).  It returns a std::meta::member_offset
+{bytes, bits} giving the position of the subobject denoted by the reflection (a
+nonstatic data member, unnamed bit-field, or direct base class) within its
+complete object; bits is nonzero only for a bit-field that does not start on a
+byte boundary.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-  a_targ_size_t       offset = 0;
+  a_host_large_integer
+                      bytes = 0, bits = 0;
 
   extract_reflected_entity(rvp);
-  switch (rvp->entity.kind) {
-    case iek_base_class:
-      offset = ((a_base_class*)rvp->entity.ptr)->offset;
-      break;
-    case iek_field:
-      offset = ((a_field*)rvp->entity.ptr)->offset;
-      break;
-    default:
-      do_constexpr_fail(result);
-      break;
-  }  /* switch */
+  if (rvp->entity.kind == iek_base_class) {
+    bytes = (a_host_large_integer)((a_base_class*)rvp->entity.ptr)->offset;
+  } else if (rvp->entity.kind == iek_field) {
+    a_field  *fp = (a_field*)rvp->entity.ptr;
+    bytes = (a_host_large_integer)fp->offset;
+    if (fp->is_bit_field) {
+      bits = (a_host_large_integer)fp->offset_bit_remainder;
+    }  /* if */
+  } else {
+    do_constexpr_fail(result);
+  }  /* if */
   if (!result) {
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
   } else {
-    set_integer_value((an_integer_value*)result_storage,
-                      (a_host_large_integer)offset);
+    result = store_member_offset(ips,
+                                 skip_typerefs(return_type_of(callee->type)),
+                                 bytes, bits, result_storage, complete_obj);
   }  /* if */
   return result;
 }  /* do_constexpr_std_meta_offset_of */
@@ -13677,29 +14644,29 @@ static a_boolean do_constexpr_std_meta_bit_size_of(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::bit_size_of(info).
+Implement std::meta::bit_size_of(info).  The width of a bit field is reported
+directly; for everything else the result is size_of(info) scaled to bits, so
+the operand kinds accepted and the diagnostics issued are those of size_of.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean           result = FALSE;
+  a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_field             *bit_field = NULL;
 
   extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_field) {
-    a_field  *fp = (a_field*)rvp->entity.ptr;
-    if (fp->is_bit_field) {
-      result = TRUE;
-      set_integer_value((an_integer_value*)result_storage,
-                        (a_host_large_integer)fp->bit_size);
-    } else {
-      do_constexpr_fail(result);
-      info_with_pos(ec_invalid_reflection_for_intrinsic,
-                    &call_node->position, ips);
-    }  /* if */
+  if (rvp->entity.kind == iek_field &&
+      ((a_field*)rvp->entity.ptr)->is_bit_field) {
+    bit_field = (a_field*)rvp->entity.ptr;
+  }  /* if */
+  if (bit_field != NULL) {
+    set_integer_value((an_integer_value*)result_storage,
+                      (a_host_large_integer)bit_field->bit_size);
   } else {
-    if (do_constexpr_std_meta_size_of(ips, callee, call_node, p_arg_bytes,
-                                      result_storage, complete_obj)) {
+    result = do_constexpr_std_meta_size_of(ips, callee, call_node, p_arg_bytes,
+                                          result_storage, complete_obj);
+    if (result) {
       an_integer_value  bits_per_byte;
       a_boolean         ovflo;
       set_unsigned_integer_value(&bits_per_byte,
@@ -13715,40 +14682,6 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
   return result;
 }  /* do_constexpr_std_meta_bit_size_of */
-
-
-static a_boolean do_constexpr_std_meta_bit_offset_of(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::bit_offset_of(info).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean           result = FALSE;
-  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
-
-  extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_field) {
-    a_field  *fp = (a_field*)rvp->entity.ptr;
-    if (fp->is_bit_field) {
-      result = TRUE;
-      set_integer_value((an_integer_value*)result_storage,
-                        (a_host_large_integer)fp->offset_bit_remainder);
-    }  /* if */
-  }  /* if */
-  if (!result) {
-    do_constexpr_fail(result);
-    info_with_pos(ec_invalid_reflection_for_intrinsic,
-                  &call_node->position, ips);
-  }  /* if */
-  return result;
-}  /* do_constexpr_std_meta_bit_offset_of */
 
 
 static a_boolean do_constexpr_std_meta_alignment_of(
@@ -13813,84 +14746,65 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_alignment_of */
 
 
-static a_boolean get_interpreter_string_length(
-                                          an_interpreter_state  *ips,
-                                          a_constexpr_address   *cap,
-                                          a_byte_count          *p_length,
-                                          a_source_position     *diag_pos)
+static a_host_large_integer interpreter_char_value(an_integer_value  *cp)
 /*
-Store in *p_length the length of the null-terminated narrow-character string
-pointed to by cap.  If this fails (e.g., because there is no data pointed to
-by cap), return FALSE and associate a diagnostic with the given position.
+Return, as an ordinary integer, the value of the narrow character that the
+interpreter holds in *cp.
 */
 {
-  a_boolean         result = TRUE, ovfl = FALSE;
+  a_host_large_integer  val;
+  a_boolean             ovfl = FALSE;
+
+  conv_integer_value_to_host_large_integer(cp, /*is_signed=*/FALSE, &val,
+                                           &ovfl);
+  check_assertion(!ovfl);
+  return val;
+}  /* interpreter_char_value */
+
+
+static a_boolean read_interpreter_string(an_interpreter_state  *ips,
+                                         a_constexpr_address   *cap,
+                                         a_source_position     *diag_pos,
+                                         char                  **p_str)
+/*
+Copy the null-terminated narrow character string that the interpreter address
+cap designates into storage that lives as long as the translation unit, and
+store the address of the copy in *p_str.  Because the interpreter represents
+each character as an an_integer_value, the characters are converted to bytes
+here.  If the string cannot be read -- e.g., because cap designates run-time
+storage or a character that was never initialized -- return FALSE and
+associate a diagnostic with diag_pos.
+*/
+{
+  a_boolean         result = TRUE;
   an_integer_value  *chars = (an_integer_value*)cap->address;
-  a_byte_count      k = 0;
+  a_byte_count      length = 0;
 
   if (is_runtime_data_address(cap) || is_function_address(cap) ||
       cap->complete_object == NULL) {
     do_constexpr_fail(result);
     info_with_pos(ec_constexpr_access_to_runtime_storage, diag_pos, ips);
-    goto done;
+  } else {
+    for (;; ++length) {
+      if (!subobject_is_initialized((a_byte*)(chars+length),
+                                    cap->complete_object)) {
+        do_constexpr_fail(result);
+        info_with_pos(ec_object_not_initialized, diag_pos, ips);
+        break;
+      }  /* if */
+      if (interpreter_char_value(chars+length) == 0) break;
+    }  /* for */
   }  /* if */
-  for (;; ++k) {
-    a_host_large_integer  char_val;
-    if (!subobject_is_initialized((a_byte*)chars, cap->complete_object)) {
-      do_constexpr_fail(result);
-      info_with_pos(ec_object_not_initialized, diag_pos, ips);
-      break;
-    }  /* if */
-    conv_integer_value_to_host_large_integer(chars+k, /*is_signed=*/FALSE,
-                                             &char_val, &ovfl);
-    check_assertion(!ovfl);
-    if (char_val == 0) break;
-  }  /* for */
-  *p_length = k;
-done:
-  return result;
-}  /* get_interpreter_string_length */
-
-
-static a_boolean get_interpreter_string(an_interpreter_state  *ips,
-                                        char                  *str,
-                                        a_byte_count          length,
-                                        a_constexpr_address   *cap,
-                                        a_source_position     *diag_pos)
-/*
-cap points to a null-terminated narrow string literal of the given length and
-str points to an array of at least as many characters.  Store in the array
-pointed to by str the characters pointed to by cap.  If this fails (e.g.,
-because of an invalid cap value), return FALSE and associate a diagnostic
-with diag_pos.
-*/
-{
-  a_boolean         result = TRUE, ovfl = FALSE;
-  an_integer_value  *chars = (an_integer_value*)cap->address;
-  a_byte_count      k;
-
-  if (is_runtime_data_address(cap) || is_function_address(cap) ||
-      cap->complete_object == NULL) {
-    do_constexpr_fail(result);
-    info_with_pos(ec_constexpr_access_to_runtime_storage, diag_pos, ips);
-    goto done;
+  if (result) {
+    char  *str = alloc_text_of_string_literal(length+1);
+    for (a_byte_count k = 0; k < length; ++k) {
+      str[k] = (char)interpreter_char_value(chars+k);
+    }  /* for */
+    str[length] = '\0';
+    *p_str = str;
   }  /* if */
-  for (k = 0; k<length; ++k) {
-    a_host_large_integer  char_val;
-    if (!subobject_is_initialized((a_byte*)chars, cap->complete_object)) {
-      do_constexpr_fail(result);
-      info_with_pos(ec_object_not_initialized, diag_pos, ips);
-      break;
-    }  /* if */
-    conv_integer_value_to_host_large_integer(chars+k, /*is_signed=*/FALSE,
-                                             &char_val, &ovfl);
-    check_assertion(!ovfl);
-    str[k] = (char)char_val;
-  }  /* for */
-  str[k] = (char)0;
-done:
   return result;
-}  /* get_interpreter_string */
+}  /* read_interpreter_string */
 
 STATIC_THREAD a_constant_ptr
 		reflection_str_placeholder;
@@ -13941,24 +14855,25 @@ static a_boolean make_reflective_string_view(
                                         an_interpreter_state  *ips,
                                         a_type_ptr            tp,
                                         a_const_char          *str,
+                                        a_type_ptr            char_type,
                                         a_byte                *subobj,
                                         a_byte                *complete_obj)
 /*
-tp represents std::string_view and should be a class type with no base classes,
-one pointer to a contiguous sequence of characters, and one integer member
-representing the length of the sequence.  Create a static array of characters
-with the contents of the null-terminated string pointed to by str and store in
-result_storage (part of the complete object pointed to by complete_obj) a
-string_view object referring to that static array.
+tp represents a std::basic_string_view specialization and should be a class
+type with no base classes, one pointer to a contiguous sequence of characters,
+and one integer member representing the length of the sequence.  char_type is
+the character element type of that sequence (e.g. plain char for
+std::string_view or char8_t for std::u8string_view).  Create a static array of
+characters with the contents of the null-terminated string pointed to by str
+and store in result_storage (part of the complete object pointed to by
+complete_obj) a string_view object referring to that static array.
 */
 {
   a_field_ptr   fp;
   a_boolean     result = TRUE, ptr_done = FALSE, length_done = FALSE;
   a_byte_count  length = (a_byte_count)strlen(str);
   a_byte        *chars;
-  LOCAL_UNUSED a_byte
-                *old_chars;
-  
+
   check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
   if (base_classes_of(tp) != NULL) {
     do_constexpr_fail(result);
@@ -13981,16 +14896,14 @@ string_view object referring to that static array.
       set_integer_value(value, (a_host_large_integer)str[k]);
       mark_subobject_initialized((a_byte*)value, chars);
     }  /* for */
-    record_complete_object_type(integer_type(plain_char_int_kind), chars);
+    record_complete_object_type(char_type, chars);
   }  /* if */
   /* Map chars to a placeholder indicating that this is a reflection string.
      If it needs to be materialized as an IL entry (ck_string), the function
      copy_interpreter_object_to_constant will recognize it and create or
      reuse an IL constant (using the persistent map). */
-  map_or_replace_ptr(&ips->map, chars, (a_byte*)reflection_str_placeholder,
-                     old_chars);
-  /* Silence a warning about old_chars being unused: */
-  check_assertion(old_chars != chars);
+  map_or_replace_ptr_discarding_old(&ips->map, chars,
+                                    (a_byte*)reflection_str_placeholder);
   fp = fields_of(tp);
   fp = next_alloc_field(fp);
   for (; fp != NULL; fp = next_alloc_field(fp->next)) {
@@ -14031,51 +14944,36 @@ done:
 }  /* make_reflective_string_view */
 
 
-static a_boolean do_constexpr_std_meta_has_identifier(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::has_identifier(<reflection_value>).  It returns true if
-std::meta::identifier_of can be successfully evaluated.
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean     result = TRUE;
-  a_reflection_value
-                *rvp = (a_reflection_value*)p_arg_bytes[0];
-  a_source_correspondence_ptr
-                scp;
-  a_const_char  *name = NULL;
-
-  strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_param_type) {
-    name = ((a_param_type*)rvp->entity.ptr)->name;
-  } else {
-    scp = source_corresp_for_reflection(rvp);
-    if (scp != NULL && scp->name != NULL) {
-      name = unmangled_name_of(scp);
+DEFINE_entity_predicate(std_meta, has_identifier,
+  ([&]{
+    a_const_char  *name = NULL;
+    if (rvp->entity.kind == iek_param_type) {
+      name = ((a_param_type*)rvp->entity.ptr)->name;
+    } else {
+      a_source_correspondence_ptr  scp = source_corresp_for_reflection(rvp);
+      if (scp != NULL && scp->name != NULL) {
+        name = unmangled_name_of(scp);
+      }  /* if */
     }  /* if */
-  }  /* if */
-  set_bool_value(name != NULL, result_storage);
-  return result;
-}  /* do_constexpr_std_meta_has_identifier */
+    answer = name != NULL;
+  }))
 
 
-static a_boolean do_constexpr_std_meta_identifier_of(
+static a_boolean meta_identifier_of_impl(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
                                         a_byte                **p_arg_bytes,
                                         a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+                                        a_byte                *complete_obj,
+                                        a_type_ptr            char_type)
 /*
-Implement std::meta::identifier_of(<reflection_value>).  It returns a "string
-view" via the std::string_view(char_ptr, length) constructor.
+Shared implementation of std::meta::identifier_of and
+std::meta::u8identifier_of.  Produce, at result_storage, a string view of the
+reflected entity's identifier whose elements have type char_type (plain char
+for identifier_of, char8_t for u8identifier_of; the identifier bytes are the
+same UTF-8 spelling in either case).  The call fails to be a constant
+expression if the entity has no identifier.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -14104,14 +15002,14 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   } else {
     check_assertion(type_is(rtp, tk_routine));
     tp = skip_typerefs(rtp->variant.routine.return_type);
-    result = make_reflective_string_view(ips, tp, name,
+    result = make_reflective_string_view(ips, tp, name, char_type,
                                          result_storage, complete_obj);
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_identifier_of */
+}  /* meta_identifier_of_impl */
 
 
-static a_boolean do_constexpr_std_meta_name_of(
+static a_boolean do_constexpr_std_meta_identifier_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -14119,42 +15017,215 @@ static a_boolean do_constexpr_std_meta_name_of(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::name_of(<reflection_value>).  It returns a "string view"
-via the std::string_view(char_ptr, length) constructor.
+Implement std::meta::identifier_of(<reflection_value>).  It returns a
+std::string_view of the entity's identifier.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean     result = FALSE;
-  a_reflection_value
-                *rvp = (a_reflection_value*)p_arg_bytes[0];
-  a_source_correspondence_ptr
-                scp;
-  a_const_char  *name;
-  a_type_ptr    rtp = skip_typerefs(callee->type), tp;
+  return meta_identifier_of_impl(ips, callee, call_node, p_arg_bytes,
+                                 result_storage, complete_obj,
+                                 integer_type(plain_char_int_kind));
+}  /* do_constexpr_std_meta_identifier_of */
 
-  strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_param_type) {
-    name = ((a_param_type*)rvp->entity.ptr)->name;
-  } else if (rvp->entity.kind == iek_base_class) {
-    name = unmangled_name_of(
-                     &((a_base_class*)rvp->entity.ptr)->type->source_corresp);
-  } else {
-    scp = source_corresp_for_reflection(rvp);
-    if (scp == NULL) {
-      name = "<invalid>";
-    } else if (scp->name != NULL) {
-      name = unmangled_name_of(scp);
-    } else {
-      name = "";
+
+static a_boolean do_constexpr_std_meta_u8identifier_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::u8identifier_of(<reflection_value>).  It returns a
+std::u8string_view of the entity's identifier.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return meta_identifier_of_impl(ips, callee, call_node, p_arg_bytes,
+                                 result_storage, complete_obj,
+                                 eff_char8_t_type());
+}  /* do_constexpr_std_meta_u8identifier_of */
+
+
+/* Scratch buffer reused across display-string renderings (see
+   meta_display_string_of_impl).  Its contents are always copied out before the
+   next use, so a single per-thread buffer suffices. */
+STATIC_THREAD a_text_buffer_ptr
+                meta_display_buffer;
+
+
+STATIC_THREAD a_data_map
+                meta_display_map;
+                        /* Map from the entity a reflection designates onto the
+                           display string rendered for it (see
+                           meta_display_string_of_impl).  Like persistent_map,
+                           it lasts across interpreter invocations. */
+
+
+static char *meta_display_string(a_reflection_value  rv)
+/*
+Return the display string for the entity designated by the reflection rv (see
+form_reflection), in storage that lasts as long as the translation unit.  The
+rendering of an entity never changes, so each entity is rendered only once and
+the string is reused for every later query about it; that also lets
+make_reflective_string_view, whose cache is keyed on the address of the string,
+build the interpreter character array only once.
+*/
+{
+  a_byte              *str = NULL;
+  a_reflection_value  key_rv = rv;
+
+  strip_template_arg(&key_rv);
+  if (meta_display_map.table == NULL) {
+    init_data_map(&meta_display_map, 5);
+  }  /* if */
+  if (key_rv.entity.ptr != NULL) {
+    get_mapped_ptr(&meta_display_map, key_rv.entity.ptr, str);
+  }  /* if */
+  if (str == NULL) {
+    an_il_to_str_output_control_block
+                  octl;
+    if (meta_display_buffer == NULL) {
+      meta_display_buffer = alloc_text_buffer(256);
+    }  /* if */
+    reset_text_buffer(meta_display_buffer);
+    clear_il_to_str_output_control_block(&octl);
+    octl.output_str = put_str_into_text_buffer;
+    octl.text_buffer = meta_display_buffer;
+    octl.for_diagnostics = TRUE;
+    octl.force_qualified_name = TRUE;
+    octl.reflection_display_form = TRUE;
+    form_reflection(rv, &octl);
+    add_to_text_buffer(meta_display_buffer, "", 1);
+    str = (a_byte*)alloc_text_of_string_literal(meta_display_buffer->size);
+    (void)memcpy(str, meta_display_buffer->buffer,
+                 (size_t)meta_display_buffer->size);
+    if (key_rv.entity.ptr != NULL) {
+      map_ptr(&meta_display_map, key_rv.entity.ptr, str);
     }  /* if */
   }  /* if */
+  return (char*)str;
+}  /* meta_display_string */
+
+
+static a_boolean meta_display_string_of_impl(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        ARG_UNUSED an_expr_node_ptr
+                                                              call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj,
+                                        a_type_ptr            char_type)
+/*
+Shared implementation of std::meta::display_string_of and u8display_string_of.
+Render the display form of the reflected entity (see form_reflection) and
+store, at result_storage, a string view of it with elements of type char_type.
+For a valid reflection this always succeeds (there is a rendering for every
+entity kind).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_type_ptr          rtp = skip_typerefs(callee->type), tp;
+  char                *str = meta_display_string(*rvp);
+
   check_assertion(type_is(rtp, tk_routine));
   tp = skip_typerefs(rtp->variant.routine.return_type);
-  result = make_reflective_string_view(ips, tp, name,
+  result = make_reflective_string_view(ips, tp, str, char_type,
                                        result_storage, complete_obj);
   return result;
-}  /* do_constexpr_std_meta_name_of */
+}  /* meta_display_string_of_impl */
+
+
+static a_boolean do_constexpr_std_meta_display_string_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::display_string_of(<reflection_value>).  It returns a
+std::string_view of the entity's display string.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return meta_display_string_of_impl(ips, callee, call_node, p_arg_bytes,
+                                     result_storage, complete_obj,
+                                     integer_type(plain_char_int_kind));
+}  /* do_constexpr_std_meta_display_string_of */
+
+
+static a_boolean do_constexpr_std_meta_u8display_string_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::u8display_string_of(<reflection_value>).  It returns a
+std::u8string_view of the entity's display string.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return meta_display_string_of_impl(ips, callee, call_node, p_arg_bytes,
+                                     result_storage, complete_obj,
+                                     eff_char8_t_type());
+}  /* do_constexpr_std_meta_u8display_string_of */
+
+
+static a_boolean do_constexpr_std_meta_source_location_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::source_location_of(<reflection_value>).  It returns a
+std::source_location describing the declaration of the reflected entity.  The
+file/line/column come from the entity's declaration position; the function-name
+field is left empty (it is implementation-defined for an entity).  The call
+fails to be a constant expression for a reflection that has no associated
+declaration position.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_type_ptr          rtp = skip_typerefs(callee->type), sl_type;
+  a_source_correspondence_ptr
+                      scp;
+  a_source_position   *use_pos = NULL;
+
+  strip_template_arg(rvp);
+  scp = source_corresp_for_reflection(rvp);
+  if (scp != NULL && scp->decl_position.seq != 0) {
+    use_pos = &scp->decl_position;
+  }  /* if */
+  if (use_pos == NULL) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+  } else {
+    check_assertion(type_is(rtp, tk_routine));
+    sl_type = skip_typerefs(rtp->variant.routine.return_type);
+    (void)build_source_location_value(ips, use_pos,
+                                      /*use_current_function=*/FALSE,
+                                      sl_type, result_storage, complete_obj,
+                                      &result);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_source_location_of */
 
 
 static void collect_scoped_reflections(
@@ -14174,49 +15245,361 @@ not the scope).
   a_namespace  *nsp;
 
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
-    a_reflection_value  mem_rvp;
-    mem_rvp.entity.ptr = (char*)rp;
-    mem_rvp.entity.kind = (an_il_entry_kind)iek_routine;
-    mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-    reflections->push_back(mem_rvp);
+    push_entity_reflection(reflections, rp, iek_routine, FILE_SCOPE_NUMBER);
   }  /* for */
   for (tp = scope->types; tp != NULL; tp = tp->next) {
-    a_reflection_value  mem_rvp;
-    mem_rvp.entity.ptr = (char*)tp;
-    mem_rvp.entity.kind = (an_il_entry_kind)iek_type;
-    mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-    reflections->push_back(mem_rvp);
+    push_entity_reflection(reflections, tp, iek_type, FILE_SCOPE_NUMBER);
   }  /* for */
   for (vp = scope->variables; vp != NULL; vp = vp->next) {
-    a_reflection_value  mem_rvp;
-    mem_rvp.entity.ptr = (char*)vp;
-    mem_rvp.entity.kind = (an_il_entry_kind)iek_variable;
-    mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-    reflections->push_back(mem_rvp);
+    push_entity_reflection(reflections, vp, iek_variable, FILE_SCOPE_NUMBER);
   }  /* for */
   for (templ = scope->templates; templ != NULL; templ = templ->next) {
-    a_reflection_value  mem_rvp;
-    mem_rvp.entity.ptr = (char*)templ;
-    mem_rvp.entity.kind = (an_il_entry_kind)iek_template;
-    mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-    reflections->push_back(mem_rvp);
+    push_entity_reflection(reflections, templ, iek_template,
+                           FILE_SCOPE_NUMBER);
   }  /* for */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-    a_reflection_value  mem_rvp;
+    /* A namespace alias is reflected as such; a namespace itself is reflected
+       through its associated scope. */
     if (nsp->is_namespace_alias) {
-      mem_rvp.entity.ptr = (char*)nsp;
-      mem_rvp.entity.kind = (an_il_entry_kind)iek_namespace;
+      push_entity_reflection(reflections, nsp, iek_namespace,
+                             FILE_SCOPE_NUMBER);
     } else {
-      mem_rvp.entity.ptr = (char*)nsp->variant.assoc_scope;
-      mem_rvp.entity.kind = (an_il_entry_kind)iek_scope;
+      push_entity_reflection(reflections, nsp->variant.assoc_scope, iek_scope,
+                             FILE_SCOPE_NUMBER);
     }  /* if */
-    mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-    reflections->push_back(mem_rvp);
   }  /* for */
 }  /* collect_scoped_reflections */
 
 
-static a_boolean do_constexpr_std_meta_members__impl(
+static a_constant_ptr info_array_element_pointer(
+                                  an_interpreter_state  *ips,
+                                  a_variable_ptr        vp,
+                                  a_type_ptr            info_ptr_type,
+                                  a_targ_ptrdiff_t      element_index)
+/*
+Build and return an address constant of type info_ptr_type (std::meta::info
+const*) denoting a pointer to element element_index of the std::meta::info
+array variable vp.  The constant carries the array-to-pointer decay conversion
+(so the bounds of the array apply) and is linked into ips->constants so a
+reverse mapping from the array's interpreter storage back to it is recorded.
+*/
+{
+  a_constant_ptr  cp = local_constant();
+
+  set_variable_address_constant(vp, cp, /*set_address_taken_flag=*/FALSE);
+  cp->type = info_ptr_type;
+  cp->variant.address.subobject_path = alloc_subobject_path();
+  cp->variant.address.subobject_path->is_offset = TRUE;
+  cp->variant.address.subobject_path->variant.ptr_offset = element_index;
+  cp->implicit_cast = TRUE;
+  cp->next = ips->constants;
+  ips->constants = cp;
+  return cp;
+}  /* info_array_element_pointer */
+
+
+static a_boolean build_info_array_variable(
+                                  an_interpreter_state          *ips,
+                                  an_expr_node_ptr              call_node,
+                                  Dyn_array<a_reflection_value> *reflections,
+                                  a_type_ptr                    info_ptr_type,
+                                  a_variable_ptr                *p_vp,
+                                  a_constant_ptr                *p_begin_cp)
+/*
+Materialize the given sequence of reflections in a constexpr namespace-scope
+array variable of std::meta::info, with internal linkage, terminated by an
+extra null reflection (so element index reflections->length() is in bounds for
+a one-past-the-last iterator).  Set *p_vp to the array variable and *p_begin_cp
+to an address constant (of type info_ptr_type, std::meta::info const*) denoting
+a pointer to its first element; the variable is activated in static interpreter
+storage so its elements are readable during constant evaluation.  Return TRUE
+on success.
+
+A separate variable is built for each query rather than one per translation
+unit being reused, because a static variable's interpreter storage is
+materialized from its IL initializer the first time the variable is read and
+is then held until the enclosing constant evaluation ends: reusing a variable
+would make a second query in the same evaluation see the elements of the
+first.  The IL a query leaves behind is therefore proportional to the number
+of entities it enumerated, which make_info_vector limits to the variable
+itself by emptying the initializer once the result vector has been built.
+*/
+{
+  a_boolean             result = TRUE;
+  a_host_large_integer  n = (a_host_large_integer)reflections->length();
+  a_host_large_integer  total = n + 1;
+  a_type_ptr            info_type = reflection_type();
+  a_byte_count          info_size = value_bytes_for_type(ips, info_type,
+                                                         &result);
+  a_type_ptr            array_type;
+  a_byte_count          array_n_bytes, k, ptr_size;
+  a_byte                *temp_bytes, *scratch;
+  a_constant_ptr        init_cp, begin_cp;
+  a_variable_ptr        vp;
+  a_symbol_ptr          sym;
+  a_symbol_locator      loc;
+  a_memory_region_number
+                        region;
+  STATIC_THREAD long    counter = 0;
+
+  if (!result) goto done;
+  /* Materialize the reflections (plus null terminator) in an interpreter
+     array object. */
+  array_type = alloc_type(tk_array);
+  array_type->variant.array.element_type = make_qualified_type(info_type,
+                                                               TQ_CONST);
+  array_type->variant.array.variant.number_of_elements =
+                                                       (a_targ_size_t)total;
+  array_n_bytes = value_bytes_for_type(ips, array_type, &result);
+  if (!result) goto done;
+  if (!alloc_complete_object(ips, array_n_bytes, array_type, temp_bytes)) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  for (k = 0; k < (a_byte_count)total; ++k) {
+    a_reflection_value  *e = (a_reflection_value*)(temp_bytes+k*info_size);
+    if (k < (a_byte_count)n) {
+      *e = (*reflections)[k];
+    } else {
+      e->entity.kind = iek_none;
+      e->entity.ptr = NULL;
+      e->local_scope_number = FILE_SCOPE_NUMBER;
+    }  /* if */
+    mark_subobject_initialized((a_byte*)e, temp_bytes);
+  }  /* for */
+  mark_complete_object_initialized(temp_bytes);
+  /* Build a constexpr array variable initialized with those reflections. */
+  init_cp = fs_constant(ck_aggregate);
+  switch_to_file_scope_region(&region);
+  if (!copy_interpreter_object_to_constant(ips, temp_bytes, temp_bytes,
+                                           array_type, init_cp)) {
+    switch_back_to_original_region(region);
+    result = FALSE;
+    goto done;
+  }  /* if */
+  switch_back_to_original_region(region);
+  vp = make_variable(array_type, sc_static, NO_SCOPE_DEPTH);
+  add_temporary_to_front_of_variables_list(vp,
+                                    curr_translation_unit->primary_scope);
+  vp->init_kind = initk_static;
+  vp->initializer.constant = init_cp;
+  vp->is_constexpr = TRUE;
+  {
+    Small_string<100>  name("__ce_members_", ++counter);
+    clear_locator(&loc, &call_node->position);
+    (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
+    sym = make_symbol(sk_variable, &loc);
+    sym->variant.variable.ptr = vp;
+    set_source_corresp(&vp->source_corresp, sym);
+  }
+  begin_cp = info_array_element_pointer(ips, vp, info_ptr_type, 0);
+  /* Extract the begin pointer through the normal constant path so that the
+     constexpr array variable is activated in static interpreter storage and
+     its elements are readable during constant evaluation (rather than being
+     treated as run-time storage). */
+  ptr_size = value_bytes_for_type(ips, info_ptr_type, &result);
+  if (result && alloc_stack_bytes(ips, ptr_size, scratch)) {
+    a_constexpr_address  begin_cap;
+    clear_address(&begin_cap, scratch);
+    result = extract_value_from_constant(ips, begin_cp, begin_cap);
+  } else {
+    result = FALSE;
+  }  /* if */
+  *p_vp = vp;
+  *p_begin_cp = begin_cp;
+done:
+  return result;
+}  /* build_info_array_variable */
+
+
+static void clear_reflections_in_constant(a_constant_ptr cp)
+/*
+Recursively replace every std::meta::info (ck_reflection) value reachable from
+the constant cp with a null reflection (info{}).  This is used to neutralize
+the initializer of the intermediate constexpr info array built by
+build_info_array_variable once the result vector has been constructed from it:
+the array may hold reflections of entities with transient lifetime (e.g. the
+parameter variables reported by current_parameters, which live in a function's
+local memory region that is reclaimed when the function is finished), so the
+file-scope array must not retain those pointers, which would otherwise be
+chased by the end-of-file-scope "needed" IL walk.  Clearing them is also
+consistent with reflecting an entity not, by itself, making it "needed".
+*/
+{
+  if (cp != NULL) {
+    if (constant_is(cp, ck_reflection)) {
+      cp->variant.reflection.entity.kind = iek_none;
+      cp->variant.reflection.entity.ptr = NULL;
+    } else if (constant_is(cp, ck_aggregate)) {
+      a_constant_ptr  e;
+      for (e = cp->variant.aggregate.first_constant; e != NULL; e = e->next) {
+        clear_reflections_in_constant(e);
+      }  /* for */
+    } else if (constant_is(cp, ck_init_repeat)) {
+      clear_reflections_in_constant(cp->variant.init_repeat.constant);
+    }  /* if */
+  }  /* if */
+}  /* clear_reflections_in_constant */
+
+
+static a_boolean make_info_vector(
+                              an_interpreter_state          *ips,
+                              a_routine_ptr                 callee,
+                              an_expr_node_ptr              call_node,
+                              Dyn_array<a_reflection_value> *reflections,
+                              a_byte                        *result_storage,
+                              a_byte                        *complete_obj)
+/*
+Construct the std::vector<std::meta::info> result of a std::meta query (e.g.
+members_of, bases_of, parameters_of) from the given sequence of reflections
+and store it in result_storage (part of complete_obj).  The reflections are
+first materialized in a constexpr array of std::meta::info (see
+build_info_array_variable); the result vector is then built by folding the
+construction std::vector<info>(first, last) over the half-open range
+[first, last) of that array, so the vector owns properly constexpr-allocated
+element storage.  Return TRUE on success.
+*/
+{
+  a_boolean         result;
+  a_variable_ptr    vp;
+  a_constant_ptr    begin_cp, end_cp;
+  an_expr_node_ptr  construction;
+  a_type_ptr        info_ptr_type =
+                      make_pointer_type(make_qualified_type(reflection_type(),
+                                                            TQ_CONST));
+  a_type_ptr        vector_type =
+                    skip_typerefs(return_type_of(skip_typerefs(callee->type)));
+  a_targ_ptrdiff_t  n = (a_targ_ptrdiff_t)reflections->length();
+
+  result = build_info_array_variable(ips, call_node, reflections,
+                                     info_ptr_type, &vp, &begin_cp);
+  if (result) {
+    end_cp = info_array_element_pointer(ips, vp, info_ptr_type, n);
+    construction = build_info_vector_construction(vector_type, begin_cp,
+                                                  end_cp,
+                                                  &call_node->position);
+    if (construction != NULL && construction->kind == enk_temp_init) {
+      /* Run the construction as a pure initialization of the members_of result
+         object: do_constexpr_dynamic_init constructs the vector in place, so
+         the resulting vector (and its constexpr-allocated element storage) is
+         owned by the returned value and reclaimed by the interpreter when the
+         object that receives it goes out of scope during the constant
+         evaluation. */
+      a_constexpr_address  dst_addr;
+      clear_address(&dst_addr, complete_obj);
+      dst_addr.address = result_storage;
+      result = do_constexpr_dynamic_init(ips,
+                                         construction->variant.init.
+                                                              dynamic_init,
+                                         &call_node->position, dst_addr);
+      if (result) {
+        mark_subobject_initialized(result_storage, complete_obj);
+      }  /* if */
+      /* Scanning the construction (build_info_vector_construction) binds the
+         vector temporary's destruction to the current object lifetime, which
+         here is the object lifetime of whatever full-expression is being
+         folded -- not a temporary that expression actually contains.  Because
+         the vector is destroyed by the interpreter as described above, unlink
+         that destruction so it does not linger on the enclosing lifetime; a
+         lingering destruction would otherwise be orphaned (and trip the
+         wrap_up_constant_full_expression assertion) when this intrinsic runs
+         while an immediate-invocation call folds to a constant. */
+      unlink_expr_destructions(construction);
+    } else {
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                    ips);
+    }  /* if */
+    /* The result vector now owns its own copies of the element reflections, so
+       drop the reflections retained by the intermediate array variable's
+       initializer (see clear_reflections_in_constant): some of them may refer
+       to entities whose lifetime does not extend to end of file. */
+    clear_reflections_in_constant(vp->initializer.constant);
+  }  /* if */
+  return result;
+}  /* make_info_vector */
+
+
+static void keep_accessible_reflections(
+                                   Dyn_array<a_reflection_value> *reflections,
+                                   a_reflection_value            *scope_rv,
+                                   a_reflection_value            *dc_rv)
+/*
+Remove from *reflections every entry whose reflected entity is not accessible
+from the access_context whose scope and designating class are *scope_rv and
+*dc_rv (see reflection_accessible_in_context); the surviving entries keep
+their original relative order.  Used by the std::meta member/subobject queries
+(members_of and friends) to apply the N5046 [meta.reflection.access.queries]
+accessibility filtering.
+*/
+{
+  size_t                 src, dst = 0;
+  a_meta_access_context  ctx;
+
+  decode_access_context(scope_rv, dc_rv, &ctx);
+  for (src = 0; src < reflections->length(); ++src) {
+    /* The entry is copied because deciding accessibility normalizes the
+       reflection in place, which the retained entry must not reflect. */
+    a_reflection_value  m = (*reflections)[src];
+    if (reflection_accessible_in_context(&m, &ctx)) {
+      (*reflections)[dst] = (*reflections)[src];
+      dst += 1;
+    }  /* if */
+  }  /* for */
+  while (reflections->length() > dst) {
+    reflections->pop_back();
+  }  /* while */
+}  /* keep_accessible_reflections */
+
+
+static a_boolean collect_class_subobject_reflections(
+                              a_reflection_value             *rvp,
+                              a_boolean                       want_bases,
+                              a_boolean                       want_fields,
+                              Dyn_array<a_reflection_value>  *out)
+/*
+Append to *out a reflection for each direct base class (when want_bases) and/or
+each nonstatic data member (when want_fields) of the class type reflected by
+*rvp, with bases ahead of fields and each group in declaration order.  *rvp is
+first stripped of any template-argument wrapper.  Return FALSE without
+appending anything if *rvp does not reflect a complete immediate class type;
+otherwise TRUE.  Shared by the bases_of/nonstatic_data_members_of/subobjects_of
+queries and their has_inaccessible_* counterparts.
+*/
+{
+  a_boolean                    result = TRUE;
+  a_source_correspondence_ptr  scp;
+
+  strip_template_arg(rvp);
+  scp = source_corresp_for_reflection(rvp);
+  if (scp == NULL || rvp->entity.kind != iek_type) {
+    result = FALSE;
+  } else {
+    a_type_ptr  parent_tp = skip_typerefs((a_type_ptr)rvp->entity.ptr);
+    complete_type_is_needed(parent_tp);
+    if (is_immediate_class_type(parent_tp) && !parent_tp->incomplete) {
+      if (want_bases) {
+        a_base_class  *bcp = class_type_supp(parent_tp)->direct_base_classes;
+        for (; bcp != NULL; bcp = bcp->next_direct) {
+          push_entity_reflection(out, bcp, iek_base_class,
+                                 FILE_SCOPE_NUMBER);
+        }  /* for */
+      }  /* if */
+      if (want_fields) {
+        a_field  *fp = next_proper_field(fields_of(parent_tp));
+        for (; fp != NULL; fp = next_proper_field(fp->next)) {
+          push_entity_reflection(out, fp, iek_field, FILE_SCOPE_NUMBER);
+        }  /* for */
+      }  /* if */
+    } else {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* collect_class_subobject_reflections */
+
+
+static a_boolean do_constexpr_std_meta_members_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -14224,45 +15607,41 @@ static a_boolean do_constexpr_std_meta_members__impl(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::members_of(<reflection_value>).  It returns a vector-like
-container (struct std::meta::__infovec) of reflections, with each element
-representing a member of the given entity.
+Implement std::meta::members_of(info, access_context).  It returns a
+std::vector<std::meta::info> holding a reflection for each member of the
+reflected class or namespace that is accessible from the given access_context
+(per N5046 [meta.reflection.member.queries]/[meta.reflection.access.queries]).
+The members are first collected and filtered, then the result vector is built
+by make_info_vector.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean     result = FALSE, invalid_arg = FALSE;
+  a_boolean     result, invalid_arg = FALSE;
   a_reflection_value
                 *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_reflection_value
+                scope_rv, dc_rv;
   Dyn_array<a_reflection_value>
-                result_reflections(0);
+                all_reflections(0);
 
-  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
-    /* Don't attempt to evaluate this call if a constant result is not needed,
-       because it could be somewhat expensive. */
-    do_constexpr_fail(result);
-    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                  &call_node->position, ips);
+  result = load_meta_query_context(ips, callee, call_node, p_arg_bytes,
+                                   /*require_constant_eval=*/TRUE,
+                                   /*require_dynamic_alloc=*/TRUE,
+                                   &scope_rv, &dc_rv);
+  if (!result) {
     goto done;
   }  /* if */
-  check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
   strip_template_arg(rvp);
   if (rvp->entity.kind == iek_type) {
-    a_type_ptr  parent_tp = (a_type_ptr)rvp->entity.ptr;
-    parent_tp = skip_typerefs(parent_tp);
-    complete_type_is_needed(parent_tp);
-    if (is_immediate_class_type(parent_tp) && !parent_tp->incomplete) {
-      /* Enumerate all the class members. */
-      a_field  *fp = next_proper_field(fields_of(parent_tp));
-      for (; fp != NULL; next_proper_field(fp = fp->next)) {
-        a_reflection_value  mem_rvp;
-        mem_rvp.entity.ptr = (char*)fp;
-        mem_rvp.entity.kind = (an_il_entry_kind)iek_field;
-        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(mem_rvp);
-      }  /* for */
+    /* Enumerate the nonstatic data members, which are not in the class scope,
+       and then everything the class scope does hold. */
+    if (collect_class_subobject_reflections(rvp, /*want_bases=*/FALSE,
+                                            /*want_fields=*/TRUE,
+                                            &all_reflections)) {
+      a_type_ptr  parent_tp = skip_typerefs((a_type_ptr)rvp->entity.ptr);
       collect_scoped_reflections(class_type_supp(parent_tp)->assoc_scope,
-                                 &result_reflections);
+                                 &all_reflections);
     } else {
       invalid_arg = TRUE;
     }  /* if */
@@ -14277,7 +15656,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
         (((a_scope*)rvp->entity.ptr)->kind == sck_namespace ||
          ((a_scope*)rvp->entity.ptr)->kind == sck_file)) {
       collect_scoped_reflections((a_scope*)rvp->entity.ptr,
-                                 &result_reflections);
+                                 &all_reflections);
     } else {
       invalid_arg = TRUE;
     }  /* if */
@@ -14286,17 +15665,18 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     do_constexpr_fail(result);
     info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
                   ips);
-  } else {
-    a_type_ptr  result_tp = skip_typerefs(call_node->type);
-    result = make_infovec(ips, result_tp, &result_reflections,
-                          &call_node->position, result_storage, complete_obj);
+    goto done;
   }  /* if */
+  /* Keep only members that are accessible from the given access_context. */
+  keep_accessible_reflections(&all_reflections, &scope_rv, &dc_rv);
+  result = make_info_vector(ips, callee, call_node, &all_reflections,
+                            result_storage, complete_obj);
 done:
   return result;
-}  /* do_constexpr_std_meta_members__impl */
+}  /* do_constexpr_std_meta_members_of */
 
 
-static a_boolean do_constexpr_std_meta_static_data_members__impl(
+static a_boolean do_constexpr_std_meta_static_data_members_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -14304,31 +15684,31 @@ static a_boolean do_constexpr_std_meta_static_data_members__impl(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::static_data_members_of(<reflection_value>).  It returns
-a vector-like container (struct std::meta::__infovec) of reflections, with each
-element representing a static data member of the given entity (in declaration
-order).
+Implement std::meta::static_data_members_of(info, access_context).  It returns
+a std::vector<std::meta::info> holding a reflection for each static data member
+of the given class type that is accessible from the given access_context (in
+declaration order).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean     result = FALSE, invalid_arg = FALSE;
+  a_boolean     result, invalid_arg = FALSE;
   a_reflection_value
                 *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_reflection_value
+                scope_rv, dc_rv;
   a_source_correspondence_ptr
                 scp;
   Dyn_array<a_reflection_value>
                 result_reflections(0);
 
-  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
-    /* Don't attempt to evaluate this call if a constant result is not needed,
-       because it could be somewhat expensive. */
-    do_constexpr_fail(result);
-    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                  &call_node->position, ips);
+  result = load_meta_query_context(ips, callee, call_node, p_arg_bytes,
+                                   /*require_constant_eval=*/TRUE,
+                                   /*require_dynamic_alloc=*/TRUE,
+                                   &scope_rv, &dc_rv);
+  if (!result) {
     goto done;
   }  /* if */
-  check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
   strip_template_arg(rvp);
   scp = source_corresp_for_reflection(rvp);
   if (scp == NULL) {
@@ -14342,11 +15722,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       a_scope     *scope = class_type_supp(parent_tp)->assoc_scope;
       a_variable  *vp = scope->variables;
       for (; vp != NULL; vp = vp->next) {
-        a_reflection_value  mem_rvp;
-        mem_rvp.entity.ptr = (char*)vp;
-        mem_rvp.entity.kind = (an_il_entry_kind)iek_variable;
-        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(mem_rvp);
+        push_entity_reflection(&result_reflections, vp, iek_variable,
+                               FILE_SCOPE_NUMBER);
       }  /* for */
     } else {
       invalid_arg = TRUE;
@@ -14359,16 +15736,64 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
                   ips);
   } else {
-    a_type_ptr  result_tp = skip_typerefs(call_node->type);
-    result = make_infovec(ips, result_tp, &result_reflections,
-                          &call_node->position, result_storage, complete_obj);
+    keep_accessible_reflections(&result_reflections, &scope_rv, &dc_rv);
+    result = make_info_vector(ips, callee, call_node, &result_reflections,
+                              result_storage, complete_obj);
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_static_data_members__impl */
+}  /* do_constexpr_std_meta_static_data_members_of */
 
 
-static a_boolean do_constexpr_std_meta_nonstatic_data_members__impl(
+static a_boolean do_constexpr_meta_subobject_query(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj,
+                                        a_boolean             want_bases,
+                                        a_boolean             want_fields)
+/*
+Shared implementation of the bases_of, nonstatic_data_members_of, and
+subobjects_of queries.  Return a std::vector<std::meta::info> holding a
+reflection for each direct base class (when want_bases) and/or each nonstatic
+data member (when want_fields) of the class type reflected by p_arg_bytes[0]
+that is accessible from the access_context in p_arg_bytes[1], with the bases
+ahead of the data members and each group in declaration order.  Evaluation
+fails, with a diagnostic, if p_arg_bytes[0] does not reflect a complete class
+type.
+
+See do_constexpr_intrinsic_call for the meaning of the remaining parameters.
+*/
+{
+  a_boolean           result;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_reflection_value  scope_rv, dc_rv;
+  Dyn_array<a_reflection_value>
+                      reflections(0);
+
+  result = load_meta_query_context(ips, callee, call_node, p_arg_bytes,
+                                   /*require_constant_eval=*/TRUE,
+                                   /*require_dynamic_alloc=*/TRUE,
+                                   &scope_rv, &dc_rv);
+  if (result) {
+    if (!collect_class_subobject_reflections(rvp, want_bases, want_fields,
+                                            &reflections)) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                    ips);
+    } else {
+      keep_accessible_reflections(&reflections, &scope_rv, &dc_rv);
+      result = make_info_vector(ips, callee, call_node, &reflections,
+                                result_storage, complete_obj);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* do_constexpr_meta_subobject_query */
+
+
+static a_boolean do_constexpr_std_meta_nonstatic_data_members_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -14376,69 +15801,19 @@ static a_boolean do_constexpr_std_meta_nonstatic_data_members__impl(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::nonstatic_data_members_of(<reflection_value>).  It returns
-a vector-like container (struct std::meta::__infovec) of reflections, with each
-element representing a field of the given entity (in declaration order).
+Implement std::meta::nonstatic_data_members_of(info, access_context).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean     result = FALSE, invalid_arg = FALSE;
-  a_reflection_value
-                *rvp = (a_reflection_value*)p_arg_bytes[0];
-  a_source_correspondence_ptr
-                scp;
-  Dyn_array<a_reflection_value>
-                result_reflections(0);
-
-  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
-    /* Don't attempt to evaluate this call if a constant result is not needed,
-       because it could be somewhat expensive. */
-    do_constexpr_fail(result);
-    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                  &call_node->position, ips);
-    goto done;
-  }  /* if */
-  check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
-  strip_template_arg(rvp);
-  scp = source_corresp_for_reflection(rvp);
-  if (scp == NULL) {
-    invalid_arg = TRUE;
-  } else if (rvp->entity.kind == iek_type) {
-    a_type_ptr  parent_tp = (a_type_ptr)rvp->entity.ptr;
-    parent_tp = skip_typerefs(parent_tp);
-    complete_type_is_needed(parent_tp);
-    if (is_immediate_class_type(parent_tp) && !parent_tp->incomplete) {
-      /* Enumerate all the nonstatic data members. */
-      a_field  *fp = next_proper_field(fields_of(parent_tp));
-      for (; fp != NULL; next_proper_field(fp = fp->next)) {
-        a_reflection_value  mem_rvp;
-        mem_rvp.entity.ptr = (char*)fp;
-        mem_rvp.entity.kind = (an_il_entry_kind)iek_field;
-        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(mem_rvp);
-      }  /* for */
-    } else {
-      invalid_arg = TRUE;
-    }  /* if */
-  } else {
-    invalid_arg = TRUE;
-  }  /* if */
-  if (invalid_arg) {
-    do_constexpr_fail(result);
-    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
-                  ips);
-  } else {
-    a_type_ptr  result_tp = skip_typerefs(call_node->type);
-    result = make_infovec(ips, result_tp, &result_reflections,
-                          &call_node->position, result_storage, complete_obj);
-  }  /* if */
-done:
-  return result;
-}  /* do_constexpr_std_meta_nonstatic_data_members__impl */
+  return do_constexpr_meta_subobject_query(ips, callee, call_node, p_arg_bytes,
+                                           result_storage, complete_obj,
+                                           /*want_bases=*/FALSE,
+                                           /*want_fields=*/TRUE);
+}  /* do_constexpr_std_meta_nonstatic_data_members_of */
 
 
-static a_boolean do_constexpr_std_meta_bases__impl(
+static a_boolean do_constexpr_std_meta_bases_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -14446,9 +15821,171 @@ static a_boolean do_constexpr_std_meta_bases__impl(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::bases_of(<reflection_value>).  It returns a vector-like
-container (struct std::meta::__infovec) of reflections, with each element
-representing a direct base of the given class type (in declaration order).
+Implement std::meta::bases_of(info, access_context).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_constexpr_meta_subobject_query(ips, callee, call_node, p_arg_bytes,
+                                           result_storage, complete_obj,
+                                           /*want_bases=*/TRUE,
+                                           /*want_fields=*/FALSE);
+}  /* do_constexpr_std_meta_bases_of */
+
+
+static a_boolean do_constexpr_std_meta_subobjects_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::subobjects_of(info, access_context).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_constexpr_meta_subobject_query(ips, callee, call_node, p_arg_bytes,
+                                           result_storage, complete_obj,
+                                           /*want_bases=*/TRUE,
+                                           /*want_fields=*/TRUE);
+}  /* do_constexpr_std_meta_subobjects_of */
+
+
+static a_boolean do_constexpr_has_inaccessible(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_boolean             want_bases,
+                                        a_boolean             want_fields,
+                                        a_boolean             reject_closure)
+/*
+Shared implementation of the has_inaccessible_* queries.  The class type
+reflected by p_arg_bytes[0] is enumerated as if from
+access_context::unchecked() (every direct base when want_bases and/or every
+nonstatic data member when want_fields), and the result is set to true if any
+enumerated subobject is not accessible from the access_context in
+p_arg_bytes[1].  Evaluation fails if the reflection is not a complete class
+type, or (when reject_closure) if it is a closure type, mirroring the
+standard's preconditions.
+
+See do_constexpr_intrinsic_call for the meaning of the remaining parameters.
+*/
+{
+  a_boolean           result;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_reflection_value  scope_rv, dc_rv;
+  Dyn_array<a_reflection_value>
+                      reflections(0);
+
+  result = load_meta_query_context(ips, callee, call_node, p_arg_bytes,
+                                   /*require_constant_eval=*/TRUE,
+                                   /*require_dynamic_alloc=*/FALSE,
+                                   &scope_rv, &dc_rv);
+  if (result) {
+    if (!collect_class_subobject_reflections(rvp, want_bases, want_fields,
+                                             &reflections) ||
+        (reject_closure &&
+         is_lambda_closure_type(skip_typerefs((a_type_ptr)rvp->entity.ptr)))) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                    ips);
+    } else {
+      a_boolean              found_inaccessible = FALSE;
+      size_t                 i;
+      a_meta_access_context  ctx;
+      decode_access_context(&scope_rv, &dc_rv, &ctx);
+      for (i = 0; i < reflections.length() && !found_inaccessible; ++i) {
+        a_reflection_value  m = reflections[i];
+        found_inaccessible = !reflection_accessible_in_context(&m, &ctx);
+      }  /* for */
+      set_bool_value(found_inaccessible, result_storage);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* do_constexpr_has_inaccessible */
+
+
+static a_boolean do_constexpr_std_meta_has_inaccessible_nonstatic_data_members(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::has_inaccessible_nonstatic_data_members(info,
+access_context).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_constexpr_has_inaccessible(ips, callee, call_node, p_arg_bytes,
+                                       result_storage, /*want_bases=*/FALSE,
+                                       /*want_fields=*/TRUE,
+                                       /*reject_closure=*/TRUE);
+}  /* do_constexpr_std_meta_has_inaccessible_nonstatic_data_members */
+
+
+static a_boolean do_constexpr_std_meta_has_inaccessible_bases(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::has_inaccessible_bases(info, access_context).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_constexpr_has_inaccessible(ips, callee, call_node, p_arg_bytes,
+                                       result_storage, /*want_bases=*/TRUE,
+                                       /*want_fields=*/FALSE,
+                                       /*reject_closure=*/FALSE);
+}  /* do_constexpr_std_meta_has_inaccessible_bases */
+
+
+static a_boolean do_constexpr_std_meta_has_inaccessible_subobjects(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::has_inaccessible_subobjects(info, access_context).
+Equivalent to has_inaccessible_bases(r, ctx) ||
+has_inaccessible_nonstatic_data_members(r, ctx).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_constexpr_has_inaccessible(ips, callee, call_node, p_arg_bytes,
+                                       result_storage, /*want_bases=*/TRUE,
+                                       /*want_fields=*/TRUE,
+                                       /*reject_closure=*/TRUE);
+}  /* do_constexpr_std_meta_has_inaccessible_subobjects */
+
+
+static a_boolean do_constexpr_std_meta_enumerators_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::enumerators_of(<reflection_value>).  It returns a
+std::vector<std::meta::info> holding a reflection for each enumerator constant
+of the given enumeration type (in declaration order).  Evaluation fails if the
+given reflection is not that of an enumeration type that is enumerable here:
+the enumerators of an enumeration are not available from within its own
+enum-specifier, where only some of them have been seen.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -14469,76 +16006,6 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                   &call_node->position, ips);
     goto done;
   }  /* if */
-  check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
-  strip_template_arg(rvp);
-  if (scp == NULL) {
-    invalid_arg = TRUE;
-  } else if (rvp->entity.kind == iek_type) {
-    a_type_ptr  parent_tp = (a_type_ptr)rvp->entity.ptr;
-    parent_tp = skip_typerefs(parent_tp);
-    complete_type_is_needed(parent_tp);
-    if (is_immediate_class_type(parent_tp) && !parent_tp->incomplete) {
-      /* Enumerate all the direct base classes. */
-      a_base_class  *bcp = class_type_supp(parent_tp)->direct_base_classes;
-      for (; bcp != NULL; bcp = bcp->next_direct) {
-        a_reflection_value  mem_rvp;
-        mem_rvp.entity.ptr = (char*)bcp;
-        mem_rvp.entity.kind = (an_il_entry_kind)iek_base_class;
-        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(mem_rvp);
-      }  /* for */
-    } else {
-      invalid_arg = TRUE;
-    }  /* if */
-  } else {
-    invalid_arg = TRUE;
-  }  /* if */
-  if (invalid_arg) {
-    do_constexpr_fail(result);
-    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
-                  ips);
-  } else {
-    a_type_ptr  result_tp = skip_typerefs(call_node->type);
-    result = make_infovec(ips, result_tp, &result_reflections,
-                          &call_node->position, result_storage, complete_obj);
-  }  /* if */
-done:
-  return result;
-}  /* do_constexpr_std_meta_bases__impl */
-
-
-static a_boolean do_constexpr_std_meta_subobjects__impl(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::subobjects_of(<reflection_value>).  It returns a
-vector-like container (struct std::meta::__infovec) of reflections, with each
-element representing a direct base or nonstatic data member of the given class
-type (in declaration order).
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean     result = FALSE, invalid_arg = FALSE;
-  a_reflection_value
-                *rvp = (a_reflection_value*)p_arg_bytes[0];
-  a_source_correspondence_ptr
-                scp = source_corresp_for_reflection(rvp);
-  Dyn_array<a_reflection_value>
-                result_reflections(0);
-
-  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
-    /* Don't attempt to evaluate this call if a constant result is not needed,
-       because it could be somewhat expensive. */
-    do_constexpr_fail(result);
-    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                  &call_node->position, ips);
-    goto done;
-  }  /* if */
   strip_template_arg(rvp);
   check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
   if (scp == NULL) {
@@ -14546,94 +16013,12 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   } else if (rvp->entity.kind == iek_type) {
     a_type_ptr  parent_tp = (a_type_ptr)rvp->entity.ptr;
     parent_tp = skip_typerefs(parent_tp);
-    complete_type_is_needed(parent_tp);
-    if (is_immediate_class_type(parent_tp) && !parent_tp->incomplete) {
-      /* Enumerate all the direct base classes. */
-      a_base_class  *bcp = class_type_supp(parent_tp)->direct_base_classes;
-      for (; bcp != NULL; bcp = bcp->next_direct) {
-        a_reflection_value  mem_rvp;
-        mem_rvp.entity.ptr = (char*)bcp;
-        mem_rvp.entity.kind = (an_il_entry_kind)iek_base_class;
-        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(mem_rvp);
-      }  /* for */
-      /* Enumerate all the nonstatic data members. */
-      a_field  *fp = next_proper_field(fields_of(parent_tp));
-      for (; fp != NULL; next_proper_field(fp = fp->next)) {
-        a_reflection_value  mem_rvp;
-        mem_rvp.entity.ptr = (char*)fp;
-        mem_rvp.entity.kind = (an_il_entry_kind)iek_field;
-        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(mem_rvp);
-      }  /* for */
-    } else {
-      invalid_arg = TRUE;
-    }  /* if */
-  } else {
-    invalid_arg = TRUE;
-  }  /* if */
-  if (invalid_arg) {
-    do_constexpr_fail(result);
-    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
-                  ips);
-  } else {
-    a_type_ptr  result_tp = skip_typerefs(call_node->type);
-    result = make_infovec(ips, result_tp, &result_reflections,
-                          &call_node->position, result_storage, complete_obj);
-  }  /* if */
-done:
-  return result;
-}  /* do_constexpr_std_meta_subobjects__impl */
-
-
-static a_boolean do_constexpr_std_meta_enumerators__impl(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::enumerators_of(<reflection_value>).  It returns
-a vector-like container (struct std::meta::__infovec) of reflections, with each
-element representing an enumerator constant for the given enumeration type.
-(Evaluation fails if the given reflection is not that of an enumeration type.)
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean     result = FALSE, invalid_arg = FALSE;
-  a_reflection_value
-                *rvp = (a_reflection_value*)p_arg_bytes[0];
-  a_source_correspondence_ptr
-                scp = source_corresp_for_reflection(rvp);
-  Dyn_array<a_reflection_value>
-                result_reflections(0);
-
-  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
-    /* Don't attempt to evaluate this call if a constant result is not needed,
-       because it could be somewhat expensive. */
-    do_constexpr_fail(result);
-    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                  &call_node->position, ips);
-    goto done;
-  }  /* if */
-  strip_template_arg(rvp);
-  check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
-  if (scp == NULL) {
-    invalid_arg = TRUE;
-  } else if (rvp->entity.kind == iek_type) {
-    a_type_ptr  parent_tp = (a_type_ptr)rvp->entity.ptr;
-    parent_tp = skip_typerefs(parent_tp);
-    if (is_enum_type(parent_tp)) {
+    if (is_enum_type(parent_tp) && type_is_enumerable(parent_tp)) {
       /* Enumerate all the enumerator constants. */
       a_constant  *cp = enum_constants(parent_tp);
       for (; cp != NULL; cp = cp->next) {
-        a_reflection_value  mem_rvp;
-        mem_rvp.entity.ptr = (char*)cp;
-        mem_rvp.entity.kind = (an_il_entry_kind)iek_constant;
-        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(mem_rvp);
+        push_entity_reflection(&result_reflections, cp, iek_constant,
+                               FILE_SCOPE_NUMBER);
       }  /* for */
     } else {
       invalid_arg = TRUE;
@@ -14646,16 +16031,15 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
                   ips);
   } else {
-    a_type_ptr  result_tp = skip_typerefs(call_node->type);
-    result = make_infovec(ips, result_tp, &result_reflections,
-                          &call_node->position, result_storage, complete_obj);
+    result = make_info_vector(ips, callee, call_node, &result_reflections,
+                              result_storage, complete_obj);
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_enumerators__impl */
+}  /* do_constexpr_std_meta_enumerators_of */
 
 
-static a_boolean do_constexpr_std_meta_parameters__impl(
+static a_boolean do_constexpr_std_meta_parameters_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -14663,10 +16047,9 @@ static a_boolean do_constexpr_std_meta_parameters__impl(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::parameters__impl(<reflection_value>).  It returns a
-vector-like container (struct std::meta::__infovec) of reflections, with each
-element representing a parameter of the given function or function-type
-reflection (in declaration order).
+Implement std::meta::parameters_of(<reflection_value>).  It returns a
+std::vector<std::meta::info> holding a reflection for each parameter of the
+given function or function-type reflection (in declaration order).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -14707,26 +16090,22 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
                   ips);
   } else {
-    a_type_ptr    result_tp = skip_typerefs(call_node->type);
     a_param_type  *ptp = function_type_params(rtp);
     Dyn_array<a_reflection_value>
                   result_reflections(0);
     for (; ptp != NULL; ptp = ptp->next) {
-      a_reflection_value  rv;
-      rv.entity.ptr = (char*)ptp;
-      rv.entity.kind = iek_param_type;
-      rv.local_scope_number = FILE_SCOPE_NUMBER;
-      result_reflections.push_back(rv);
+      push_entity_reflection(&result_reflections, ptp, iek_param_type,
+                             FILE_SCOPE_NUMBER);
     }  /* for */
-    result = make_infovec(ips, result_tp, &result_reflections,
-                          &call_node->position, result_storage, complete_obj);
+    result = make_info_vector(ips, callee, call_node, &result_reflections,
+                              result_storage, complete_obj);
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_parameters__impl */
+}  /* do_constexpr_std_meta_parameters_of */
 
 
-static a_boolean do_constexpr_std_meta_current_parameters__impl(
+static a_boolean do_constexpr_std_meta_current_parameters(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -14734,10 +16113,9 @@ static a_boolean do_constexpr_std_meta_current_parameters__impl(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::current_parameters__impl().  It returns a vector-like
-container (struct std::meta::__infovec) of reflections, with each element
-representing a parameter variable of the function currently being defined
-(in declaration order).
+Implement std::meta::current_parameters().  It returns a
+std::vector<std::meta::info> holding a reflection for each parameter variable
+of the function currently being defined (in declaration order).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -14759,149 +16137,169 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   } else {
     a_scope     *scope = scope_stack[depth_innermost_function_scope].il_scope;
     a_variable  *vp = scope->variant.routine.parameters;
-    a_type_ptr  result_tp = skip_typerefs(call_node->type);
     Dyn_array<a_reflection_value>
                 result_reflections(0);
     for (; vp != NULL; vp = vp->next) {
-      a_reflection_value  rv;
-      rv.entity.ptr = (char*)vp;
-      rv.entity.kind = iek_variable;
-      rv.local_scope_number = scope->number;
-      result_reflections.push_back(rv);
+      push_entity_reflection(&result_reflections, vp, iek_variable,
+                             scope->number);
     }  /* for */
-    result = make_infovec(ips, result_tp, &result_reflections,
-                          &call_node->position, result_storage, complete_obj);
+    result = make_info_vector(ips, callee, call_node, &result_reflections,
+                              result_storage, complete_obj);
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_current_parameters__impl */
+}  /* do_constexpr_std_meta_current_parameters */
 
 
-static a_boolean do_constexpr_std_meta_substitute__impl(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+static a_constant_ptr nontype_templ_arg_for_reflection(
+                          a_constant_ptr        con,
+                          a_template_param_ptr  tpp)
 /*
-Implement std::meta::substitute__impl(<info>, <infovec>).  It returns a
-reflection for an instance obtained by substituting the template arguments
-represented by <infovec> in the template represented by info.  A substitution
-error is communicated with an invalid reflection.
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
+Return the constant to use as the nontype template argument for a reflection
+whose constant is con, when that argument is matched to the template parameter
+tpp (NULL when the arguments outnumber the parameters).  A reflection of an
+object is represented by the address of that object; a written argument that
+splices such a reflection produces the object for a parameter of reference
+type, and the value of the object otherwise, and con is converted accordingly.
+Any other constant is already in the form a written argument would produce, and
+is returned unchanged.
 */
 {
-  a_boolean     result = FALSE;
-  a_reflection_value
-                *rvp = (a_reflection_value*)p_arg_bytes[0];
-  a_source_correspondence_ptr
-                scp = source_corresp_for_reflection(rvp);
-  Dyn_array<a_reflection_value>
-                arg_reflections(0);
-  a_type_ptr    callee_type = skip_typerefs(callee->type), infovec_type;
-  a_param_type_ptr
-                ptp;
+  a_constant_ptr  result = con;
+  a_variable_ptr  vp = variable_designated_by_object_reflection(con);
 
-  if (!ips->is_constant_evaluated) {
-    /* Don't attempt to evaluate this call if a constant result is not needed,
-       because it could be somewhat expensive. */
-    do_constexpr_fail(result);
-    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                  &call_node->position, ips);
-    goto done;
+  if (vp != NULL && tpp != NULL && symbol_is(tpp->param_symbol, sk_constant)) {
+    a_type_ptr  param_type = tpp->param_symbol->variant.constant->type;
+    if (is_any_reference_type(param_type)) {
+      /* Bind the parameter to the object: The argument is its address, typed
+         as the parameter is.  The object-reflection marker is dropped so that
+         the argument is indistinguishable from one written in the source. */
+      result = fs_constant(ck_error);
+      copy_constant(con, result);
+      result->type = param_type;
+      result->variant.address.is_object_reflection = FALSE;
+    } else if (vp->init_kind == initk_static) {
+      result = vp->initializer.constant;
+    }  /* if */
   }  /* if */
-  check_assertion(type_is(callee_type, tk_routine));
-  ptp = function_type_params(callee_type);
-  check_assertion(ptp != NULL && ptp->next != NULL);
-  check_assertion(skip_typerefs(ptp->type) == reflection_type());
-  infovec_type = skip_typerefs(ptp->next->type);
-  strip_template_arg(rvp);
-  if (scp == NULL || scp->assoc_info == NULL ||
-      rvp->entity.kind != iek_template) {
-    do_constexpr_fail(result);
-    info_with_pos(ec_invalid_reflection_for_intrinsic,
-                  &call_node->position, ips);
-  } else if (load_infovec(ips, infovec_type, &arg_reflections,
-                          &call_node->position,
-                          p_arg_bytes[1], p_arg_bytes[1])) {
-    /* Create a template argument list from the arg_reflections array. */
-    a_template_arg_ptr  t_args = NULL, *p_t_args = &t_args;
-    for (a_reflection_value arg_rv: arg_reflections) {
-      strip_template_arg(&arg_rv);
-      switch (arg_rv.entity.kind) {
-        case iek_type:
-          *p_t_args = alloc_template_arg(tak_type);
-          (*p_t_args)->variant.type = (a_type*)arg_rv.entity.ptr;
-          break;
-        case iek_constant:
-          *p_t_args = alloc_template_arg(tak_nontype);
-          (*p_t_args)->variant.constant = (a_constant*)arg_rv.entity.ptr;
-          break;
-        case iek_template:
-          *p_t_args = alloc_template_arg(tak_template);
-          (*p_t_args)->variant.templ.ptr = (a_template*)arg_rv.entity.ptr;
-          break;
-        default:
-          do_constexpr_fail(result);
+  return result;
+}  /* nontype_templ_arg_for_reflection */
+
+
+static a_boolean attempt_substitution(
+                          an_interpreter_state           *ips,
+                          an_expr_node_ptr               call_node,
+                          a_reflection_value             *templ_rvp,
+                          Dyn_array<a_reflection_value>  *arg_reflections,
+                          a_reflection_value             *result_rvp,
+                          a_boolean                      *p_names_undeduced_fn,
+                          a_boolean                      diagnose)
+/*
+Shared core of std::meta::substitute and std::meta::can_substitute.  Attempt to
+substitute the arguments in *arg_reflections into the template represented by
+*templ_rvp.  On success, set *result_rvp to the resulting reflection and return
+TRUE; on a substitution failure (an error in the immediate context), return
+FALSE.  A diagnostic (ec_std_meta_substitute_bad_arg_reflection) is issued only
+when diagnose is TRUE, so can_substitute can probe substitutions silently.
+*p_names_undeduced_fn is set to TRUE when the substitution names a function
+whose type still contains an undeduced placeholder (e.g., a not-yet-deducible
+"auto" return type), which makes the corresponding template-id ill-formed for
+can_substitute even though a reflection is produced.  call_node positions any
+diagnostics and ips is the interpreter state.
+*/
+{
+  a_boolean             result = FALSE;
+  a_template_arg_ptr    t_args = NULL, *p_t_args = &t_args;
+  a_template            *templ = (a_template*)templ_rvp->entity.ptr;
+  a_template_param_ptr  tpp = templ_params_of(templ);
+
+  *p_names_undeduced_fn = FALSE;
+  /* Create a template argument list from the arg_reflections array, walking
+     the template parameters alongside it so that each argument can be put in
+     the form the corresponding parameter calls for.  A parameter pack matches
+     every remaining argument. */
+  for (a_reflection_value arg_rv: *arg_reflections) {
+    strip_template_arg(&arg_rv);
+    switch (arg_rv.entity.kind) {
+      case iek_type:
+        *p_t_args = alloc_template_arg(tak_type);
+        (*p_t_args)->variant.type = (a_type*)arg_rv.entity.ptr;
+        break;
+      case iek_constant:
+        *p_t_args = alloc_template_arg(tak_nontype);
+        (*p_t_args)->variant.constant = nontype_templ_arg_for_reflection(
+                                       (a_constant*)arg_rv.entity.ptr, tpp);
+        break;
+      case iek_template:
+        *p_t_args = alloc_template_arg(tak_template);
+        (*p_t_args)->variant.templ.ptr = (a_template*)arg_rv.entity.ptr;
+        break;
+      default:
+        if (diagnose) {
           info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
                              &call_node->position, arg_rv, ips);
-          goto done;
-      }  /* switch */
-      p_t_args = &(*p_t_args)->next;
-    }  /* for */
+        }  /* if */
+        goto done;
+    }  /* switch */
+    p_t_args = &(*p_t_args)->next;
+    if (tpp != NULL && !tpp->is_pack) {
+      tpp = tpp->next;
+    }  /* if */
+  }  /* for */
 
-    a_template  *templ = (a_template*)rvp->entity.ptr;
-    a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
-    if (templ->kind == templk_class) {
-      a_symbol_ptr  sym = NULL, templ_sym = symbol_for(templ);
-      if (adjust_templ_arg_list_for_template(templ_sym, &t_args,
-                                             templ_params_of(templ_sym))) {
-        sym = find_template_class(templ_sym, &t_args,
-                                  /*any_prototype_allowed=*/FALSE,
-                                  (a_symbol*)NULL,
-                                  /*instantiate_nonreal=*/FALSE,
-                                  /*do_not_create=*/FALSE,
-                                  /*in_substitution=*/TRUE);
-        free_template_arg_list(t_args);
-      }  /* if */
-      if (sym == NULL) {
-        do_constexpr_fail(result);
+  if (templ->kind == templk_class) {
+    a_symbol_ptr  sym = NULL, templ_sym = symbol_for(templ);
+    if (adjust_templ_arg_list_for_template(templ_sym, &t_args,
+                                           templ_params_of(templ_sym))) {
+      sym = find_template_class(templ_sym, &t_args,
+                                /*any_prototype_allowed=*/FALSE,
+                                (a_symbol*)NULL,
+                                /*instantiate_nonreal=*/FALSE,
+                                /*do_not_create=*/FALSE,
+                                /*in_substitution=*/TRUE);
+    }  /* if */
+    if (sym == NULL) {
+      if (diagnose) {
         info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
-                           &call_node->position, *rvp, ips);
-      } else {
-        result_rvp->entity.kind = iek_type;
-        result_rvp->entity.ptr = (char*)type_symbol_type(sym);
-        result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
-        result = TRUE;
+                           &call_node->position, *templ_rvp, ips);
       }  /* if */
-    } else if (templ->kind == templk_variable) {
-      a_symbol_ptr  sym = NULL, templ_sym = symbol_for(templ);
-      if (adjust_templ_arg_list_for_template(templ_sym, &t_args,
-                                             templ_params_of(templ_sym))) {
-        sym = find_template_variable(templ_sym, &t_args,
-                                     /*prototype_allowed=*/TRUE,
-                                     /*is_use=*/FALSE, /*diagnose=*/FALSE);
-        free_template_arg_list(t_args);
-      }  /* if */
-      if (sym == NULL ||
-          !(symbol_is(sym, sk_variable) ||
-            symbol_is(sym, sk_static_data_member))) {
-        do_constexpr_fail(result);
+    } else {
+      result_rvp->entity.kind = iek_type;
+      result_rvp->entity.ptr = (char*)type_symbol_type(sym);
+      result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+      result = TRUE;
+    }  /* if */
+  } else if (templ->kind == templk_variable) {
+    a_symbol_ptr  sym = NULL, templ_sym = symbol_for(templ);
+    if (adjust_templ_arg_list_for_template(templ_sym, &t_args,
+                                           templ_params_of(templ_sym))) {
+      sym = find_template_variable(templ_sym, &t_args,
+                                   /*prototype_allowed=*/TRUE,
+                                   /*is_use=*/FALSE, /*diagnose=*/FALSE);
+    }  /* if */
+    if (sym == NULL ||
+        !(symbol_is(sym, sk_variable) ||
+          symbol_is(sym, sk_static_data_member))) {
+      if (diagnose) {
         info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
-                           &call_node->position, *rvp, ips);
-      } else {
-        result_rvp->entity.kind = iek_variable;
-        result_rvp->entity.ptr = (char*)variable_for_symbol(sym);
-        result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
-        result = TRUE;
+                           &call_node->position, *templ_rvp, ips);
       }  /* if */
-    } else if (templ->kind == templk_concept) {
+    } else {
+      result_rvp->entity.kind = iek_variable;
+      result_rvp->entity.ptr = (char*)variable_for_symbol(sym);
+      result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+      result = TRUE;
+    }  /* if */
+  } else if (templ->kind == templk_concept) {
+    a_symbol_ptr      templ_sym = symbol_for(templ);
+    a_template_param  *t_params = templ_sym->variant.template_info->
+                                                cache->decl_info->parameters;
+    /* Adjust the argument list against the concept's parameters first, so that
+       an argument count or kind mismatch (e.g., too many arguments for the
+       concept-id) is a substitution failure rather than being silently
+       ignored by constraint_satisfied. */
+    if (adjust_templ_arg_list_for_template(templ_sym, &t_args, t_params)) {
       a_diag_list       diag_list;
-      a_template_param  *t_params = symbol_for(templ)->
-                                                  variant.template_info->
-                                                  cache->decl_info->parameters;
       a_boolean         val;
       a_constant        *con = fs_constant(ck_integer);
       clear_diag_list(&diag_list);
@@ -14913,41 +16311,797 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       result_rvp->entity.ptr = (char*)con;
       result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
       result = TRUE;
-    } else if (templ->kind == templk_function) {
-      a_symbol_ptr  sym = NULL, templ_sym = symbol_for(templ);
-      if (adjust_templ_arg_list_for_template(templ_sym, &t_args,
-                                             templ_params_of(templ_sym))) {
+    } else if (diagnose) {
+      info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
+                         &call_node->position, *templ_rvp, ips);
+    }  /* if */
+  } else if (templ->kind == templk_function) {
+    a_symbol_ptr  sym = NULL, templ_sym = symbol_for(templ);
+    if (adjust_templ_arg_list_for_template(templ_sym, &t_args,
+                                           templ_params_of(templ_sym))) {
+      if (!diagnose && symbol_is(templ_sym, sk_function_template) &&
+          !template_arg_list_is_dependent(t_args) &&
+          !check_template_constraints(templ_sym, t_args,
+                                      /*diagnose=*/FALSE)) {
+        /* Unsatisfied constraints are a failure in the immediate context, so
+           for can_substitute (diagnose == FALSE) report them silently rather
+           than letting find_template_function diagnose and produce an error
+           routine. */
+      } else {
         sym = find_template_function(symbol_for(templ), &t_args,
                                      /*explicit_arg_list_present=*/FALSE,
                                      &call_node->position);
-        free_template_arg_list(t_args);
       }  /* if */
-      if (sym == NULL ||
-          !(symbol_is(sym, sk_routine) ||
-            symbol_is(sym, sk_member_function))) {
-        do_constexpr_fail(result);
+    }  /* if */
+    if (sym == NULL ||
+        !(symbol_is(sym, sk_routine) ||
+          symbol_is(sym, sk_member_function))) {
+      if (diagnose) {
         info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
-                           &call_node->position, *rvp, ips);
-      } else {
-        result_rvp->entity.kind = iek_routine;
-        result_rvp->entity.ptr = (char*)sym->variant.routine.ptr;
-        result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
-        result = TRUE;
+                           &call_node->position, *templ_rvp, ips);
       }  /* if */
     } else {
-      do_constexpr_fail(result);
-      info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
-                         &call_node->position, *rvp, ips);
+      a_routine_ptr  rp = sym->variant.routine.ptr;
+      a_type_ptr     ret_tp = skip_typerefs(return_type_of(rp->type));
+      /* A function whose return type is a placeholder that has not (yet) been
+         deduced does not yield a usable template-id. */
+      if (is_auto_type(ret_tp) || is_decltype_auto_type(ret_tp)) {
+        *p_names_undeduced_fn = TRUE;
+      }  /* if */
+      result_rvp->entity.kind = iek_routine;
+      result_rvp->entity.ptr = (char*)rp;
+      result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+      result = TRUE;
     }  /* if */
   } else {
-    result = FALSE;
+    if (diagnose) {
+      info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
+                         &call_node->position, *templ_rvp, ips);
+    }  /* if */
   }  /* if */
 done:
+  /* Free the argument list on every path.  find_template_class/variable/
+     function and constraint_satisfied do not take ownership of it, and after
+     adjust_templ_arg_list_for_template the (possibly mutated) list must still
+     be released whether the adjustment or the lookup succeeded or failed. */
+  free_template_arg_list(t_args);
+  return result;
+}  /* attempt_substitution */
+
+
+static a_boolean collect_reflection_range_arg(
+                              an_interpreter_state           *ips,
+                              a_type_ptr                     range_ref_type,
+                              a_byte                         *range_arg_bytes,
+                              an_expr_node_ptr               call_node,
+                              Dyn_array<a_reflection_value>  *arg_reflections)
+/*
+Collect the std::meta::info elements of a reflection_range argument into
+*arg_reflections by replaying the iteration plan recorded for the range's type,
+which traverses any std::ranges::input_range of info through its iterator
+interface.  range_ref_type is the (reference) type of the parameter bound to
+the range and range_arg_bytes is the corresponding argument storage.  Return
+TRUE on success.  ips is the interpreter state and call_node positions any
+diagnostics.
+*/
+{
+  a_boolean   ok;
+  a_type_ptr  range_referent = type_pointed_to(skip_typerefs(range_ref_type));
+  a_reflection_range_plan_ptr
+              plan = reflection_range_plan_for_type(range_referent);
+
+  if (plan == NULL) {
+    /* No plan was cached at parse time.  This happens when the call was first
+       formed under suppressed diagnostics (e.g. during SFINAE), where
+       func_call_expr skips plan construction.  Build (and cache) it now. */
+    plan = build_reflection_range_plan(range_referent);
+  }  /* if */
+  if (plan != NULL && plan->usable) {
+    ok = collect_via_reflection_range_plan(
+             ips, plan, (a_constexpr_address*)range_arg_bytes,
+             arg_reflections, &call_node->position);
+  } else {
+    ok = FALSE;
+    info_with_pos(ec_uniterable_reflection_range, &call_node->position, ips);
+  }  /* if */
+  return ok;
+}  /* collect_reflection_range_arg */
+
+
+static a_boolean load_substitution_args(
+                              an_interpreter_state           *ips,
+                              a_routine_ptr                  callee,
+                              an_expr_node_ptr               call_node,
+                              a_byte                         **p_arg_bytes,
+                              a_reflection_value             *templ_rvp,
+                              Dyn_array<a_reflection_value>  *arg_reflections,
+                              a_boolean                      *p_hard_fail)
+/*
+Shared prologue for substitute and can_substitute.  Verify the call is being
+constant-evaluated, locate the second parameter's type from callee, strip any
+template-argument wrapper from *templ_rvp (the first argument's reflection),
+and load the std::meta::info elements of the second argument (a reference to a
+reflection_range) into *arg_reflections.  *p_hard_fail is set to TRUE when
+interpretation must stop with a failure that has already been diagnosed (the
+call is not being constant-evaluated or the range is invalid).  Returns TRUE if
+the arguments were loaded and *templ_rvp denotes a template, and FALSE
+otherwise.  ips is the interpreter state, p_arg_bytes the call arguments, and
+call_node positions any diagnostics.
+*/
+{
+  a_boolean         ok = FALSE;
+  a_type_ptr        callee_type = skip_typerefs(callee->type), range_tp;
+  a_param_type_ptr  ptp;
+  a_source_correspondence_ptr
+                    scp = source_corresp_for_reflection(templ_rvp);
+
+  *p_hard_fail = FALSE;
+  if (!ips->is_constant_evaluated) {
+    /* Don't attempt to evaluate this call if a constant result is not needed,
+       because it could be somewhat expensive. */
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    *p_hard_fail = TRUE;
+    goto done;
+  }  /* if */
+  check_assertion(type_is(callee_type, tk_routine));
+  ptp = function_type_params(callee_type);
+  check_assertion(ptp != NULL && ptp->next != NULL);
+  check_assertion(skip_typerefs(ptp->type) == reflection_type());
+  range_tp = skip_typerefs(ptp->next->type);
+  strip_template_arg(templ_rvp);
+  if (scp == NULL || scp->assoc_info == NULL ||
+      templ_rvp->entity.kind != iek_template) {
+    goto done;
+  }  /* if */
+  /* The second argument is a reference to a reflection_range. */
+  if (!collect_reflection_range_arg(ips, range_tp, p_arg_bytes[1],
+                                    call_node, arg_reflections)) {
+    *p_hard_fail = TRUE;
+    goto done;
+  }  /* if */
+  ok = TRUE;
+done:
+  return ok;
+}  /* load_substitution_args */
+
+
+static a_boolean do_constexpr_std_meta_substitute(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::substitute(info, R&&).  It returns a reflection for an
+entity obtained by substituting the template arguments given by the
+reflection_range second argument into the template represented by the first
+argument.  The std::meta::info elements of the range are read by replaying the
+per-range-type iteration plan recorded at parse time (see
+load_substitution_args and build_reflection_range_plan), so any
+std::ranges::input_range of info is accepted.  A substitution error is
+diagnosed and fails the evaluation.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = FALSE, hard_fail, names_undeduced_fn;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],
+                      *result_rvp = (a_reflection_value*)result_storage;
+  Dyn_array<a_reflection_value>
+                      arg_reflections(0);
+
+  if (load_substitution_args(ips, callee, call_node, p_arg_bytes, rvp,
+                             &arg_reflections, &hard_fail)) {
+    if (attempt_substitution(ips, call_node, rvp, &arg_reflections,
+                             result_rvp, &names_undeduced_fn,
+                             /*diagnose=*/TRUE)) {
+      result = TRUE;
+    } else {
+      do_constexpr_fail(result);
+    }  /* if */
+  } else if (hard_fail) {
+    do_constexpr_fail(result);
+  } else {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
   if (result) {
     mark_subobject_initialized(result_storage, complete_obj);
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_substitute__impl */
+}  /* do_constexpr_std_meta_substitute */
+
+
+static a_boolean do_constexpr_std_meta_can_substitute(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::can_substitute(info, R&&).  Set the boolean result to TRUE
+when substitute with the same arguments would succeed without an error in the
+immediate context, and to FALSE otherwise.  As for substitute, the range's
+std::meta::info elements are read via load_substitution_args, so any
+std::ranges::input_range of info is accepted.  No diagnostics are issued for a
+failing substitution.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE, hard_fail, names_undeduced_fn = FALSE,
+                      can_subst = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0], scratch;
+  Dyn_array<a_reflection_value>
+                      arg_reflections(0);
+
+  if (load_substitution_args(ips, callee, call_node, p_arg_bytes, rvp,
+                             &arg_reflections, &hard_fail)) {
+    can_subst = attempt_substitution(ips, call_node, rvp, &arg_reflections,
+                                     &scratch, &names_undeduced_fn,
+                                     /*diagnose=*/FALSE)
+                && !names_undeduced_fn;
+  } else if (hard_fail) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  set_bool_value(can_subst, result_storage);
+done:
+  return result;
+}  /* do_constexpr_std_meta_can_substitute */
+
+
+static a_boolean meta_arg_to_type(a_reflection_value  *rvp,
+                                  a_type_ptr          *p_tp)
+/*
+Convert the reflection *rvp (an argument to a std::meta type-trait intrinsic)
+to the type it represents, stored in *p_tp with typedefs/aliases stripped.
+Return TRUE on success and FALSE if *rvp does not denote a type (an
+argument-kind mismatch).
+*/
+{
+  a_boolean  result = FALSE;
+
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_type) {
+    *p_tp = skip_typerefs((a_type*)rvp->entity.ptr);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* meta_arg_to_type */
+
+
+static a_type_ptr meta_trait_range_param(a_routine_ptr  callee,
+                                         int            *p_n_leading)
+/*
+Return the type of callee's trailing reflection_range parameter (a reference)
+and set *p_n_leading to the number of leading std::meta::info parameters that
+precede it.  Used by the std::meta variadic type-trait intrinsics, whose final
+argument is the reflection_range supplying the type pack.
+*/
+{
+  a_type_ptr        callee_type = skip_typerefs(callee->type);
+  a_param_type_ptr  ptp = function_type_params(callee_type);
+  a_type_ptr        range_tp = NULL;
+  int               n = 0;
+
+  while (ptp != NULL) {
+    if (ptp->next == NULL) {
+      range_tp = ptp->type;
+    } else {
+      ++n;
+    }  /* if */
+    ptp = ptp->next;
+  }  /* while */
+  *p_n_leading = n;
+  return range_tp;
+}  /* meta_trait_range_param */
+
+
+static a_boolean collect_meta_trait_arg_types(
+                              an_interpreter_state    *ips,
+                              a_routine_ptr           callee,
+                              an_expr_node_ptr        call_node,
+                              a_byte                  **p_arg_bytes,
+                              Dyn_array<a_type_ptr>   *arg_types,
+                              a_boolean               *p_kind_mismatch,
+                              a_boolean               *p_hard_fail)
+/*
+Read the trailing reflection_range argument of a std::meta variadic type-trait
+call and append the types it represents to *arg_types.  *p_kind_mismatch is set
+to TRUE if any range element does not represent a type (an argument-kind
+precondition violation, for which the trait reports a false/failed result
+rather than an error).  *p_hard_fail is set to TRUE if the call is not being
+constant-evaluated or the range cannot be read.  Return TRUE only if all
+elements were collected as types.  ips is the interpreter state and call_node
+positions any diagnostics.
+*/
+{
+  a_boolean   result = FALSE;
+  int         n_leading;
+  a_type_ptr  range_ref_type = meta_trait_range_param(callee, &n_leading);
+  Dyn_array<a_reflection_value>
+              arg_reflections(0);
+
+  *p_kind_mismatch = FALSE;
+  *p_hard_fail = FALSE;
+  if (!ips->is_constant_evaluated) {
+    /* Don't traverse the reflection range when a constant result is not
+       needed, matching load_substitution_args and reflect_invoke. */
+    *p_hard_fail = TRUE;
+    goto done;
+  }  /* if */
+  if (!collect_reflection_range_arg(ips, range_ref_type,
+                                    p_arg_bytes[n_leading], call_node,
+                                    &arg_reflections)) {
+    *p_hard_fail = TRUE;
+    goto done;
+  }  /* if */
+  for (a_reflection_value rv: arg_reflections) {
+    a_type_ptr  tp;
+    if (!meta_arg_to_type(&rv, &tp)) {
+      *p_kind_mismatch = TRUE;
+      goto done;
+    }  /* if */
+    arg_types->push_back(tp);
+  }  /* for */
+  result = TRUE;
+done:
+  return result;
+}  /* collect_meta_trait_arg_types */
+
+
+static a_boolean do_meta_constructible_or_invocable(
+                              an_interpreter_state      *ips,
+                              a_routine_ptr             callee,
+                              an_expr_node_ptr          call_node,
+                              a_byte                    **p_arg_bytes,
+                              a_byte                    *result_storage,
+                              a_builtin_operation_kind  kind,
+                              a_boolean                 invocable)
+/*
+Shared implementation of the constructible and invocable std::meta type traits
+that take one leading info argument and a reflection_range: Evaluate the trait
+selected by kind (and invocable) on the type represented by the first argument
+and the pack of types represented by the range, and store the boolean result.
+An argument-kind mismatch (a non-type argument) yields a false result without a
+diagnostic.  See do_constexpr_intrinsic_call for the parameters.
+*/
+{
+  a_boolean              result = TRUE, answer = FALSE, kind_mismatch,
+                         hard_fail;
+  a_type_ptr             main_type;
+  Dyn_array<a_type_ptr>  arg_types(0);
+
+  if (!meta_arg_to_type((a_reflection_value*)p_arg_bytes[0], &main_type)) {
+    set_bool_value(FALSE, result_storage);
+    goto done;
+  }  /* if */
+  if (collect_meta_trait_arg_types(ips, callee, call_node, p_arg_bytes,
+                                   &arg_types, &kind_mismatch, &hard_fail)) {
+    if (invocable) {
+      answer = meta_compute_is_invocable(kind, main_type, arg_types.begin(),
+                                         (int)arg_types.length());
+    } else {
+      answer = meta_compute_is_constructible(kind, main_type,
+                                             arg_types.begin(),
+                                             (int)arg_types.length());
+    }  /* if */
+    set_bool_value(answer, result_storage);
+  } else if (hard_fail) {
+    do_constexpr_fail(result);
+  } else {
+    /* kind_mismatch: Report a false result without an error. */
+    set_bool_value(FALSE, result_storage);
+  }  /* if */
+done:
+  return result;
+}  /* do_meta_constructible_or_invocable */
+
+
+static a_boolean do_constexpr_std_meta_is_constructible_type(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::is_constructible_type(info, R&&).  See
+do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_meta_constructible_or_invocable(
+             ips, callee, call_node, p_arg_bytes, result_storage,
+             bok_is_constructible,
+             /*invocable=*/FALSE);
+}  /* do_constexpr_std_meta_is_constructible_type */
+
+
+static a_boolean do_constexpr_std_meta_is_trivially_constructible_type(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::is_trivially_constructible_type(info, R&&).  See
+do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_meta_constructible_or_invocable(
+             ips, callee, call_node, p_arg_bytes, result_storage,
+             bok_is_trivially_constructible,
+             /*invocable=*/FALSE);
+}  /* do_constexpr_std_meta_is_trivially_constructible_type */
+
+
+static a_boolean do_constexpr_std_meta_is_nothrow_constructible_type(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::is_nothrow_constructible_type(info, R&&).  See
+do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_meta_constructible_or_invocable(
+             ips, callee, call_node, p_arg_bytes, result_storage,
+             bok_is_nothrow_constructible,
+             /*invocable=*/FALSE);
+}  /* do_constexpr_std_meta_is_nothrow_constructible_type */
+
+
+static a_boolean do_constexpr_std_meta_is_invocable_type(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::is_invocable_type(info, R&&).  See
+do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_meta_constructible_or_invocable(
+             ips, callee, call_node, p_arg_bytes, result_storage,
+             bok_is_invocable, /*invocable=*/TRUE);
+}  /* do_constexpr_std_meta_is_invocable_type */
+
+
+static a_boolean do_constexpr_std_meta_is_nothrow_invocable_type(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::is_nothrow_invocable_type(info, R&&).  See
+do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_meta_constructible_or_invocable(
+             ips, callee, call_node, p_arg_bytes, result_storage,
+             bok_is_nothrow_invocable,
+             /*invocable=*/TRUE);
+}  /* do_constexpr_std_meta_is_nothrow_invocable_type */
+
+
+static a_boolean store_meta_type_result(a_byte      *result_storage,
+                                        a_type_ptr  result_tp)
+/*
+Store result_tp as the std::meta::info result of a type-returning std::meta
+type-trait intrinsic into result_storage, returning TRUE.  Return FALSE if
+result_tp is NULL (the trait has no result type, e.g., no common type exists),
+in which case the caller fails the evaluation.
+*/
+{
+  a_boolean           result = FALSE;
+  a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
+
+  if (result_tp != NULL) {
+    /* The reflection produced by these traits always represents a type and
+       never a type alias (N5046 [meta.reflection.traits]), so strip any
+       alias/typedef sugar introduced by instantiating the associated standard
+       library template. */
+    result_rvp->entity.kind = iek_type;
+    result_rvp->entity.ptr = (char*)skip_typerefs(result_tp);
+    result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* store_meta_type_result */
+
+
+static a_boolean do_meta_common(an_interpreter_state  *ips,
+                                a_routine_ptr         callee,
+                                an_expr_node_ptr      call_node,
+                                a_byte                **p_arg_bytes,
+                                a_byte                *result_storage,
+                                a_boolean             reference)
+/*
+Shared implementation of std::meta::common_type (reference == FALSE) and
+std::meta::common_reference (reference == TRUE): Compute the common type or
+common reference type of the pack of types represented by the reflection_range
+argument and store the resulting reflection.  Fail the evaluation if the range
+holds a non-type element or no such common type exists.  See
+do_constexpr_intrinsic_call for the parameters.
+*/
+{
+  a_boolean              result = TRUE, kind_mismatch, hard_fail, err = FALSE;
+  a_type_ptr             result_tp = NULL;
+  Dyn_array<a_type_ptr>  types(0);
+
+  if (collect_meta_trait_arg_types(ips, callee, call_node, p_arg_bytes, &types,
+                                   &kind_mismatch, &hard_fail)) {
+    if (reference) {
+      result_tp = compute_meta_common_reference(types.begin(),
+                                                (int)types.length(), &err);
+    } else {
+      result_tp = compute_meta_common_type(types.begin(),
+                                           (int)types.length(), &err);
+    }  /* if */
+    if (!store_meta_type_result(result_storage, result_tp)) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic,
+                    &call_node->position, ips);
+    }  /* if */
+  } else if (hard_fail) {
+    do_constexpr_fail(result);
+  } else {
+    /* A range element is not a type. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  return result;
+}  /* do_meta_common */
+
+
+static a_boolean do_constexpr_std_meta_common_type(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::common_type(R&&).  See do_constexpr_intrinsic_call for the
+meaning of the parameters.
+*/
+{
+  return do_meta_common(ips, callee, call_node, p_arg_bytes, result_storage,
+                        /*reference=*/FALSE);
+}  /* do_constexpr_std_meta_common_type */
+
+
+static a_boolean do_constexpr_std_meta_common_reference(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::common_reference(R&&).  See do_constexpr_intrinsic_call
+for the meaning of the parameters.
+*/
+{
+  return do_meta_common(ips, callee, call_node, p_arg_bytes, result_storage,
+                        /*reference=*/TRUE);
+}  /* do_constexpr_std_meta_common_reference */
+
+
+static a_boolean do_constexpr_std_meta_invoke_result(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::invoke_result(info, R&&): the reflection of the type of
+the invocation of a callable of the type represented by the first argument
+with arguments of the types represented by the reflection_range.  Fail the
+evaluation on an argument-kind mismatch or if the invocation is ill-formed.
+See do_constexpr_intrinsic_call for the parameters.
+*/
+{
+  a_boolean              result = TRUE, kind_mismatch, hard_fail, err = FALSE;
+  a_type_ptr             fn_type, result_tp = NULL;
+  Dyn_array<a_type_ptr>  types(0);
+
+  if (!meta_arg_to_type((a_reflection_value*)p_arg_bytes[0], &fn_type)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  if (collect_meta_trait_arg_types(ips, callee, call_node, p_arg_bytes, &types,
+                                   &kind_mismatch, &hard_fail)) {
+    result_tp = compute_meta_invoke_result(fn_type, types.begin(),
+                                           (int)types.length(), &err);
+    if (!store_meta_type_result(result_storage, result_tp)) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic,
+                    &call_node->position, ips);
+    }  /* if */
+  } else if (hard_fail) {
+    do_constexpr_fail(result);
+  } else {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_invoke_result */
+
+
+static a_boolean do_meta_invocable_r(an_interpreter_state  *ips,
+                                     a_routine_ptr         callee,
+                                     an_expr_node_ptr      call_node,
+                                     a_byte                **p_arg_bytes,
+                                     a_byte                *result_storage,
+                                     a_boolean             nothrow)
+/*
+Shared implementation of std::meta::is_invocable_r_type and its nothrow variant
+(selected by nothrow): Return TRUE if a callable of the type represented by the
+second argument can be invoked with arguments of the types represented by the
+reflection_range and the result is (nothrow, if requested) convertible to the
+result type represented by the first argument.  An argument-kind mismatch
+yields a false result without a diagnostic.  See do_constexpr_intrinsic_call
+for the parameters.
+*/
+{
+  a_boolean              result = TRUE, answer = FALSE, kind_mismatch,
+                         hard_fail, err = FALSE;
+  a_type_ptr             r_type, fn_type, invoke_result_tp;
+  Dyn_array<a_type_ptr>  types(0);
+
+  if (!meta_arg_to_type((a_reflection_value*)p_arg_bytes[0], &r_type) ||
+      !meta_arg_to_type((a_reflection_value*)p_arg_bytes[1], &fn_type)) {
+    set_bool_value(FALSE, result_storage);
+    goto done;
+  }  /* if */
+  if (collect_meta_trait_arg_types(ips, callee, call_node, p_arg_bytes, &types,
+                                   &kind_mismatch, &hard_fail)) {
+    a_builtin_operation_kind  inv_kind =
+        nothrow ? bok_is_nothrow_invocable
+                : bok_is_invocable;
+    if (meta_compute_is_invocable(inv_kind, fn_type, types.begin(),
+                                  (int)types.length())) {
+      if (is_void_type(r_type)) {
+        /* is_invocable_r<cv void, ...> only requires invocability. */
+        answer = TRUE;
+      } else {
+        invoke_result_tp = compute_meta_invoke_result(fn_type, types.begin(),
+                                                      (int)types.length(),
+                                                      &err);
+        if (!err && invoke_result_tp != NULL) {
+          a_builtin_operation_kind  conv_kind =
+              nothrow ? bok_is_nothrow_convertible
+                      : bok_is_convertible;
+          answer = compute_is_convertible(invoke_result_tp, r_type, conv_kind);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    set_bool_value(answer, result_storage);
+  } else if (hard_fail) {
+    do_constexpr_fail(result);
+  } else {
+    /* A range element is not a type. */
+    set_bool_value(FALSE, result_storage);
+  }  /* if */
+done:
+  return result;
+}  /* do_meta_invocable_r */
+
+
+static a_boolean do_constexpr_std_meta_is_invocable_r_type(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::is_invocable_r_type(info, info, R&&).  See
+do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_meta_invocable_r(ips, callee, call_node, p_arg_bytes,
+                             result_storage, /*nothrow=*/FALSE);
+}  /* do_constexpr_std_meta_is_invocable_r_type */
+
+
+static a_boolean do_constexpr_std_meta_is_nothrow_invocable_r_type(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        ARG_UNUSED a_byte     *complete_obj)
+/*
+Implement std::meta::is_nothrow_invocable_r_type(info, info, R&&).  See
+do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  return do_meta_invocable_r(ips, callee, call_node, p_arg_bytes,
+                             result_storage, /*nothrow=*/TRUE);
+}  /* do_constexpr_std_meta_is_nothrow_invocable_r_type */
+
+
+static a_boolean meta_incomplete_class_target(
+                                        an_interpreter_state  *ips,
+                                        an_expr_node_ptr      call_node,
+                                        a_reflection_value    *rvp,
+                                        a_type_ptr            *p_class_type)
+/*
+Validate the reflection operand rvp (normalized here) of a call, at call_node,
+to one of the intrinsics that complete a class type, and set *p_class_type to
+the class type that is to be completed.  TRUE is returned when the call can
+proceed.  Otherwise a diagnostic is issued in the interpreter state ips and
+FALSE is returned: These intrinsics are evaluated only when a constant result
+is required, because completing a class is expensive; the operand must reflect
+an incomplete class type; and a class local to a function can no longer be
+completed once its enclosing scope has been left.
+*/
+{
+  a_boolean   result = TRUE;
+  a_type_ptr  class_type = NULL;
+
+  if (!ips->is_constant_evaluated) {
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+  } else {
+    strip_template_arg(rvp);
+    extract_reflected_entity(rvp);
+    if (rvp->entity.kind != iek_type ||
+        !(class_type = (a_type*)rvp->entity.ptr)->incomplete ||
+        !is_immediate_class_type(class_type)) {
+      info_with_pos(ec_invalid_reflection_for_intrinsic,
+                    &call_node->position, ips);
+      do_constexpr_fail(result);
+    } else if (class_type->source_corresp.is_local_to_function) {
+      a_scope_number  sn = get_parent_scope_of(class_type)->number;
+      if (sn != FILE_SCOPE_NUMBER && !scope_number_is_active(sn)) {
+        info_with_pos(ec_expired_reflection_value, &call_node->position, ips);
+        do_constexpr_fail(result);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  *p_class_type = class_type;
+  return result;
+}  /* meta_incomplete_class_target */
+
+
+static char *synthesized_field_name(size_t  index)
+/*
+Return the name given to the index'th data member of a class completed by one
+of the class-completion intrinsics when the description of that member does
+not supply a name of its own.
+*/
+{
+  Small_string<20>  field_name("__field_", index);
+  char              *name = alloc_text_of_string_literal(
+                                                     field_name.length() + 1);
+
+  (void)strcpy(name, field_name.as_temp_characters());
+  return name;
+}  /* synthesized_field_name */
 
 
 static a_boolean do_constexpr_std_meta_define_class__impl(
@@ -14961,7 +17115,7 @@ static a_boolean do_constexpr_std_meta_define_class__impl(
 Implement std::meta::define_class__impl(<info>, n, <descriptions>).  It returns
 its first argument, which should be a reflection for an incomplete class type.
 The third argument of the call points to an array of n elements of type
-std::meta::ndsm_description that describe members that should be added to the
+std::meta::nsdm_description that describe members that should be added to the
 definition of the given type.  This function triggers the completion of the
 class type designated by its first argument with members as described by the
 third argument.  Return FALSE if this fails because the arguments to the call
@@ -14980,34 +17134,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_param_type_ptr
                 ptp;
 
-  if (!ips->is_constant_evaluated) {
-    /* Don't attempt to evaluate this call if a constant result is not needed,
-       because it could be somewhat expensive. */
-    do_constexpr_fail(result);
-    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                  &call_node->position, ips);
-    goto done;
-  }  /* if */
   check_assertion(type_is(callee_type, tk_routine));
-  if (rvp->entity.kind != iek_type ||
-      !(class_type = (a_type*)rvp->entity.ptr)->incomplete ||
-      !is_immediate_class_type(class_type)) {
-    /* The first operand doesn't designate an incomplete class type. */
-    do_constexpr_fail(result);
-    info_with_pos(ec_invalid_reflection_for_intrinsic,
-                  &call_node->position, ips);
+  if (!meta_incomplete_class_target(ips, call_node, rvp, &class_type)) {
+    result = FALSE;
     goto done;
-  }  /* if */
-  if (class_type->source_corresp.is_local_to_function) {
-    /* Local class types cannot be defined once their parent scope is
-       completed. */
-    a_scope         *parent_scope = get_parent_scope_of(class_type);
-    a_scope_number  sn = parent_scope->number;
-    if (sn != FILE_SCOPE_NUMBER && !scope_number_is_active(sn)) {
-      info_with_pos(ec_expired_reflection_value,
-                    &call_node->position, ips);
-      do_constexpr_fail(result);
-    }  /* if */
   }  /* if */
   ptp = function_type_params(callee_type)->next;
   { /* Extract the second argument and use it to dimension field_descrs. */
@@ -15074,7 +17204,6 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     get_mapped_byte_count(&persistent_map, fp, bit_width_offset);
     for (size_t k = 0; k < n_fields; ++k, subobj += descr_size) {
       a_meta_field_descr   fd = {};
-      a_byte_count         name_length;
       a_reflection_value   *ftr = (a_reflection_value*)(subobj+type_offset);
       a_constexpr_address  *name_cap;
       /* Use the offsets computed above to load the components of each array
@@ -15107,22 +17236,11 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                       &call_node->position, ips);
         goto done;
       } else if (name_cap->complete_object == NULL) {
-        /* Synthesize a field name if no name is given explicitly. */
-        Small_string<20> field_name("__field_", k);
-        fd.name = alloc_text_of_string_literal(field_name.length()+1);
-        (void)strcpy(fd.name, field_name.as_temp_characters());
-      } else {
-        if (!get_interpreter_string_length(
-                              ips, (a_constexpr_address*)(subobj+name_offset),
-                              &name_length, &call_node->position)) {
-          result = FALSE;
-          goto done;
-        }  /* if */
-        fd.name = alloc_text_of_string_literal(name_length+1);
-        (void)get_interpreter_string(
-                                   ips, fd.name, name_length,
-                                   (a_constexpr_address*)(subobj+name_offset),
-                                   &call_node->position);
+        fd.name = synthesized_field_name(k);
+      } else if (!read_interpreter_string(ips, name_cap, &call_node->position,
+                                          &fd.name)) {
+        result = FALSE;
+        goto done;
       }  /* if */
       if (!subobject_is_initialized(subobj+alignment_offset, complete_obj)) {
         do_constexpr_fail(result);
@@ -15181,7 +17299,7 @@ done:
 }  /* do_constexpr_std_meta_define_class__impl */
 
 
-static a_boolean do_constexpr_std_meta_metacall__impl(
+static a_boolean do_constexpr_std_meta_reflect_invoke(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -15189,9 +17307,13 @@ static a_boolean do_constexpr_std_meta_metacall__impl(
                                         a_byte                *result_storage,
                                         a_byte                *complete_object)
 /*
-Implement std::meta::metacall(<info>, <infovec>), where <info> represents a
-function F to call and <infovec> represents arguments to call F with.  The
-invocation produces a reflection for the constant result.
+Implement std::meta::reflect_invoke(info r, R&& args), where r represents a
+function F to call and the std::meta::info elements of the reflection_range
+args represent the arguments to call F with.  The invocation produces a
+reflection for the constant result.  The argument reflections are read through
+the same mechanism used for substitute/can_substitute (see
+collect_reflection_range_arg), so any std::ranges::input_range of info is
+accepted.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -15202,7 +17324,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   Dyn_array<a_reflection_value>
                 arg_reflections(0);
   a_constant    *result_con = local_constant();
-  a_type_ptr    callee_type = skip_typerefs(callee->type), infovec_type;
+  a_type_ptr    callee_type = skip_typerefs(callee->type), range_tp;
   a_param_type_ptr
                 ptp;
 
@@ -15218,7 +17340,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   ptp = function_type_params(callee_type);
   check_assertion(ptp != NULL && ptp->next != NULL);
   check_assertion(skip_typerefs(ptp->type) == reflection_type());
-  infovec_type = skip_typerefs(ptp->next->type);
+  range_tp = skip_typerefs(ptp->next->type);
   strip_template_arg(rvp);
   extract_reflected_entity(rvp);
   if (rvp->entity.kind != iek_routine) {
@@ -15226,9 +17348,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
     goto done;
-  } else if (!load_infovec(ips, infovec_type, &arg_reflections,
-                           &call_node->position,
-                           p_arg_bytes[1], p_arg_bytes[1])) {
+  } else if (!collect_reflection_range_arg(ips, range_tp, p_arg_bytes[1],
+                                           call_node, &arg_reflections)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -15256,7 +17377,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 done:
   if (result_con != NULL) release_local_constant(&result_con);
   return result;
-}  /* do_constexpr_std_meta_metacall__impl */
+}  /* do_constexpr_std_meta_reflect_invoke */
 
 
 static a_boolean do_constexpr_std_meta___report_tokens(
@@ -15583,7 +17704,317 @@ done:
 }  /* do_constexpr_std_meta_nearest_namespace */
 
 
-static a_boolean do_constexpr_std_meta_annotations__impl(
+static a_boolean store_access_context(an_interpreter_state  *ips,
+                                      a_type_ptr            ctx_type,
+                                      a_reflection_value    *scope_rv,
+                                      a_reflection_value    *dc_rv,
+                                      a_byte                *result_storage,
+                                      a_byte                *complete_obj)
+/*
+Construct an access_context object (type ctx_type) at result_storage (part of
+the complete object at complete_obj) whose two std::meta::info members are set
+to the scope and designating-class reflections *scope_rv and *dc_rv.  This is
+the inverse of load_access_context.  Return TRUE on success.
+*/
+{
+  a_boolean     result;
+  a_byte_count  offsets[2];
+  int           n, k;
+
+  result = access_context_info_offsets(ips, ctx_type, offsets, &n);
+  if (result) {
+    for (k = 0; k < n; k++) {
+      *(a_reflection_value*)(result_storage+offsets[k]) =
+          (k == 0) ? *scope_rv : *dc_rv;
+      mark_subobject_initialized(result_storage+offsets[k], complete_obj);
+    }  /* for */
+    mark_complete_object_initialized(complete_obj);
+  }  /* if */
+  return result;
+}  /* store_access_context */
+
+
+static void capture_current_scope(an_interpreter_state  *ips,
+                                  a_routine_ptr          callee,
+                                  a_reflection_value    *scope_out)
+/*
+Compute CURRENT-SCOPE (see N5046 [meta.reflection.scope]) for an invocation of
+one of the std::meta current-context intrinsics (access_context::current,
+current_function, current_class, current_namespace): a reflection of the
+function, class, or namespace from which the intrinsic is invoked.  The
+interpreter's call-frame stack still has the invoking function as the parent
+of the intrinsic's own frame, so *scope_out is set to the nearest enclosing
+call frame whose routine is neither a statement-expression frame nor the
+intrinsic callee itself.  When the intrinsic is invoked outside of any
+function (e.g., at namespace scope), there is no such frame, so we fall back
+to the innermost enclosing class, namespace, or file scope from the live parse
+scope stack.  *scope_out is left as the null reflection if no enclosing scope
+is found.
+*/
+{
+  a_call_frame_ptr  frame;
+  a_routine_ptr     caller = NULL;
+  a_scope_depth     depth;
+
+  scope_out->local_scope_number = FILE_SCOPE_NUMBER;
+  scope_out->entity.kind = iek_none;
+  scope_out->entity.ptr = NULL;
+  for (frame = ips->curr_call_frame; frame != NULL; frame = frame->parent) {
+    a_routine_ptr  rp = frame->routine;
+    if (rp == NULL || rp == callee) {
+      /* A statement-expression frame or the intrinsic's own frame. */
+      continue;
+    }  /* if */
+    caller = rp;
+    break;
+  }  /* for */
+  if (caller != NULL) {
+    scope_out->entity.kind = iek_routine;
+    scope_out->entity.ptr = (char*)caller;
+  } else {
+    for (depth = depth_scope_stack;
+         depth != NO_SCOPE_DEPTH;
+         depth = scope_stack[depth].previous_scope) {
+      a_scope_stack_entry_ptr  ssep = &scope_stack[depth];
+      if (scope_is(ssep, sck_class_struct_union)) {
+        scope_out->entity.kind = iek_type;
+        scope_out->entity.ptr = (char*)ssep->assoc_type;
+        break;
+      } else if (scope_is(ssep, sck_file) ||
+                 scope_is(ssep, sck_namespace) ||
+                 scope_is(ssep, sck_namespace_extension)) {
+        scope_out->entity.kind = iek_scope;
+        scope_out->entity.ptr = (char*)ssep->il_scope;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* capture_current_scope */
+
+
+static a_boolean do_constexpr_std_meta_current(
+                                 an_interpreter_state          *ips,
+                                 a_routine_ptr                 callee,
+                                 ARG_UNUSED an_expr_node_ptr   call_node,
+                                 ARG_UNUSED a_byte             **p_arg_bytes,
+                                 a_byte                        *result_storage,
+                                 a_byte                        *complete_obj)
+/*
+Implement std::meta::access_context::current().  Per N5046
+[meta.reflection.access.queries], it returns an access_context whose scope is
+a reflection of the function, class, or namespace from which current() is
+invoked (captured by capture_current_scope) and whose designating class is the
+null reflection.  Because the context is the one the call is made from, the
+intrinsic can be evaluated only during constant evaluation.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  scope_rv, dc_rv;
+
+  if (!ips->is_constant_evaluated) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  capture_current_scope(ips, callee, &scope_rv);
+  dc_rv.entity.kind = iek_none;
+  dc_rv.entity.ptr = NULL;
+  dc_rv.local_scope_number = FILE_SCOPE_NUMBER;
+  result = store_access_context(ips,
+                                skip_typerefs(return_type_of(callee->type)),
+                                &scope_rv, &dc_rv, result_storage,
+                                complete_obj);
+done:
+  return result;
+}  /* do_constexpr_std_meta_current */
+
+
+static a_boolean do_constexpr_std_meta_current_function(
+                                 an_interpreter_state          *ips,
+                                 a_routine_ptr                 callee,
+                                 ARG_UNUSED an_expr_node_ptr   call_node,
+                                 ARG_UNUSED a_byte             **p_arg_bytes,
+                                 a_byte                        *result_storage,
+                                 ARG_UNUSED a_byte             *complete_obj)
+/*
+Implement std::meta::current_function().  Per N5046 [meta.reflection.current],
+it returns a reflection of the current scope (capture_current_scope) when that
+scope represents a function; otherwise the call fails to evaluate to a
+constant.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  scope_rv;
+  a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
+
+  if (!ips->is_constant_evaluated) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  capture_current_scope(ips, callee, &scope_rv);
+  if (scope_rv.entity.kind == iek_routine) {
+    *result_rvp = scope_rv;
+  } else {
+    do_constexpr_fail(result);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_current_function */
+
+
+static a_boolean do_constexpr_std_meta_current_class(
+                                 an_interpreter_state          *ips,
+                                 a_routine_ptr                 callee,
+                                 ARG_UNUSED an_expr_node_ptr   call_node,
+                                 ARG_UNUSED a_byte             **p_arg_bytes,
+                                 a_byte                        *result_storage,
+                                 ARG_UNUSED a_byte             *complete_obj)
+/*
+Implement std::meta::current_class().  Per N5046 [meta.reflection.current], it
+returns the current scope when it represents a class, or the parent class when
+it represents a member function; otherwise (a non-member function or a
+namespace) the call fails to evaluate to a constant.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  scope_rv;
+  a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
+
+  if (!ips->is_constant_evaluated) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  capture_current_scope(ips, callee, &scope_rv);
+  if (scope_rv.entity.kind == iek_type &&
+      is_immediate_class_type(
+              skip_typerefs((a_type_ptr)scope_rv.entity.ptr))) {
+    *result_rvp = scope_rv;
+  } else if (scope_rv.entity.kind == iek_routine &&
+             ((a_routine_ptr)scope_rv.entity.ptr)
+                                       ->source_corresp.is_class_member) {
+    a_routine_ptr  rp = (a_routine_ptr)scope_rv.entity.ptr;
+    result_rvp->entity.kind = iek_type;
+    result_rvp->entity.ptr = (char*)scp_parent_class(&rp->source_corresp);
+    result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+  } else {
+    do_constexpr_fail(result);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_current_class */
+
+
+static a_boolean do_constexpr_std_meta_current_namespace(
+                                 an_interpreter_state          *ips,
+                                 a_routine_ptr                 callee,
+                                 ARG_UNUSED an_expr_node_ptr   call_node,
+                                 ARG_UNUSED a_byte             **p_arg_bytes,
+                                 a_byte                        *result_storage,
+                                 ARG_UNUSED a_byte             *complete_obj)
+/*
+Implement std::meta::current_namespace().  Per N5046 [meta.reflection.current],
+it returns the current scope when it represents a namespace, otherwise the
+nearest enclosing namespace of that scope.  The enclosing namespace is found
+by walking out through any enclosing classes (mirroring parent_of) to the
+surrounding namespace or file scope.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean                    result = TRUE;
+  a_reflection_value           scope_rv;
+  a_reflection_value           *result_rvp =
+                                 (a_reflection_value*)result_storage;
+  a_source_correspondence_ptr  scp = NULL;
+
+  if (!ips->is_constant_evaluated) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  capture_current_scope(ips, callee, &scope_rv);
+  if (scope_rv.entity.kind == iek_scope) {
+    /* The current scope is already a namespace or file scope. */
+    *result_rvp = scope_rv;
+    goto done;
+  }  /* if */
+  if (scope_rv.entity.kind == iek_routine) {
+    scp = &((a_routine_ptr)scope_rv.entity.ptr)->source_corresp;
+  } else if (scope_rv.entity.kind == iek_type) {
+    scp = &skip_typerefs((a_type_ptr)scope_rv.entity.ptr)->source_corresp;
+  }  /* if */
+  if (scp == NULL) {
+    do_constexpr_fail(result);
+  } else {
+    while (scp->is_class_member) {
+      scp = &scp_parent_class(scp)->source_corresp;
+    }  /* while */
+    result_rvp->entity.kind = iek_scope;
+    result_rvp->entity.ptr = (char*)get_parent_scope_of(scp);
+    result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_current_namespace */
+
+
+static a_boolean collect_annotation_reflections(
+                              an_interpreter_state          *ips,
+                              an_expr_node_ptr              call_node,
+                              a_reflection_value            *rvp,
+                              a_type_ptr                    annotation_type,
+                              Dyn_array<a_reflection_value> *reflections)
+/*
+Collect into reflections a std::meta::info reflection for each annotation
+recorded on the entity reflected by rvp.  If annotation_type is non-NULL, only
+annotations whose value has that type (ignoring cv-qualifiers) are included;
+otherwise every annotation is included (in declaration order).  ips is the
+current interpreter state.  Return TRUE on success; on failure issue a
+diagnostic at call_node and return FALSE.
+*/
+{
+  a_boolean     result = TRUE;
+  an_attribute  *attributes = NULL, *ap;
+
+  strip_template_arg(rvp);
+  if (rvp->entity.kind == iek_base_class) {
+    attributes = ((a_base_class*)rvp->entity.ptr)->attributes;
+  } else if (rvp->entity.kind == iek_param_type) {
+    attributes = ((a_param_type*)rvp->entity.ptr)->attributes;
+  } else {
+    a_source_correspondence_ptr
+                scp = source_corresp_for_reflection(rvp);
+    if (scp == NULL) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                    ips);
+    } else {
+      attributes = scp->attributes;
+    }  /* if */
+  }  /* if */
+  if (result) {
+    for (ap = attributes; ap != NULL; ap = ap->next) {
+      if (ap->kind == ak_annotation) {
+        an_attribute_arg  *aap = ap->arguments;
+        check_assertion(aap != NULL);
+        if (annotation_type == NULL ||
+            identical_types_ignoring_qualifiers(annotation_type,
+                                                aap->variant.constant->type)) {
+          push_entity_reflection(reflections, ap, iek_attribute,
+                                 FILE_SCOPE_NUMBER);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* collect_annotation_reflections */
+
+
+static a_boolean do_constexpr_std_meta_annotations_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -15591,22 +18022,18 @@ static a_boolean do_constexpr_std_meta_annotations__impl(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::annotations__impl(annotated_item, annotation_type).  It
-returns a vector-like container (struct std::meta::__infovec) of reflections,
-with each element representing an annotation attribute recorded for the given
-reflected "entity".
+Implement std::meta::annotations_of(annotated_item).  It returns a
+std::vector<std::meta::info> holding a reflection for each annotation recorded
+on the given reflected entity (in declaration order).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = FALSE;
   a_reflection_value
-                *rvp1 = (a_reflection_value*)p_arg_bytes[0],
-                *rvp2 = (a_reflection_value*)p_arg_bytes[1];
+                *rvp = (a_reflection_value*)p_arg_bytes[0];
   Dyn_array<a_reflection_value>
                 result_reflections(0);
-  an_attribute  *attributes = NULL, *ap;
-  a_type        *annotation_type = NULL;
 
   if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
     /* Don't attempt to evaluate this call if a constant result is not needed,
@@ -15617,22 +18044,51 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     goto done;
   }  /* if */
   check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
-  strip_template_arg(rvp1);
-  if (rvp1->entity.kind == iek_base_class) {
-    attributes = ((a_base_class*)rvp1->entity.ptr)->attributes;
-  } else if (rvp1->entity.kind == iek_param_type) {
-    attributes = ((a_param_type*)rvp1->entity.ptr)->attributes;
-  } else {
-    a_source_correspondence_ptr
-                scp = source_corresp_for_reflection(rvp1);
-    if (scp == NULL) {
-      do_constexpr_fail(result);
-      info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
-                    ips);
-      goto done;
-    }  /* if */
-    attributes = scp->attributes;
+  result = collect_annotation_reflections(ips, call_node, rvp,
+                                          /*annotation_type=*/NULL,
+                                          &result_reflections);
+  if (result) {
+    result = make_info_vector(ips, callee, call_node, &result_reflections,
+                              result_storage, complete_obj);
   }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_annotations_of */
+
+
+static a_boolean do_constexpr_std_meta_annotations_of_with_type(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::annotations_of_with_type(annotated_item, annotation_type).
+It returns a std::vector<std::meta::info> holding a reflection for each
+annotation of the given annotation_type recorded on the reflected entity (in
+declaration order).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean     result = FALSE;
+  a_reflection_value
+                *rvp1 = (a_reflection_value*)p_arg_bytes[0],
+                *rvp2 = (a_reflection_value*)p_arg_bytes[1];
+  Dyn_array<a_reflection_value>
+                result_reflections(0);
+  a_type        *annotation_type;
+
+  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
+    /* Don't attempt to evaluate this call if a constant result is not needed,
+       because it could be somewhat expensive. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
   if (rvp2->entity.kind != iek_type) {
     do_constexpr_fail(result);
     info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
@@ -15641,32 +18097,19 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
   annotation_type = (a_type*)rvp2->entity.ptr;
   if (is_void_type(annotation_type)) annotation_type = NULL;
-  for (ap = attributes; ap != NULL; ap = ap->next) {
-    if (ap->kind == ak_annotation) {
-      an_attribute_arg  *aap = ap->arguments;
-      check_assertion(aap != NULL);
-      if (annotation_type == NULL ||
-          identical_types_ignoring_qualifiers(annotation_type,
-                                              aap->variant.constant->type)) {
-        a_reflection_value  arvp;
-        arvp.entity.ptr = (char*)ap;
-        arvp.entity.kind = (an_il_entry_kind)iek_attribute;
-        arvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(arvp);
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  {
-    a_type_ptr  result_tp = skip_typerefs(call_node->type);
-    result = make_infovec(ips, result_tp, &result_reflections,
-                          &call_node->position, result_storage, complete_obj);
+  result = collect_annotation_reflections(ips, call_node, rvp1,
+                                          annotation_type,
+                                          &result_reflections);
+  if (result) {
+    result = make_info_vector(ips, callee, call_node, &result_reflections,
+                              result_storage, complete_obj);
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_annotations__impl */
+}  /* do_constexpr_std_meta_annotations_of_with_type */
 
 
-static a_boolean do_constexpr_std_meta_type_tuple_size(
+static a_boolean do_constexpr_std_meta_tuple_size(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -15674,7 +18117,7 @@ static a_boolean do_constexpr_std_meta_type_tuple_size(
                                         a_byte                *result_storage,
                                         a_byte                *complete_object)
 /*
-Implement std::meta::type_tuple_size().
+Implement std::meta::tuple_size().
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -15691,7 +18134,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                   &call_node->position, ips);
   } else if (!is_tuple_like_type((a_type*)rvp->entity.ptr, &n_elems, &err)) {
     do_constexpr_fail(result);
-    // FIXME: More specific diagnostic.
+    /* FIXME: A diagnostic that says why the type is not tuple-like would be
+       more helpful. */
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
   } else {
@@ -15699,10 +18143,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                       (a_host_large_integer)n_elems);
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_type_tuple_size */
+}  /* do_constexpr_std_meta_tuple_size */
 
 
-static a_boolean do_constexpr_std_meta_type_tuple_element(
+static a_boolean do_constexpr_std_meta_tuple_element(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -15710,7 +18154,7 @@ static a_boolean do_constexpr_std_meta_type_tuple_element(
                                         a_byte                *result_storage,
                                         a_byte                *complete_object)
 /*
-Implement std::meta::type_tuple_element().
+Implement std::meta::tuple_element().
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -15748,25 +18192,31 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     }  /* if */
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_type_tuple_element */
+}  /* do_constexpr_std_meta_tuple_element */
 
 
 
 /*
 Type traits.
 
-The macros DEFINE_type_predicate and DEFINE_type_transform below expand to
-function definitions implementing the handling of a type trait query as
-intrinsic functions (see do_constexpr_intrinsic_call for the meaning of their
-parameters).  The first and second macro arguments match the description of
-the function in interpret.h (see the macro NS_scope_constexpr_intrinsics).
-The third macro operand must be a lambda expression that is parenthesized (to
-avoid having embedded commas interpreted as macro argument separators).
+The macros DEFINE_type_predicate, DEFINE_type_predicate2, and
+DEFINE_type_transform below expand to function definitions implementing the
+handling of a type trait query as intrinsic functions (see
+do_constexpr_intrinsic_call for the meaning of their parameters).  The first
+and second macro arguments match the description of the function in
+interpret.h (see the macro NS_scope_constexpr_intrinsics).  The third macro
+operand must be a lambda expression that is parenthesized (to avoid having
+embedded commas interpreted as macro argument separators).  Each of these
+macros verifies that its operands are reflections of types, so the query fails
+with a diagnostic when they are not and the lambda need not check again.
 
 For DEFINE_type_predicate, the lambda implements the predicate by examining
 the type represented by "tp" and setting the boolean result variable "answer".
 Any failure to evaluate should set the boolean status variable "result" to
 FALSE.
+
+DEFINE_type_predicate2 is the two-operand form: It presents the types of its
+two reflection operands as "tp1" and "tp2", and is otherwise identical.
 
 For DEFINE_type_transform, the lambda implements the type transformation by
 examining the type represented by "tp" and setting the variable "result_tp".
@@ -15802,71 +18252,87 @@ static a_boolean do_constexpr_##ns##_##name(                                 \
 }
 
 
-DEFINE_type_predicate(std_meta, type_is_void,
+#define DEFINE_type_predicate2(ns, name, ref_lambda_body)                    \
+static a_boolean do_constexpr_##ns##_##name(                                 \
+                                     an_interpreter_state  *ips,             \
+                                     a_routine_ptr         callee,           \
+                                     an_expr_node_ptr      call_node,        \
+                                     a_byte                **p_arg_bytes,    \
+                                     a_byte                *result_storage,  \
+                                     a_byte                *complete_obj)    \
+{                                                                            \
+  a_boolean           result = TRUE, answer = FALSE;                         \
+  a_reflection_value  *rvp1 = (a_reflection_value*)p_arg_bytes[0];           \
+  a_reflection_value  *rvp2 = (a_reflection_value*)p_arg_bytes[1];           \
+  a_type              *tp1, *tp2;                                            \
+                                                                             \
+  strip_template_arg(rvp1);                                                  \
+  strip_template_arg(rvp2);                                                  \
+  extract_reflected_entity(rvp1);                                            \
+  extract_reflected_entity(rvp2);                                            \
+  if (rvp1->entity.kind == iek_type && rvp2->entity.kind == iek_type) {      \
+    tp1 = skip_typerefs((a_type*)rvp1->entity.ptr);                          \
+    tp2 = skip_typerefs((a_type*)rvp2->entity.ptr);                          \
+    ref_lambda_body();                                                       \
+    set_bool_value(answer, result_storage);                                  \
+  } else {                                                                   \
+    info_with_pos(ec_invalid_reflection_for_intrinsic,                       \
+                  &call_node->position, ips);                                \
+    do_constexpr_fail(result);                                               \
+  }  /* if */                                                                \
+  return result;                                                             \
+}
+
+
+DEFINE_type_predicate(std_meta, is_void_type,
   ([&]{
-    if (is_void_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_void_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_null_pointer,
+DEFINE_type_predicate(std_meta, is_null_pointer_type,
   ([&]{
-    if (type_is(tp, tk_nullptr)) {
-      answer = TRUE;
-    }  /* if */
+    answer = type_is(tp, tk_nullptr);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_integral,
+DEFINE_type_predicate(std_meta, is_integral_type,
   ([&]{
-    if (is_integral_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_integral_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_floating_point,
+DEFINE_type_predicate(std_meta, is_floating_point_type,
   ([&]{
-    if (type_is(tp, tk_float)) {
-      answer = TRUE;
-    }  /* if */
+    answer = type_is(tp, tk_float);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_array,
+DEFINE_type_predicate(std_meta, is_array_type,
   ([&]{
-    if (is_array_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_array_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_pointer,
+DEFINE_type_predicate(std_meta, is_pointer_type,
   ([&]{
-    if (is_pointer_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_pointer_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_lvalue_reference,
+DEFINE_type_predicate(std_meta, is_lvalue_reference_type,
   ([&]{
-    if (is_lvalue_reference_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_lvalue_reference_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_rvalue_reference,
+DEFINE_type_predicate(std_meta, is_rvalue_reference_type,
   ([&]{
-    if (is_rvalue_reference_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_rvalue_reference_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_member_object_pointer,
+DEFINE_type_predicate(std_meta, is_member_object_pointer_type,
   ([&]{
     if (type_is(tp, tk_ptr_to_member)) {
       answer = !is_function_type(tp->variant.ptr_to_member.type);
@@ -15874,7 +18340,7 @@ DEFINE_type_predicate(std_meta, type_is_member_object_pointer,
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_member_function_pointer,
+DEFINE_type_predicate(std_meta, is_member_function_pointer_type,
   ([&]{
     if (type_is(tp, tk_ptr_to_member)) {
       answer = is_function_type(tp->variant.ptr_to_member.type);
@@ -15882,87 +18348,67 @@ DEFINE_type_predicate(std_meta, type_is_member_function_pointer,
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_enum,
+DEFINE_type_predicate(std_meta, is_enum_type,
   ([&]{
-    if (is_immediate_enum_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_immediate_enum_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_union,
+DEFINE_type_predicate(std_meta, is_union_type,
   ([&]{
-    if (type_is(tp, tk_union)) {
-      answer = TRUE;
-    }  /* if */
+    answer = type_is(tp, tk_union);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_class,
+DEFINE_type_predicate(std_meta, is_class_type,
   ([&]{
-    if (type_is(tp, tk_struct) || type_is(tp, tk_class)) {
-      answer = TRUE;
-    }  /* if */
+    answer = type_is(tp, tk_struct) || type_is(tp, tk_class);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_function,
+DEFINE_type_predicate(std_meta, is_function_type,
   ([&]{
-    if (type_is(tp, tk_routine)) {
-      answer = TRUE;
-    }  /* if */
+    answer = type_is(tp, tk_routine);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_reflection,
+DEFINE_type_predicate(std_meta, is_reflection_type,
   ([&]{
-    if (type_is(tp, tk_reflection)) {
-      answer = TRUE;
-    }  /* if */
+    answer = type_is(tp, tk_reflection);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_reference,
+DEFINE_type_predicate(std_meta, is_reference_type,
   ([&]{
-    if (is_any_reference_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_any_reference_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_arithmetic,
+DEFINE_type_predicate(std_meta, is_arithmetic_type,
   ([&]{
-    if (is_arithmetic_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_arithmetic_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_object,
+DEFINE_type_predicate(std_meta, is_object_type,
   ([&]{
-    if (is_object_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_object_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_fundamental,
+DEFINE_type_predicate(std_meta, is_fundamental_type,
   ([&]{
-    if (is_fundamental_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_fundamental_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_scalar,
+DEFINE_type_predicate(std_meta, is_scalar_type,
   ([&]{
-    if (is_scalar_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_scalar_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_compound,
+DEFINE_type_predicate(std_meta, is_compound_type,
   ([&]{
     /* Compound types are types that are neither fundamental types nor
        extended floating-point types. */
@@ -15972,15 +18418,13 @@ DEFINE_type_predicate(std_meta, type_is_compound,
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_member_pointer,
+DEFINE_type_predicate(std_meta, is_member_pointer_type,
   ([&]{
-    if (type_is(tp, tk_ptr_to_member)) {
-      answer = TRUE;
-    }  /* if */
+    answer = type_is(tp, tk_ptr_to_member);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_const,
+DEFINE_type_predicate(std_meta, is_const_type,
   ([&]{
     if (is_const_qualified_type((a_type*)rvp->entity.ptr)) {
       answer = TRUE;
@@ -15992,7 +18436,7 @@ DEFINE_type_predicate(std_meta, type_is_const,
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_volatile,
+DEFINE_type_predicate(std_meta, is_volatile_type,
   ([&]{
     if (is_volatile_qualified_type((a_type*)rvp->entity.ptr)) {
       answer = TRUE;
@@ -16004,25 +18448,13 @@ DEFINE_type_predicate(std_meta, type_is_volatile,
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_trivial,
+DEFINE_type_predicate(std_meta, is_trivially_copyable_type,
   ([&]{
-    tp = skip_typerefs(skip_array_types(tp));
-    if (is_immediate_class_type(tp) ? is_trivial_class(tp)
-                                    : is_scalar_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_trivially_copyable_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_trivially_copyable,
-  ([&]{
-    if (is_trivially_copyable_type(tp)) {
-      answer = TRUE;
-    }  /* if */
-  }))
-
-
-DEFINE_type_predicate(std_meta, type_is_standard_layout,
+DEFINE_type_predicate(std_meta, is_standard_layout_type,
   ([&]{
     tp = skip_typerefs(skip_array_types(tp));
     if (is_immediate_class_type(tp) ?
@@ -16033,47 +18465,37 @@ DEFINE_type_predicate(std_meta, type_is_standard_layout,
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_empty,
+DEFINE_type_predicate(std_meta, is_empty_type,
   ([&]{
-    if (is_class_or_struct(tp) && is_empty_class_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_class_or_struct(tp) && is_empty_class_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_polymorphic,
+DEFINE_type_predicate(std_meta, is_polymorphic_type,
   ([&]{
-    if (is_class_or_struct(tp) && is_polymorphic_class_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_class_or_struct(tp) && is_polymorphic_class_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_abstract,
+DEFINE_type_predicate(std_meta, is_abstract_type,
   ([&]{
-    if (is_class_or_struct(tp) && is_abstract_class_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_class_or_struct(tp) && is_abstract_class_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_final,
+DEFINE_type_predicate(std_meta, is_final_type,
   ([&]{
-    if (is_class_or_struct(tp) && tp->variant.class_struct_union.final) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_class_or_struct(tp) && tp->variant.class_struct_union.final;
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_aggregate,
+DEFINE_type_predicate(std_meta, is_aggregate_type,
   ([&]{
-    if (is_aggregate_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_aggregate_type(tp);
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_signed,
+DEFINE_type_predicate(std_meta, is_signed_type,
   ([&]{
     if ((is_integral_type(tp) && int_type_is_signed(tp)) ||
          is_floating_type(tp)) {
@@ -16082,7 +18504,7 @@ DEFINE_type_predicate(std_meta, type_is_signed,
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_unsigned,
+DEFINE_type_predicate(std_meta, is_unsigned_type,
   ([&]{
     if (is_integral_type(tp) && !int_type_is_signed(tp)) { 
       answer = TRUE;
@@ -16090,7 +18512,7 @@ DEFINE_type_predicate(std_meta, type_is_unsigned,
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_bounded_array,
+DEFINE_type_predicate(std_meta, is_bounded_array_type,
   ([&]{
     if (type_is(tp, tk_array) && !array_type_has_no_bound(tp)) { 
       answer = TRUE;
@@ -16098,7 +18520,7 @@ DEFINE_type_predicate(std_meta, type_is_bounded_array,
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_unbounded_array,
+DEFINE_type_predicate(std_meta, is_unbounded_array_type,
   ([&]{
     if (type_is(tp, tk_array) && array_type_has_no_bound(tp)) { 
       answer = TRUE;
@@ -16106,11 +18528,9 @@ DEFINE_type_predicate(std_meta, type_is_unbounded_array,
   }))
 
 
-DEFINE_type_predicate(std_meta, type_is_scoped_enum,
+DEFINE_type_predicate(std_meta, is_scoped_enum_type,
   ([&]{
-    if (is_scoped_enum_type(tp)) {
-      answer = TRUE;
-    }  /* if */
+    answer = is_scoped_enum_type(tp);
   }))
 
 
@@ -16131,7 +18551,9 @@ static a_boolean do_constexpr_##ns##_##name(                                 \
   strip_template_arg(rvp);                                                   \
   extract_reflected_entity(rvp);                                             \
   if (rvp->entity.kind == iek_type) {                                        \
-    tp = skip_typerefs((a_type*)rvp->entity.ptr);                            \
+    /* The operand keeps its cv-qualifiers, which the transformations either \
+       preserve or remove, but loses any alias, which they never produce. */ \
+    tp = skip_typedefs((a_type*)rvp->entity.ptr);                            \
     ref_lambda_body();                                                       \
   }  /* if */                                                                \
   if (result_tp == NULL) {                                                   \
@@ -16146,147 +18568,1475 @@ static a_boolean do_constexpr_##ns##_##name(                                 \
   return result;                                                             \
 }
 
-// FIXME: These functions currently do not handle abominable function types
-DEFINE_type_transform(std_meta, type_remove_const,
-  ([&]{
-    result_tp = remove_qualifiers(tp, TQ_CONST);
+/*
+Macro defining the handler for a type transformation that the front end already
+performs for the corresponding built-in type trait: the transformation named by
+the typeref kind trk is applied by apply_type_transforming_intrinsic, which
+owns the edge cases (reference collapsing, cv-qualifier propagation, void and
+other non-referenceable operands, and the enumeration, bit-precise, and plain
+char integer types).  A transformation that is not applicable to the operand
+type yields the error type there; that leaves result_tp null, so the reflection
+is rejected as it is for an operand that is not a type at all.  Typedefs are
+stripped from the result because these queries do not produce type aliases.
+
+FIXME reflection: A cv-qualified (abominable) function type is still treated as
+referenceable, because is_referenceable_type skips the type's qualifiers before
+testing for them; the reference-adding transformations therefore give it a
+reference type rather than leaving it alone.  Fixing that belongs in
+is_referenceable_type, where it also corrects the built-in traits.
+*/
+#define DEFINE_delegated_type_transform(ns, name, trk)                       \
+DEFINE_type_transform(ns, name,                                              \
+  ([&]{                                                                      \
+    a_type_ptr  transformed = apply_type_transforming_intrinsic(             \
+                                  tp, trk, &call_node->position,             \
+                                  /*diagnostic_should_be_issued=*/FALSE);    \
+    if (!is_error_type(transformed)) {                                       \
+      result_tp = skip_typedefs(transformed);                                \
+    }  /* if */                                                              \
   }))
 
+DEFINE_delegated_type_transform(std_meta, remove_const, trk_remove_const)
 
-DEFINE_type_transform(std_meta, type_remove_volatile,
-  ([&]{
-    result_tp = remove_qualifiers(tp, TQ_VOLATILE);
-  }))
+DEFINE_delegated_type_transform(std_meta, remove_volatile, trk_remove_volatile)
+
+DEFINE_delegated_type_transform(std_meta, remove_cv, trk_remove_cv)
+
+DEFINE_delegated_type_transform(std_meta, remove_reference,
+                                trk_remove_reference)
+
+DEFINE_delegated_type_transform(std_meta, add_lvalue_reference,
+                                trk_add_lvalue_reference)
+
+DEFINE_delegated_type_transform(std_meta, add_rvalue_reference,
+                                trk_add_rvalue_reference)
+
+DEFINE_delegated_type_transform(std_meta, make_signed, trk_make_signed)
+
+DEFINE_delegated_type_transform(std_meta, make_unsigned, trk_make_unsigned)
+
+DEFINE_delegated_type_transform(std_meta, remove_extent, trk_remove_extent)
+
+DEFINE_delegated_type_transform(std_meta, remove_all_extents,
+                                trk_remove_all_extents)
+
+DEFINE_delegated_type_transform(std_meta, remove_pointer, trk_remove_pointer)
+
+DEFINE_delegated_type_transform(std_meta, add_pointer, trk_add_pointer)
+
+DEFINE_delegated_type_transform(std_meta, remove_cvref, trk_remove_cvref)
+
+DEFINE_delegated_type_transform(std_meta, decay, trk_decay)
+
+DEFINE_delegated_type_transform(std_meta, underlying_type,
+                                trk_is_underlying_type)
 
 
-DEFINE_type_transform(std_meta, type_remove_cv,
-  ([&]{
-    result_tp = remove_qualifiers(tp, TQ_CONST | TQ_VOLATILE);
-  }))
-
-
-DEFINE_type_transform(std_meta, type_add_const,
+/* The cv-qualifier additions have no built-in type-trait counterpart to
+   delegate to. */
+DEFINE_type_transform(std_meta, add_const,
   ([&]{
     result_tp = make_qualified_type(tp, TQ_CONST);
   }))
 
 
-DEFINE_type_transform(std_meta, type_add_volatile,
+DEFINE_type_transform(std_meta, add_volatile,
   ([&]{
     result_tp = make_qualified_type(tp, TQ_VOLATILE);
   }))
 
 
-DEFINE_type_transform(std_meta, type_add_cv,
+DEFINE_type_transform(std_meta, add_cv,
   ([&]{
     result_tp = make_qualified_type(tp, TQ_CONST | TQ_VOLATILE);
   }))
 
 
-DEFINE_type_transform(std_meta, type_remove_reference,
+static a_type_ptr meta_add_lvalue_ref(a_type_ptr tp)
+/*
+The add_lvalue_reference type transformation used to form the operand types of
+the copy/move constructible and assignable predicates: T& for a referenceable
+non-reference T, and T unchanged otherwise.
+*/
+{
+  a_type_ptr  result_tp = tp;
+
+  if (!is_reference_type(tp) && is_referenceable_type(tp)) {
+    result_tp = make_reference_type(tp);
+  }  /* if */
+  return result_tp;
+}  /* meta_add_lvalue_ref */
+
+
+static a_type_ptr meta_add_rvalue_ref(a_type_ptr tp)
+/*
+The add_rvalue_reference type transformation used to form the operand types of
+the move constructible and assignable predicates.
+*/
+{
+  a_type_ptr  result_tp = tp;
+
+  if (!is_reference_type(tp) && is_referenceable_type(tp)) {
+    result_tp = make_rvalue_reference_type(tp);
+  }  /* if */
+  return result_tp;
+}  /* meta_add_rvalue_ref */
+
+
+static a_boolean meta_is_copy_or_move_constructible(
+                                            a_builtin_operation_kind  kind,
+                                            a_type_ptr                tp,
+                                            a_boolean                 move)
+/*
+Evaluate the copy (move == FALSE) or move (move == TRUE) constructible
+predicate for tp, with kind selecting the plain, trivially, or nothrow form.
+The constructed-from operand type is T&& for the move form and const T& (via
+add_lvalue_reference) for the copy form, matching is_copy_constructible_v and
+is_move_constructible_v.
+*/
+{
+  a_type_ptr  arg = move ? meta_add_rvalue_ref(tp)
+                         : meta_add_lvalue_ref(make_qualified_type(tp,
+                                                                   TQ_CONST));
+
+  return meta_compute_is_constructible(kind, tp, &arg, 1);
+}  /* meta_is_copy_or_move_constructible */
+
+
+static a_boolean meta_is_copy_or_move_assignable(
+                                            a_builtin_operation_kind  kind,
+                                            a_type_ptr                tp,
+                                            a_boolean                 move)
+/*
+Evaluate the copy (move == FALSE) or move (move == TRUE) assignable predicate
+for tp, with kind selecting the plain, trivially, or nothrow form.  This is
+is_assignable applied to T& and, respectively, const T& or T&&, matching
+is_copy_assignable_v and is_move_assignable_v.
+*/
+{
+  a_type_ptr  dst = meta_add_lvalue_ref(tp);
+  a_type_ptr  src = move ? meta_add_rvalue_ref(tp)
+                         : meta_add_lvalue_ref(make_qualified_type(tp,
+                                                                   TQ_CONST));
+
+  return compute_is_assignable(kind, dst, src);
+}  /* meta_is_copy_or_move_assignable */
+
+
+static a_boolean meta_folded_type_pred(a_builtin_operation_kind  kind,
+                                       a_type_ptr                t1,
+                                       a_type_ptr                t2)
+/*
+Evaluate the folded type property selected by kind on t1, and on t2 as well
+unless t2 is NULL (which selects the one-operand form), and return the boolean
+result.  The operands have already been validated as types by the caller, so a
+builtin operation that does not fold to a constant yields a false answer
+rather than a constant-evaluation failure.
+*/
+{
+  a_type_ptr            types[2];
+  a_host_large_integer  val = 0;
+
+  types[0] = t1;
+  types[1] = t2;
+  (void)meta_fold_builtin_type_trait(kind, types, t2 == NULL ? 1 : 2, &val);
+  return val != 0;
+}  /* meta_folded_type_pred */
+
+
+DEFINE_type_predicate(std_meta, is_structural_type,
   ([&]{
-    if (is_reference_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
-    result_tp = tp;
+    answer = is_structural_type(tp);
   }))
 
 
-DEFINE_type_transform(std_meta, type_add_lvalue_reference,
+DEFINE_type_predicate(std_meta, is_default_constructible_type,
   ([&]{
-    if (!is_reference_type(tp)) tp = make_reference_type(tp);
-    result_tp = tp;
+    answer = meta_compute_is_constructible(bok_is_constructible, tp,
+                                           (a_type_ptr*)NULL, 0);
   }))
 
 
-DEFINE_type_transform(std_meta, type_add_rvalue_reference,
+DEFINE_type_predicate(std_meta, is_trivially_default_constructible_type,
   ([&]{
-    if (!is_reference_type(tp)) tp = make_rvalue_reference_type(tp);
-    result_tp = tp;
+    answer = meta_compute_is_constructible(bok_is_trivially_constructible, tp,
+                                           (a_type_ptr*)NULL, 0);
   }))
 
 
-DEFINE_type_transform(std_meta, type_make_signed,
+DEFINE_type_predicate(std_meta, is_nothrow_default_constructible_type,
   ([&]{
-    a_type_qualifier_set  tqs = get_type_qualifiers(tp);
-    tp = skip_typerefs(tp);
-    if (type_is(tp, tk_integer) && !tp->variant.integer.bool_type) {
-      an_integer_kind  ik = tp->variant.integer.int_kind;
-      result_tp = tp->variant.integer.enum_type ? integer_type(ik) : tp;
-      if (!int_kind_is_signed[(int)ik]) {
-        result_tp = other_signedness_integer_type(ik);
+    answer = meta_compute_is_constructible(bok_is_nothrow_constructible, tp,
+                                           (a_type_ptr*)NULL, 0);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_copy_constructible_type,
+  ([&]{
+    answer = meta_is_copy_or_move_constructible(bok_is_constructible, tp,
+                                                /*move=*/FALSE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_trivially_copy_constructible_type,
+  ([&]{
+    answer = meta_is_copy_or_move_constructible(bok_is_trivially_constructible,
+                                                tp, /*move=*/FALSE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_nothrow_copy_constructible_type,
+  ([&]{
+    answer = meta_is_copy_or_move_constructible(bok_is_nothrow_constructible,
+                                                tp, /*move=*/FALSE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_move_constructible_type,
+  ([&]{
+    answer = meta_is_copy_or_move_constructible(bok_is_constructible, tp,
+                                                /*move=*/TRUE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_trivially_move_constructible_type,
+  ([&]{
+    answer = meta_is_copy_or_move_constructible(bok_is_trivially_constructible,
+                                                tp, /*move=*/TRUE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_nothrow_move_constructible_type,
+  ([&]{
+    answer = meta_is_copy_or_move_constructible(bok_is_nothrow_constructible,
+                                                tp, /*move=*/TRUE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_copy_assignable_type,
+  ([&]{
+    answer = meta_is_copy_or_move_assignable(bok_is_assignable, tp,
+                                             /*move=*/FALSE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_trivially_copy_assignable_type,
+  ([&]{
+    answer = meta_is_copy_or_move_assignable(bok_is_trivially_assignable, tp,
+                                             /*move=*/FALSE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_nothrow_copy_assignable_type,
+  ([&]{
+    answer = meta_is_copy_or_move_assignable(bok_is_nothrow_assignable, tp,
+                                             /*move=*/FALSE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_move_assignable_type,
+  ([&]{
+    answer = meta_is_copy_or_move_assignable(bok_is_assignable, tp,
+                                             /*move=*/TRUE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_trivially_move_assignable_type,
+  ([&]{
+    answer = meta_is_copy_or_move_assignable(bok_is_trivially_assignable, tp,
+                                             /*move=*/TRUE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_nothrow_move_assignable_type,
+  ([&]{
+    answer = meta_is_copy_or_move_assignable(bok_is_nothrow_assignable, tp,
+                                             /*move=*/TRUE);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_destructible_type,
+  ([&]{
+    answer = compute_is_destructible(bok_is_destructible, tp);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_trivially_destructible_type,
+  ([&]{
+    answer = compute_is_destructible(bok_is_trivially_destructible, tp);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_nothrow_destructible_type,
+  ([&]{
+    answer = compute_is_destructible(bok_is_nothrow_destructible, tp);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_implicit_lifetime_type,
+  ([&]{
+    answer = meta_folded_type_pred(bok_builtin_is_implicit_lifetime, tp,
+                                   (a_type_ptr)NULL);
+  }))
+
+
+DEFINE_type_predicate(std_meta, has_virtual_destructor,
+  ([&]{
+    answer = meta_folded_type_pred(bok_has_virtual_destructor, tp,
+                                   (a_type_ptr)NULL);
+  }))
+
+
+DEFINE_type_predicate(std_meta, has_unique_object_representations,
+  ([&]{
+    answer = meta_folded_type_pred(bok_has_unique_object_representations, tp,
+                                   (a_type_ptr)NULL);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, is_assignable_type,
+  ([&]{
+    answer = compute_is_assignable(bok_is_assignable, tp1, tp2);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, is_trivially_assignable_type,
+  ([&]{
+    answer = compute_is_assignable(bok_is_trivially_assignable, tp1, tp2);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, is_nothrow_assignable_type,
+  ([&]{
+    answer = compute_is_assignable(bok_is_nothrow_assignable, tp1, tp2);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, is_convertible_type,
+  ([&]{
+    answer = compute_is_convertible(tp1, tp2, bok_is_convertible);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, is_nothrow_convertible_type,
+  ([&]{
+    answer = compute_is_convertible(tp1, tp2, bok_is_nothrow_convertible);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, reference_constructs_from_temporary,
+  ([&]{
+    answer = compute_reference_binds_to_temporary(
+                            tp1, tp2, bok_reference_constructs_from_temporary);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, reference_converts_from_temporary,
+  ([&]{
+    answer = compute_reference_binds_to_temporary(
+                             tp1, tp2, bok_reference_converts_from_temporary);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, is_base_of_type,
+  ([&]{
+    answer = meta_folded_type_pred(bok_is_base_of, tp1, tp2);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, is_virtual_base_of_type,
+  ([&]{
+    answer = meta_folded_type_pred(bok_builtin_is_virtual_base_of, tp1, tp2);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, is_layout_compatible_type,
+  ([&]{
+    answer = types_are_layout_compatible(tp1, tp2);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, is_pointer_interconvertible_base_of_type,
+  ([&]{
+    answer = meta_folded_type_pred(bok_is_pointer_interconvertible_base_of,
+                                   tp1, tp2);
+  }))
+
+
+static a_type_ptr meta_unwrap_reference(a_type_ptr  tp)
+/*
+Return the reference type T& when tp is a std::reference_wrapper<T>, and tp
+itself otherwise.  This is the transformation performed by
+std::unwrap_reference_t, and, after a decay, by std::unwrap_ref_decay_t.
+*/
+{
+  a_type_ptr  result_tp = tp,
+              utp = skip_typerefs(tp);
+
+  if (is_std_class(utp, "reference_wrapper")) {
+    a_template_arg_ptr  tap = class_type_supp(utp)->template_arg_list;
+    if (tap != NULL && tap->kind == tak_type) {
+      result_tp = make_reference_type(tap->variant.type);
+    }  /* if */
+  }  /* if */
+  return result_tp;
+}  /* meta_unwrap_reference */
+
+
+DEFINE_type_transform(std_meta, unwrap_reference,
+  ([&]{
+    result_tp = meta_unwrap_reference(tp);
+  }))
+
+
+DEFINE_type_transform(std_meta, unwrap_ref_decay,
+  ([&]{
+    result_tp = meta_unwrap_reference(decay_type(tp));
+  }))
+
+
+static a_boolean do_constexpr_std_meta_rank(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::rank(info): the number of dimensions of the array type
+represented by the argument (0 for a non-array type).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind != iek_type) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+    do_constexpr_fail(result);
+  } else {
+    set_integer_value((an_integer_value*)result_storage,
+                      (a_host_large_integer)
+                                     array_rank((a_type*)rvp->entity.ptr));
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_rank */
+
+
+static a_boolean do_constexpr_std_meta_extent(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::extent(info, unsigned): the bound of the given dimension
+(0-based) of the array type represented by the first argument, or 0 if the
+type is not an array of sufficient rank or that dimension is unbounded.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind != iek_type) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+    do_constexpr_fail(result);
+  } else {
+    a_host_large_integer  dim, extent = 0;
+    a_boolean             ovfl;
+    conv_integer_value_to_host_large_integer((an_integer_value*)p_arg_bytes[1],
+                                             /*is_signed=*/FALSE, &dim, &ovfl);
+    if (!ovfl) {
+      extent = (a_host_large_integer)
+                       array_extent((a_type*)rvp->entity.ptr,
+                                    (a_host_large_unsigned)dim);
+    }  /* if */
+    set_integer_value((an_integer_value*)result_storage, extent);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_extent */
+
+
+static a_type_ptr meta_variant_alternative_types(a_type_ptr     tp,
+                                                 a_targ_size_t  *p_count)
+/*
+If tp is a std::variant specialization, possibly with top-level
+cv-qualifiers, return that specialization without those qualifiers and store
+the number of its alternatives in *p_count; otherwise return NULL.
+*/
+{
+  a_type_ptr  vtp = remove_qualifiers(skip_typerefs(tp),
+                                      TQ_CONST | TQ_VOLATILE);
+
+  if (!is_std_class(vtp, "variant")) {
+    vtp = NULL;
+  } else {
+    a_template_arg_ptr  tap = class_type_supp(vtp)->template_arg_list;
+    a_targ_size_t       count = 0;
+    for (; tap != NULL; tap = tap->next) {
+      if (tap->kind == tak_type) count++;
+    }  /* for */
+    *p_count = count;
+  }  /* if */
+  return vtp;
+}  /* meta_variant_alternative_types */
+
+
+static a_boolean do_constexpr_std_meta_variant_size(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::variant_size(info): the number of alternatives of the
+std::variant type represented by the argument (ignoring cv-qualifiers).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_targ_size_t       count;
+
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind != iek_type ||
+      meta_variant_alternative_types((a_type*)rvp->entity.ptr,
+                                     &count) == NULL) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+    do_constexpr_fail(result);
+  } else {
+    set_integer_value((an_integer_value*)result_storage,
+                      (a_host_large_integer)count);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_variant_size */
+
+
+static a_boolean do_constexpr_std_meta_variant_alternative(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::variant_alternative(size_t, info): the reflection of the
+type of the given alternative (0-based) of the std::variant type represented by
+the second argument.  Any cv-qualifiers on the variant type are applied to the
+alternative type, matching variant_alternative_t.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[1],
+                      *result_rvp = (a_reflection_value*)result_storage;
+  a_type_ptr          variant_tp = NULL;
+  a_targ_size_t       count;
+
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind != iek_type ||
+      (variant_tp = meta_variant_alternative_types((a_type*)rvp->entity.ptr,
+                                                   &count)) == NULL) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+    do_constexpr_fail(result);
+  } else {
+    a_host_large_integer  idx;
+    a_boolean             ovfl;
+    conv_integer_value_to_host_large_integer((an_integer_value*)p_arg_bytes[0],
+                                             /*is_signed=*/FALSE, &idx, &ovfl);
+    if (ovfl || idx >= (a_host_large_integer)count) {
+      info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                    ips);
+      do_constexpr_fail(result);
+    } else {
+      a_type_qualifier_set  tqs = get_type_qualifiers(
+                                            skip_typerefs((a_type*)
+                                                          rvp->entity.ptr));
+      a_template_arg_ptr    tap =
+                              class_type_supp(variant_tp)->template_arg_list;
+      a_type_ptr            elem = NULL;
+      a_host_large_integer  k = 0;
+      for (; tap != NULL; tap = tap->next) {
+        if (tap->kind == tak_type) {
+          if (k == idx) { elem = tap->variant.type; break; }
+          k++;
+        }  /* if */
+      }  /* for */
+      elem = make_qualified_type(skip_typedefs(elem),
+                                 tqs & (TQ_CONST | TQ_VOLATILE));
+      result_rvp->entity.kind = iek_type;
+      result_rvp->entity.ptr = (char*)elem;
+      result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_variant_alternative */
+
+
+/*
+The enumerators of std::meta::operators, in the order in which
+<experimental/meta> declares them, each paired with the operator-name kind
+that denotes the same operator in the front end.  An enumerator's value is its
+position in this list, counting from one, and its symbol is the spelling that
+opname_names records for the operator-name kind, so both directions of the
+mapping stay tied to this one table.  The operator-name kinds that have no
+enumerator -- the front-end-only "?" and the GNU "<?" and ">?" extensions --
+are simply absent from it.
+*/
+#define meta_operators()                                                     \
+  meta_operator(onk_new)                                                     \
+  meta_operator(onk_delete)                                                  \
+  meta_operator(onk_array_new)                                               \
+  meta_operator(onk_array_delete)                                            \
+  meta_operator(onk_await)                                                   \
+  meta_operator(onk_function_call)                                           \
+  meta_operator(onk_subscript)                                               \
+  meta_operator(onk_arrow)                                                   \
+  meta_operator(onk_arrow_star)                                              \
+  meta_operator(onk_compl)                                                   \
+  meta_operator(onk_not)                                                     \
+  meta_operator(onk_plus)                                                    \
+  meta_operator(onk_minus)                                                   \
+  meta_operator(onk_star)                                                    \
+  meta_operator(onk_divide)                                                  \
+  meta_operator(onk_remainder)                                               \
+  meta_operator(onk_excl_or)                                                 \
+  meta_operator(onk_ampersand)                                               \
+  meta_operator(onk_assign)                                                  \
+  meta_operator(onk_or)                                                      \
+  meta_operator(onk_plus_assign)                                             \
+  meta_operator(onk_minus_assign)                                            \
+  meta_operator(onk_times_assign)                                            \
+  meta_operator(onk_divide_assign)                                           \
+  meta_operator(onk_remainder_assign)                                        \
+  meta_operator(onk_excl_or_assign)                                          \
+  meta_operator(onk_and_assign)                                              \
+  meta_operator(onk_or_assign)                                               \
+  meta_operator(onk_eq)                                                      \
+  meta_operator(onk_ne)                                                      \
+  meta_operator(onk_lt)                                                      \
+  meta_operator(onk_gt)                                                      \
+  meta_operator(onk_le)                                                      \
+  meta_operator(onk_ge)                                                      \
+  meta_operator(onk_spaceship)                                               \
+  meta_operator(onk_and_and)                                                 \
+  meta_operator(onk_or_or)                                                   \
+  meta_operator(onk_shift_left)                                              \
+  meta_operator(onk_shift_right)                                             \
+  meta_operator(onk_shift_left_assign)                                       \
+  meta_operator(onk_shift_right_assign)                                      \
+  meta_operator(onk_plus_plus)                                               \
+  meta_operator(onk_minus_minus)                                             \
+  meta_operator(onk_comma)
+
+/* The ordinal of each std::meta::operators enumerator. */
+enum a_meta_operator_ordinal {
+  meta_ord_none = 0,
+#define meta_operator(onk)  meta_ord_##onk,
+  meta_operators()
+#undef meta_operator
+  meta_ord_last
+};
+
+/* The operator-name kind of each std::meta::operators enumerator, indexed by
+   the ordinal of that enumerator. */
+static const an_opname_kind
+                meta_operator_opnames[meta_ord_last] = {
+  onk_none,
+#define meta_operator(onk)  onk,
+  meta_operators()
+#undef meta_operator
+};
+
+
+static int meta_operator_ordinal(an_opname_kind  opname)
+/*
+Return the ordinal (a positive value) of the std::meta::operators enumerator
+that corresponds to the given operator-name kind, or 0 for an operator-name
+kind that has no such enumerator.
+*/
+{
+  int  ordinal;
+
+  switch (opname) {
+#define meta_operator(onk)  case onk: ordinal = meta_ord_##onk; break;
+    meta_operators()
+#undef meta_operator
+    default:  ordinal = 0;  break;
+  }  /* switch */
+  return ordinal;
+}  /* meta_operator_ordinal */
+
+
+static a_const_char *meta_operator_symbol(int  ordinal)
+/*
+Return the operator symbol spelling (a null-terminated narrow string, e.g. "+"
+or "<=>") for the std::meta::operators enumerator whose ordinal is the given
+value, as produced by meta_operator_ordinal.  Return NULL when the ordinal
+does not designate an enumerator.  The spellings are pure ASCII, so the same
+table serves both the narrow (symbol_of) and UTF-8 (u8symbol_of) queries.
+*/
+{
+  a_const_char  *symbol = NULL;
+
+  if (ordinal > 0 && ordinal < meta_ord_last) {
+    symbol = opname_names[meta_operator_opnames[ordinal]];
+  }  /* if */
+  return symbol;
+}  /* meta_operator_symbol */
+
+
+static a_boolean do_constexpr_std_meta_operator_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::operator_of(info): the std::meta::operators enumerator for
+the operator function represented by the argument (which may be an operator
+function or operator function template).  The result is stored as the value of
+that enumerator, whose ordinal matches the enumerator sequence declared in
+<experimental/meta> (the enumeration has an integer underlying type, so the
+value is written in integer form).  The evaluation fails if the reflection does
+not designate an operator function.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_routine           *rp = NULL;
+  int                 ordinal = 0;
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_routine) {
+    rp = (a_routine*)rvp->entity.ptr;
+  } else {
+    rp = template_prototype_routine(rvp);
+  }  /* if */
+  if (rp != NULL && special_kind_is(rp, sfk_operator)) {
+    ordinal = meta_operator_ordinal(rp->variant.opname_kind);
+  }  /* if */
+  if (ordinal == 0) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+    do_constexpr_fail(result);
+  } else {
+    set_integer_value((an_integer_value*)result_storage,
+                      (a_host_large_integer)ordinal);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_operator_of */
+
+
+static a_boolean do_constexpr_std_meta_symbol_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::symbol_of(operators): a std::string_view naming the
+operator symbol (e.g. "+", "<=>", "co_await") for the given enumerator, whose
+value is read in integer form (the enumeration has an integer underlying type).
+The evaluation fails if the argument is not one of the operators enumerators.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean            result = TRUE;
+  a_host_large_integer ordinal_val;
+  a_boolean            ovflo = FALSE;
+  a_const_char         *symbol;
+  a_type_ptr           rtp = skip_typerefs(callee->type), tp;
+
+  conv_integer_value_to_host_large_integer((an_integer_value*)p_arg_bytes[0],
+                                           /*is_signed=*/TRUE, &ordinal_val,
+                                           &ovflo);
+  symbol = ovflo ? NULL : meta_operator_symbol((int)ordinal_val);
+  if (symbol == NULL) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+    do_constexpr_fail(result);
+  } else {
+    check_assertion(type_is(rtp, tk_routine));
+    tp = skip_typerefs(rtp->variant.routine.return_type);
+    result = make_reflective_string_view(ips, tp, symbol,
+                                         integer_type(plain_char_int_kind),
+                                         result_storage, complete_obj);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_symbol_of */
+
+
+static a_boolean do_constexpr_std_meta_u8symbol_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::u8symbol_of(operators): the same operator symbol as
+symbol_of but as a std::u8string_view whose character sequence has element type
+char8_t.  The symbol spellings are pure ASCII, so the narrow table is reused
+and each byte is stored as a char8_t element.  The evaluation fails if the
+argument is not one of the operators enumerators.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean            result = TRUE;
+  a_host_large_integer ordinal_val;
+  a_boolean            ovflo = FALSE;
+  a_const_char         *symbol;
+  a_type_ptr           rtp = skip_typerefs(callee->type), tp;
+
+  conv_integer_value_to_host_large_integer((an_integer_value*)p_arg_bytes[0],
+                                           /*is_signed=*/TRUE, &ordinal_val,
+                                           &ovflo);
+  symbol = ovflo ? NULL : meta_operator_symbol((int)ordinal_val);
+  if (symbol == NULL) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+    do_constexpr_fail(result);
+  } else {
+    check_assertion(type_is(rtp, tk_routine));
+    tp = skip_typerefs(rtp->variant.routine.return_type);
+    result = make_reflective_string_view(ips, tp, symbol, eff_char8_t_type(),
+                                         result_storage, complete_obj);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_u8symbol_of */
+
+
+typedef enum {
+  meta_leaf_bool,       /* a scalar field of boolean type */
+  meta_leaf_pointer,    /* a scalar field of pointer type */
+  meta_leaf_union       /* a field of union type (holding the payload) */
+} a_meta_leaf_kind;
+
+
+static a_boolean meta_find_subobject(an_interpreter_state  *ips,
+                                     a_type_ptr            tp,
+                                     a_byte_count          base_offset,
+                                     a_byte_count          min_offset,
+                                     a_meta_leaf_kind      want,
+                                     a_byte_count          *p_offset,
+                                     a_type_ptr            *p_type)
+/*
+Descend the base classes and allocated fields of the class type tp (a subobject
+beginning at byte offset base_offset within some enclosing object), recursing
+into base classes and non-union class-type fields, to locate the lowest-offset
+subobject whose offset is at least min_offset and that matches want: a boolean
+field (meta_leaf_bool), a pointer field (meta_leaf_pointer), or a union field
+(meta_leaf_union, whose own bytes hold the active member).  Union fields are
+never entered, so members nested inside an inactive union alternative are not
+considered.  min_offset lets a caller find successive matches (e.g. the second
+pointer of a std::vector) by excluding earlier ones; pass 0 to find the first.
+Keeping the lowest qualifying offset makes the result independent of the order
+in which subobjects are visited.  On success store the match's offset (relative
+to the enclosing object) in *p_offset and its type in *p_type and return TRUE;
+otherwise return FALSE.  This is how the std::optional, std::basic_string, and
+std::vector subobjects of a data_member_options value are read without
+depending on the library's internal member names.
+*/
+{
+  a_boolean         result = FALSE, dummy = TRUE;
+  a_field_ptr       fp;
+  a_base_class_ptr  bcp;
+
+  (void)value_bytes_for_type(ips, tp, &dummy);
+  for (bcp = base_classes_of(tp); bcp != NULL; bcp = bcp->next) {
+    a_byte_count  bcoffset, found;
+    a_type_ptr    ftp;
+    if (bcp->is_virtual || !bcp->direct) {
+      continue;
+    }  /* if */
+    get_mapped_byte_count(&persistent_map, bcp, bcoffset);
+    if (meta_find_subobject(ips, skip_typerefs(bcp->type),
+                            base_offset + bcoffset, min_offset, want,
+                            &found, &ftp) &&
+        (!result || found < *p_offset)) {
+      *p_offset = found;
+      *p_type = ftp;
+      result = TRUE;
+    }  /* if */
+  }  /* for */
+  for (fp = next_alloc_field(fields_of(tp)); fp != NULL;
+       fp = next_alloc_field(fp->next)) {
+    a_type_ptr    ftp = skip_typerefs(fp->type);
+    a_byte_count  foffset, found;
+    a_type_ptr    subtp;
+    a_boolean     matched = FALSE;
+    get_mapped_byte_count(&persistent_map, fp, foffset);
+    foffset += base_offset;
+    if (((want == meta_leaf_bool && is_bool_type(ftp)) ||
+         (want == meta_leaf_pointer && type_is(ftp, tk_pointer)) ||
+         (want == meta_leaf_union && type_is(ftp, tk_union))) &&
+        foffset >= min_offset) {
+      subtp = ftp;
+      matched = TRUE;
+    } else if ((type_is(ftp, tk_struct) || type_is(ftp, tk_class)) &&
+               meta_find_subobject(ips, ftp, foffset, min_offset, want,
+                                   &found, &subtp)) {
+      foffset = found;
+      matched = TRUE;
+    }  /* if */
+    if (matched && (!result || foffset < *p_offset)) {
+      *p_offset = foffset;
+      *p_type = subtp;
+      result = TRUE;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* meta_find_subobject */
+
+
+static a_boolean meta_read_std_string(an_interpreter_state  *ips,
+                                      a_type_ptr            str_tp,
+                                      a_byte                *str_bytes,
+                                      a_source_position     *diag_pos,
+                                      char                  **p_str)
+/*
+str_tp/str_bytes denote a std::basic_string subobject.  Locate its
+character-data pointer, which is its first pointer subobject, and copy the
+null-terminated character sequence that pointer designates into a freshly
+allocated file-scope string, stored in *p_str.  Characters are read as
+bytes, which reproduces narrow spellings exactly and ASCII UTF-8 spellings
+faithfully.  Return TRUE on success.
+*/
+{
+  a_boolean     result = TRUE;
+  a_byte_count  ptr_offset;
+  a_type_ptr    ptr_tp;
+
+  if (!meta_find_subobject(ips, str_tp, 0, 0, meta_leaf_pointer, &ptr_offset,
+                           &ptr_tp)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic, diag_pos, ips);
+  } else {
+    result = read_interpreter_string(
+                     ips, (a_constexpr_address*)(str_bytes + ptr_offset),
+                     diag_pos, p_str);
+  }  /* if */
+  return result;
+}  /* meta_read_std_string */
+
+
+static a_boolean meta_optional_engaged(an_interpreter_state  *ips,
+                                       a_type_ptr            opt_tp,
+                                       a_byte                *base_bytes,
+                                       a_byte_count          opt_offset,
+                                       a_byte_count          *p_payload_offset,
+                                       a_type_ptr            *p_payload_type)
+/*
+opt_tp is a std::optional subobject beginning at base_bytes + opt_offset.
+Determine whether it holds a value by reading its engaged flag (the boolean
+subobject outside the payload union).  When engaged, also store in
+*p_payload_offset the offset (relative to base_bytes) of the payload union's
+storage and in *p_payload_type that union's type, and return TRUE; when not
+engaged (or the flag cannot be read) return FALSE.
+*/
+{
+  a_boolean             engaged = FALSE, ovflo = FALSE;
+  a_byte_count          eng_offset;
+  a_type_ptr            eng_tp;
+  a_host_large_integer  eng_val = 0;
+
+  if (meta_find_subobject(ips, opt_tp, opt_offset, 0, meta_leaf_bool,
+                          &eng_offset, &eng_tp)) {
+    conv_integer_value_to_host_large_integer(
+                              (an_integer_value*)(base_bytes + eng_offset),
+                              /*is_signed=*/FALSE, &eng_val, &ovflo);
+    if (!ovflo && eng_val != 0 &&
+        meta_find_subobject(ips, opt_tp, opt_offset, 0, meta_leaf_union,
+                            p_payload_offset, p_payload_type)) {
+      engaged = TRUE;
+    }  /* if */
+  }  /* if */
+  return engaged;
+}  /* meta_optional_engaged */
+
+
+static a_constant *meta_annotation_constant(a_reflection_value  *rvp)
+/*
+Return the constant value carried by the annotation-element reflection *rvp:
+the constant of a value/object reflection (iek_constant) or the value of an
+existing annotation reflection (iek_attribute with ak_annotation).  Return NULL
+if *rvp denotes neither, i.e. is not usable as an annotation value.
+*/
+{
+  a_constant  *cp = NULL;
+
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_constant) {
+    cp = (a_constant*)rvp->entity.ptr;
+  } else if (rvp->entity.kind == iek_attribute) {
+    an_attribute  *ap = (an_attribute*)rvp->entity.ptr;
+    if (ap->kind == ak_annotation && ap->arguments != NULL &&
+        ap->arguments->kind == aak_constant) {
+      cp = ap->arguments->variant.constant;
+    }  /* if */
+  }  /* if */
+  return cp;
+}  /* meta_annotation_constant */
+
+
+static a_boolean meta_read_info_vector(
+                              an_interpreter_state          *ips,
+                              a_type_ptr                    vec_tp,
+                              a_byte                        *vec_bytes,
+                              Dyn_array<a_reflection_value> *out)
+/*
+vec_tp/vec_bytes denote a std::vector<std::meta::info> subobject.  Append its
+elements to *out: the half-open range delimited by its first two pointer
+members, which address a plain contiguous array of reflection values.  A
+default- or value-initialized (empty) vector has null data pointers and
+contributes no elements.  Return TRUE on success.
+*/
+{
+  a_boolean            result = TRUE;
+  a_byte_count         start_off, finish_off;
+  a_type_ptr           ptr_tp;
+  a_constexpr_address  *begin_cap, *end_cap;
+  a_reflection_value   *begin_rv, *end_rv;
+
+  if (!meta_find_subobject(ips, vec_tp, 0, 0, meta_leaf_pointer, &start_off,
+                           &ptr_tp) ||
+      !meta_find_subobject(ips, vec_tp, 0, start_off + 1, meta_leaf_pointer,
+                           &finish_off, &ptr_tp)) {
+    /* The expected pair of pointer members is not present: This is not a
+       vector layout we can read, so fail rather than silently treat it as an
+       empty annotation list. */
+    result = FALSE;
+    goto done;
+  }  /* if */
+  begin_cap = (a_constexpr_address*)(vec_bytes + start_off);
+  end_cap = (a_constexpr_address*)(vec_bytes + finish_off);
+  if (begin_cap->address == NULL && end_cap->address == NULL) {
+    /* A default- or value-initialized (empty) vector: no elements. */
+    goto done;
+  }  /* if */
+  if (begin_cap->address == NULL || end_cap->address == NULL ||
+      begin_cap->complete_object != end_cap->complete_object) {
+    /* The pointer members are present but do not delimit a single array: The
+       vector contents are unreadable, so fail rather than drop elements. */
+    result = FALSE;
+    goto done;
+  }  /* if */
+  begin_rv = (a_reflection_value*)begin_cap->address;
+  end_rv = (a_reflection_value*)end_cap->address;
+  if (end_rv < begin_rv) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  for (; begin_rv < end_rv; ++begin_rv) {
+    out->push_back(*begin_rv);
+  }  /* for */
+done:
+  return result;
+}  /* meta_read_info_vector */
+
+
+static a_boolean meta_read_option_name(an_interpreter_state  *ips,
+                                      a_type_ptr            opt_tp,
+                                      a_byte                *base_bytes,
+                                      a_byte_count          opt_offset,
+                                      a_source_position     *diag_pos,
+                                      char                  **p_name)
+/*
+Read the optional member name of a data_member_options value, whose
+std::optional member is denoted by opt_tp and by opt_offset relative to
+base_bytes.  When that optional is engaged it holds a small struct whose first
+member is a flag saying whether the name is spelled as a u8string or as a
+narrow string, followed by one string member of each kind; the selected
+spelling is copied into *p_name (see meta_read_std_string).  *p_name is left
+alone when the optional is disengaged.  Return FALSE, having issued a
+diagnostic at diag_pos, if an engaged name cannot be read.
+*/
+{
+  a_boolean     result = TRUE;
+  a_byte_count  payload_off;
+  a_type_ptr    payload_tp;
+
+  if (meta_optional_engaged(ips, opt_tp, base_bytes, opt_offset, &payload_off,
+                            &payload_tp)) {
+    a_boolean     dummy = TRUE;
+    a_byte_count  holder_off = 0, str_off = 0;
+    a_type_ptr    holder_tp = NULL, str_tp = NULL;
+    a_field_ptr   fp;
+
+    /* The optional's payload union holds the name struct behind an empty
+       placeholder member, so take the first non-empty class-typed member. */
+    for (fp = next_alloc_field(fields_of(payload_tp));
+         fp != NULL && holder_tp == NULL;
+         fp = next_alloc_field(fp->next)) {
+      a_type_ptr  utp = skip_typerefs(fp->type);
+      if ((type_is(utp, tk_struct) || type_is(utp, tk_class)) &&
+          (next_alloc_field(fields_of(utp)) != NULL ||
+           base_classes_of(utp) != NULL)) {
+        get_mapped_byte_count(&persistent_map, fp, holder_off);
+        holder_tp = utp;
       }  /* if */
-      result_tp = make_qualified_type(result_tp, tqs);
-    }  /* if */
-  }))
-
-
-DEFINE_type_transform(std_meta, type_make_unsigned,
-  ([&]{
-    a_type_qualifier_set  tqs = get_type_qualifiers(tp);
-    tp = skip_typerefs(tp);
-    if (type_is(tp, tk_integer) && !tp->variant.integer.bool_type) {
-      an_integer_kind  ik = tp->variant.integer.int_kind;
-      result_tp = tp->variant.integer.enum_type ? integer_type(ik) : tp;
-      if (int_kind_is_signed[(int)ik]) {
-        result_tp = other_signedness_integer_type(ik);
+    }  /* for */
+    if (holder_tp != NULL) {
+      a_field_ptr  holder_fields[3];
+      int          n_fields = 0;
+      (void)value_bytes_for_type(ips, holder_tp, &dummy);
+      for (fp = next_alloc_field(fields_of(holder_tp));
+           fp != NULL && n_fields < 3;
+           fp = next_alloc_field(fp->next), n_fields += 1) {
+        holder_fields[n_fields] = fp;
+      }  /* for */
+      if (n_fields == 3) {
+        a_boolean             ovflo = FALSE;
+        a_byte_count          flag_off;
+        a_host_large_integer  is_u8 = 0;
+        a_field_ptr           str_fp;
+        get_mapped_byte_count(&persistent_map, holder_fields[0], flag_off);
+        conv_integer_value_to_host_large_integer(
+                  (an_integer_value*)(base_bytes + payload_off + holder_off +
+                                      flag_off),
+                  /*is_signed=*/FALSE, &is_u8, &ovflo);
+        str_fp = (!ovflo && is_u8 != 0) ? holder_fields[1] : holder_fields[2];
+        get_mapped_byte_count(&persistent_map, str_fp, str_off);
+        str_tp = skip_typerefs(str_fp->type);
       }  /* if */
-      result_tp = make_qualified_type(result_tp, tqs);
     }  /* if */
-  }))
-
-
-DEFINE_type_transform(std_meta, type_remove_extent,
-  ([&]{
-    if (is_array_type(tp)) tp = skip_typedefs(array_element_type(tp));
-    result_tp = tp;
-  }))
-
-
-DEFINE_type_transform(std_meta, type_remove_all_extents,
-  ([&]{
-    if (is_array_type(tp)) {
-      tp = skip_typedefs(underlying_array_element_type(tp));
+    if (str_tp == NULL) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic, diag_pos, ips);
+    } else {
+      result = meta_read_std_string(ips, str_tp,
+                                    base_bytes + payload_off + holder_off +
+                                    str_off,
+                                    diag_pos, p_name);
     }  /* if */
-    result_tp = tp;
-  }))
+  }  /* if */
+  return result;
+}  /* meta_read_option_name */
 
 
-DEFINE_type_transform(std_meta, type_remove_pointer,
-  ([&]{
-    if (is_pointer_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
-    result_tp = tp;
-  }))
+static a_boolean meta_read_option_int(an_interpreter_state  *ips,
+                                      a_type_ptr            opt_tp,
+                                      a_byte                *base_bytes,
+                                      a_byte_count          opt_offset,
+                                      a_host_large_integer  *p_val)
+/*
+Read one of the std::optional<int> members of a data_member_options value (the
+requested alignment or bit width), denoted by opt_tp and by opt_offset relative
+to base_bytes.  Set *p_val to the held value when the optional is engaged and
+leave it alone otherwise, so that a disengaged option and a zero value are
+treated alike.  Return FALSE if the held value does not fit in a host integer.
+*/
+{
+  a_boolean     result = TRUE;
+  a_byte_count  payload_off;
+  a_type_ptr    payload_tp;
 
-
-DEFINE_type_transform(std_meta, type_add_pointer,
-  ([&]{
-    if (is_reference_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
-    result_tp = make_pointer_type(tp);
-  }))
-
-
-DEFINE_type_transform(std_meta, type_remove_cvref,
-  ([&]{
-    if (is_reference_type(tp)) tp = skip_typedefs(type_pointed_to(tp));
-    result_tp = remove_qualifiers(tp, TQ_CONST | TQ_VOLATILE);
-  }))
-
-
-DEFINE_type_transform(std_meta, type_decay,
-  ([&]{
-    result_tp = decay_type(tp);
-  }))
-
-
-DEFINE_type_transform(std_meta, type_underlying_type,
-  ([&]{
-    tp = skip_typerefs(tp);
-    if (type_is(tp, tk_integer) && tp->variant.integer.enum_type &&
-        !tp->incomplete) {
-      result_tp = apply_type_transforming_intrinsic(
-                             tp, trk_is_underlying_type, &call_node->position,
-                             /*diagnostic_should_be_issued=*/FALSE);
+  if (meta_optional_engaged(ips, opt_tp, base_bytes, opt_offset, &payload_off,
+                            &payload_tp)) {
+    a_boolean     ovflo = FALSE;
+    a_byte_count  member_off = 0;
+    a_field_ptr   ufp = next_alloc_field(fields_of(payload_tp));
+    /* The payload union's members overlay at a common offset within the
+       union's storage; read the value there. */
+    if (ufp != NULL) {
+      get_mapped_byte_count(&persistent_map, ufp, member_off);
     }  /* if */
+    conv_integer_value_to_host_large_integer(
+                    (an_integer_value*)(base_bytes + payload_off + member_off),
+                    /*is_signed=*/TRUE, p_val, &ovflo);
+    if (ovflo) {
+      do_constexpr_fail(result);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* meta_read_option_int */
+
+
+static a_boolean meta_read_option_annotations(
+                                        an_interpreter_state  *ips,
+                                        a_type_ptr            vec_tp,
+                                        a_byte                *vec_bytes,
+                                        a_source_position     *diag_pos,
+                                        an_attribute_ptr      *p_annotations)
+/*
+Read the annotations member of a data_member_options value, a std::vector<info>
+denoted by vec_tp/vec_bytes, and build from it the list of ak_annotation
+attributes that define_aggregate attaches to the synthesized member; the list
+is stored in *p_annotations.  Each element must be a reflection of an
+annotation's value or of an existing annotation (see meta_annotation_constant).
+Return FALSE, having issued a diagnostic at diag_pos, if the vector or one of
+its elements cannot be used.
+*/
+{
+  a_boolean         result = TRUE;
+  an_attribute_ptr  *p_link = p_annotations;
+  Dyn_array<a_reflection_value>
+                    anns(0);
+
+  if (!meta_read_info_vector(ips, vec_tp, vec_bytes, &anns)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic, diag_pos, ips);
+  } else {
+    for (a_reflection_value  &av : anns) {
+      a_constant            *cp = meta_annotation_constant(&av);
+      an_attribute_ptr      ap;
+      an_attribute_arg_ptr  aap;
+      if (cp == NULL) {
+        do_constexpr_fail(result);
+        info_with_pos(ec_invalid_reflection_for_intrinsic, diag_pos, ips);
+        break;
+      }  /* if */
+      ap = alloc_attribute();
+      ap->kind = ak_annotation;
+      ap->family = af_std;
+      ap->on_primary_declaration = TRUE;
+      aap = alloc_attribute_arg();
+      aap->kind = aak_constant;
+      aap->variant.constant = cp;
+      ap->arguments = aap;
+      *p_link = ap;
+      p_link = &ap->next;
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* meta_read_option_annotations */
+
+
+static a_boolean do_constexpr_std_meta_data_member_spec(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::data_member_spec(info, data_member_options), which is
+declared without a body.  The first argument designates the prospective data
+member's type; the second is a data_member_options value read in place.  Its
+members, in declaration order, are an optional name, an optional alignment, an
+optional bit width, a no_unique_address flag, and an annotations range (each
+element recorded as an ak_annotation attribute to attach to the synthesized
+member); each is read by one of the meta_read_option_* helpers.  Record a
+description of the member and return a reflection of kind iek_data_member_spec
+that std::meta::define_aggregate later consumes.  A missing name means
+define_aggregate synthesizes one; a missing or zero alignment keeps the natural
+alignment; a missing or zero bit width means the member is not a bit field.
+The evaluation fails if the first argument does not designate a type or if a
+requested alignment is not a valid power of two.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean            result = TRUE;
+  a_reflection_value   *rvp = (a_reflection_value*)p_arg_bytes[0],
+                       *result_rvp = (a_reflection_value*)result_storage;
+  a_byte               *opt_bytes = p_arg_bytes[1];
+  a_param_type_ptr     ptp = function_type_params(skip_typerefs(callee->type));
+  a_type_ptr           options_tp = skip_typerefs(ptp->next->type);
+  a_data_member_spec   *spec;
+  a_field_ptr          fp;
+  a_boolean            dummy = TRUE;
+  int                  field_index = 0;
+
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind != iek_type) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  spec = (a_data_member_spec*)alloc_primary_file_scope_il(
+                                              sizeof(a_data_member_spec));
+  spec->type = (a_type*)rvp->entity.ptr;
+  spec->name = NULL;
+  spec->alignment = 0;
+  spec->bit_width = 0;
+  spec->no_unique_address = FALSE;
+  spec->annotations = NULL;
+  (void)value_bytes_for_type(ips, options_tp, &dummy);
+  for (fp = next_alloc_field(fields_of(options_tp));
+       fp != NULL && field_index <= 4;
+       fp = next_alloc_field(fp->next), field_index += 1) {
+    a_type_ptr    ftp = skip_typerefs(fp->type);
+    a_byte_count  foffset;
+    get_mapped_byte_count(&persistent_map, fp, foffset);
+    /* The members are read by position, in the declaration order recorded in
+       the comment above: name, alignment, bit width, no_unique_address flag,
+       and annotations. */
+    switch (field_index) {
+      case 0:
+        result = meta_read_option_name(ips, ftp, opt_bytes, foffset,
+                                       &call_node->position, &spec->name);
+        break;
+      case 1:
+        { a_host_large_integer  val = 0;
+          a_targ_alignment      alignment = 0;
+          result = meta_read_option_int(ips, ftp, opt_bytes, foffset, &val);
+          if (!result) {
+            info_with_pos(ec_integer_overflow, &call_node->position, ips);
+          } else if (val != 0 &&
+                     !check_pack_alignment_value(val, &alignment)) {
+            do_constexpr_fail(result);
+            info_with_pos(ec_bad_pack_alignment, &call_node->position, ips);
+          } else {
+            spec->alignment = alignment;
+          }  /* if */
+        }
+        break;
+      case 2:
+        { a_host_large_integer  val = 0;
+          result = meta_read_option_int(ips, ftp, opt_bytes, foffset, &val);
+          if (!result) {
+            info_with_pos(ec_integer_overflow, &call_node->position, ips);
+          } else {
+            spec->bit_width = (a_targ_size_t)val;
+          }  /* if */
+        }
+        break;
+      case 3:
+        { a_host_large_integer  flag = 0;
+          a_boolean             ovflo = FALSE;
+          conv_integer_value_to_host_large_integer(
+                              (an_integer_value*)(opt_bytes + foffset),
+                              /*is_signed=*/FALSE, &flag, &ovflo);
+          spec->no_unique_address = !ovflo && flag != 0;
+        }
+        break;
+      default:
+        result = meta_read_option_annotations(ips, ftp, opt_bytes + foffset,
+                                              &call_node->position,
+                                              &spec->annotations);
+        break;
+    }  /* switch */
+    if (!result) {
+      goto done;
+    }  /* if */
+  }  /* for */
+  result_rvp->entity.kind = iek_data_member_spec;
+  result_rvp->entity.ptr = (char*)spec;
+  result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+  mark_subobject_initialized(result_storage, complete_obj);
+done:
+  return result;
+}  /* do_constexpr_std_meta_data_member_spec */
+
+
+DEFINE_entity_predicate(std_meta, is_data_member_spec,
+  ([&]{
+    answer = rvp->entity.kind == iek_data_member_spec;
   }))
+
+
+static a_boolean do_constexpr_std_meta_define_aggregate(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::define_aggregate(info, R&&).  Complete the incomplete
+class type represented by the first argument with the data members described by
+the reflection_range second argument, whose std::meta::info elements must each
+be a reflection produced by std::meta::data_member_spec.  The elements are read
+by replaying the per-range-type iteration plan recorded at parse time (as for
+substitute), so any std::ranges::input_range of info is accepted.  Return a
+reflection for the (now complete) type.  The evaluation fails if the first
+argument does not designate a completable incomplete class type or if any range
+element is not a data-member-spec reflection.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],
+                      *result_rvp = (a_reflection_value*)result_storage;
+  a_type_ptr          callee_type = skip_typerefs(callee->type), class_type,
+                      range_tp;
+  a_param_type_ptr    ptp;
+  Dyn_array<a_meta_field_descr>
+                      field_descrs(0);
+  Dyn_array<a_reflection_value>
+                      specs(0);
+
+  check_assertion(type_is(callee_type, tk_routine));
+  if (!meta_incomplete_class_target(ips, call_node, rvp, &class_type)) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  /* The second argument is a reference to a reflection_range of
+     data-member-spec reflections. */
+  ptp = function_type_params(callee_type);
+  check_assertion(ptp != NULL && ptp->next != NULL);
+  range_tp = skip_typerefs(ptp->next->type);
+  if (!collect_reflection_range_arg(ips, range_tp, p_arg_bytes[1], call_node,
+                                    &specs)) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  field_descrs.reserve(specs.length());
+  for (a_reflection_value  &sv : specs) {
+    a_data_member_spec  *spec;
+    a_meta_field_descr  fd = {};
+    strip_template_arg(&sv);
+    if (sv.entity.kind != iek_data_member_spec) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic,
+                    &call_node->position, ips);
+      goto done;
+    }  /* if */
+    spec = (a_data_member_spec*)sv.entity.ptr;
+    fd.type = spec->type;
+    fd.alignment = spec->alignment;
+    fd.bit_width = spec->bit_width;
+    fd.no_unique_address = spec->no_unique_address;
+    fd.annotations = spec->annotations;
+    if (spec->name != NULL) {
+      fd.name = spec->name;
+    } else {
+      fd.name = synthesized_field_name(field_descrs.length());
+    }  /* if */
+    if (fd.bit_width != 0 && !is_integral_or_enum_type(fd.type)) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_bad_bit_field_type, &call_node->position, ips);
+      goto done;
+    }  /* if */
+    field_descrs.push_back(fd);
+  }  /* for */
+  synth_class_definition(class_type, &field_descrs, &call_node->position);
+  result_rvp->entity.kind = iek_type;
+  result_rvp->entity.ptr = (char*)class_type;
+  result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
+  mark_subobject_initialized(result_storage, complete_obj);
+done:
+  return result;
+}  /* do_constexpr_std_meta_define_aggregate */
 
 
 static a_boolean get_string_from_string_view(
@@ -16445,7 +20195,8 @@ the corresponding reflection value at the location denoted by result_cap.
               }  /* for */
               flush_past_token_cache_terminator();
             } else {
-              // FIXME
+              /* FIXME: The operand of a \tokens interpolator is not a token
+                 sequence; a diagnostic should be issued here. */
               do_constexpr_fail(result);
               goto done;
             }  /* if */
@@ -16683,7 +20434,7 @@ where the result should be stored.
   check_assertion(callee->source_corresp.is_class_member);
   allocator_tp = parent_class_of(callee);
   tap = class_type_supp(allocator_tp)->template_arg_list;
-  if (tap == NULL || tap->kind != (a_templ_arg_kind)tak_type) {
+  if (tap == NULL || tap->kind != tak_type) {
     do_constexpr_fail(result);
     info_with_pos_sym_type(ec_constexpr_invalid_intrinsic_signature,
                            &call_node->position, symbol_for(callee),
@@ -16821,7 +20572,7 @@ already-evaluated arguments of the call.
   check_assertion(callee->source_corresp.is_class_member);
   allocator_tp = parent_class_of(callee);
   tap = class_type_supp(allocator_tp)->template_arg_list;
-  if (tap == NULL || tap->kind != (a_templ_arg_kind)tak_type) {
+  if (tap == NULL || tap->kind != tak_type) {
     do_constexpr_fail(result);
     info_with_pos_sym_type(ec_constexpr_invalid_intrinsic_signature,
                            &call_node->position, symbol_for(callee),
@@ -16909,7 +20660,7 @@ See do_constexpr_std_allocator_allocate for the meaning of the parameters.
   a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[0];
 
   check_assertion(valid_placement_new_type == NULL &&
-                  tap != NULL && tap->kind == (a_templ_arg_kind)tak_type);
+                  tap != NULL && tap->kind == tak_type);
   if (is_runtime_data_address(cap)) {
     info_with_pos(ec_constexpr_access_to_runtime_storage,
                   &call_node->position, ips);

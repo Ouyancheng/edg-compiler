@@ -16024,9 +16024,11 @@ static void check_constexpr_intrinsic_member(a_symbol_ptr sym)
 /*
 The given symbol represents a member function of a class (which is known not
 to be a nonreal class).  Check whether the member function must be treated
-specially by the constexpr interpreter and if so record that fact.  Currently,
-the only such member functions are the "allocate" and "deallocate" members
-of std::allocator<T> instances.
+specially by the constexpr interpreter and if so record that fact.  The
+"allocate" and "deallocate" members of std::allocator<T> are handled here
+directly; other intrinsic member functions (e.g.,
+std::meta::access_context::current) are recognized through the general
+table-driven matcher check_for_constexpr_intrinsic.
 */
 {
   if (sym->header->has_intrinsic_name) {
@@ -16045,6 +16047,8 @@ of std::allocator<T> instances.
                                       rp);
         }  /* if */
       }  /* if */
+    } else {
+      check_for_constexpr_intrinsic(sym->variant.routine.ptr, sym->header);
     }  /* if */
   }  /* if */
 }  /* check_constexpr_intrinsic_member */
@@ -36076,6 +36080,19 @@ given position.
       a_boolean  is_unnamed = *fd.name == '\0';
       if (fd.alignment != 0) {
         fp->alignment = fd.alignment;
+      }  /* if */
+      if (fd.no_unique_address) {
+        fp->has_no_unique_address_attribute = TRUE;
+#if !IA64_ABI
+        no_unique_address_attribute_seen = TRUE;
+#endif /* !IA64_ABI */
+      }  /* if */
+      if (fd.annotations != NULL) {
+        /* Attach a private copy so that reusing the same data-member-spec (and
+           thus the same attribute list) for more than one field cannot alias
+           the per-field attribute chains. */
+        attach_attributes(copy_of_attributes_list(fd.annotations),
+                          (char*)fp, iek_field);
       }  /* if */
       if (fd.bit_width != 0 || is_unnamed) {
         /* A bit field. */

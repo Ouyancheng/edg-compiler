@@ -10497,21 +10497,7 @@ a constant (though it may be an error constant in some __array_extent cases).
         } else {
           a_host_large_unsigned val =
                                  unsigned_value_of_integer_constant(con, &err);
-          result = 0;
-          for (; val > 0; val--) {
-            type = skip_typerefs(type);
-            if (type->kind == (a_type_kind)tk_array) {
-              type = array_element_type(type);
-            } else {
-              break;
-            }  /* if */
-          }  /* for */
-          if (val == 0) {
-            type = skip_typerefs(type);
-            if (type->kind == (a_type_kind)tk_array) {
-              result = type->variant.array.variant.number_of_elements;
-            }  /* if */
-          }  /* if */
+          result = array_extent(type, val);
         }  /* if */
       } else {
         /* Only a constant unsigned integral argument can be folded. */
@@ -10901,6 +10887,7 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_parityll:
 #endif /* LONG_LONG_ALLOWED */
       case bfk_strlen:
+      case bfk_is_string_literal:
       case bfk_abs:
       case bfk_fabs:
       case bfk_fabsf:

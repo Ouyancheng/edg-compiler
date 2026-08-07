@@ -5076,6 +5076,10 @@ members), and does not enter those.
         could_be_orphan = TRUE;
         break;
       case iek_token_sequence:
+      case iek_data_member_spec:
+        /* A token sequence or data-member spec can be reached only through a
+           ck_reflection constant and has no source correspondence, so it can
+           be an orphan (like the other entity kinds above). */
         could_be_orphan = TRUE;
         break;
       default:
@@ -9072,7 +9076,14 @@ definition of the CC flags in il.h for more information.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case ck_address:
         if (cp1->variant.address.kind   == cp2->variant.address.kind &&
-            cp1->variant.address.offset == cp2->variant.address.offset) {
+            cp1->variant.address.offset == cp2->variant.address.offset &&
+            cp1->variant.address.is_object_reflection ==
+                                 cp2->variant.address.is_object_reflection) {
+          /* An object reflection (as produced by std::meta::reflect_object and
+             friends) never compares equal to a reflection of a pointer value
+             that happens to hold the same address, even though both are
+             ck_address entries: the is_object_reflection flag distinguishes
+             them. */
           switch (cp1->variant.address.kind) {
             case abk_routine:
               eq = corresponding_routines(
@@ -20239,6 +20250,29 @@ done:
 }  /* is_valid_object_for_nontype_arg */
 
 
+a_variable_ptr variable_designated_by_object_reflection(a_constant_ptr  con)
+/*
+If con is an object reflection (a ck_address constant, marked
+is_object_reflection, whose type is the type of the object it addresses rather
+than a pointer type, as produced by std::meta::reflect_object and by
+std::meta::reflect_constant for a value of class type) that designates a
+complete variable rather than a subobject of one, return that variable.
+Otherwise return NULL.
+*/
+{
+  a_variable_ptr  result = NULL;
+
+  if (constant_is(con, ck_address) &&
+      con->variant.address.is_object_reflection &&
+      address_base_is(con, abk_variable) &&
+      con->variant.address.offset == 0 &&
+      con->variant.address.subobject_path == NULL) {
+    result = con->variant.address.variant.variable;
+  }  /* if */
+  return result;
+}  /* variable_designated_by_object_reflection */
+
+
 static a_constant_ptr nontype_arg_base_constant(a_constant_ptr con)
 /*
 If con is a template parameter constant used as a template argument but an
@@ -20339,15 +20373,23 @@ member template argument.
 a_boolean is_valid_class_templ_arg_constant(a_constant_ptr  con)
 /*
 con is the value for a nontype template argument of class type (permitted in
-C++20).  Return FALSE if any pointer, reference, or pointer-to-member constants
-it contains are invalid.  Otherwise, return TRUE.
+C++20).  Return FALSE if the value is not an aggregate value, or if any
+pointer, reference, or pointer-to-member constants it contains are invalid.
+Otherwise, return TRUE.
 */
 {
   a_boolean       result = TRUE;
 
   if (!constant_is(con, ck_template_param)) {
     a_constant_ptr  cp;
-    check_assertion(constant_is(con, ck_aggregate));
+    if (!constant_is(con, ck_aggregate)) {
+      /* The value of an argument of class type is an aggregate value.  A
+         constant of some other kind gets here from a splice of a reflection
+         that designates a subobject: its value is an address rather than the
+         value of the object it designates. */
+      result = FALSE;
+      goto done;
+    }  /* if */
     cp = con->variant.aggregate.first_constant;
     for (; cp != NULL; cp = cp->next) {
       switch (cp->kind) {

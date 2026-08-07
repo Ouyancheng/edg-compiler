@@ -477,6 +477,17 @@ Pointer to a list of available collision tables.
 STATIC_THREAD a_collision_table_ptr
                 avail_collision_tables;
 
+/*
+Last discriminator values assigned to unnamed types / closure types in the
+file scope.  Saved here (rather than on a_scope_pointers_block) because there
+is only one file scope per translation unit, and these must survive
+file-scope reactivation (e.g. namespace_inject into ::).
+*/
+STATIC_THREAD a_discriminator
+		last_file_scope_unnamed_type_number;
+STATIC_THREAD a_discriminator
+		last_file_scope_closure_type_number;
+
 
 static void initialize_local_name_collision_table(a_scope_stack_entry_ptr ssep)
 /*
@@ -3658,6 +3669,28 @@ the scope being pushed.
        translation unit entry. */
     ssep->assoc_pointers_block = &curr_translation_unit->
                                                     file_scope_pointers_block;
+#if NEED_NAME_MANGLING
+    if (ssep->is_reactivation) {
+      /* Restore discriminator counters preserved across file-scope
+         reactivation (parallel to namespace extension/reactivation).
+         Prefer the live primary file-scope stack entry when nested,
+         otherwise the per-translation-unit saved values. */
+      a_discriminator  unnamed = last_file_scope_unnamed_type_number,
+                       closure = last_file_scope_closure_type_number;
+      if (depth_scope_stack > DEPTH_OF_FILE_SCOPE) {
+        a_scope_stack_entry_ptr
+                      fs_ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+        if (fs_ssep->name_discr.last_unnamed_type_number > unnamed) {
+          unnamed = fs_ssep->name_discr.last_unnamed_type_number;
+        }  /* if */
+        if (fs_ssep->last_closure_type_number > closure) {
+          closure = fs_ssep->last_closure_type_number;
+        }  /* if */
+      }  /* if */
+      ssep->name_discr.last_unnamed_type_number = unnamed;
+      ssep->last_closure_type_number = closure;
+    }  /* if */
+#endif /* NEED_NAME_MANGLING */
   } else if (pointers_block != NULL) {
     /* Some other kind of scope for which a pointers block was provided. */
     ssep->assoc_pointers_block = pointers_block;
@@ -10052,6 +10085,32 @@ being popped.
       if (ssep->last_closure_type_number > nssp->last_closure_type_number) {
         nssp->last_closure_type_number = ssep->last_closure_type_number;
       }  /* if */
+    } else if (kind == sck_file) {
+      /* Save file-scope discriminator counters so they survive
+         reactivation.  When popping a nested reactivation, also update
+         the primary file-scope stack entry. */
+      if (ssep->name_discr.last_unnamed_type_number >
+                                        last_file_scope_unnamed_type_number) {
+        last_file_scope_unnamed_type_number =
+                                    ssep->name_discr.last_unnamed_type_number;
+      }  /* if */
+      if (ssep->last_closure_type_number >
+                                        last_file_scope_closure_type_number) {
+        last_file_scope_closure_type_number = ssep->last_closure_type_number;
+      }  /* if */
+      if (ssep->is_reactivation &&
+          depth_scope_stack > DEPTH_OF_FILE_SCOPE) {
+        a_scope_stack_entry_ptr  fs_ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+        if (ssep->name_discr.last_unnamed_type_number >
+                               fs_ssep->name_discr.last_unnamed_type_number) {
+          fs_ssep->name_discr.last_unnamed_type_number =
+                                    ssep->name_discr.last_unnamed_type_number;
+        }  /* if */
+        if (ssep->last_closure_type_number >
+                                          fs_ssep->last_closure_type_number) {
+          fs_ssep->last_closure_type_number = ssep->last_closure_type_number;
+        }  /* if */
+      }  /* if */
 #endif /* NEED_NAME_MANGLING */
     }  /* if */
     /* Dispose of the list of entries of type a_name_hidden_by_old_for_init.
@@ -14891,6 +14950,8 @@ are handled in scope_stk_init.)
       pch_saved_var_array_elem(saved_stmt_stack_stack),
 #if NEED_NAME_MANGLING
       pch_saved_var_array_elem(avail_collision_tables),
+      pch_saved_var_array_elem(last_file_scope_unnamed_type_number),
+      pch_saved_var_array_elem(last_file_scope_closure_type_number),
 #endif /* NEED_NAME_MANGLING */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
       pch_saved_var_array_elem(avail_string_literal_tables),
@@ -14936,6 +14997,10 @@ are handled in scope_stk_init.)
   register_trans_unit_variable(pack_expansion_stack);
   register_trans_unit_variable(saved_stmt_stack_stack);
   register_trans_unit_variable(call_op_to_lambda_map);
+#if NEED_NAME_MANGLING
+  register_trans_unit_variable(last_file_scope_unnamed_type_number);
+  register_trans_unit_variable(last_file_scope_closure_type_number);
+#endif /* NEED_NAME_MANGLING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   register_trans_unit_variable(source_sequence_entries_disallowed);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -14980,6 +15045,10 @@ given translation unit.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   call_op_to_lambda_map = alloc_fe_of_type(a_call_op_to_lambda_map);
   construct(call_op_to_lambda_map, /*mask_width=*/10u);
+#if NEED_NAME_MANGLING
+  last_file_scope_unnamed_type_number = 0;
+  last_file_scope_closure_type_number = 0;
+#endif /* NEED_NAME_MANGLING */
 }  /* scope_stk_trans_unit_init */
 
 

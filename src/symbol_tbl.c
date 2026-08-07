@@ -13410,16 +13410,15 @@ indicated by class_type.
 }  /* have_member_access_privilege */
 
 
-static a_boolean have_protected_access_from_derived_class(
-                                                      a_type_ptr class_type,
-                                                      a_type_ptr derived_class)
+a_boolean have_protected_access_from_derived_class(a_type_ptr class_type,
+                                                   a_type_ptr derived_class)
 /*
 Return TRUE if a protected member of class_type can be accessed from
-derived_class.  We know that we have member access to derived_class but we
-do not know if class_type is a base class of derived_class or if the derivation
-between the two will allow access to a protected member.  This routine
-is used is determining access to protected members and in the presence
-of protected derivations.
+derived_class.  We know that we have member access to derived_class but we do
+not know if class_type is a base class of derived_class or if the derivation
+between the two will allow access to a protected member.  This routine is used
+for determining access to protected members and in the presence of protected
+derivations.
 */
 {
   a_boolean                   accessible = FALSE;
@@ -14101,6 +14100,57 @@ to access_for_symbol, but deals with the overloaded function case.
   (void)have_access_across_derivations_helper(symbol, view_sym, &access);
   return access;
 }  /* access_across_derivations */
+
+
+an_access_specifier effective_access_of_member_in_class(
+                                                   a_symbol_ptr  member_sym,
+                                                   a_type_ptr    naming_class)
+/*
+Return the access that member_sym has when named as a member of naming_class
+(the "naming class" of N5046 [class.access.base]) rather than the access with
+which member_sym was declared in its own class.  When naming_class is derived
+from member_sym's class, this accounts both for the derivation path's access
+and for any using-declaration along the way that changes the member's access
+(for example, a public using-declaration in a derived class that re-exports an
+inherited protected member as public).  member_sym must be a class member and
+naming_class an immediate class type.  When naming_class is the member's own
+class, or when the member cannot be reached (or resolves to a different entity)
+through naming_class, member_sym's own declared access is returned.
+*/
+{
+  an_access_specifier access;
+  a_type_ptr          member_class =
+                              skip_typerefs(sym_parent_class(member_sym));
+
+  naming_class = skip_typerefs(naming_class);
+  if (same_entities(naming_class, member_class)) {
+    /* Named through its own class; the declared access is the effective
+       one. */
+    access = access_for_symbol(member_sym);
+  } else {
+    a_symbol_locator  locator;
+    a_symbol_ptr      found;
+    /* Look up the member's name in naming_class, exactly as a qualified name
+       "naming_class::member" would.  class_qualified_id_lookup returns the
+       fundamental symbol and records the naming-class-rooted projection in the
+       locator; that projection is what access_across_derivations views the
+       member through, and it carries both the derivation path's access and any
+       using-declaration that changes the member's access along the way. */
+    make_locator_for_symbol(member_sym, &locator);
+    clear_specific_symbol(locator);
+    found = class_qualified_id_lookup(&locator, naming_class, IDL_NO_OPTIONS);
+    if (found != NULL && locator.specific_symbol != NULL &&
+        fundamental_symbol_of(found) == fundamental_symbol_of(member_sym)) {
+      access = access_across_derivations(member_sym, locator.specific_symbol);
+    } else {
+      /* The name resolves to a different entity through naming_class (for
+         instance a member that hides member_sym), or is not found; fall back
+         to the member's own declared access. */
+      access = access_for_symbol(member_sym);
+    }  /* if */
+  }  /* if */
+  return access;
+}  /* effective_access_of_member_in_class */
 
 
 static a_boolean is_member_of_prototype_instantiation(a_symbol_ptr	sym)
@@ -19029,10 +19079,10 @@ character other than '>'.
 }  /* check_constexpr_intrinsic_template_args */
 
 
-static a_boolean is_std_meta_infovec_type(a_type_ptr  tp)
+static a_boolean is_std_meta_class_named(a_type_ptr    tp,
+                                         a_const_char  *class_name)
 /*
-Return TRUE if the given type is a class type named __infovec belonging to
-namespace std::meta.
+Return TRUE if the given type is the class type std::meta::<class_name>.
 */
 {
   a_boolean  result = FALSE;
@@ -19044,12 +19094,52 @@ namespace std::meta.
       parent_namespace_of(tp) ==
                   symbol_for_namespace_std_meta->variant.namespace_info.ptr) {
     a_const_char  *name = unmangled_name_of(&tp->source_corresp);
-    if (strcmp(name, "__infovec") == 0) {
+    if (strcmp(name, class_name) == 0) {
       result = TRUE;
     }  /* if */
   }  /* if */
   return result;
-}  /* is_std_meta_infovec_type */
+}  /* is_std_meta_class_named */
+
+
+static a_boolean is_std_meta_access_context_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type is the class type std::meta::access_context.
+*/
+{
+  return is_std_meta_class_named(tp, "access_context");
+}  /* is_std_meta_access_context_type */
+
+
+static a_boolean is_std_meta_member_offset_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type is the class type std::meta::member_offset.
+*/
+{
+  return is_std_meta_class_named(tp, "member_offset");
+}  /* is_std_meta_member_offset_type */
+
+
+static a_type_ptr std_specialization_element_type(a_type_ptr    tp,
+                                                  a_const_char  *name)
+/*
+Return the first template argument of tp when tp is a specialization of the
+class template std::<name> whose first argument is a type, and NULL otherwise.
+This identifies the specializations, such as std::vector<std::meta::info>, that
+some of the constexpr intrinsics are declared to return.
+*/
+{
+  a_type_ptr  elem_type = NULL;
+
+  tp = skip_typerefs(tp);
+  if (is_std_class(tp, name)) {
+    a_template_arg_ptr  tap = class_type_supp(tp)->template_arg_list;
+    if (tap != NULL && tap->kind == tak_type) {
+      elem_type = skip_typerefs(tap->variant.type);
+    }  /* if */
+  }  /* if */
+  return elem_type;
+}  /* std_specialization_element_type */
 
 
 static
@@ -19098,13 +19188,36 @@ more_components:
       } else if (sig[1] == 'z') {
         if (!is_size_t_type(tp)) okay = FALSE;
         sig += 2;
+      } else if (sig[1] == 'u') {
+        if (std_specialization_element_type(tp, "basic_string_view") !=
+                                                         eff_char8_t_type()) {
+          okay = FALSE;
+        }  /* if */
+        sig += 2;
       } else {
         unexpected_condition();
       }  /* if */
       break;
     case 'V':
       if (sig[1] == 'r') {
-        if (!is_std_meta_infovec_type(tp)) okay = FALSE;
+        a_type_ptr  elem_type = std_specialization_element_type(tp, "vector");
+        if (elem_type == NULL || !is_reflection_type(elem_type)) okay = FALSE;
+        sig += 2;
+      } else {
+        unexpected_condition();
+      }  /* if */
+      break;
+    case 'L':
+      if (!is_std_class(tp, "source_location")) okay = FALSE;
+      ++sig;
+      break;
+    case 'A':
+      if (!is_std_meta_access_context_type(tp)) okay = FALSE;
+      ++sig;
+      break;
+    case 'M':
+      if (sig[1] == 'o') {
+        if (!is_std_meta_member_offset_type(tp)) okay = FALSE;
         sig += 2;
       } else {
         unexpected_condition();
@@ -19112,6 +19225,15 @@ more_components:
       break;
     case '*':
       if (is_pointer_type(tp)) {
+        ++sig;
+        tp = type_pointed_to(tp);
+        goto more_components;
+      } else {
+        okay = FALSE;
+      }  /* if */
+      break;
+    case '&':
+      if (is_reference_type(tp)) {
         ++sig;
         tp = type_pointed_to(tp);
         goto more_components;
@@ -19218,6 +19340,26 @@ failed:
 }  /* matches_constexpr_intrinsic_sig */
 
 
+static a_boolean is_member_of_class_in_namespace(a_routine_ptr  rp,
+                                                 a_symbol_ptr   ns_sym)
+/*
+Return TRUE if rp is a member of a class that is itself a member of the
+namespace indicated by ns_sym.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (ns_sym != NULL && rp->source_corresp.is_class_member) {
+    a_type_ptr  c = skip_typerefs(parent_class_of(rp));
+    if (is_immediate_class_type(c) && is_namespace_member(c) &&
+        parent_namespace_of(c) == ns_sym->variant.namespace_info.ptr) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_member_of_class_in_namespace */
+
+
 void check_for_constexpr_intrinsic(a_routine_ptr    rp,
                                    a_symbol_header  *sym_hdr)
 /*
@@ -19233,8 +19375,10 @@ interpreter) and if so mark it as such.
     a_constexpr_intrinsic_descr  *descr;
     descr = &constexpr_intrinsic_descriptions[n].descr;
     check_assertion(descr->kind != cit_error);
-    if (is_namespace_member(rp) && *descr->p_namespace_sym != NULL &&
-        is_member_of_namespace(symbol_for(rp), *descr->p_namespace_sym)) {
+    if (*descr->p_namespace_sym != NULL &&
+        ((is_namespace_member(rp) &&
+          is_member_of_namespace(symbol_for(rp), *descr->p_namespace_sym)) ||
+         is_member_of_class_in_namespace(rp, *descr->p_namespace_sym))) {
       if (matches_constexpr_intrinsic_sig(rp, descr->signature)) {
         register_constexpr_intrinsic(descr->kind, rp);
       }  /* if */

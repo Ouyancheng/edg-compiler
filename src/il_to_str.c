@@ -6579,17 +6579,22 @@ static void form_reflection_prefix(an_error_code                          ec,
 /*
 This function should be called from form_reflection only.
 
-If generating compilable code, render "(^" to start a reflection expression.
+If generating compilable code, render "(^^" to start a reflection expression.
 Otherwise, render the text for the given code, followed by a space.  If we're
 generating compilable code, turn off the "compilable code" flag to ensure that
-form_name can be called.  The caller will restore the flag.
+form_name can be called.  The caller will restore the flag.  Nothing is
+rendered in the display form of a reflection, which names only the entity.
 */
 {
-  if (!octl->gen_compilable_code) {
+  if (octl->reflection_display_form) {
+    /* No prefix naming the kind of entity is wanted. */
+  } else if (!octl->gen_compilable_code) {
     octl->output_str(error_text(ec), octl);
     octl->output_str(" ", octl);
   } else {
-    octl->output_str("(^", octl);
+    /* FIXME reflection: Turning off gen_compilable_code here is a
+       temporary kludge. */
+    octl->output_str("(^^", octl);
     octl->gen_compilable_code = FALSE;
   }  /* if */
 }  /* form_reflection_prefix */
@@ -6598,7 +6603,11 @@ form_name can be called.  The caller will restore the flag.
 void form_reflection(a_reflection_value                     rv,
                      an_il_to_str_output_control_block_ptr  octl)
 /*
-Render the entity designated by the given reflection.
+Render the entity designated by the given reflection.  When octl requests the
+display form (see reflection_display_form), the rendering is the one
+std::meta::display_string_of specifies: A type appears as its type spelling, a
+function as its full signature, and any other named entity as its qualified
+name, with no word naming the kind of entity.
 */
 {
   a_boolean  saved_gen_compilable_code = octl->gen_compilable_code,
@@ -6609,7 +6618,7 @@ Render the entity designated by the given reflection.
       /* Reflection values sometimes leak into the C++-generating back end,
          but those values are not actually used.  Render a null reflection
          value. */
-      octl->output_str("(decltype(^0){})", octl);
+      octl->output_str("(decltype(^^0){})", octl);
       goto done;
     } else if (octl->c_generating_back_end) {
       unexpected_condition();
@@ -6626,11 +6635,13 @@ Render the entity designated by the given reflection.
       if (!octl->gen_compilable_code) {
         octl->output_str(error_text(ec_null_reflection), octl);
       } else {
-        octl->output_str("(decltype(^\"null\"){}", octl);
+        octl->output_str("(decltype(^^void){}", octl);
       }  /* if */
       break;
     case iek_base_class:
-      if (!octl->gen_compilable_code) {
+      if (octl->reflection_display_form) {
+        form_type(((a_base_class*)rv.entity.ptr)->type, octl);
+      } else if (!octl->gen_compilable_code) {
         a_base_class  *bcp = (a_base_class*)rv.entity.ptr;
         form_type(bcp->type, octl);
         octl->output_str(" ", octl);
@@ -6638,7 +6649,7 @@ Render the entity designated by the given reflection.
         octl->output_str(" ", octl);
         form_type(bcp->derived_class, octl);
       } else {
-        octl->output_str("(decltype(^\"base class\"){}", octl);
+	unexpected_condition();
       }  /* if */
       break;
     case iek_type:
@@ -6646,10 +6657,21 @@ Render the entity designated by the given reflection.
       form_type((a_type*)rv.entity.ptr, octl);
       break;
     case iek_constant:
-      if (octl->gen_compilable_code) {
-        form_reflection_prefix(ec_no_error, octl);
-      }  /* if */
-      form_constant((a_constant*)rv.entity.ptr, /*need_parens=*/FALSE, octl);
+      { a_source_correspondence_ptr  scp;
+        scp = octl->reflection_display_form ?
+	                            source_corresp_for_reflection(&rv) : NULL;
+        if (scp != NULL && scp->name != NULL) {
+          /* A named constant, such as an enumerator, displays as its
+             qualified name rather than as its value. */
+          form_name(scp, rv.entity.kind, octl);
+        } else {
+          if (octl->gen_compilable_code) {
+            form_reflection_prefix(ec_no_error, octl);
+          }  /* if */
+          form_constant((a_constant*)rv.entity.ptr, /*need_parens=*/FALSE,
+                        octl);
+        }  /* if */
+      }
       break;
     case iek_expr_node:
       if (octl->gen_compilable_code) {
@@ -6664,13 +6686,23 @@ Render the entity designated by the given reflection.
       form_name(&((a_field*)rv.entity.ptr)->source_corresp, iek_field, octl);
       break;
     case iek_routine:
-      form_reflection_prefix(ec_function, octl);
-      form_name(&((a_routine*)rv.entity.ptr)->source_corresp, iek_routine,
-                octl);
+      { a_routine_ptr  rp = (a_routine*)rv.entity.ptr;
+        a_type_ptr     ftp = skip_typerefs(rp->type);
+        form_reflection_prefix(ec_function, octl);
+        if (octl->reflection_display_form && type_is(ftp, tk_routine)) {
+          /* The display form of a function is its whole signature. */
+          form_type(ftp->variant.routine.return_type, octl);
+          octl->output_str(" ", octl);
+          form_name(&rp->source_corresp, iek_routine, octl);
+          form_function_declarator(ftp, octl);
+        } else {
+          form_name(&rp->source_corresp, iek_routine, octl);
+        }  /* if */
+      }
       break;
     case iek_variable:
       form_reflection_prefix(ec_variable, octl);
-      form_name(&((a_variable*)rv.entity.ptr)->source_corresp, iek_routine,
+      form_name(&((a_variable*)rv.entity.ptr)->source_corresp, iek_variable,
                 octl);
       break;
     case iek_template:
@@ -6695,11 +6727,21 @@ Render the entity designated by the given reflection.
       }
       FALLTHROUGH
     default:
-      if (!octl->gen_compilable_code) {
-        octl->output_str(error_text(ec_unspecified_reflection), octl);
-      } else {
-        octl->output_str("(decltype(^\"unhandled\"){}", octl);
-      }  /* if */
+      { a_source_correspondence_ptr
+                    scp = octl->reflection_display_form
+                            ? source_corresp_for_reflection(&rv) : NULL;
+        if (scp != NULL && scp->name != NULL) {
+          /* Named constants such as enumerators: render the qualified name
+             rather than the underlying value.  Pass the entity's own kind so
+             form_unqualified_name does not misinterpret the entry (only the
+             type/variable/routine kinds are treated specially there). */
+          form_name(scp, rv.entity.kind, octl);
+        } else if (!octl->gen_compilable_code) {
+          octl->output_str(error_text(ec_unspecified_reflection), octl);
+        } else {
+          unexpected_condition();
+        }  /* if */
+      }
       break;
   }  /* switch */
   octl->gen_compilable_code = saved_gen_compilable_code;

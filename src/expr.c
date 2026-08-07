@@ -41569,7 +41569,14 @@ FIXME: This is currently incomplete.
       a_reflection_value  *rvp = &cp->variant.reflection;
       an_il_entry_kind    iek = (an_il_entry_kind)rvp->entity.kind;
       if (iek == iek_constant) {
-        make_constant_operand((a_constant_ptr)rvp->entity.ptr, result);
+        a_constant_ptr  con = (a_constant_ptr)rvp->entity.ptr;
+        vp = variable_designated_by_object_reflection(con);
+        if (vp != NULL) {
+          /* The reflection designates an object; the splice is an lvalue for
+             that object, just as if the object had been named. */
+          goto variable_case;
+        }  /* if */
+        make_constant_operand(con, result);
       } else if (rvp->local_scope_number != FILE_SCOPE_NUMBER &&
                  !scope_number_is_active(rvp->local_scope_number)) {
         expr_pos_error(ec_expired_reflection_value, &opnd.position);
@@ -51230,6 +51237,208 @@ and can have the following forms (see [stmt.ranged] for specifics):
 }  /* check_range_based_for_statement */
 
 
+STATIC_THREAD a_reflection_range_plan_map
+		*reflection_range_plans;
+			/* A cache, keyed by reflection_range type, of the
+			   iteration plans built by build_reflection_range_plan
+			   for the std::meta functions whose last parameter is
+			   a reflection_range (substitute, can_substitute,
+			   reflect_invoke, and the variadic type traits of
+			   [meta.reflection.traits]; see
+			   intrinsic_takes_reflection_range).  Allocated per
+			   translation unit; see exprutil.h. */
+
+
+static a_boolean make_reflection_range_iterator(
+                                     a_reflection_range_plan_ptr plan,
+                                     a_source_position           *pos)
+/*
+Build the "[*]__begin" dereference for the reflection_range iteration plan and
+record it as the dynamic initializer of plan->iterator, an element variable of
+type std::meta::info.  This mirrors the construction of the for-range-
+declaration in fill_in_range_based_for_loop_constructs, but the element is
+always taken by value as a std::meta::info so that the interpreter can read
+the reflection out of the variable's storage on each iteration.  Returns TRUE
+if the dereference is well-formed; otherwise a diagnostic is issued and FALSE
+is returned.
+*/
+{
+  an_operand          operand1, operand;
+  a_boolean           processed = FALSE, passed = TRUE;
+  an_expr_stack_entry expr_stack_entry;
+  a_type_ptr          elem_type;
+
+  push_expr_stack(ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  make_lvalue_variable_operand(plan->begin, &null_source_position,
+                               &null_source_position, &operand1,
+                               (a_ref_entry *)NULL);
+  if (is_overloadable_first_operand_type(operand1.type)) {
+    check_for_operator_overloading(onk_star,
+                                   /*is_unary_op=*/TRUE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   /*has_predef_meaning=*/FALSE,
+                                   &operand1, (an_operand *)NULL, pos,
+                                   NO_TOKEN_SEQUENCE_NUMBER,
+                                   (a_nondependent_call_depth)3, pos,
+                                   &operand, &processed);
+  }  /* if */
+  if (!processed) {
+    if (!is_pointer_type(operand1.type)) {
+      passed = FALSE;
+    } else {
+      an_expr_node_ptr  expr;
+      conv_glvalue_to_prvalue(&operand1);
+      expr = add_indirection_to_node(make_node_from_operand(&operand1));
+      make_glvalue_expression_operand(expr, &operand);
+    }  /* if */
+  }  /* if */
+  if (passed && !is_error_operand(&operand)) {
+    /* Take the element by value as a std::meta::info. */
+    elem_type = operand.type;
+    if (is_any_reference_type(elem_type)) {
+      elem_type = type_pointed_to(elem_type);
+    }  /* if */
+    elem_type = make_unqualified_type(elem_type);
+    plan->iterator = alloc_temporary_variable(elem_type,
+                                              /*force_static=*/FALSE);
+    set_variable_initializer(plan->iterator, &operand);
+  } else {
+    passed = FALSE;
+  }  /* if */
+  pop_expr_stack();
+  return passed;
+}  /* make_reflection_range_iterator */
+
+
+a_reflection_range_plan_ptr build_reflection_range_plan(a_type_ptr range_type)
+/*
+Return the iteration plan for a reflection_range (a std::ranges::input_range of
+std::meta::info) of type range_type, building it on first use.  Such ranges are
+the trailing argument of the intrinsically-handled std::meta functions listed
+in intrinsic_takes_reflection_range (substitute, can_substitute,
+reflect_invoke, and the variadic type traits of [meta.reflection.traits]).  The
+plan describes how to traverse a range of that type to collect its
+std::meta::info elements, using the same __range/__begin/__end and
+not-equal/increment/dereference constructs as a range-based for loop; it is
+built once and cached (keyed by range_type) so the analysis is not repeated for
+each such call.  The plan's entities are built in file-scope (persistent)
+memory because they outlive the call expression that triggers the build and are
+replayed by the constexpr interpreter.  range_type is the referent type of the
+R&& parameter (i.e., with any reference and top-level cv-qualification removed
+by the caller's lookup).  A plan is always returned (and cached); plan->usable
+is FALSE when the range type could not be analyzed (for instance, a dependent
+or non-class range), in which case the interpreter falls back to reading the
+range's contiguous storage directly (FIXME: still needed?).
+*/
+{
+  a_reflection_range_plan_ptr  plan;
+
+  range_type = make_unqualified_type(skip_typerefs(range_type));
+  plan = reflection_range_plans->get(range_type);
+  if (plan == NULL) {
+    a_memory_region_number  region_to_switch_back_to;
+    an_expr_stack_entry     *saved_expr_stack;
+    an_expr_stack_entry     expr_stack_entry;
+    a_source_position       pos = null_source_position;
+    a_boolean               selected = FALSE;
+    an_object_lifetime_ptr  saved_object_lifetime = curr_object_lifetime;
+
+    /* This routine may run in the middle of expression processing (from the
+       func_call_expr hook), where the active object lifetime is that of an
+       expression temporary; an object lifetime may not be the child of such a
+       lifetime.  Build the plan's entities as file-scope entities (consistent
+       with the file-scope memory region used below) so the temporaries that
+       begin/end resolution may create parent onto the file-scope lifetime. */
+    curr_object_lifetime =
+                scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack(ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    plan = (a_reflection_range_plan_ptr)
+                                   alloc_il(sizeof(a_reflection_range_plan));
+    plan->range = NULL;
+    plan->begin = NULL;
+    plan->end = NULL;
+    plan->iterator = NULL;
+    plan->ne_call_expr = NULL;
+    plan->incr_call_expr = NULL;
+    plan->usable = FALSE;
+    complete_type_is_needed(range_type);
+    if (!is_error_type(range_type) &&
+        !is_template_dependent_type(range_type) &&
+        is_class_struct_union_type(range_type)) {
+      a_type_ptr  begin_type, end_type;
+      /* The synthetic __range refers to the argument; it carries no
+         initializer because the interpreter binds it to the actual range
+         object before replaying the plan. */
+      plan->range = alloc_temporary_variable(make_reference_type(range_type),
+                                             /*force_static=*/FALSE);
+      if (has_range_based_member_requirements(range_type)) {
+        /* begin-expr is __range.begin(), end-expr is __range.end(). */
+        if (make_enhanced_for_initializer_for_call_to_member_function(
+              plan->range, "begin", /*is_for_each=*/FALSE, &pos,
+              NO_TOKEN_SEQUENCE_NUMBER, /*use_await=*/FALSE,
+              &plan->begin, &begin_type) &&
+            make_enhanced_for_initializer_for_call_to_member_function(
+              plan->range, "end", /*is_for_each=*/FALSE, &pos,
+              NO_TOKEN_SEQUENCE_NUMBER, /*use_await=*/FALSE,
+              &plan->end, &end_type)) {
+          selected = TRUE;
+        }  /* if */
+      } else {
+        /* begin-expr is begin(__range), end-expr is end(__range). */
+        if (create_range_based_for_variable_for_function_call(
+              plan->range, "begin", &pos, NO_TOKEN_SEQUENCE_NUMBER,
+              /*use_await=*/FALSE, &plan->begin) &&
+            create_range_based_for_variable_for_function_call(
+              plan->range, "end", &pos, NO_TOKEN_SEQUENCE_NUMBER,
+              /*use_await=*/FALSE, &plan->end)) {
+          selected = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (selected && plan->begin != NULL && plan->end != NULL &&
+        generate_enhanced_for_ne_and_incr_expressions(
+          plan->begin, plan->end, /*is_for_each=*/FALSE, /*use_await=*/FALSE,
+          &pos, NO_TOKEN_SEQUENCE_NUMBER, &plan->ne_call_expr,
+          &plan->incr_call_expr) &&
+        make_reflection_range_iterator(plan, &pos)) {
+      plan->usable = TRUE;
+    }  /* if */
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
+    switch_back_to_original_region(region_to_switch_back_to);
+    curr_object_lifetime = saved_object_lifetime;
+    reflection_range_plans->map(range_type, plan);
+  }  /* if */
+  return plan;
+}  /* build_reflection_range_plan */
+
+
+a_reflection_range_plan_ptr reflection_range_plan_for_type(
+                                                a_type_ptr  range_type)
+/*
+Return the cached reflection_range iteration plan for range_type, or NULL if no
+plan has been built for it.  This is the read-only entry point used by the
+constexpr interpreter; build_reflection_range_plan establishes the cache
+entries at parse time.  The key normalization matches that routine.
+*/
+{
+  a_reflection_range_plan_ptr  plan = NULL;
+
+  if (reflection_range_plans != NULL) {
+    range_type = make_unqualified_type(skip_typerefs(range_type));
+    plan = reflection_range_plans->get(range_type);
+  }  /* if */
+  return plan;
+}  /* reflection_range_plan_for_type */
+
+
 void scan_range_based_for_expression(a_statement_ptr   statement,
                                      a_source_position *expr_position)
 /*
@@ -51343,6 +51552,52 @@ expression.
 }  /* scan_range_based_for_expression */
 
 
+/*
+The state of the enclosing context that must be set aside while an expression
+is synthesized for the interpreter (see call_via_reflections and
+build_info_vector_construction), saved by push_synthesized_expr_context and
+put back by pop_synthesized_expr_context.
+*/
+typedef struct {
+  an_object_lifetime_ptr
+		lifetime;
+			/* The object lifetime that was current. */
+  a_boolean	in_template_arg_list;
+			/* Whether a template argument list was being
+			   scanned in the innermost scope. */
+} a_synthesized_expr_context;
+
+
+static void push_synthesized_expr_context(a_synthesized_expr_context *ctx)
+/*
+Save in *ctx the state of the context enclosing the synthesis of an
+expression for the interpreter, and establish the context that synthesis
+requires.  A constant evaluation can be requested at any point during
+parsing, but the expression synthesized to carry it out is a complete
+expression of its own, built in the file-scope memory region and evaluated
+and discarded on the spot.
+*/
+{
+  ctx->lifetime = curr_object_lifetime;
+  ctx->in_template_arg_list = scope_stack_top().in_template_arg_list;
+  if (curr_il_region_number == file_scope_region_number &&
+      !in_file_scope(curr_object_lifetime)) {
+    curr_object_lifetime = il_header.primary_scope->lifetime;
+  }  /* if */
+  scope_stack_top().in_template_arg_list = FALSE;
+}  /* push_synthesized_expr_context */
+
+
+static void pop_synthesized_expr_context(a_synthesized_expr_context *ctx)
+/*
+Put back the enclosing context saved in *ctx by push_synthesized_expr_context.
+*/
+{
+  curr_object_lifetime = ctx->lifetime;
+  scope_stack_top().in_template_arg_list = ctx->in_template_arg_list;
+}  /* pop_synthesized_expr_context */
+
+
 a_boolean call_via_reflections(a_reflection_value             *target_rv,
                                Dyn_array<a_reflection_value>  *arg_rvs,
                                a_source_position              *diag_pos,
@@ -51352,7 +51607,8 @@ Evaluate a compile-time call described through refection values.  target_rv
 describes the function to call and arg_rvs the (constant-valued) arguments for
 the call.  The given position is the default position for diagnostics.  If
 the operation succeeds, return TRUE and represent the result in *result_con.
-Otherwise, return FALSE.
+Otherwise, return FALSE.  The call is assembled in the file-scope memory
+region, in the context push_synthesized_expr_context sets up.
 */
 {
   a_boolean               success = FALSE, have_selector = FALSE,
@@ -51363,6 +51619,8 @@ Otherwise, return FALSE.
   an_expr_node_ptr        arg_nodes = NULL, func_call_node = NULL;
   an_operand              call, fn_opnd, bound_func_selector;
   an_expr_stack_entry     expr_stack_entry;
+  a_synthesized_expr_context
+                          saved_context;
 
   check_assertion(target_rv->entity.kind == iek_routine);
   targ_rp = (a_routine*)target_rv->entity.ptr;
@@ -51370,6 +51628,7 @@ Otherwise, return FALSE.
     have_selector = TRUE;
   }  /* if */
   switch_to_file_scope_region(&region_to_switch_back_to);
+  push_synthesized_expr_context(&saved_context);
   for (a_reflection_value &rv: *arg_rvs) {
     an_operand  *opnd;
     if (first_arg && have_selector) {
@@ -51446,9 +51705,68 @@ Otherwise, return FALSE.
   }  /* if */
   free_init_component_list(args);
   pop_expr_stack();
+  pop_synthesized_expr_context(&saved_context);
   switch_back_to_original_region(region_to_switch_back_to);
   return success;
 }  /* call_via_reflections */
+
+
+an_expr_node_ptr build_info_vector_construction(a_type_ptr         vector_type,
+                                                a_constant         *begin_con,
+                                                a_constant         *end_con,
+                                                a_source_position  *diag_pos)
+/*
+Synthesize the construction vector_type(first, last), where vector_type is
+std::vector<std::meta::info> and begin_con/end_con are address constants
+denoting the std::meta::info const* iterators first and last, and return the
+resulting (unfolded) expression node, or NULL on failure.  diag_pos is the
+default position for diagnostics.  This is the std::meta::members_of
+counterpart of call_via_reflections: rather than folding a prvalue (a vector
+prvalue owns constexpr-allocated storage and so is not itself a constant
+expression), the node is handed back so the interpreter can evaluate it
+directly into the members_of result object, where the vector's storage has a
+well-defined owner.  Because this runs in the middle of expression processing
+in the interpreter (where the active object lifetime can be an expression-
+temporary lifetime), the constructed vector's own object lifetime is suppressed
+here.
+*/
+{
+  an_expr_node_ptr        node = NULL;
+  an_arg_list_elem_ptr    args = NULL, *p_arg = &args;
+  an_operand              call;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+  a_synthesized_expr_context
+                          saved_context;
+
+  push_synthesized_expr_context(&saved_context);
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack(ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  *p_arg = alloc_init_component(ick_expression);
+  make_constant_operand(begin_con, operand_of_arg_list_elem(*p_arg));
+  p_arg = &(*p_arg)->next;
+  *p_arg = alloc_init_component(ick_expression);
+  make_constant_operand(end_con, operand_of_arg_list_elem(*p_arg));
+  scan_functional_notation_type_conversion((a_rescan_control_block *)NULL,
+                                           (a_dynamic_init_ptr)NULL,
+                                           /*arg_list_supplied=*/TRUE,
+                                           args,
+                                           vector_type,
+                                           diag_pos,
+                                           &call,
+                                           EOPT_NO_OPTIONS);
+  if (!is_error_operand(&call)) {
+    call.position = *diag_pos;
+    node = make_node_from_operand(&call);
+  }  /* if */
+  free_init_component_list(args);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  pop_synthesized_expr_context(&saved_context);
+  return node;
+}  /* build_info_vector_construction */
 
 
 void scan_default_arg_expr(a_param_type_ptr ptp,
@@ -51465,7 +51783,7 @@ TRUE if the function being declared is a class member or friend.  Similarly,
 for_consteval_function is TRUE if the function being declared is a consteval
 function.
 
-(This is used to implement evaluation of std::meta::metacall(...) in the
+(This is used to implement evaluation of std::meta::reflect_invoke(...) in the
 interpreter.)
 */
 {
@@ -57825,6 +58143,156 @@ have_result:
 }  /* compute_is_constructible */
 
 
+static an_expr_node_ptr build_meta_trait_operands(a_type_ptr  first_type,
+                                                  a_type_ptr  *arg_types,
+                                                  int         n_args)
+/*
+Build the operand list for a synthesized type-trait built-in operation that the
+std::meta variadic type traits hand to compute_is_constructible/
+compute_is_invocable: a chain of enk_type_operand nodes whose first element is
+first_type (the type being constructed or the callable type) followed by the
+n_args argument types in arg_types.  The nodes carry no meaningful source
+position because the trait computation suppresses diagnostics.
+*/
+{
+  an_expr_node_ptr  head, tail, node;
+  int               i;
+
+  head = alloc_expr_node(enk_type_operand);
+  head->type = void_type();
+  head->variant.type_operand.type = first_type;
+  head->position = null_source_position;
+  tail = head;
+  for (i = 0; i < n_args; i++) {
+    node = alloc_expr_node(enk_type_operand);
+    node->type = void_type();
+    node->variant.type_operand.type = arg_types[i];
+    node->position = null_source_position;
+    tail->next = node;
+    tail = node;
+  }  /* for */
+  return head;
+}  /* build_meta_trait_operands */
+
+
+static an_expr_node_ptr build_meta_trait_node(
+		                         a_builtin_operation_kind  kind,
+                                         a_type_ptr                first_type,
+                                         a_type_ptr                *arg_types,
+                                         int                       n_args)
+/*
+Build the enk_builtin_operation node of the given kind whose operands are
+first_type plus the n_args argument types (see build_meta_trait_operands), as
+expected by compute_is_constructible and compute_is_invocable.
+*/
+{
+  an_expr_node_ptr  expr = alloc_expr_node(enk_builtin_operation);
+
+  expr->type = bool_type();
+  expr->position = null_source_position;
+  expr->variant.builtin_operation.kind = kind;
+  expr->variant.builtin_operation.operands =
+                      build_meta_trait_operands(first_type, arg_types, n_args);
+  return expr;
+}  /* build_meta_trait_node */
+
+
+a_boolean meta_compute_is_constructible(a_builtin_operation_kind  kind,
+                                        a_type_ptr                type,
+                                        a_type_ptr                *arg_types,
+                                        int                       n_args)
+/*
+Evaluate std::meta::is_constructible_type and its trivially/nothrow variants:
+return TRUE if a variable of "type" can be constructed from arguments of the
+n_args types in arg_types (the pack represented by the trait's reflection_range
+argument), with kind selecting the plain, trivially, or nothrow form.  This
+mirrors fold_is_constructible's non-dependent path, including the requirement
+that the constructed object also be destructible.
+*/
+{
+  an_expr_node_ptr  expr = build_meta_trait_node(kind, type, arg_types,
+                                                 n_args);
+  a_boolean         result = compute_is_constructible(kind, type, expr);
+
+  if (result && !ms_version_is(<=1910)) {
+    a_builtin_operation_kind  dtor_kind;
+    if (kind == bok_is_trivially_constructible) {
+      dtor_kind = bok_is_trivially_destructible;
+    } else if (kind == bok_is_nothrow_constructible) {
+      dtor_kind = bok_is_nothrow_destructible;
+    } else {
+      dtor_kind = bok_is_destructible;
+    }  /* if */
+    result = compute_is_destructible(dtor_kind, type);
+  }  /* if */
+  return result;
+}  /* meta_compute_is_constructible */
+
+
+a_boolean meta_compute_is_invocable(a_builtin_operation_kind  kind,
+                                    a_type_ptr                type,
+                                    a_type_ptr                *arg_types,
+                                    int                       n_args)
+/*
+Evaluate std::meta::is_invocable_type and its nothrow variant: return TRUE if a
+callable of "type" can be invoked with arguments of the n_args types in
+arg_types (the pack represented by the trait's reflection_range argument), with
+kind selecting the plain or nothrow form.
+*/
+{
+  an_expr_node_ptr  expr = build_meta_trait_node(kind, type, arg_types,
+                                                 n_args);
+
+  return compute_is_invocable(kind, type, expr);
+}  /* meta_compute_is_invocable */
+
+
+a_boolean meta_fold_builtin_type_trait(a_builtin_operation_kind  kind,
+                                       a_type_ptr                *types,
+                                       int                       n_types,
+                                       a_host_large_integer      *p_result)
+/*
+Evaluate the built-in type-trait operation selected by kind on the n_types
+types in "types" (n_types is 1 or 2) by folding a synthesized __builtin_
+operation, and return TRUE with its integer or boolean result in *p_result if
+it folds to a constant; return FALSE otherwise.  This lets the std::meta
+type-property and type-relation predicates that have no dedicated compute_*
+helper (for example is_base_of_type, is_layout_compatible_type,
+has_virtual_destructor, has_unique_object_representations) reuse the core
+type-trait folders.  The first type is the operation's leading operand and the
+second, if present, its second operand.
+*/
+{
+  a_boolean               folded = FALSE, not_a_constant = FALSE,
+                          ovflo = FALSE;
+  an_expr_node_ptr        expr = build_meta_trait_node(kind, types[0],
+                                                       types+1, n_types-1);
+  a_constant_ptr          constant = local_constant();
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+
+  /* Fold in a fresh sizeof-like expression context (with object-lifetime
+     tracking suppressed), as compute_is_constructible does, so the folders
+     that perform overload resolution have a well-formed expr stack. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  fold_builtin_operation_if_possible(expr, constant,
+                                     /*maintain_expression=*/FALSE,
+                                     (a_source_position*)NULL,
+                                     &not_a_constant);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  if (!not_a_constant && constant_is(constant, ck_integer)) {
+    *p_result = value_of_integer_constant(constant, &ovflo);
+    folded = !ovflo;
+  }  /* if */
+  release_local_constant(&constant);
+  return folded;
+}  /* meta_fold_builtin_type_trait */
+
+
 a_boolean compute_is_destructible(a_builtin_operation_kind kind,
                                   a_type_ptr               type)
 /*
@@ -59122,6 +59590,10 @@ for each translation unit.
 */
 {
   already_diagnosed_fold = FALSE;
+#if !STANDALONE_UTILITY_PROGRAM
+  reflection_range_plans = alloc_fe_of_type(a_reflection_range_plan_map);
+  construct(reflection_range_plans, /*mask_width=*/6u);
+#endif /* STANDALONE_UTILITY_PROGRAM */
 }  /* expr_trans_unit_init */
 
 /* Conditionally close the "edg" namespace. */

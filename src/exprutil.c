@@ -19261,6 +19261,41 @@ argument to the [[nodiscard]] attribute (or NULL if there is not one).
 }  /* type_has_nodiscard_attribute */
 
 
+static a_boolean intrinsic_takes_reflection_range(int32_t  cit)
+/*
+Return TRUE if the constexpr intrinsic identified by cit is one of the
+std::meta functions whose last parameter is a reflection_range of info
+(substitute, can_substitute, reflect_invoke, and the variadic type traits of
+[meta.reflection.traits]).  For these, the front end records a per-range-type
+iteration plan at parse time that the interpreter replays to read the range's
+info elements.
+*/
+{
+  a_boolean  result;
+
+  switch (cit) {
+    case cit_std_meta_substitute:
+    case cit_std_meta_can_substitute:
+    case cit_std_meta_reflect_invoke:
+    case cit_std_meta_is_constructible_type:
+    case cit_std_meta_is_trivially_constructible_type:
+    case cit_std_meta_is_nothrow_constructible_type:
+    case cit_std_meta_is_invocable_type:
+    case cit_std_meta_is_invocable_r_type:
+    case cit_std_meta_is_nothrow_invocable_type:
+    case cit_std_meta_is_nothrow_invocable_r_type:
+    case cit_std_meta_common_type:
+    case cit_std_meta_common_reference:
+    case cit_std_meta_invoke_result:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+  }  /* switch */
+  return result;
+}  /* intrinsic_takes_reflection_range */
+
+
 static an_expr_node_ptr func_call_expr(
                                an_expr_node_ptr     function_node,
                                a_type_ptr           function_type,
@@ -19523,6 +19558,31 @@ error cases.
     }  /* if */
     dip->variant.expression = call_node;
     call_node = temp_init_node;
+  }  /* if */
+  /* For the std::meta intrinsics that take a trailing reflection_range (e.g.,
+     substitute/can_substitute and the variadic type traits), build (once per
+     range type) the iteration plan that the constexpr interpreter replays to
+     collect the std::meta::info elements of that argument.  Doing this here,
+     where the range type is fully known and non-dependent, lets the analysis
+     be shared across calls and avoids re-deriving its iteration per call.  The
+     reflection_range argument is always the last parameter and is a reference
+     (R&&). */
+  if (!unknown_dependent_function && rout != NULL &&
+      rout->is_constexpr_intrinsic &&
+      intrinsic_takes_reflection_range(rout->number.constexpr_intrinsic) &&
+      !expr_stack->suppress_diagnostics &&
+      !is_template_dependent_context()) {
+    a_param_type_ptr  ptp =
+                  function_type->variant.routine.extra_info->param_type_list;
+    while (ptp != NULL && ptp->next != NULL) {
+      ptp = ptp->next;
+    }  /* while */
+    if (ptp != NULL && is_any_reference_type(ptp->type)) {
+      a_type_ptr  range_type = type_pointed_to(ptp->type);
+      if (!is_template_dependent_type(range_type)) {
+        (void)build_reflection_range_plan(range_type);
+      }  /* if */
+    }  /* if */
   }  /* if */
 done:
   return call_node;

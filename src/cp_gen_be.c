@@ -18458,7 +18458,7 @@ Render the given enk_token_sequence node.
   an_expr_node            *interpolation =
                                   expr->variant.token_sequence.interpolations;
 
-  write_tok_str("^ {");
+  write_tok_str("^^ {");
   for (; tok != NULL; tok = tok->next) {
     set_output_position(&tok->position);
     write_tok_str(tok->spelling);

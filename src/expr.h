@@ -653,6 +653,11 @@ a_boolean call_via_reflections(a_reflection_value             *target_rv,
                                a_source_position              *diag_pos,
                                a_constant                     *result_con);
 
+an_expr_node_ptr build_info_vector_construction(a_type_ptr         vector_type,
+                                                a_constant         *begin_con,
+                                                a_constant         *end_con,
+                                                a_source_position  *diag_pos);
+
 extern void scan_default_arg_expr(a_param_type_ptr ptp,
                                   a_boolean        is_member_or_friend,
                                   a_boolean        for_consteval_function);
@@ -1055,6 +1060,24 @@ extern
 a_boolean compute_is_constructible(a_builtin_operation_kind kind,
                                    a_type_ptr               dst_type,
                                    an_expr_node_ptr         expr);
+
+extern
+a_boolean meta_compute_is_constructible(a_builtin_operation_kind kind,
+                                        a_type_ptr               type,
+                                        a_type_ptr               *arg_types,
+                                        int                      n_args);
+
+extern
+a_boolean meta_compute_is_invocable(a_builtin_operation_kind kind,
+                                    a_type_ptr               type,
+                                    a_type_ptr               *arg_types,
+                                    int                      n_args);
+
+extern
+a_boolean meta_fold_builtin_type_trait(a_builtin_operation_kind kind,
+                                       a_type_ptr               *types,
+                                       int                      n_types,
+                                       a_host_large_integer     *p_result);
 
 extern
 a_boolean compute_is_destructible(a_builtin_operation_kind kind,

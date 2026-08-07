@@ -2931,6 +2931,28 @@ otherwise, return 0.
 }  /* array_rank */
 
 
+a_targ_size_t array_extent(a_type_ptr             tp,
+                           a_host_large_unsigned  dim)
+/*
+If tp is an array type with more than dim dimensions, return the number of
+elements of its dim'th dimension (counting from zero); otherwise return zero.
+Zero is also returned for a dimension declared without a bound, which is how
+such a dimension records its number of elements.
+*/
+{
+  a_targ_size_t  result = 0;
+
+  tp = skip_typerefs(tp);
+  for (; dim > 0 && is_array(tp); dim--) {
+    tp = skip_typerefs(array_element_type(tp));
+  }  /* for */
+  if (dim == 0 && is_array(tp)) {
+    result = tp->variant.array.variant.number_of_elements;
+  }  /* if */
+  return result;
+}  /* array_extent */
+
+
 a_boolean is_wchar_t_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an array of wchar_t.

@@ -6054,24 +6054,15 @@ is found is returned, or NULL if no matching symbol is found.
 */
 {
   a_symbol_ptr			sym;
-  a_symbol_ptr			enum_sym;
   a_constant_ptr		cp = NULL;
-  an_enum_symbol_supplement_ptr	essp;
 
   db_enter(4, "enum_qualified_id_lookup");
   /* Remove any typedefs on the enum type. */
   enum_type = skip_typerefs(enum_type);
   sym = locator->specific_symbol;
-  enum_sym = symbol_for(enum_type);
-  check_assertion(enum_sym != NULL && symbol_is(enum_sym, sk_enum_tag));
-  essp = enum_sym->variant.enumeration.extra_info;
-  if (enum_type->variant.integer.is_template_enum &&
-      !enum_type->variant.integer.is_specialized &&
-      enum_type->variant.integer.is_scoped_enum && !essp->instantiated) {
-    /* A template-based scoped enum that has not yet been instantiated.
-       Instantiate it now. */
-    instantiate_template_enum(enum_type);
-  }  /* if */
+  /* The enumerators are needed here, so instantiate the definition of the
+     enumeration if that has not been done yet. */
+  instantiate_template_enum_if_needed(enum_type);
   if (is_error_locator(*locator)) {
     /* The locator is an error locator, so return NULL (i.e., no symbol
        found). */

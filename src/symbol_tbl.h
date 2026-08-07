@@ -6271,9 +6271,17 @@ extern an_access_specifier access_to_end_of_path
 
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
+extern an_access_specifier effective_access_of_member_in_class(
+                                                a_symbol_ptr member_sym,
+                                                a_type_ptr   naming_class);
+
 extern a_boolean have_member_access_privilege(a_type_ptr class_type);
 
 extern a_boolean have_protected_member_access_privilege(a_type_ptr class_type);
+
+extern a_boolean have_protected_access_from_derived_class(
+                                                 a_type_ptr class_type,
+                                                 a_type_ptr derived_class);
 
 extern a_boolean have_access_to_symbol_full(a_symbol_ptr symbol,
                                             a_boolean    ignore_func_templ);

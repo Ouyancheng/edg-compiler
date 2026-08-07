@@ -9554,11 +9554,117 @@ arguments, and return the resulting type.
     if (tp2 == NULL || subst_error) {
       tp2 = has_no_type_member;
     }  /* if */
+    free_template_arg_list(tap);
   } else {
     tp2 = has_no_type_member;
   }  /* if */
   return tp2;
 }  /* instantiate_builtin_common_type */
+
+
+static a_type_ptr substitute_std_alias_template(a_const_char  *name,
+                                                a_type_ptr    *types,
+                                                int           n,
+                                                a_boolean     *p_err)
+/*
+Look up the std:: template named "name" (an alias template such as
+common_type_t, common_reference_t, or invoke_result_t, or a class template) and
+instantiate it with the n types in the array "types", returning the resulting
+type.  This is how the std::meta type-trait functions whose results are defined
+in terms of a standard library template are computed.  Set *p_err to TRUE and
+return NULL if the template cannot be found or its instantiation is an
+immediate-context substitution failure (so the trait is not a constant
+subexpression); otherwise clear *p_err.
+*/
+{
+  a_type_ptr    result = NULL;
+  a_symbol_ptr  sym = NULL;
+
+  *p_err = TRUE;
+  if (symbol_for_namespace_std != NULL) {
+    sym = look_up_name_string_in_namespace(
+              name, symbol_for_namespace_std->variant.namespace_info.ptr,
+              IDL_NO_OPTIONS);
+  }  /* if */
+  if (sym != NULL &&
+      (is_alias_template_symbol(sym) || is_class_template_symbol(sym))) {
+    a_template_arg  *head = NULL, *tail = NULL;
+    a_boolean       subst_error = FALSE;
+    int             i;
+    for (i = 0; i < n; i++) {
+      a_template_arg  *tap = alloc_template_arg(tak_type);
+      tap->variant.type = types[i];
+      if (head == NULL) {
+        head = tap;
+      } else {
+        tail->next = tap;
+      }  /* if */
+      tail = tap;
+    }  /* for */
+    result = substitute_type_template(sym, head, &pos_curr_token,
+                                      &subst_error);
+    if (result != NULL && !subst_error) {
+      *p_err = FALSE;
+    } else {
+      result = NULL;
+    }  /* if */
+    /* substitute_type_template does not take ownership of the argument list
+       (it copies what it needs), so release it here. */
+    free_template_arg_list(head);
+  }  /* if */
+  return result;
+}  /* substitute_std_alias_template */
+
+
+a_type_ptr compute_meta_common_type(a_type_ptr  *types,
+                                    int         n,
+                                    a_boolean   *p_err)
+/*
+Compute std::meta::common_type for the n types in "types" as the type denoted
+by std::common_type_t<types...>, computed through the same machinery (including
+compute_common_type) that the front end uses for that library template.  See
+substitute_std_alias_template for the meaning of *p_err and the return value.
+*/
+{
+  return substitute_std_alias_template("common_type_t", types, n, p_err);
+}  /* compute_meta_common_type */
+
+
+a_type_ptr compute_meta_common_reference(a_type_ptr  *types,
+                                         int         n,
+                                         a_boolean   *p_err)
+/*
+Compute std::meta::common_reference for the n types in "types" as the type
+denoted by std::common_reference_t<types...>.  See
+substitute_std_alias_template for the meaning of *p_err and the return value.
+*/
+{
+  return substitute_std_alias_template("common_reference_t", types, n, p_err);
+}  /* compute_meta_common_reference */
+
+
+a_type_ptr compute_meta_invoke_result(a_type_ptr  fn_type,
+                                      a_type_ptr  *arg_types,
+                                      int         n,
+                                      a_boolean   *p_err)
+/*
+Compute std::meta::invoke_result for a callable of type fn_type invoked with
+the n argument types in arg_types, as the type denoted by
+std::invoke_result_t<fn_type, arg_types...>.  See substitute_std_alias_template
+for the meaning of *p_err and the return value.
+*/
+{
+  Dyn_array<a_type_ptr>  all(0);
+  int                    i;
+
+  all.push_back(fn_type);
+  for (i = 0; i < n; i++) {
+    all.push_back(arg_types[i]);
+  }  /* for */
+  return substitute_std_alias_template("invoke_result_t", all.begin(),
+                                       (int)all.length(), p_err);
+}  /* compute_meta_invoke_result */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -11122,6 +11228,29 @@ error type is used.
 }  /* instantiate_template_alias */
 
 
+void instantiate_template_enum_if_needed(a_type_ptr	enum_type)
+/*
+enum_type is an enumeration type, with any typedefs already removed, whose
+enumerators are about to be needed.  Instantiate its definition if it is an
+instance of a scoped enumeration declared in a class template and that has not
+been instantiated yet.  The definition of an unscoped enumeration is
+instantiated along with the body of the class that contains it, because its
+enumerators are members of that class, and so needs nothing here.
+*/
+{
+  if (enum_type->variant.integer.is_template_enum &&
+      !enum_type->variant.integer.is_specialized &&
+      enum_type->variant.integer.is_scoped_enum) {
+    a_symbol_ptr	enum_sym = symbol_for(enum_type);
+
+    check_assertion(enum_sym != NULL && symbol_is(enum_sym, sk_enum_tag));
+    if (!enum_sym->variant.enumeration.extra_info->instantiated) {
+      instantiate_template_enum(enum_type);
+    }  /* if */
+  }  /* if */
+}  /* instantiate_template_enum_if_needed */
+
+
 void instantiate_template_enum(a_type_ptr		enum_type)
 /*
 Instantiate the enum template instance specified by enum_type.  This is
@@ -12185,13 +12314,16 @@ a_boolean adjust_templ_arg_list_for_template(a_symbol_ptr          templ,
 Adjust the given template argument list to be a valid template argument list
 representation for the given template parameter list of the given template.
 This primarily involves marking template pack elements.  Return FALSE if the
-template argument list does not match the template.
+template argument list does not match the template, i.e., it supplies too few
+or too many arguments, or an argument whose kind (type/nontype/template) does
+not match the corresponding parameter.
 */
 {
   a_template_arg_ptr    *tap = arg_list, sop_entry;
   a_template_param_ptr  tpp = param_list;
   a_boolean             in_pack = FALSE, tap_is_pack = FALSE;
   a_boolean             not_enough_args = FALSE, kind_mismatch = FALSE;
+  a_boolean             too_many_args = FALSE, subst_failed = FALSE;
 
   param_list = tpp;
   while (tpp != NULL) {
@@ -12220,6 +12352,31 @@ template argument list does not match the template.
             arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
             *tap = alloc_template_arg(arg_kind);
             get_template_arg_value_from_default(templ, *tap, tpp, param_list);
+            if (template_arg_has_value(*tap) &&
+                tpp->def_arg_involves_template_param) {
+              /* A default argument can refer to earlier template parameters
+                 (e.g. the std::allocator<T> default for the allocator
+                 parameter of std::vector).  Substitute the arguments gathered
+                 so far into it (as all_templ_params_have_values does after
+                 deduction) so the completed argument (e.g. the type
+                 std::allocator<int>) is the same entity that a written
+                 template-id would produce.  Without this,
+                 std::meta::substitute would yield a distinct instance whose
+                 defaulted argument still mentions the template parameter. */
+              a_boolean     copy_error = FALSE;
+              a_ctws_state  ctws_state;
+              init_ctws_state(&ctws_state);
+              substitute_template_argument(*tap, tpp, *arg_list, param_list,
+                                           *arg_list, param_list,
+                                           &templ->decl_position,
+                                           CTWS_NO_OPTIONS,
+                                           /*is_generic=*/FALSE,
+                                           &copy_error, &ctws_state);
+              if (copy_error) {
+                subst_failed = TRUE;
+                break;
+              }  /* if */
+            }  /* if */
           } else {
             not_enough_args = TRUE;
           }  /* if */
@@ -12246,7 +12403,14 @@ template argument list does not match the template.
       tap = &(*tap)->next;
     }  /* if */
   }  /* while */
-  return !not_enough_args && !kind_mismatch;
+  if (*tap != NULL) {
+    /* The template parameter list is exhausted but arguments remain.  This
+       happens only when the final parameter is not a pack (a trailing pack
+       absorbs any remaining arguments, and the loop then stops with no
+       arguments left): there are more arguments than the template accepts. */
+    too_many_args = TRUE;
+  }  /* if */
+  return !not_enough_args && !kind_mismatch && !too_many_args && !subst_failed;
 }  /* adjust_templ_arg_list_for_template */
 
 

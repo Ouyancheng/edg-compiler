@@ -355,6 +355,8 @@ extern a_boolean is_vla_type(a_type_ptr tp);
 extern a_boolean is_char_array_type(a_type_ptr tp);
 #if !STANDALONE_UTILITY_PROGRAM 
 extern a_targ_size_t array_rank(a_type_ptr tp);
+extern a_targ_size_t array_extent(a_type_ptr             tp,
+                                  a_host_large_unsigned  dim);
 extern a_boolean is_wchar_t_array_type(a_type_ptr tp);
 extern a_boolean is_char8_t_array_type(a_type_ptr tp);
 extern a_boolean is_char16_t_array_type(a_type_ptr tp);

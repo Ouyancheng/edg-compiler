@@ -6179,6 +6179,7 @@ is updated to reflect relevant positions of this definition.
   /* Set the type size (based on the integral type it is mapped onto). */
   set_type_size(enum_type);
   enum_type->incomplete = FALSE;
+  integer_type_supp(enum_type)->enumerator_list_complete = TRUE;
   if (!C_mode() || explicit_base_kind != ik_none) {
     /* In C++ now that we know the type of the enumeration, we can update
        each constant to share the same type.  This also applies in C modes if

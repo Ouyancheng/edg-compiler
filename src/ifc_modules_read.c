@@ -12980,6 +12980,7 @@ strongly preferred over calling this function directly.
           process_ifc_declaration(emep);
         }  /* for */
         integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
+        integer_type_supp(enum_type)->enumerator_list_complete = TRUE;
         if (is_scoped_enum) {
           pop_scope();
         }  /* if */

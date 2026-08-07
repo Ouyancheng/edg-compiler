@@ -848,6 +848,7 @@ fields to default values.
     case ck_address:
       cp->variant.address.kind = (an_address_base_kind)abk_variable;
       cp->variant.address.one_past_the_end = FALSE;
+      cp->variant.address.is_object_reflection = FALSE;
       cp->variant.address.variant.variable = NULL;
       cp->variant.address.offset = 0;
       cp->variant.address.subobject_path = NULL;
@@ -1441,6 +1442,7 @@ a pointer to it.
 
   itsp = alloc_il_of_type(an_integer_type_supplement);
   itsp->enumerator_list_seen = FALSE;
+  itsp->enumerator_list_complete = FALSE;
   itsp->has_nodiscard_attribute = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   itsp->underlying_type_should_use_unsigned = FALSE;

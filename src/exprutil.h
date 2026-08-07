@@ -3355,6 +3355,49 @@ EXTERN_THREAD a_cached_lambdas_map
 			   enclosing template parameters are substituted. */
 
 
+/* Reflection-range iteration support.  A cached description, built once per
+   reflection_range type, of how to iterate that range to collect its
+   std::meta::info elements.  The constructs below mirror the
+   begin/end/not-equal/increment/dereference of a range-based for loop, but the
+   __range variable carries no initializer: the constexpr interpreter binds its
+   storage to the actual argument object when replaying the plan (see
+   reflection_range_plan_for_type and its use in interpret.c). */
+typedef struct a_reflection_range_plan *a_reflection_range_plan_ptr;
+typedef struct a_reflection_range_plan {
+  a_variable_ptr    range;
+                        /* The synthetic __range reference variable.  It has
+                           no initializer: The interpreter binds it to the
+                           reflection_range argument before replaying. */
+  a_variable_ptr    begin;
+                        /* __begin, dynamically initialized to __range.begin()
+                           or begin(__range). */
+  a_variable_ptr    end;
+                        /* __end, dynamically initialized to __range.end() or
+                           end(__range). */
+  a_variable_ptr    iterator;
+                        /* The element variable (of type std::meta::info),
+                           dynamically initialized to *__begin.  The
+                           interpreter re-initializes it on each iteration and
+                           reads the std::meta::info value out of its
+                           storage. */
+  an_expr_node_ptr  ne_call_expr;
+                        /* The "__begin != __end" loop test. */
+  an_expr_node_ptr  incr_call_expr;
+                        /* The "++__begin" increment. */
+  a_byte_boolean    usable;
+                        /* TRUE if the plan was built successfully; FALSE
+                           caches a range type whose analysis failed. */
+} a_reflection_range_plan;
+
+typedef Ptr_map<a_type_ptr, a_reflection_range_plan_ptr>
+		a_reflection_range_plan_map;
+
+extern a_reflection_range_plan_ptr build_reflection_range_plan(
+                                                a_type_ptr  range_type);
+
+extern a_reflection_range_plan_ptr reflection_range_plan_for_type(
+                                                a_type_ptr  range_type);
+
 extern
 a_dynamic_init_ptr unoptimize_conditional_return(a_dynamic_init_ptr  dip,
                                                  a_routine_ptr       rp,

@@ -106,6 +106,8 @@ typedef struct a_module_entity
                               *a_module_entity_ptr;
 typedef struct a_scoped_expression
                               *a_scoped_expression_ptr;
+typedef struct a_data_member_spec
+                              *a_data_member_spec_ptr;
 
 /* Opaque type definition for an_arg_operand (used in the expression
    processing routines, but a pointer to it appears in a front-end only
@@ -812,6 +814,7 @@ enum an_il_entry_kind : a_byte {
   iek_token_sequence_entry,
 			/* a_token_sequence_entry */
   iek_scoped_expression,/* a_scoped_expression */
+  iek_data_member_spec,	/* a_data_member_spec */
   iek_last		/* Marks the end of the list. */
 };
 
@@ -988,6 +991,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, il_entry_kind_names, iek_last + 1)
 /* iek_token_sequence */		"token-sequence",
 /* iek_token_sequence_entry */		"token-sequence-entry",
 /* iek_scoped_expression */		"scoped-expression",
+/* iek_data_member_spec */		"data-member-spec",
 /* iek_last */				"last"
 }
 #endif /* VAR_INITIALIZERS */
@@ -5125,6 +5129,18 @@ typedef struct a_constant {
 		one_past_the_end:1;
 			/* If TRUE, this address was obtained by going "one
 			   position past the end" of an object or subobject. */
+      a_bit_field
+		is_object_reflection:1;
+			/* TRUE when a reflection value (an iek_constant
+			   reflection) uses this address constant to denote an
+			   object -- as produced by std::meta::reflect_object,
+			   object_of, and reflect_constant_array -- rather than
+			   to hold a pointer value.  The constant addresses the
+			   object; type_of the reflection is the object's type
+			   (not a pointer type).  This distinguishes an object
+			   reflection from a reflection of a pointer value that
+			   happens to hold the same address, so that is_object
+			   and reflection equality behave correctly. */
       union {
         /* The entity whose address is the base for this address constant. */
         /* When kind == abk_cli_array, no variant fields. */
@@ -9449,6 +9465,15 @@ typedef struct an_integer_type_supplement {
   a_bit_field	enumerator_list_seen:1;
 			/* TRUE for enumeration types whose enumerator list has
 			   been seen. */
+  a_bit_field	enumerator_list_complete:1;
+			/* TRUE for enumeration types whose enumerator list has
+			   been seen in its entirety, i.e., once the closing
+			   brace of the enum-specifier has been processed.
+			   Unlike the "incomplete" flag of the type, this
+			   remains FALSE while the enumerators are being
+			   scanned and for an opaque enumeration declaration,
+			   both of which produce a complete type when the
+			   underlying type is fixed. */
   a_bit_field	has_nodiscard_attribute:1;
 			/* TRUE for an enumeration type has the "nodiscard"
 			   standard attribute applied to it. */
@@ -18655,6 +18680,30 @@ struct a_scoped_expression {
 };
 
 /*
+Description of a prospective data member, produced by std::meta::
+data_member_spec and consumed by std::meta::define_aggregate.  A reflection of
+kind iek_data_member_spec designates one of these.  Fields with a zero/NULL
+value are "unset" and take their default meaning (an absent name is
+synthesized by define_aggregate; a zero alignment means the natural alignment;
+a zero bit width means the member is not a bit field).
+*/
+struct a_data_member_spec {
+  a_type_ptr	type;	/* Type of the prospective data member. */
+  char		*name;	/* Its name, or NULL if none was specified. */
+  a_targ_alignment
+		alignment;
+			/* Requested alignment, or 0 for the default. */
+  a_targ_size_t	bit_width;
+			/* Bit-field width, or 0 if not a bit field. */
+  a_boolean	no_unique_address;
+			/* TRUE if [[no_unique_address]] was requested. */
+  an_attribute_ptr
+		annotations;
+			/* List of ak_annotation attributes to apply to the
+			   member, or NULL if none were requested. */
+};
+
+/*
 Header for the entire intermediate language tree.  Note that the pointers
 here are into the file scope memory region.
 
@@ -19354,7 +19403,8 @@ EXTERN_CONSTINIT_ARRAY(sizeof_t, sizeof_il_entry, iek_last)
   sizeof(a_module_import_decl),
   sizeof(a_token_sequence),
   sizeof(a_token_sequence_entry),
-  sizeof(a_scoped_expression)
+  sizeof(a_scoped_expression),
+  sizeof(a_data_member_spec)
 }
 #endif /* VAR_INITIALIZERS */
 EXTERN_CONSTINIT_ARRAY_END(sizeof_il_entry)

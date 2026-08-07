@@ -4866,12 +4866,27 @@ do_unknown_function:
       }  /* for */
       break;
     case ck_reflection:
-      { a_tagged_pointer  *iep = &con->variant.reflection.entity;
-        // FIXME: Use better prefix and add demangler support
+      { a_reflection_value  rv = con->variant.reflection;
+        a_tagged_pointer    *iep;
+        /* Normalize template-argument reflections to the underlying entity,
+           matching form_reflection / query predicates. */
+        strip_template_arg(&rv);
+        iep = &rv.entity;
+        if (iep->kind == iek_scope) {
+          a_scope  *scope = (a_scope*)iep->ptr;
+          /* Genuine namespaces are reflected as scopes; mangle them via the
+             associated namespace entry.  The global namespace (sck_file) is
+             left as iek_scope and handled below. */
+          if (scope_is(scope, sck_namespace) ||
+              scope_is(scope, sck_namespace_extension)) {
+            iep->kind = iek_namespace;
+            iep->ptr = (char*)scope->variant.assoc_namespace;
+          }  /* if */
+        }  /* if */
+        /* FIXME reflection: Use better prefix and add demangler support. */
         add_str_to_mangled_name("__REFL__", mctl);
         switch (iep->kind) {
           case iek_type:
-            //add_str_to_mangled_name("v6__TYPE", mctl);
             mangled_encoding_for_type((a_type*)iep->ptr, mctl);
             break;
           case iek_attribute:
@@ -4893,6 +4908,8 @@ do_unknown_function:
           case iek_field:
           case iek_variable:
           case iek_routine:
+          case iek_template:
+          case iek_namespace:
             mangled_entity_reference((a_source_correspondence*)iep->ptr,
                                      iep->kind, (a_routine_info_block*)NULL,
                                      /*add_address_of=*/FALSE, mctl);
@@ -4901,6 +4918,8 @@ do_unknown_function:
           case iek_field:
           case iek_variable:
           case iek_routine:
+          case iek_template:
+          case iek_namespace:
             { a_length_reservation length_reservation;
               reserve_space_for_length(&length_reservation, mctl);
               mangled_name_with_possible_qualification(
@@ -4916,9 +4935,9 @@ do_unknown_function:
                                    /*suppress_address_of=*/FALSE, mctl);
             break;
           case iek_expr_node:
-            mangled_encoding_for_expression(
-                            (an_expr_node*)con->variant.reflection.entity.ptr,
-                            /*in_dependent_expr=*/FALSE, mctl);
+            mangled_encoding_for_expression((an_expr_node*)iep->ptr,
+                                            /*in_dependent_expr=*/FALSE,
+                                            mctl);
             break;
           case iek_base_class:
             { a_base_class  *bcp = (a_base_class*)iep->ptr;
@@ -4926,14 +4945,18 @@ do_unknown_function:
               mangled_encoding_for_type(bcp->derived_class, mctl);
             }
             break;
+          case iek_scope:
+            /* Global namespace (^^::). */
+            check_assertion(scope_is((a_scope*)iep->ptr, sck_file));
+            add_str_to_mangled_name("v7__GLOBAL", mctl);
+            break;
           case iek_token_sequence:
-            // FIXME: Encode tokens.
+            /* FIXME: Encode tokens. */
             add_str_to_mangled_name("v9tokenseq_", mctl);
             add_number_to_mangled_name(unique_id_for_il_pointer(iep->ptr),
                                        mctl);
             add_str_to_mangled_name("_", mctl);
             break;
-          // FIXME: Other cases?
           default:
             unexpected_condition_str(
                                "literal_representation: bad reflection kind");

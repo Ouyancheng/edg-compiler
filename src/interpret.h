@@ -114,8 +114,13 @@ The "type codes" currently recognized are:
   - "I": an integral type
   - "Sv": std::string_view
   - "Sz": std::size_t
-  - "Vr": std::meta::__infovec
+  - "Su": std::u8string_view
+  - "Vr": std::vector<std::meta::info>
+  - "L": std::source_location
+  - "A": std::meta::access_context
+  - "Mo": std::meta::member_offset
   - "*": pointer to the type kind described in the following code
+  - "&": reference to the type kind described in the following code
 
 If a new intrinsic is added with name intrin in the namespace identified with
 ns (currently ns must be std or std_meta), a function do_constexpr_ns_intrin
@@ -127,138 +132,245 @@ must be defined in interpret.c to implement its evaluation.
   M(std, __report_constexpr_value, "(I)v|(*C)v|(*C,I)v") \
   M(std_meta, make_constexpr_array, "<T>(*.,I)*.") \
   M(std_meta, identifier_of, "(r)Sv") \
-  M(std_meta, name_of, "(r)Sv") \
-  M(std_meta, members__impl, "(r)Vr") \
-  M(std_meta, static_data_members__impl, "(r)Vr") \
-  M(std_meta, nonstatic_data_members__impl, "(r)Vr") \
-  M(std_meta, bases__impl, "(r)Vr") \
-  M(std_meta, subobjects__impl, "(r)Vr") \
-  M(std_meta, enumerators__impl, "(r)Vr") \
-  M(std_meta, parameters__impl, "(r)Vr") \
-  M(std_meta, current_parameters__impl, "()Vr") \
-  M(std_meta, template_arguments__impl, "(r)Vr") \
-  M(std_meta, annotations__impl, "(r,r)Vr") \
-  M(std_meta, substitute__impl, "(r,Vr)r") \
+  M(std_meta, u8identifier_of, "(r)Su") \
+  M(std_meta, display_string_of, "(r)Sv") \
+  M(std_meta, u8display_string_of, "(r)Su") \
+  M(std_meta, source_location_of, "(r)L") \
+  M(std_meta, members_of, "(r,A)Vr") \
+  M(std_meta, current, "()A") \
+  M(std_meta, current_function, "()r") \
+  M(std_meta, current_class, "()r") \
+  M(std_meta, current_namespace, "()r") \
+  M(std_meta, static_data_members_of, "(r,A)Vr") \
+  M(std_meta, nonstatic_data_members_of, "(r,A)Vr") \
+  M(std_meta, bases_of, "(r,A)Vr") \
+  M(std_meta, subobjects_of, "(r,A)Vr") \
+  M(std_meta, enumerators_of, "(r)Vr") \
+  M(std_meta, parameters_of, "(r)Vr") \
+  M(std_meta, current_parameters, "()Vr") \
+  M(std_meta, template_arguments_of, "(r)Vr") \
+  M(std_meta, annotations_of, "(r)Vr") \
+  M(std_meta, annotations_of_with_type, "(r,r)Vr") \
+  M(std_meta, substitute, "<T>(r,&.)r") \
+  M(std_meta, can_substitute, "<T>(r,&.)b") \
+  M(std_meta, is_constructible_type, "<T>(r,&.)b") \
+  M(std_meta, is_trivially_constructible_type, "<T>(r,&.)b") \
+  M(std_meta, is_nothrow_constructible_type, "<T>(r,&.)b") \
+  M(std_meta, is_invocable_type, "<T>(r,&.)b") \
+  M(std_meta, is_invocable_r_type, "<T>(r,r,&.)b") \
+  M(std_meta, is_nothrow_invocable_type, "<T>(r,&.)b") \
+  M(std_meta, is_nothrow_invocable_r_type, "<T>(r,r,&.)b") \
+  M(std_meta, common_type, "<T>(&.)r") \
+  M(std_meta, common_reference, "<T>(&.)r") \
+  M(std_meta, invoke_result, "<T>(r,&.)r") \
+  M(std_meta, is_same_type, "(r,r)b") \
+  M(std_meta, remove_cvref, "(r)r") \
   M(std_meta, reflect_result, "<T>(.)r") \
+  M(std_meta, reflect_object, "<T>(&.)r") \
+  M(std_meta, reflect_function, "<T>(&.)r") \
+  M(std_meta, __reflect_constant_array, "<T>(*.,Sz)r") \
   M(std_meta, extract, "<T>(r).") \
-  M(std_meta, value_of, "(r)r") \
+  M(std_meta, object_of, "(r)r") \
+  M(std_meta, constant_of, "(r)r") \
   M(std_meta, is_token_sequence, "(r)b") \
   M(std_meta, is_empty_token_sequence, "(r)b") \
   M(std_meta, is_annotation, "(r)b") \
+  M(std_meta, is_public, "(r)b") \
+  M(std_meta, is_protected, "(r)b") \
+  M(std_meta, is_private, "(r)b") \
+  M(std_meta, is_accessible, "(r,A)b") \
+  M(std_meta, has_inaccessible_nonstatic_data_members, "(r,A)b") \
+  M(std_meta, has_inaccessible_bases, "(r,A)b") \
+  M(std_meta, has_inaccessible_subobjects, "(r,A)b") \
+  M(std_meta, is_virtual, "(r)b") \
+  M(std_meta, is_pure_virtual, "(r)b") \
+  M(std_meta, is_override, "(r)b") \
+  M(std_meta, is_final, "(r)b") \
+  M(std_meta, is_deleted, "(r)b") \
+  M(std_meta, is_defaulted, "(r)b") \
+  M(std_meta, is_user_provided, "(r)b") \
+  M(std_meta, is_user_declared, "(r)b") \
+  M(std_meta, is_explicit, "(r)b") \
+  M(std_meta, is_noexcept, "(r)b") \
+  M(std_meta, is_bit_field, "(r)b") \
+  M(std_meta, is_enumerator, "(r)b") \
+  M(std_meta, is_const, "(r)b") \
+  M(std_meta, is_volatile, "(r)b") \
+  M(std_meta, is_mutable_member, "(r)b") \
+  M(std_meta, is_lvalue_reference_qualified, "(r)b") \
+  M(std_meta, is_rvalue_reference_qualified, "(r)b") \
+  M(std_meta, has_static_storage_duration, "(r)b") \
+  M(std_meta, has_thread_storage_duration, "(r)b") \
+  M(std_meta, has_automatic_storage_duration, "(r)b") \
+  M(std_meta, has_internal_linkage, "(r)b") \
+  M(std_meta, has_module_linkage, "(r)b") \
+  M(std_meta, has_external_linkage, "(r)b") \
+  M(std_meta, has_c_language_linkage, "(r)b") \
+  M(std_meta, has_linkage, "(r)b") \
+  M(std_meta, is_complete_type, "(r)b") \
+  M(std_meta, is_enumerable_type, "(r)b") \
+  M(std_meta, is_variable, "(r)b") \
   M(std_meta, is_type, "(r)b") \
-  M(std_meta, is_alias, "(r)b") \
-  M(std_meta, is_incomplete_type, "(r)b") \
+  M(std_meta, is_namespace, "(r)b") \
+  M(std_meta, is_type_alias, "(r)b") \
+  M(std_meta, is_namespace_alias, "(r)b") \
+  M(std_meta, is_function, "(r)b") \
+  M(std_meta, is_conversion_function, "(r)b") \
+  M(std_meta, is_operator_function, "(r)b") \
+  M(std_meta, is_literal_operator, "(r)b") \
+  M(std_meta, is_special_member_function, "(r)b") \
+  M(std_meta, is_constructor, "(r)b") \
+  M(std_meta, is_default_constructor, "(r)b") \
+  M(std_meta, is_copy_constructor, "(r)b") \
+  M(std_meta, is_move_constructor, "(r)b") \
+  M(std_meta, is_assignment, "(r)b") \
+  M(std_meta, is_copy_assignment, "(r)b") \
+  M(std_meta, is_move_assignment, "(r)b") \
+  M(std_meta, is_destructor, "(r)b") \
+  M(std_meta, is_function_parameter, "(r)b") \
+  M(std_meta, is_explicit_object_parameter, "(r)b") \
+  M(std_meta, has_default_argument, "(r)b") \
+  M(std_meta, is_vararg_function, "(r)b") \
   M(std_meta, is_template, "(r)b") \
   M(std_meta, is_function_template, "(r)b") \
   M(std_meta, is_variable_template, "(r)b") \
   M(std_meta, is_class_template, "(r)b") \
   M(std_meta, is_alias_template, "(r)b") \
+  M(std_meta, is_conversion_function_template, "(r)b") \
+  M(std_meta, is_operator_function_template, "(r)b") \
+  M(std_meta, is_literal_operator_template, "(r)b") \
+  M(std_meta, is_constructor_template, "(r)b") \
   M(std_meta, is_concept, "(r)b") \
-  M(std_meta, is_constant, "(r)b") \
-  M(std_meta, is_variable, "(r)b") \
-  M(std_meta, is_function, "(r)b") \
-  M(std_meta, is_function_parameter, "(r)b") \
-  M(std_meta, is_explicit_object_parameter, "(r)b") \
-  M(std_meta, is_namespace, "(r)b") \
+  M(std_meta, is_value, "(r)b") \
+  M(std_meta, is_object, "(r)b") \
+  M(std_meta, is_structured_binding, "(r)b") \
+  M(std_meta, is_class_member, "(r)b") \
+  M(std_meta, is_namespace_member, "(r)b") \
   M(std_meta, is_nonstatic_data_member, "(r)b") \
-  M(std_meta, is_base, "(r)b") \
-  M(std_meta, is_constructor, "(r)b") \
-  M(std_meta, is_destructor, "(r)b") \
-  M(std_meta, is_special_member, "(r)b") \
-  M(std_meta, is_public, "(r)b") \
-  M(std_meta, is_protected, "(r)b") \
-  M(std_meta, is_private, "(r)b") \
-  M(std_meta, is_accessible, "(r)b") \
   M(std_meta, is_static_member, "(r)b") \
-  M(std_meta, is_virtual, "(r)b") \
-  M(std_meta, is_deleted, "(r)b") \
-  M(std_meta, is_defaulted, "(r)b") \
-  M(std_meta, is_explicit, "(r)b") \
-  M(std_meta, is_override, "(r)b") \
-  M(std_meta, is_pure_virtual, "(r)b") \
-  M(std_meta, is_bit_field, "(r)b") \
-  M(std_meta, has_static_storage_duration, "(r)b") \
-  M(std_meta, has_internal_linkage, "(r)b") \
-  M(std_meta, has_c_varargs, "(r)b") \
-  M(std_meta, has_default_argument, "(r)b") \
-  M(std_meta, has_consistent_name, "(r)b") \
+  M(std_meta, is_base, "(r)b") \
+  M(std_meta, has_default_member_initializer, "(r)b") \
+  M(std_meta, has_parent, "(r)b") \
   M(std_meta, has_template_arguments, "(r)b") \
   M(std_meta, has_identifier, "(r)b") \
   M(std_meta, dealias, "(r)r") \
   M(std_meta, template_of, "(r)r") \
   M(std_meta, type_of, "(r)r") \
+  M(std_meta, variable_of, "(r)r") \
   M(std_meta, return_type_of, "(r)r") \
   M(std_meta, parent_of, "(r)r") \
   M(std_meta, size_of, "(r)Sz") \
-  M(std_meta, offset_of, "(r)Sz") \
+  M(std_meta, offset_of, "(r)Mo") \
   M(std_meta, bit_size_of, "(r)Sz") \
-  M(std_meta, bit_offset_of, "(r)Sz") \
   M(std_meta, alignment_of, "(r)Sz") \
   M(std_meta, define_class__impl, "(r,I,*.)v") \
-  M(std_meta, metacall__impl, "(r,Vr)r") \
+  M(std_meta, reflect_invoke, "<T>(r,&.)r") \
   M(std_meta, __report_tokens, "(r)v") \
   M(std_meta, queue_injection, "(r,r)v") \
   M(std_meta, namespace_inject, "(r,r)v") \
   M(std_meta, nearest_token_queuing_context, "()r") \
   M(std_meta, nearest_class_or_namespace, "()r") \
   M(std_meta, nearest_namespace, "()r") \
-  M(std_meta, type_tuple_size, "(r)I") \
-  M(std_meta, type_tuple_element, "(I,r)r") \
-  M(std_meta, type_is_void, "(r)I") \
-  M(std_meta, type_is_null_pointer, "(r)I") \
-  M(std_meta, type_is_integral, "(r)I") \
-  M(std_meta, type_is_floating_point, "(r)I") \
-  M(std_meta, type_is_array, "(r)I") \
-  M(std_meta, type_is_pointer, "(r)I") \
-  M(std_meta, type_is_lvalue_reference, "(r)I") \
-  M(std_meta, type_is_rvalue_reference, "(r)I") \
-  M(std_meta, type_is_member_object_pointer, "(r)I") \
-  M(std_meta, type_is_member_function_pointer, "(r)I") \
-  M(std_meta, type_is_enum, "(r)I") \
-  M(std_meta, type_is_union, "(r)I") \
-  M(std_meta, type_is_class, "(r)I") \
-  M(std_meta, type_is_function, "(r)I") \
-  M(std_meta, type_is_reflection, "(r)I") \
-  M(std_meta, type_is_reference, "(r)b") \
-  M(std_meta, type_is_arithmetic, "(r)b") \
-  M(std_meta, type_is_fundamental, "(r)b") \
-  M(std_meta, type_is_object, "(r)b") \
-  M(std_meta, type_is_scalar, "(r)b") \
-  M(std_meta, type_is_compound, "(r)b") \
-  M(std_meta, type_is_member_pointer, "(r)b") \
-  M(std_meta, type_is_const, "(r)b") \
-  M(std_meta, type_is_volatile, "(r)b") \
-  M(std_meta, type_is_trivial, "(r)b") \
-  M(std_meta, type_is_trivially_copyable, "(r)b") \
-  M(std_meta, type_is_standard_layout, "(r)b") \
-  M(std_meta, type_is_empty, "(r)b") \
-  M(std_meta, type_is_polymorphic, "(r)b") \
-  M(std_meta, type_is_abstract, "(r)b") \
-  M(std_meta, type_is_final, "(r)b") \
-  M(std_meta, type_is_aggregate, "(r)b") \
-  M(std_meta, type_is_signed, "(r)b") \
-  M(std_meta, type_is_unsigned, "(r)b") \
-  M(std_meta, type_is_bounded_array, "(r)b") \
-  M(std_meta, type_is_unbounded_array, "(r)b") \
-  M(std_meta, type_is_scoped_enum, "(r)b") \
-  M(std_meta, type_remove_const, "(r)r") \
-  M(std_meta, type_remove_volatile, "(r)r") \
-  M(std_meta, type_remove_cv, "(r)r") \
-  M(std_meta, type_add_const, "(r)r") \
-  M(std_meta, type_add_volatile, "(r)r") \
-  M(std_meta, type_add_cv, "(r)r") \
-  M(std_meta, type_remove_reference, "(r)r") \
-  M(std_meta, type_add_lvalue_reference, "(r)r") \
-  M(std_meta, type_add_rvalue_reference, "(r)r") \
-  M(std_meta, type_make_signed, "(r)r") \
-  M(std_meta, type_make_unsigned, "(r)r") \
-  M(std_meta, type_remove_extent, "(r)r") \
-  M(std_meta, type_remove_all_extents, "(r)r") \
-  M(std_meta, type_remove_pointer, "(r)r") \
-  M(std_meta, type_add_pointer, "(r)r") \
-  M(std_meta, type_remove_cvref, "(r)r") \
-  M(std_meta, type_decay, "(r)r") \
-  M(std_meta, type_underlying_type, "(r)r") \
+  M(std_meta, tuple_size, "(r)Sz") \
+  M(std_meta, tuple_element, "(Sz,r)r") \
+  M(std_meta, is_void_type, "(r)b") \
+  M(std_meta, is_null_pointer_type, "(r)b") \
+  M(std_meta, is_integral_type, "(r)b") \
+  M(std_meta, is_floating_point_type, "(r)b") \
+  M(std_meta, is_array_type, "(r)b") \
+  M(std_meta, is_pointer_type, "(r)b") \
+  M(std_meta, is_lvalue_reference_type, "(r)b") \
+  M(std_meta, is_rvalue_reference_type, "(r)b") \
+  M(std_meta, is_member_object_pointer_type, "(r)b") \
+  M(std_meta, is_member_function_pointer_type, "(r)b") \
+  M(std_meta, is_enum_type, "(r)b") \
+  M(std_meta, is_union_type, "(r)b") \
+  M(std_meta, is_class_type, "(r)b") \
+  M(std_meta, is_function_type, "(r)b") \
+  M(std_meta, is_reflection_type, "(r)b") \
+  M(std_meta, is_reference_type, "(r)b") \
+  M(std_meta, is_arithmetic_type, "(r)b") \
+  M(std_meta, is_fundamental_type, "(r)b") \
+  M(std_meta, is_object_type, "(r)b") \
+  M(std_meta, is_scalar_type, "(r)b") \
+  M(std_meta, is_compound_type, "(r)b") \
+  M(std_meta, is_member_pointer_type, "(r)b") \
+  M(std_meta, is_const_type, "(r)b") \
+  M(std_meta, is_volatile_type, "(r)b") \
+  M(std_meta, is_trivially_copyable_type, "(r)b") \
+  M(std_meta, is_standard_layout_type, "(r)b") \
+  M(std_meta, is_empty_type, "(r)b") \
+  M(std_meta, is_polymorphic_type, "(r)b") \
+  M(std_meta, is_abstract_type, "(r)b") \
+  M(std_meta, is_final_type, "(r)b") \
+  M(std_meta, is_aggregate_type, "(r)b") \
+  M(std_meta, is_signed_type, "(r)b") \
+  M(std_meta, is_unsigned_type, "(r)b") \
+  M(std_meta, is_bounded_array_type, "(r)b") \
+  M(std_meta, is_unbounded_array_type, "(r)b") \
+  M(std_meta, is_scoped_enum_type, "(r)b") \
+  M(std_meta, remove_const, "(r)r") \
+  M(std_meta, remove_volatile, "(r)r") \
+  M(std_meta, remove_cv, "(r)r") \
+  M(std_meta, add_const, "(r)r") \
+  M(std_meta, add_volatile, "(r)r") \
+  M(std_meta, add_cv, "(r)r") \
+  M(std_meta, remove_reference, "(r)r") \
+  M(std_meta, add_lvalue_reference, "(r)r") \
+  M(std_meta, add_rvalue_reference, "(r)r") \
+  M(std_meta, make_signed, "(r)r") \
+  M(std_meta, make_unsigned, "(r)r") \
+  M(std_meta, remove_extent, "(r)r") \
+  M(std_meta, remove_all_extents, "(r)r") \
+  M(std_meta, remove_pointer, "(r)r") \
+  M(std_meta, add_pointer, "(r)r") \
+  M(std_meta, decay, "(r)r") \
+  M(std_meta, underlying_type, "(r)r") \
+  M(std_meta, is_structural_type, "(r)b") \
+  M(std_meta, is_default_constructible_type, "(r)b") \
+  M(std_meta, is_copy_constructible_type, "(r)b") \
+  M(std_meta, is_move_constructible_type, "(r)b") \
+  M(std_meta, is_assignable_type, "(r,r)b") \
+  M(std_meta, is_copy_assignable_type, "(r)b") \
+  M(std_meta, is_move_assignable_type, "(r)b") \
+  M(std_meta, is_destructible_type, "(r)b") \
+  M(std_meta, is_trivially_default_constructible_type, "(r)b") \
+  M(std_meta, is_trivially_copy_constructible_type, "(r)b") \
+  M(std_meta, is_trivially_move_constructible_type, "(r)b") \
+  M(std_meta, is_trivially_assignable_type, "(r,r)b") \
+  M(std_meta, is_trivially_copy_assignable_type, "(r)b") \
+  M(std_meta, is_trivially_move_assignable_type, "(r)b") \
+  M(std_meta, is_trivially_destructible_type, "(r)b") \
+  M(std_meta, is_nothrow_default_constructible_type, "(r)b") \
+  M(std_meta, is_nothrow_copy_constructible_type, "(r)b") \
+  M(std_meta, is_nothrow_move_constructible_type, "(r)b") \
+  M(std_meta, is_nothrow_assignable_type, "(r,r)b") \
+  M(std_meta, is_nothrow_copy_assignable_type, "(r)b") \
+  M(std_meta, is_nothrow_move_assignable_type, "(r)b") \
+  M(std_meta, is_nothrow_destructible_type, "(r)b") \
+  M(std_meta, is_implicit_lifetime_type, "(r)b") \
+  M(std_meta, has_virtual_destructor, "(r)b") \
+  M(std_meta, has_unique_object_representations, "(r)b") \
+  M(std_meta, reference_constructs_from_temporary, "(r,r)b") \
+  M(std_meta, reference_converts_from_temporary, "(r,r)b") \
+  M(std_meta, rank, "(r)Sz") \
+  M(std_meta, extent, "(r,I)Sz") \
+  M(std_meta, is_base_of_type, "(r,r)b") \
+  M(std_meta, is_virtual_base_of_type, "(r,r)b") \
+  M(std_meta, is_convertible_type, "(r,r)b") \
+  M(std_meta, is_nothrow_convertible_type, "(r,r)b") \
+  M(std_meta, is_layout_compatible_type, "(r,r)b") \
+  M(std_meta, is_pointer_interconvertible_base_of_type, "(r,r)b") \
+  M(std_meta, unwrap_reference, "(r)r") \
+  M(std_meta, unwrap_ref_decay, "(r)r") \
+  M(std_meta, variant_size, "(r)Sz") \
+  M(std_meta, variant_alternative, "(Sz,r)r") \
+  M(std_meta, operator_of, "(r).") \
+  M(std_meta, symbol_of, "(.)Sv") \
+  M(std_meta, u8symbol_of, "(.)Su") \
+  M(std_meta, data_member_spec, "(r,.)r") \
+  M(std_meta, is_data_member_spec, "(r)b") \
+  M(std_meta, define_aggregate, "<T>(r,&.)r") \
   /* End of NS_scope_constexpr_intrinsics. */
 
 

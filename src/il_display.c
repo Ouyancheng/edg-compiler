@@ -2066,6 +2066,9 @@ Display the indicated integer type supplement.
 */
 {
   if (ptr->enumerator_list_seen) disp_boolean("enumerator_list_seen", TRUE);
+  if (ptr->enumerator_list_complete) {
+    disp_boolean("enumerator_list_complete", TRUE);
+  }  /* if */
   if (ptr->has_nodiscard_attribute) {
     disp_boolean("has_nodiscard_attribute", TRUE);
   }  /* if */

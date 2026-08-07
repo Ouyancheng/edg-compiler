@@ -315,6 +315,7 @@ map_il_type_to_kind(a_module_import_decl, iek_module_import_decl)
 map_il_type_to_kind(a_token_sequence, iek_token_sequence)
 map_il_type_to_kind(a_token_sequence_entry, iek_token_sequence_entry)
 map_il_type_to_kind(a_scoped_expression, iek_scoped_expression)
+map_il_type_to_kind(a_data_member_spec, iek_data_member_spec)
 
 
 template<typename an_IL_type>
@@ -2691,6 +2692,9 @@ extern a_boolean is_generated_dynamic_init(a_dynamic_init_ptr dip);
 extern a_boolean is_error_dynamic_init(a_dynamic_init_ptr dip);
 
 extern a_boolean is_valid_object_for_nontype_arg(a_constant_ptr  con);
+
+extern a_variable_ptr variable_designated_by_object_reflection(
+                                                         a_constant_ptr  con);
 
 extern a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
                                                          a_constant_ptr  con);

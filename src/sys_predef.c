@@ -2298,6 +2298,7 @@ declarations.
   }  /* for */
   enum_type->variant.integer.enum_info.constant_list = constant_list;
   integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
+  integer_type_supp(enum_type)->enumerator_list_complete = TRUE;
   integer_type_supp(enum_type)->underlying_type_should_use_unsigned = TRUE;
   release_local_constant(&constant);
 }  /* enter_unscoped_enumerators */
