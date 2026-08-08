@@ -13196,13 +13196,13 @@ base-class relationships.
   a_boolean                 is_base_rel = FALSE;
   a_source_correspondence  *scp;
   an_access_specifier        access = as_public;
-  a_symbol_ptr               member_sym;
+  a_symbol_ptr               member_sym = NULL;
   a_type_ptr                 member_class = NULL;
   a_type_ptr                 designating_class = ctx->designating_class;
   a_type_ptr                 naming_class;
   a_base_class_ptr           bcp;
   a_routine_ptr              ctx_func = ctx->context_routine;
-  a_scope_ptr                w = ctx->enclosing_class_scope;
+  a_scope_ptr                sp = ctx->enclosing_class_scope;
 
   extract_reflected_entity(member_rvp);
   /* Classify the reflected entity and find the class it belongs to. */
@@ -13252,34 +13252,33 @@ base-class relationships.
     accessible = TRUE;
     goto done;
   }  /* if */
-  while (w != NULL && !accessible) {
-    if (w->kind == sck_class_struct_union &&
-        w->variant.assoc_type != NULL) {
-      a_type_ptr              c = skip_typerefs(w->variant.assoc_type);
+  while (sp != NULL && !accessible) {
+    if (sp->kind == sck_class_struct_union &&
+        sp->variant.assoc_type != NULL) {
+      a_type_ptr              tp = skip_typerefs(sp->variant.assoc_type);
       a_class_list_entry_ptr  befriended =
-          is_immediate_class_type(c) &&
-          c->variant.class_struct_union.extra_info != NULL
-              ? c->variant.class_struct_union.extra_info->befriending_classes
-              : NULL;
-      if (class_grants_member_access(c, member_class)) {
+          is_immediate_class_type(tp) &&
+          class_type_supp(tp) != NULL ?
+                              class_type_supp(tp)->befriending_classes : NULL;
+      if (class_grants_member_access(tp, member_class)) {
         accessible = TRUE;
       } else if (access == as_protected &&
-                 (protected_access_through_class(member_class, c,
+                 (protected_access_through_class(member_class, tp,
                                                  naming_class, is_base_rel) ||
                   protected_access_via_befriended_class(befriended,
                                                         member_class,
                                                         naming_class,
                                                         is_base_rel))) {
-        /* Protected access either from c itself (a class suitably derived from
-           the entity's class) or from a class c is a friend of that is so
-           derived. */
+        /* Protected access either from tp itself (a class suitably derived
+           from the entity's class) or from a class tp is a friend of that is
+           so derived. */
         accessible = TRUE;
       }  /* if */
       /* Advance to the lexically enclosing scope of the class. */
-      w = c->source_corresp.parent_scope;
+      sp = tp->source_corresp.parent_scope;
     } else {
       /* Namespaces, functions, and block scopes grant no member access. */
-      w = NULL;
+      sp = NULL;
     }  /* if */
   }  /* while */
   if (!accessible && ctx_func != NULL) {
