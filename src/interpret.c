@@ -3819,14 +3819,6 @@ only occurs when the allocated object is too large).
   }  /* if */
 }  /* alloc_static_object */
 
-#if BUILTIN_FUNCTIONS_ENABLED
-
-/*
-The functions for supporting storage promotion below (while not specifically
-tied to builtin functions) are currently only used by builtin functions.  Thus,
-only include them when builtin functions are enabled.
-*/
-
 /*
 The offset from the complete object pointer.
 */
@@ -3861,6 +3853,8 @@ If a problem occurs during allocation, *p_result is set to FALSE.
   }  /* if */
 }  /* alloc_storage_promotable_object */
 
+
+#if BUILTIN_FUNCTIONS_ENABLED
 
 static a_boolean is_object_storage_promotable(
                                         an_interpreter_state  *ips,
@@ -9745,6 +9739,8 @@ done:
   return result;
 }  /* do_constexpr_builtin_strcmp */
 
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+
 
 static a_boolean within_int_bounds(an_integer_value *input_int,
                                    a_boolean        input_signed,
@@ -9927,6 +9923,8 @@ problems are encountered, the pointee of p_result will be set to FALSE.
 }  /* do_constexpr_write_source_file */
 
 
+#if BUILTIN_FUNCTIONS_ENABLED
+
 static void do_constexpr_write_source_file_name(
                                           an_interpreter_state *ips,
                                           a_source_position    *use_pos,
@@ -9954,6 +9952,8 @@ any problems are encountered, the pointee of p_result will be set to FALSE.
   file_name = start_of_file_name(file_name);
   do_constexpr_write_cstring(ips, file_name, result_storage, p_result);
 }  /* do_constexpr_write_source_file_name */
+
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 
 static void do_constexpr_write_source_function(
@@ -10097,6 +10097,8 @@ type (which has already been diagnosed).
   return handled;
 }  /* build_source_location_value */
 
+
+#if BUILTIN_FUNCTIONS_ENABLED
 
 static void do_constexpr_write_source_funcsig(
                                           an_interpreter_state *ips,
