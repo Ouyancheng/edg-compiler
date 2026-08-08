@@ -3179,6 +3179,16 @@ typedef struct an_attribute {
 			   specifier and produces a new type as a result.
 			   Currently, this is only TRUE for GNU mode and
 			   vector_size attributes. */
+  a_bit_field	applied_to_declared_type:1;
+			/* A front-end-only flag indicating that this attribute
+			   has already been applied to the type declared by the
+			   declaration in which it appeared, and must therefore
+			   not be applied again when it is attached to the
+			   entity being declared.  attach_attributes clears the
+			   flag when it honors it.  Currently, the flag is only
+			   set for GNU calling convention attributes on typedef
+			   declarations (see
+			   apply_calling_convention_attributes). */
   a_bit_field	must_be_preserved_in_trans_unit_copy:1;
 			/* A front-end-only flag indicating that this attribute
 			   should be preserved in the merged entity produced

@@ -6448,6 +6448,9 @@ Display the indicated attribute entry.
   if (ap->transforms_type_specifier) {
     disp_boolean("transforms_type_specifier", TRUE);
   }  /* if */
+  if (ap->applied_to_declared_type) {
+    disp_boolean("applied_to_declared_type", TRUE);
+  }  /* if */
   if (ap->must_be_preserved_in_trans_unit_copy) {
     disp_boolean("must_be_preserved_in_trans_unit_copy", TRUE);
   }  /* if */

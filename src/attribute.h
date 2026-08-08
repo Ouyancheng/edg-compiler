@@ -186,16 +186,10 @@ extern void transform_type_with_gnu_attributes(a_type_ptr        *p_type,
                                                void              *assoc_info);
 
 #if GNU_X86_ATTRIBUTES_ALLOWED
-extern void extract_and_apply_calling_conventions(
+extern void apply_calling_convention_attributes(
                                              a_type_ptr        *p_type,
-                                             an_attribute_ptr  *p_attributes,
-                                             an_attribute_ptr  *p_applied,
-                                             void              *assoc_info);
-
-extern void attach_attributes_without_applying(
                                              an_attribute_ptr  attributes,
-                                             char              *entity,
-                                             an_il_entry_kind  entity_kind);
+                                             void              *assoc_info);
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 
 extern a_type_ptr make_typeref_with_attributes(a_type_ptr        tp,
