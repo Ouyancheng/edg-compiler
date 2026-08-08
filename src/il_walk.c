@@ -2865,8 +2865,8 @@ default values.
   tblock->process_non_dynamic_constants = FALSE;
   tblock->process_expressions_for_constants = FALSE;
   tblock->process_template_parameter_constants_and_expressions = FALSE;
-  tblock->visited_nodes = NULL;
-  tblock->node_visit_budget = 0;
+  tblock->visited_shared_exprs = NULL;
+  tblock->shared_expr_budget = 0;
   tblock->follow_addressing_path = FALSE;
   tblock->follow_class_rvalue_addressing_path = FALSE;
   tblock->has_recursive_aggregate_constant = FALSE;
@@ -2913,6 +2913,37 @@ specified in the control block.
 }  /* traverse_constant_list */
 
 
+static void traverse_expr_recorded_for_constant(
+                        an_expr_node_ptr                    expr,
+                        an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Walk expr, which is an expression a constant records and which the walk may
+therefore reach again by way of another constant.  Nothing is done when the
+walk keeps a set of such expressions (see visited_shared_exprs) and expr is
+already in it; otherwise expr is entered in that set, if there is one, and
+walked as usual.  A walk that has no set instead spends its budget for these
+expressions, if it has one, and is terminated once that runs out.
+*/
+{
+  a_boolean  walk_expr = TRUE;
+
+  if (tblock->visited_shared_exprs != NULL) {
+    if (tblock->visited_shared_exprs->contains(expr)) {
+      walk_expr = FALSE;
+    } else {
+      tblock->visited_shared_exprs->add(expr);
+    }  /* if */
+  } else if (tblock->shared_expr_budget != 0 &&
+             --tblock->shared_expr_budget == 0) {
+    tblock->terminate = TRUE;
+    walk_expr = FALSE;
+  }  /* if */
+  if (walk_expr) {
+    traverse_expr(expr, tblock);
+  }  /* if */
+}  /* traverse_expr_recorded_for_constant */
+
+
 void traverse_constant(a_constant_ptr                      constant,
                        an_expr_or_stmt_traversal_block_ptr tblock)
 /*
@@ -2921,19 +2952,11 @@ specified in the control block.  A constant can have a "tree" when
 it's the initializer for an aggregate.
 */
 {
-  if (tblock->visited_nodes != NULL) {
-    if (tblock->visited_nodes->contains(constant)) goto end_of_routine;
-    tblock->visited_nodes->add(constant);
-  } else if (tblock->node_visit_budget != 0 &&
-             --tblock->node_visit_budget == 0) {
-    tblock->terminate = TRUE;
-    goto end_of_routine;
-  }  /* if */
   if (constant->expr != NULL &&
       tblock->process_expressions_for_constants) {
     /* This constant is the result of folding a constant expression.
        Traverse the original expression instead of the constant. */
-    traverse_expr(constant->expr, tblock);
+    traverse_expr_recorded_for_constant(constant->expr, tblock);
     goto end_of_routine;
   }  /* if */
   if (tblock->process_type != NULL && constant->type != NULL) {
@@ -3013,7 +3036,7 @@ it's the initializer for an aggregate.
           case tpck_noexcept:
             { an_expr_node_ptr expr = expr_node_from_constant(constant);
               if (expr != NULL) {
-                traverse_expr(expr, tblock);
+                traverse_expr_recorded_for_constant(expr, tblock);
               }  /* if */
             }
             break;
@@ -3454,14 +3477,6 @@ Walk the tree of the given expression.  Call user-provided routines
 as specified in the control block.
 */
 {
-  if (tblock->visited_nodes != NULL) {
-    if (tblock->visited_nodes->contains(expr)) goto end_of_routine;
-    tblock->visited_nodes->add(expr);
-  } else if (tblock->node_visit_budget != 0 &&
-             --tblock->node_visit_budget == 0) {
-    tblock->terminate = TRUE;
-    goto end_of_routine;
-  }  /* if */
   if (tblock->process_type != NULL && !tblock->skip_expr_process_type) {
     tblock->process_type(expr->type, tblock);
     if (tblock->terminate) goto end_of_routine;

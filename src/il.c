@@ -26232,13 +26232,13 @@ constants.
 
 
 /*
-The number of nodes a walk performed by expr_tree_has_matching_node may reach
-before it is abandoned in favor of one that records the nodes it has already
-seen.  Trees that hold fewer nodes than this are the overwhelming majority,
-and for most of those the record would cost more than the repeated visits it
-saves.
+The number of expressions recorded for constants that a walk performed by
+expr_tree_has_matching_node may follow before it is abandoned in favor of one
+that records the expressions it has already followed.  Walks that follow fewer
+than this are the overwhelming majority, and for most of those the record would
+cost more than the repeated visits it saves.
 */
-#define MAX_NODE_VISITS_WITHOUT_RECORDING  10000
+#define MAX_SHARED_EXPRS_WITHOUT_RECORDING  1000
 
 
 static a_boolean expr_tree_has_matching_node(
@@ -26254,9 +26254,9 @@ often it is offered a given node, as a node may be reached more than once.
 Following the expressions recorded for folded constants means walking a graph,
 because those expressions are shared, and the repeated visits that come of
 covering such a graph as though it were a tree grow exponentially with its
-depth.  A walk that finds no match within MAX_NODE_VISITS_WITHOUT_RECORDING
-nodes is therefore abandoned and performed again, this time recording the
-nodes it reaches so that none of them is walked twice.
+depth.  A walk that finds no match while following
+MAX_SHARED_EXPRS_WITHOUT_RECORDING of them is therefore abandoned and performed
+again, this time recording them so that none is followed twice.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
@@ -26264,12 +26264,13 @@ nodes it reaches so that none of them is walked twice.
 
   if (expr != NULL) {
     set_up_matching_node_walk(&tblock, check_node);
-    tblock.node_visit_budget = MAX_NODE_VISITS_WITHOUT_RECORDING;
+    tblock.shared_expr_budget = MAX_SHARED_EXPRS_WITHOUT_RECORDING;
     traverse_expr(expr, &tblock);
-    if (!tblock.result && tblock.node_visit_budget == 0) {
-      Ptr_set<a_void_ptr>  visited_nodes(/*mask_width=*/6u);
+    if (!tblock.result && tblock.shared_expr_budget == 0) {
+      Ptr_set<a_void_ptr>  visited_shared_exprs(/*mask_width=*/6u);
+
       set_up_matching_node_walk(&tblock, check_node);
-      tblock.visited_nodes = &visited_nodes;
+      tblock.visited_shared_exprs = &visited_shared_exprs;
       traverse_expr(expr, &tblock);
     }  /* if */
     result = tblock.result;
