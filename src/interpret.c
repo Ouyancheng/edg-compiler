@@ -18981,7 +18981,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       a_host_large_integer  k = 0;
       for (; tap != NULL; tap = tap->next) {
         if (tap->kind == tak_type) {
-          if (k == idx) { elem = tap->variant.type; break; }
+          if (k == idx) {
+            elem = tap->variant.type;
+            break;
+          }  /* if */
           k++;
         }  /* if */
       }  /* for */
