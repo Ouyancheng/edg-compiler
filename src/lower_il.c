@@ -16334,7 +16334,8 @@ Floating-point types require additional run-time checking for NaN (see below).
                   partial_ordering_unordered->variant.aggregate.first_constant,
                   &ovflo);
       check_assertion(!ovflo);
-      unordered = spaceship_result_constant_expr(unordered_val, expr->type);
+      unordered = spaceship_result_constant_expr((int)unordered_val,
+                                                 expr->type);
       temp2->next = temp1;
       cmp = make_operator_node(eok_lt, integer_type(ik_int), temp2);
       cmp->next = one;

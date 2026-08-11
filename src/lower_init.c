@@ -8730,6 +8730,7 @@ below correspond to those used by GNU compilers (and can be changed as needed).
     case fk_std_float32:
     case fk_std_float64:
     case fk_std_float128:
+    case fk_last:
       unexpected_condition();
     default_is_unexpected();
   }  /* switch */
