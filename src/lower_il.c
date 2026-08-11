@@ -16268,63 +16268,109 @@ into
                                                   : RT(0)
 or, for pointer to function, pointer to member, and nullptr_t types:
 	x == y ? RT(0) : RT(1)
+Floating-point types require additional run-time checking for NaN (see below).
 */
 {
   an_expr_node_ptr  op1 = expr->variant.operation.operands;
   an_expr_node_ptr  op2 = op1->next;
-  an_expr_node_ptr  temp1, temp2, one, zero, minus_one, cmp;
+  an_expr_node_ptr  temp1, temp2, one, zero, minus_one, cmp, unordered, eptr;
   a_boolean         op1_has_side_effects, op2_has_side_effects;
   a_type_kind       type_kind = expr->variant.operation.type_kind;
   
   one = spaceship_result_constant_expr(1, expr->type);
   zero = spaceship_result_constant_expr(0, expr->type);
-  if ((type_kind == (a_type_kind)tk_pointer &&
+  if ((type_kind == tk_pointer &&
        is_pointer_to_function_type(op1->type)) ||
-      type_kind == (a_type_kind)tk_ptr_to_member ||
+      type_kind == tk_ptr_to_member ||
 #if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
-      type_kind == (a_type_kind)tk_complex ||
+      type_kind == tk_complex ||
 #endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
-      type_kind == (a_type_kind)tk_nullptr) {
+      type_kind == tk_nullptr) {
     /* <=> just tests equality.  Replace x <=> y by:
 	     x == y ? RT(0) : RT(1)
     */
-    cmp = make_operator_node((an_expr_operator_kind)eok_eq,
-                             integer_type((an_integer_kind)ik_int), op1);
-    if (type_kind == (a_type_kind)tk_ptr_to_member) {
+    cmp = make_operator_node(eok_eq, integer_type(ik_int), op1);
+    if (type_kind == tk_ptr_to_member) {
       lower_pm_comparison(cmp, /*operand1_lowered=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
-    } else if (type_kind == (a_type_kind)tk_complex)  {
+    } else if (type_kind == tk_complex)  {
       lower_c99_constant_expr(cmp);
 #endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
     }  /* if */
     cmp->next = zero;
     zero->next = one;
-    set_node_operator(expr, (an_expr_operator_kind)eok_question,
-                      expr->type, expr->is_lvalue, cmp);
+    set_node_operator(expr, eok_question, expr->type, expr->is_lvalue, cmp);
   } else {
-    /* <=> tests ordering.  Replace x <=> y by:
-	(temp1 = x) < (temp2 = y) ? RT(-1)
-                                  : temp2 < temp1 ? RT(1)
-                                                  : RT(0)
-    */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    if (type_kind == tk_complex || type_kind == tk_imaginary) {
+      unexpected_condition_str(
+                     "imaginary and complex NaN checking not implemented yet");
+    }  /* if */
+#endif  /* C99_IL_EXTENSIONS_SUPPORTED */
     minus_one = spaceship_result_constant_expr(-1, expr->type);
     op1_has_side_effects = node_has_side_effects(op1, (a_boolean *)NULL);
     op2_has_side_effects = node_has_side_effects(op2, (a_boolean *)NULL);
     temp1 = make_reusable_copy(op1, op2_has_side_effects);
     temp2 = make_reusable_copy(op2, op1_has_side_effects);
-    temp2->next = temp1;
-    cmp = make_operator_node((an_expr_operator_kind)eok_lt,
-                             integer_type((an_integer_kind)ik_int), temp2);
-    cmp->next = one;
-    one->next = zero;
-    cmp = make_operator_node((an_expr_operator_kind)eok_question,
-                             expr->type, cmp);
-    minus_one->next = cmp;
-    cmp = make_operator_node((an_expr_operator_kind)eok_lt,
-                             integer_type((an_integer_kind)ik_int), op1);
-    cmp->next = minus_one;
-    set_node_operator(expr, (an_expr_operator_kind)eok_question,
-                      expr->type, expr->is_lvalue, cmp);
+    if (type_kind_is_simple_float_like(type_kind)) {
+      /* If either operand is a NaN, then return
+         std::partial_ordering::unordered:
+        (__isnan(temp1 = x) || __isnan(temp2 = y)) ? RT(unordered) :
+                                     temp1 < temp2 ? RT(-1) :
+                                     temp2 < temp1 ? RT(1)
+                                                   : RT(0)
+      */
+      /* Note that the value of std::partial_ordering::unordered can vary
+         based on the implementation.  Look for its definition in the headers
+         that are being used by this translation unit and use that value. */
+      initialize_ordering_constants();
+      check_assertion(partial_ordering_unordered != NULL &&
+                      partial_ordering_unordered->kind == ck_aggregate &&
+                      partial_ordering_unordered->
+                         variant.aggregate.first_constant->kind == ck_integer);
+      a_boolean ovflo = FALSE;
+      a_host_large_integer unordered_val =
+             value_of_integer_constant(
+                  partial_ordering_unordered->variant.aggregate.first_constant,
+                  &ovflo);
+      check_assertion(!ovflo);
+      unordered = spaceship_result_constant_expr(unordered_val, expr->type);
+      temp2->next = temp1;
+      cmp = make_operator_node(eok_lt, integer_type(ik_int), temp2);
+      cmp->next = one;
+      one->next = zero;
+      cmp = make_operator_node(eok_question, expr->type, cmp);
+      temp1 = make_reusable_copy(temp1, /*vars_can_change=*/FALSE);
+      temp2 = make_reusable_copy(temp2, /*vars_can_change=*/FALSE);
+      temp1->next = temp2;
+      minus_one->next = cmp;
+      cmp = make_operator_node(eok_lt, integer_type(ik_int), temp1);
+      cmp->next = minus_one;
+      cmp = make_operator_node(eok_question, expr->type, cmp);
+      op2->next = NULL;
+      eptr = make_isnan_call(op2);
+      op1->next = NULL;
+      eptr->next = make_isnan_call(op1);
+      eptr = make_operator_node(eok_lor, integer_type(ik_int), eptr);
+      unordered->next = cmp;
+      eptr->next = unordered;
+      set_node_operator(expr, eok_question, expr->type, expr->is_lvalue, eptr);
+    } else {
+      /* <=> tests ordering.  Replace x <=> y by:
+          (temp1 = x) < (temp2 = y) ? RT(-1) :
+                      temp2 < temp1 ? RT(1)
+                                    : RT(0)
+      */
+      temp2->next = temp1;
+      cmp = make_operator_node(eok_lt, integer_type(ik_int), temp2);
+      cmp->next = one;
+      one->next = zero;
+      cmp = make_operator_node(eok_question, expr->type, cmp);
+      minus_one->next = cmp;
+      cmp = make_operator_node(eok_lt, integer_type(ik_int), op1);
+      cmp->next = minus_one;
+      set_node_operator(expr, eok_question, expr->type, expr->is_lvalue, cmp);
+    }  /* if */
   }  /* if */ 
 }  /* lower_cpp20_spaceship */
 

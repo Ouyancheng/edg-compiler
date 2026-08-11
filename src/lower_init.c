@@ -8681,6 +8681,63 @@ specified arguments as arguments to the memcpy routine.
 }  /* make_memcpy_call */
 
 
+/*
+Pointers to the routine entries for various *isnan* routines.  NULL until
+created.
+*/
+STATIC_THREAD a_routine_ptr
+		isnan_routine, isnanf_routine, isnanl_routine;
+
+
+an_expr_node_ptr make_isnan_call(an_expr_node_ptr op)
+/*
+Create and return an expression to call the appropriate isnan* routine (based
+on the type of the given expression).
+
+Back end or runtime library support is required for a full implementation of
+all floating-point types.  Lowering assumes that these routines take exactly
+one argument (i.e., the expression supplied to this routine) and returns an
+"int" type (with a value of 1 for true and 0 for false).  The routine names
+below correspond to those used by GNU compilers (and can be changed as needed).
+*/
+{
+  a_const_char *name = NULL;
+  a_routine_ptr rp;
+  a_type_ptr    tp = skip_typerefs(op->type);
+
+  check_assertion(is_floating_type(tp));
+  switch (tp->variant.float_kind) {
+    case fk_float:
+      name = "__builtin_isnanf";
+      rp = isnanf_routine;
+      break;
+    case fk_double:
+      name = "__builtin_isnan";
+      rp = isnan_routine;
+      break;
+    case fk_long_double:
+      name = "__builtin_isnanl";
+      rp = isnanl_routine;
+      break;
+    case fk_float16:
+    case fk_fp16:
+    case fk_float32x:
+    case fk_float64x:
+    case fk_float80:
+    case fk_float128:
+    case fk_std_bfloat16:
+    case fk_std_float16:
+    case fk_std_float32:
+    case fk_std_float64:
+    case fk_std_float128:
+      unexpected_condition();
+    default_is_unexpected();
+  }  /* switch */
+  return make_prototyped_runtime_call(name, &rp, integer_type(ik_int), tp,
+                                      NULL, op);
+}  /* make_isnan_call */
+
+
 void rewrite_class_assignment_if_necessary(an_expr_node_ptr expr)
 /*
 expr is a struct assignment.  It's defined to do what the C++ generated
@@ -20292,6 +20349,9 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(vec_delete3_routine),
       pch_saved_var_array_elem(vec_dtor_routine),
 #endif /* IA64_ABI */
+      pch_saved_var_array_elem(isnan_routine),
+      pch_saved_var_array_elem(isnanf_routine),
+      pch_saved_var_array_elem(isnanl_routine),
       pch_saved_var_array_elem(memcpy_routine),
       pch_saved_var_array_elem(memzero_routine),
       pch_saved_var_array_elem(record_needed_destruction_routine),
@@ -20361,6 +20421,9 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(vec_delete3_routine);
   register_trans_unit_variable(vec_dtor_routine);
 #endif /* IA64_ABI */
+  register_trans_unit_variable(isnan_routine);
+  register_trans_unit_variable(isnanf_routine);
+  register_trans_unit_variable(isnanl_routine);
   register_trans_unit_variable(memcpy_routine);
   register_trans_unit_variable(memzero_routine);
   register_trans_unit_variable(record_needed_destruction_routine);

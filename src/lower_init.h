@@ -404,6 +404,8 @@ extern an_expr_node_ptr pre_execute_expression(
                                            an_expr_node_ptr  *prev,
                                            an_expr_node_ptr  *var_assignments);
 
+extern an_expr_node_ptr make_isnan_call(an_expr_node_ptr op);
+
 extern an_expr_node_ptr make_memcpy_call(an_expr_node_ptr     dst,
                                          an_expr_node_ptr     src,
                                          a_host_large_integer size);
