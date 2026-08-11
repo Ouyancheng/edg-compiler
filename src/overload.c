@@ -3465,10 +3465,12 @@ copy-initialization).
           !arg_operand->is_cfront_null_pointer_constant) &&
         /* In prototype instantiation calls, assume that a value-dependent
            integral value can't be treated as a null pointer constant even
-           if it might have the value zero in some instantiations. */
+           if it might have the value zero in some instantiations.  The same
+           applies when matching a parameter of type std::nullptr_t. */
         !(arg_operand_is_constant &&
           is_possible_dependent_null_pointer_constant(arg_operand_constant) &&
-          is_pointer_type(param_type))) {
+          (is_pointer_type(param_type) ||
+           is_nullptr_type(param_type)))) {
       /* Match with standard conversions. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
