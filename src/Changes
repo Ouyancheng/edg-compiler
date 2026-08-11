@@ -1,5 +1,19 @@
 Version 6.10
 
+8/11/26  [EDGcpfe/28993]
+GCC compatibility: Allow member overload with and without a ref-qualifier
+
+Consider:
+
+  struct S {
+    void f();
+    void f() &&;  // Now accepted (as by GCC 16).
+  };
+
+This is now accepted in GNU C++20 modes with gnu_version >= 160000.  (See also
+EDGcpfe/28870, which implements a related C++23 rule.)
+
+
 8/11/26  [EDGcpfe/28822]
 Lowering of spaceship operator with floating-point operands
 

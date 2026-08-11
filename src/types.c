@@ -15194,7 +15194,8 @@ C++ mode.
       } else if ((cpp23_mode || (cpp20_mode && gpp_version_is(>= 160000))) &&
                  old_this_class != NULL && new_this_class != NULL &&
                  (old_extra_info->qualifiers != new_this_qualifiers ||
-                  !identical_types(old_this_class, new_this_class))) {
+                  !identical_types(old_this_class, new_this_class) ||
+                  gpp_version_is(>= 160000))) {
         /* Exactly one declaration has no explicit ref-qualifier.  Under N5014
            [basic.scope.scope]/3, such declarations correspond only if their
            object parameter types, with the top-level reference removed, are
@@ -15202,7 +15203,8 @@ C++ mode.
            them distinguishable.  (When they match, e.g. "void g();" and
            "void g() &&;", control falls through to the conflict diagnostic
            below.)  This is a C++23 change introduced by P1787R6, but GCC 16
-           also applies it in C++20 mode. */ 
+           also applies it in C++20 mode and extends it even when the type
+           qualifiers and class types are the same. */ 
         distinguishable = TRUE;
         goto distinguishable_determined;
       }  /* if */
