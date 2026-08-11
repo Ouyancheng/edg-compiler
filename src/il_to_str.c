@@ -139,6 +139,7 @@ Clear an output control block to default values.
   octl->c_generating_back_end     = FALSE;
   octl->cpp_generating_back_end   = FALSE;
   octl->for_diagnostics           = FALSE;
+  octl->reflection_display_form   = FALSE;
 #if DEBUG
   octl->debug_output              = FALSE;
 #endif /* DEBUG */
