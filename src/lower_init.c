@@ -8696,7 +8696,7 @@ on the type of the given expression).
 
 Back end or runtime library support is required for a full implementation of
 all floating-point types.  Lowering assumes that these routines take exactly
-one argument (i.e., the expression supplied to this routine) and returns an
+one argument (i.e., the expression supplied to this routine) and return an
 "int" type (with a value of 1 for true and 0 for false).  The routine names
 below correspond to those used by GNU compilers (and can be changed as needed).
 */

@@ -16302,10 +16302,7 @@ Floating-point types require additional run-time checking for NaN (see below).
     set_node_operator(expr, eok_question, expr->type, expr->is_lvalue, cmp);
   } else {
 #if C99_IL_EXTENSIONS_SUPPORTED
-    if (type_kind == tk_complex || type_kind == tk_imaginary) {
-      unexpected_condition_str(
-                     "imaginary and complex NaN checking not implemented yet");
-    }  /* if */
+    check_assertion(type_kind != tk_complex && type_kind != tk_imaginary);
 #endif  /* C99_IL_EXTENSIONS_SUPPORTED */
     minus_one = spaceship_result_constant_expr(-1, expr->type);
     op1_has_side_effects = node_has_side_effects(op1, (a_boolean *)NULL);

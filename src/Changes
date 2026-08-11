@@ -16,8 +16,6 @@ point types (i.e., float, double, long double).  For example, with
 Note that this change requires runtime library support to detect NaN values
 at runtime.  In particular, it is assumed that the __builtin_isnanf,
 __builtin_isnan, and __builtin_isnanl routines are available at link time.
-Note also that this change does not encompass complex or imaginary operations
-nor extended floating-point.
 
 
 8/5/26   [EDGcpfe/28998]
