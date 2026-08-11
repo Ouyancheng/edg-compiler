@@ -17105,201 +17105,6 @@ not supply a name of its own.
 }  /* synthesized_field_name */
 
 
-static a_boolean do_constexpr_std_meta_define_class__impl(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_object)
-/*
-Implement std::meta::define_class__impl(<info>, n, <descriptions>).  It returns
-its first argument, which should be a reflection for an incomplete class type.
-The third argument of the call points to an array of n elements of type
-std::meta::nsdm_description that describe members that should be added to the
-definition of the given type.  This function triggers the completion of the
-class type designated by its first argument with members as described by the
-third argument.  Return FALSE if this fails because the arguments to the call
-are invalid.
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean     result = TRUE;
-  a_reflection_value
-                *rvp = (a_reflection_value*)p_arg_bytes[0];
-  Dyn_array<a_meta_field_descr>
-                field_descrs(0);
-  a_type_ptr    callee_type = skip_typerefs(callee->type), class_type;
-  size_t        n_fields;
-  a_param_type_ptr
-                ptp;
-
-  check_assertion(type_is(callee_type, tk_routine));
-  if (!meta_incomplete_class_target(ips, call_node, rvp, &class_type)) {
-    result = FALSE;
-    goto done;
-  }  /* if */
-  ptp = function_type_params(callee_type)->next;
-  { /* Extract the second argument and use it to dimension field_descrs. */
-    a_boolean             is_signed = is_signed_integral_type(ptp->type);
-    a_host_large_integer  val;
-    a_boolean             ovflo;
-    conv_integer_value_to_host_large_integer(
-                 (an_integer_value *)p_arg_bytes[1], is_signed, &val, &ovflo);
-    if (ovflo) {
-      do_constexpr_fail(result);
-      info_with_pos(ec_integer_overflow, &call_node->position, ips);
-      goto done;
-    }  /* if */
-    n_fields = (size_t)val;
-    field_descrs.reserve(n_fields);
-  }
-  { /* Load the array pointed to by the third argument. */
-    a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[2];
-    a_type               *descr_type = type_pointed_to(ptp->next->type);
-    a_byte_count         descr_size;
-    a_field              *fp;
-    a_byte_count         type_offset, name_offset, alignment_offset,
-                         bit_width_offset;
-    a_byte               *subobj = cap->address,
-                         *complete_obj = cap->complete_object;
-    /* The array elements should be of a class type. */
-    descr_type = skip_typerefs(descr_type);
-    descr_size = value_bytes_for_type(ips, descr_type, &result);
-    if (!result || !is_immediate_class_type(descr_type)) {
-      do_constexpr_fail(result);
-      goto done;
-    }  /* if */
-    /* Load the offsets associated with the fields of the array elements.
-       These should include in order:
-          1) a type reflection
-          2) a pointer to a null-terminated char array
-          3) an alignment value
-          4) a bit width
-    */
-    fp = fields_of(descr_type);
-    if (fp == NULL || !is_reflection_type(fp->type)) {
-      do_constexpr_fail(result);
-      goto done;
-    }  /* if */
-    get_mapped_byte_count(&persistent_map, fp, type_offset);
-    fp = fp->next;
-    if (fp == NULL || !is_pointer_type(fp->type) ||
-        !is_character_type(type_pointed_to(fp->type))) {
-      do_constexpr_fail(result);
-      goto done;
-    }  /* if */
-    get_mapped_byte_count(&persistent_map, fp, name_offset);
-    fp = fp->next;
-    if (fp == NULL || !is_size_t_type(fp->type)) {
-      do_constexpr_fail(result);
-      goto done;
-    }  /* if */
-    get_mapped_byte_count(&persistent_map, fp, alignment_offset);
-    fp = fp->next;
-    if (fp == NULL || !is_size_t_type(fp->type)) {
-      do_constexpr_fail(result);
-      goto done;
-    }  /* if */
-    get_mapped_byte_count(&persistent_map, fp, bit_width_offset);
-    for (size_t k = 0; k < n_fields; ++k, subobj += descr_size) {
-      a_meta_field_descr   fd = {};
-      a_reflection_value   *ftr = (a_reflection_value*)(subobj+type_offset);
-      a_constexpr_address  *name_cap;
-      /* Use the offsets computed above to load the components of each array
-         element into field_descrs, via fd.  For every component, check that
-         the value is initialized and generally valid. */
-      if (!subobject_is_initialized(subobj+type_offset, complete_obj)) {
-        do_constexpr_fail(result);
-        info_with_pos(ec_object_not_initialized, &call_node->position, ips);
-        goto done;
-      }  /* if */
-      strip_template_arg(ftr);
-      if (ftr->entity.kind != iek_type) {
-        do_constexpr_fail(result);
-        info_with_pos(ec_invalid_reflection_for_intrinsic,
-                      &call_node->position, ips);
-        goto done;
-      }  /* if */
-      fd.type = (a_type*)ftr->entity.ptr;
-      if (!subobject_is_initialized(subobj+name_offset, complete_obj)) {
-        do_constexpr_fail(result);
-        info_with_pos(ec_object_not_initialized, &call_node->position, ips);
-        goto done;
-      }  /* if */
-      name_cap = (a_constexpr_address*)(subobj+name_offset);
-      if ((is_runtime_data_address(name_cap) &&
-           !is_null_pointer_value(name_cap->variant.addr_con)) ||
-          is_function_address(name_cap)) {
-        do_constexpr_fail(result);
-        info_with_pos(ec_constexpr_access_to_runtime_storage,
-                      &call_node->position, ips);
-        goto done;
-      } else if (name_cap->complete_object == NULL) {
-        fd.name = synthesized_field_name(k);
-      } else if (!read_interpreter_string(ips, name_cap, &call_node->position,
-                                          &fd.name)) {
-        result = FALSE;
-        goto done;
-      }  /* if */
-      if (!subobject_is_initialized(subobj+alignment_offset, complete_obj)) {
-        do_constexpr_fail(result);
-        info_with_pos(ec_object_not_initialized, &call_node->position, ips);
-        goto done;
-      } else {
-        a_host_large_integer  align_val;
-        a_boolean             ovflo = FALSE;
-        conv_integer_value_to_host_large_integer(
-                              (an_integer_value*)(subobj+alignment_offset),
-                              /*is_signed=*/FALSE,
-                              &align_val, &ovflo);
-        if (ovflo) {
-          do_constexpr_fail(result);
-          info_with_pos(ec_integer_overflow, &call_node->position, ips);
-          goto done;
-        } else if (align_val != 0 &&
-                   !check_pack_alignment_value(align_val, &fd.alignment)) {
-          do_constexpr_fail(result);
-          info_with_pos(ec_bad_pack_alignment, &call_node->position, ips);
-        }  /* if */
-      }  /* if */
-      if (!subobject_is_initialized(subobj+bit_width_offset, complete_obj)) {
-        do_constexpr_fail(result);
-        info_with_pos(ec_object_not_initialized, &call_node->position, ips);
-        goto done;
-      } else {
-        a_host_large_integer  bit_width_val;
-        a_boolean             ovflo = FALSE;
-        conv_integer_value_to_host_large_integer(
-                              (an_integer_value*)(subobj+bit_width_offset),
-                              /*is_signed=*/FALSE,
-                              &bit_width_val, &ovflo);
-        if (ovflo) {
-          do_constexpr_fail(result);
-          info_with_pos(ec_integer_overflow, &call_node->position, ips);
-          goto done;
-        } else {
-          fd.bit_width = (a_targ_size_t)bit_width_val;
-        }  /* if */
-      }  /* if */
-      if (fd.bit_width != 0 || *fd.name == '\0') {
-        /* A bit field. */
-        if (!is_integral_or_enum_type(fp->type)) {
-          do_constexpr_fail(result);
-          info_with_pos(ec_bad_bit_field_type, &call_node->position, ips);
-          goto done;
-        }  /* if */
-      }  /* if */
-      field_descrs.push_back(fd);
-    }  /* for */
-  }
-  synth_class_definition(class_type, &field_descrs, &call_node->position);
-done:
-  return result;
-}  /* do_constexpr_std_meta_define_class__impl */
-
-
 static a_boolean do_constexpr_std_meta_reflect_invoke(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -32285,13 +32090,17 @@ can only be TRUE if the called function is "consteval").
       a_constexpr_destruction  *dlist = ips.storage_stack.destructions;
       a_dynamic_init           **dyndip = &expr_stack->lifetime->destructions;
       do {
-        while (*dyndip != dlist->dip) {
+        /* Some constexpr-evaluated temporary destructions may not appear on
+           this expression's lifetime list (e.g., when manufacturing a
+           std::meta::data_member_options name string).  Skip those. */
+        while (*dyndip != NULL && *dyndip != dlist->dip) {
           dyndip = &(*dyndip)->next_in_destruction_list;
+        }  /* while */
+        if (*dyndip != NULL) {
+          *dyndip = (*dyndip)->next_in_destruction_list;
         }  /* if */
-        *dyndip = (*dyndip)->next_in_destruction_list;
         dlist = dlist->next;
       } while (dlist != NULL);
-      
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;

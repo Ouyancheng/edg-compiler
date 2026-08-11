@@ -421,7 +421,7 @@ extern a_type_ptr make_single_field_struct_type(a_const_char       *name,
 
 /*
 Description of a field synthesized through reflection.  This type participates
-in the implementation of std::meta::define_class.
+in the implementation of std::meta::define_aggregate.
 */
 struct a_meta_field_descr {
   a_type	*type;	/* Type of the field to synthesize. */

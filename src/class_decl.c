@@ -32759,7 +32759,7 @@ static void complete_class_definition(a_type_ptr         class_type,
 /*
 We have seen the complete definition of class_type belonging to scope level
 effective_decl_level (except that effective_decl_level may be NO_SCOPE_DEPTH
-if the definition is the result of calling std::meta::define_class__impl).
+if the definition is the result of calling std::meta::define_aggregate).
 Perform various postprocessing steps such as computing the layout and
 synthesizing special members (C++).  *class_state holds some bits of
 information that were acquired while parsing.  Note that fixup processing
@@ -36051,7 +36051,7 @@ void synth_class_definition(a_type_ptr                     class_type,
 /*
 Define the given class type according to the member declarations provided by
 *descr_array.  This is a helper function for the interpreter's implementation
-of std::meta::define_class__impl.  Any diagnostics should be issued at the
+of std::meta::define_aggregate.  Any diagnostics should be issued at the
 given position.
 */
 {

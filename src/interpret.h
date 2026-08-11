@@ -263,7 +263,6 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, offset_of, "(r)Mo") \
   M(std_meta, bit_size_of, "(r)Sz") \
   M(std_meta, alignment_of, "(r)Sz") \
-  M(std_meta, define_class__impl, "(r,I,*.)v") \
   M(std_meta, reflect_invoke, "<T>(r,&.)r") \
   M(std_meta, __report_tokens, "(r)v") \
   M(std_meta, queue_injection, "(r,r)v") \

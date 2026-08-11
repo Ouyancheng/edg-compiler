@@ -3161,7 +3161,7 @@ Create the body for a default destructor.  It will return no value.
   if (!type_is(class_type, tk_union)) {
     /* Create entries describing destructions to be done in the wrapper
        code.  Do not do this for a union (the only union type that should
-       get here are those created by std::meta::define_class). */
+       get here are those created by std::meta::define_aggregate). */
     scope->variant.routine.constructor_inits = dtor_initializer(rp);
   }  /* if */
   /* Create a statement block that is empty except for the return
