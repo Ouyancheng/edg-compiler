@@ -13797,8 +13797,8 @@ necessary, since the answer depends on its definition having been seen.  Note
 that completeness of the type is not the test in the enumeration case: an
 enumeration whose underlying type is fixed is a complete type before its
 enumerators are known, both while they are being scanned, as in
-  enum class E { A = is_enumerable_type(^^E) ? 1 : 2 };
-which gives A the value 2, and when only an opaque declaration has been seen.
+  enum class E { x = is_enumerable_type(^^E) ? 1 : 2 };
+which gives x the value 2, and when only an opaque declaration has been seen.
 */
 {
   a_boolean  result;
