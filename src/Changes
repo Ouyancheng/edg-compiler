@@ -92,7 +92,7 @@ This is now accepted in GNU C++20 modes with gnu_version >= 160000.  (See also
 EDGcpfe/28870, which implements a related C++23 rule.)
 
 
-8/11/26  [EDGcpfe/28822]
+8/11/26  [EDGcpfe/27616,EDGcpfe/28822]
 Lowering of spaceship operator with floating-point operands
 
 For a spaceship operator that operates on floating-point operands, the standard
@@ -108,6 +108,8 @@ point types (i.e., float, double, long double).  For example, with
 Note that this change requires runtime library support to detect NaN values
 at runtime.  In particular, it is assumed that the __builtin_isnanf,
 __builtin_isnan, and __builtin_isnanl routines are available at link time.
+Note also that a spaceship operation on extended floating-point types will
+FIXME.
 
 
 8/5/26   [EDGcpfe/28998]

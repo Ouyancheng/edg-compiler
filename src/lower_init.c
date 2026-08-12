@@ -8701,17 +8701,20 @@ one argument (i.e., the expression supplied to this routine) and return an
 below correspond to those used by GNU compilers (and can be changed as needed).
 */
 {
-  a_const_char *name = NULL;
-  a_routine_ptr rp;
+  a_const_char  *name = NULL;
+  a_routine_ptr rp = NULL;
   a_type_ptr    tp = skip_typerefs(op->type);
+  an_expr_node  *expr;
 
   check_assertion(is_floating_type(tp));
   switch (tp->variant.float_kind) {
     case fk_float:
+    case fk_std_float32:
       name = "__builtin_isnanf";
       rp = isnanf_routine;
       break;
     case fk_double:
+    case fk_std_float64:
       name = "__builtin_isnan";
       rp = isnan_routine;
       break;
@@ -8727,15 +8730,15 @@ below correspond to those used by GNU compilers (and can be changed as needed).
     case fk_float128:
     case fk_std_bfloat16:
     case fk_std_float16:
-    case fk_std_float32:
-    case fk_std_float64:
     case fk_std_float128:
     case fk_last:
       unexpected_condition();
     default_is_unexpected();
   }  /* switch */
-  return make_prototyped_runtime_call(name, &rp, integer_type(ik_int), tp,
+  expr = make_prototyped_runtime_call(name, &rp, integer_type(ik_int), tp,
                                       NULL, op);
+  normalize_boolean_controlling_expr_if_needed(expr);
+  return expr;
 }  /* make_isnan_call */
 
 
