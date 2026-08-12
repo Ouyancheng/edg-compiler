@@ -1,5 +1,17 @@
 Version 6.10
 
+8/12/26  [EDGcpfe/27881]
+Inconsistent conditional compilation in decl_routine
+
+The local variable decl_modifiers in decl_routine was declared under a
+condition that did not cover all of its uses.  Uses that record the
+marked_as_gnu_extension flag in source-sequence information were compiled
+whenever GENERATE_SOURCE_SEQUENCE_LISTS was TRUE, but the variable itself
+was declared for that purpose only when GNU_EXTENSIONS_ALLOWED was also
+TRUE.  That mismatch could cause a compilation failure in some
+configurations.  The conditions are now consistent.
+
+
 8/12/26  [EDGcpfe/28867]
 Adjustment of by-copy captures in lambda headers
 

@@ -9184,7 +9184,7 @@ for use in generating cross-reference output describing this declaration.
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
   a_boolean                use_std_c99_inlining = std_c99_inlining;
 #if DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || \
-    (GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS)
+    GENERATE_SOURCE_SEQUENCE_LISTS
   a_decl_modifiers_block_ptr
                            decl_modifiers = &dps->decl_modifiers;
 #endif /* DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || ... */
