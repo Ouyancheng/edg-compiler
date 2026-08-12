@@ -2108,6 +2108,16 @@ of a default argument expression, mark the new entry the same way.
                                                        saved_stack,
                                                        expr_stack);
     }  /* if */
+    /* Always preserve "inside a lambda header" across a save/restore of the
+       expression stack (e.g., when scanning a noexcept-specifier or a
+       trailing decltype).  Nested lambdas push their own expression-stack
+       entry and clear this field before calling
+       record_start_of_lambda_header, so this does not interfere with
+       nesting. */
+    if (expr_stack->current_lambda_in_header == NULL) {
+      expr_stack->current_lambda_in_header =
+                                        saved_stack->current_lambda_in_header;
+    }  /* if */
   }  /* if */
 }  /* transfer_expr_context_if_applicable */
 

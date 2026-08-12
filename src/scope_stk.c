@@ -14996,7 +14996,7 @@ are handled in scope_stk_init.)
   register_trans_unit_variable(num_classes_on_scope_stack);
   register_trans_unit_variable(pack_expansion_stack);
   register_trans_unit_variable(saved_stmt_stack_stack);
-  register_trans_unit_variable(call_op_to_lambda_map);
+  register_trans_unit_variable(closure_class_to_lambda_map);
 #if NEED_NAME_MANGLING
   register_trans_unit_variable(last_file_scope_unnamed_type_number);
   register_trans_unit_variable(last_file_scope_closure_type_number);
@@ -15043,8 +15043,9 @@ given translation unit.
 #endif /* !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  call_op_to_lambda_map = alloc_fe_of_type(a_call_op_to_lambda_map);
-  construct(call_op_to_lambda_map, /*mask_width=*/10u);
+  closure_class_to_lambda_map =
+                              alloc_fe_of_type(a_closure_class_to_lambda_map);
+  construct(closure_class_to_lambda_map, /*mask_width=*/10u);
 #if NEED_NAME_MANGLING
   last_file_scope_unnamed_type_number = 0;
   last_file_scope_closure_type_number = 0;

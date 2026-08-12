@@ -1,5 +1,26 @@
 Version 6.10
 
+8/12/26  [EDGcpfe/28867]
+Adjustment of by-copy captures in lambda headers
+
+The entry for EDGcpfe/21022,EDGcpfe/21246,EDGcpfe/24784,EDGcpfe/25500 describes
+changes implementing support for P2579, which affects the types of captured
+entities in lambda headers.  That implementation was too broad, treating all
+automatic variables mentioned in a lambda header (after the parameter list) as
+const lvalues whenever the lambda call operator was const.  The adjustment now
+applies only when the variable would be captured by copy.  Uses in an
+unevaluated operand with an empty capture list, or with a by-reference
+capture, were incorrectly const-qualified and could then reject a valid
+non-const call.  For example, with --c++11:
+
+  struct B;
+  struct D { bool operator()(B*) noexcept; };
+  void f(D& c) {
+    auto m = [](B* a) noexcept(noexcept(c(a))) { return true; };
+    // Previously: error, object type is const D.  Now okay.
+  }
+
+
 8/12/26  [EDGcpfe/28944]
 C++-generating back end: CTAD with lambda as expression temporary
 

@@ -39527,6 +39527,8 @@ static a_boolean var_is_copy_captured(a_lambda_ptr    lambda,
                                       a_variable_ptr  var)
 /*
 Return TRUE if the given variable is captured "by copy" by the given lambda.
+This may be called from a lambda header (e.g., a noexcept-specifier) as well
+as from a lambda body.
 */
 {
   a_boolean  result = FALSE;
@@ -39546,9 +39548,15 @@ Return TRUE if the given variable is captured "by copy" by the given lambda.
       }  /* if */
     } else {
       /* Check for implicit capture. */
+      a_scope_depth  limit_depth = depth_innermost_function_scope;
+      if (in_lambda_header()) {
+        /* During header processing the call-operator function scope has
+           not been pushed; compare against the closure class instead. */
+        limit_depth = get_innermost_closure_scope_depth();
+      }  /* if */
       if (var->source_corresp.parent_scope != NULL &&
           var->source_corresp.parent_scope->depth_in_scope_stack <
-                                             depth_innermost_function_scope) {
+                                                                limit_depth) {
         /* The variable is declared outside the lambda. */
         if (lambda->has_capture_default && !lambda->default_is_by_reference) {
           result = TRUE;
@@ -39633,18 +39641,34 @@ a capture).
   if (inside_local_class || expr_stack->is_default_arg_expression) {
     a_scope_stack_entry  *func_proto_ssep;
     var = variable_for_symbol(sym_ptr);
-    if (in_lambda_header(&func_proto_ssep) &&
+    if (add_const != NULL &&
+        in_lambda_header(&func_proto_ssep) &&
         symbol_is(sym_ptr, sk_variable) &&
         !var_has_static_or_thread_storage_duration(var) &&
         !(gpp_version_is(<160000) || clang_version_is(<170000) ||
           ms_version_is(any_version))) {
       /* P2579 causes mentions of automatic variables in a lambda header
          after the parameter list (and after any "mutable" qualifier) to be
-         treated as a "const" lvalue if no mutable qualifier was specified. */
+         treated as a "const" lvalue if no mutable qualifier was specified
+         and the variable would be captured by copy.  (A by-reference
+         capture, or a use in an unevaluated operand when the capture list
+         does not permit a by-copy capture, does not get this treatment.) */
       if (func_proto_ssep != NULL && func_proto_ssep->outside_parameter_list &&
           rout_type_supp(func_proto_ssep->assoc_type)->qualifiers
                                                                 == TQ_CONST) {
-        *add_const = TRUE;
+        a_lambda_ptr  lambda = (expr_stack != NULL) ?
+                                  expr_stack->current_lambda_in_header :
+                                  (a_lambda_ptr)NULL;
+        if (lambda == NULL) {
+          /* During constraint instantiation (and similar rescans) the
+             expression-stack indication may be unset.  Recover the lambda
+             from the innermost closure class on the scope stack. */
+          a_scope_depth  sd = get_innermost_closure_scope_depth();
+          lambda = get_lambda_for_closure_class(scope_stack[sd].assoc_type);
+        }  /* if */
+        if (lambda != NULL && var_is_copy_captured(lambda, var)) {
+          *add_const = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!curr_expr_is_potentially_evaluated() &&
@@ -43133,6 +43157,10 @@ called to record the start of the header of the indicated lambda.
   expr_stack->current_lambda_in_header = lambda;
   closure_class = lambda->closure_class;
   check_assertion(closure_class != NULL);
+  /* Record the closure-to-lambda association so header processing can
+     recover the lambda later (e.g., during constraint instantiation)
+     when the expression-stack indication is not available. */
+  closure_class_to_lambda_map->map_or_replace(closure_class, lambda);
   if (expr_is_inside_default_arg_expression()) {
     /* Record that the closure class is inside a default argument
        expression. */

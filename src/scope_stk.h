@@ -2799,13 +2799,27 @@ Microsoft compilers fixed this.)
 
 extern a_boolean src_seq_entries_permitted_in_il(void);
 
-typedef Ptr_map<a_routine_ptr, a_lambda_ptr>
-		a_call_op_to_lambda_map;
+typedef Ptr_map<a_type_ptr, a_lambda_ptr>
+		a_closure_class_to_lambda_map;
 
-EXTERN_THREAD a_call_op_to_lambda_map
-		*call_op_to_lambda_map;
-			/* A map from lambda call operator (a_routine) entries
-			   to corresponding a_lambda entries. */
+EXTERN_THREAD a_closure_class_to_lambda_map
+		*closure_class_to_lambda_map;
+			/* A map from lambda closure class types to the
+			   corresponding a_lambda entries.  Populated when
+			   a lambda header is started. */
+
+
+inline a_lambda_ptr get_lambda_for_closure_class(a_type_ptr  closure_class)
+/*
+If closure_class is a lambda closure class that has been recorded in
+closure_class_to_lambda_map, return the corresponding a_lambda entry.
+Otherwise return NULL.
+*/
+{
+  return (closure_class != NULL) ?
+           closure_class_to_lambda_map->get(closure_class) :
+           (a_lambda_ptr)NULL;
+}  /* get_lambda_for_closure_class */
 
 
 inline a_lambda_ptr get_lambda_for_scope_depth(a_scope_depth  sd)
@@ -2816,7 +2830,8 @@ return NULL.
 */
 {
   check_assertion(sd != NO_SCOPE_DEPTH);
-  return call_op_to_lambda_map->get(scope_stack[sd].assoc_routine);
+  return get_lambda_for_closure_class(
+                    parent_class_or_null(scope_stack[sd].assoc_routine));
 }  /* get_lambda_for_scope_depth */
 
 
