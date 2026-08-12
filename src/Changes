@@ -1,5 +1,29 @@
 Version 6.10
 
+8/12/26  [EDGcpfe/28955,EDGcpfe/28976]
+Unary * on instantiation-dependent but non-type-dependent operands
+
+The changes for EDGcpfe/24532 etc. (in version 6.9) caused some uses of the
+unary "*" operator to be analyzed "generically" when an operand was
+instantiation-dependent but not type-dependent.  That dropped the result type
+of operator* and could then cause a spurious parse error on a following 
+member template argument list.  For example:
+
+  struct W { template<typename> void f(); };
+  struct It { W& operator*(); };
+  struct Arg {};
+  struct S {
+    It get(Arg);
+    template<typename> void g() {
+      Arg a{};
+      (*get(a)).f<int>();  // Previously: "type name is not allowed".
+    }
+  };
+
+Unary "*" is now handled like "->": Only type dependence (not instantiation
+dependence) causes generic treatment, so the result type remains available
+for parsing a subsequent member template-id.
+
 8/12/26  [EDGcpfe/28960]
 Assertion failure in extract_value_from_constant
 

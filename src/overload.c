@@ -19274,13 +19274,16 @@ like sizeof(sizeof(T)) is instantiation-dependent but not type-dependent).
 {
   a_boolean  result;
 
-  if (opname_kind == onk_arrow || !dependent_lookup_finds_static_functions) {
-    /* Something like "x<sizeof(sizeof(T))> -> f<T>()" should not be treated
-       "generically" because that would require "-> template f<T>" for parsing
-       to succeed.  I.e., only check type dependence, not instantiation
-       dependence.  In strict C++03 mode, dependent name lookup won't find
-       internal-linkage functions, and so we must keep to a conservative
-       interpretation of "template dependent". */
+  if (opname_kind == onk_arrow ||
+      (opname_kind == onk_star && unary_op) ||
+      !dependent_lookup_finds_static_functions) {
+    /* Something like "x<sizeof(sizeof(T))> -> f<T>()" or "(*x).f<T>()"
+       should not be treated "generically" because that would require
+       "-> template f<T>" / ". template f<T>" for parsing to succeed.  I.e.,
+       only check type dependence, not instantiation dependence.  In strict
+       C++03 mode, dependent name lookup won't find internal-linkage
+       functions, and so we must keep to a conservative interpretation of
+       "template dependent". */
     result = operand_is_dependent(opnd1) ||
              (!unary_op && operand_is_dependent(opnd2));
   } else if (opname_kind == onk_subscript) {
