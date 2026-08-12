@@ -18989,6 +18989,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
           k++;
         }  /* if */
       }  /* for */
+      check_assertion(elem != NULL);
       elem = make_qualified_type(skip_typedefs(elem),
                                  tqs & (TQ_CONST | TQ_VOLATILE));
       result_rvp->entity.kind = iek_type;
