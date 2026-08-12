@@ -1,5 +1,21 @@
 Version 6.10
 
+8/12/26  [EDGcpfe/28960]
+Assertion failure in extract_value_from_constant
+
+Consider:
+
+  constexpr BigObject b{ /* ... */ };
+  auto &r = b.member();  // Could assert in extract_value_from_constant.
+
+where BigObject is too large to represent in interpreter storage.  The
+failure to materialize b in the interpreter could leave a representation of
+the address of b uninitialized but some later processing (that should have
+been skipped since interpretation already failed) still consulted that address
+for processing.  That resulted in a spurious assertion failure.  This bug is
+now fixed.
+
+
 8/11/26  [EDGcpfe/28982]
 Dependent integral constant matching std::nullptr_t parameter
 

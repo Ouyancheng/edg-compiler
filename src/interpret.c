@@ -5993,6 +5993,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
             }
             break;
         }  /* switch */
+        if (!result) break;
         if (obj_type != NULL &&
             (con->implicit_cast || con->variant.address.offset != 0)) {
           result = translate_il_address_offset(ips, con, cap, obj_type);
