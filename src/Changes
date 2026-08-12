@@ -3,7 +3,7 @@ Version 6.10
 8/12/26  [EDGcpfe/28955,EDGcpfe/28976]
 Unary * on instantiation-dependent but non-type-dependent operands
 
-The changes for EDGcpfe/24532 etc. (in version 6.9) caused some uses of the
+The changes for EDGcpfe/24532 et al. (in version 6.9) caused some uses of the
 unary "*" operator to be analyzed "generically" when an operand was
 instantiation-dependent but not type-dependent.  That dropped the result type
 of operator* and could then cause a spurious parse error on a following 
