@@ -1,5 +1,26 @@
 Version 6.10
 
+8/12/26  [EDGcpfe/28944]
+C++-generating back end: CTAD with lambda as expression temporary
+
+In cases where class template argument deduction is used with a constexpr
+constructor and the resulting temporary is passed as an expression the
+C++-generating back end could put out the deduced class type using an
+undeclared temporary name (of the form __T12345678) as an explicit template
+argument.  This is now fixed.  For example, with --c++20:
+
+  template<typename T1, typename T2> struct pair {
+    constexpr pair(const T1 &a, const T2 &b);
+    T1 first; T2 second;
+  };
+  template<typename T> T f(T v) { return v; }
+  void g() {
+    // Previously generated as:
+    //   f(pair<class __T12345678, int>{[]{}, 0})
+    f(pair{[]{}, 0});
+  }
+
+
 8/12/26  [EDGcpfe/28955,EDGcpfe/28976]
 Unary * on instantiation-dependent but non-type-dependent operands
 

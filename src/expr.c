@@ -31508,6 +31508,9 @@ have_result:
 #if BACK_END_IS_CP_GEN_BE
   if (uses_class_templ_arg_deduction && dip != NULL) {
     dip->suppress_template_arguments_for_cast = TRUE;
+    /* gen_dynamic_init reads this after skip_constexpr_init_folding. */
+    skip_constexpr_init_folding(dip)->
+                           suppress_template_arguments_for_cast = TRUE;
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
 end_of_routine:
