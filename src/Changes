@@ -1,5 +1,20 @@
 Version 6.10
 
+8/13/26  [EDGcpfe/25502]
+C++20: De-deprecating volatile bitwise compound assignments
+
+Committee document P2327R1 (a DR against C++20) restores the bitwise compound
+assignment operators (|=, &=, and ^=) on volatile-qualified objects, which
+P1152R4 (implemented via EDGcpfe/21593 in version 6.0) had deprecated.
+Arithmetic and shift compound assignments on volatile objects remain
+deprecated.  For example, with --c++20:
+
+  volatile int v;
+  int i;
+  v |= i;   // No longer deprecated.
+  v += i;   // Still deprecated.
+
+
 8/13/26  [EDGcpfe/29004]
 C++-generating back end, Microsoft compatibility: volatile-qualified parameters
 
