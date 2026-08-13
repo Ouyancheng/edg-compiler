@@ -1,5 +1,19 @@
 Version 6.10
 
+8/13/26  [EDGcpfe/29004]
+C++-generating back end, Microsoft compatibility: volatile-qualified parameters
+
+The changes for EDGcpfe/28825 in version 6.9 suppressed top-level volatile
+qualifiers in function parameter declarations in the output of the
+C++-generating back end.  That change, however, was too broad, since MSVC
+includes the presence or absence of such qualifiers in the mangled names of
+functions.  Consequently, the C++-generating back end no longer suppresses
+"volatile" in parameter declarations when msvc_is_generated_code_target is
+TRUE.  For example, with --microsoft_version=1950:
+
+  void f(int * volatile);   // Previously omitted "volatile", now preserved
+
+
 8/13/26  [EDGcpfe/29003]
 _Pragma operator in #if expression
 

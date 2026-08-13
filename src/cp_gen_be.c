@@ -10865,11 +10865,14 @@ for_ctor is TRUE, this is the parameter list of a constructor.
                  set_type_operator_suppression(param_var->declared_type, TRUE);
       }  /* if */
       if (type_is(param_var->declared_type, tk_typeref) &&
+          !msvc_is_generated_code_target &&
           (param_var->declared_type->variant.typeref.qualifiers & TQ_VOLATILE)
                                                                         != 0) {
         /* Top-level volatile qualifiers are deprecated in C++20, per
            P1152R4, so suppress "volatile" in this declaration, even though
-           it was present in the original source. */
+           it was present in the original source.  (MSVC's mangling of
+           function names considers the presence or absence of the volatile
+           qualifier, so preserve it for output targeting MSVC.) */
         param_var->declared_type->variant.typeref.qualifiers ^= TQ_VOLATILE;
         volatile_qual_suppressed = TRUE;
       }  /* if */
@@ -10969,10 +10972,13 @@ for_ctor is TRUE, this is the parameter list of a constructor.
                                set_type_operator_suppression(param_type, TRUE);
       }  /* if */
       if (type_is(param_type, tk_typeref) &&
-          (param_type->variant.typeref.qualifiers & TQ_VOLATILE) != 0) {
+          (param_type->variant.typeref.qualifiers & TQ_VOLATILE) != 0 &&
+          !msvc_is_generated_code_target) {
         /* Top-level volatile qualifiers are deprecated in C++20, per
            P1152R4, so suppress "volatile" in this declaration, even though
-           it was present in the original source. */
+           it was present in the original source.  (MSVC's mangling of
+           function names considers the presence or absence of the volatile
+           qualifier, so preserve it for output targeting MSVC.) */
         param_type->variant.typeref.qualifiers ^= TQ_VOLATILE;
         volatile_qual_suppressed = TRUE;
       }  /* if */
