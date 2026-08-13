@@ -192,7 +192,8 @@ Dependent integral constant matching std::nullptr_t parameter
 In a template prototype instantiation, a value-dependent integral constant
 that might be zero is not treated as a null pointer constant when matching
 a pointer parameter (see EDGcpfe/9380).  That treatment is now extended to
-parameters of type std::nullptr_t as well.  For example, with --c++11:
+parameters of type std::nullptr_t as well (except in Microsoft mode).  For
+example, with --c++11:
 
   void f(decltype(nullptr));
   void f(long);                 // (1)
