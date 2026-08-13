@@ -1035,7 +1035,7 @@ remove_any_extraneous_braces:
       *init_con = elem_is.init_con;
     } else if (elem_is.init_dip != NULL) {
       /* A nonconstant entry.  T() for a trivial aggregate type T is folded to
-         a ck_aggregate (matching T{}); otherwise wrap it in a ck_dynamic_init
+         a ck_aggregate (matching T{}); otherwise, wrap it in a ck_dynamic_init
 	 entry and record that a nonconstant entry was seen. */
       a_dynamic_init_ptr  dip = elem_is.init_dip;
       check_assertion(!is->check_validity_only);
