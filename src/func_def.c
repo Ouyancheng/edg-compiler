@@ -481,14 +481,16 @@ NULL.
       if (is_incomplete_type(return_type)) {
         if ((microsoft_bugs && !evaluated &&
              is_immediate_class_type(return_type)) ||
-            (!strict_ansi_mode && rout_ptr != NULL &&
-             rout_ptr->is_prototype_instantiation)) {
+            (!strict_ansi_mode &&
+             ((rout_ptr != NULL && rout_ptr->is_prototype_instantiation) ||
+              in_generic_lambda_in_prototype_instantiation()))) {
           /* MSVC++ allows a function call returning an incomplete class type
              in a not-evaluated context.  Also, it is common practice not to
              diagnose calls to functions with incomplete return types if the
              called function is a prototype instantiation (verified with GCC
-             and Clang); in nonstrict modes, we therefore just issue a warning
-             as well. */
+             and Clang) or if the call appears in a generic-lambda prototype
+             instantiation (verified with GCC); in nonstrict modes, we
+             therefore just issue a warning as well. */
           if (diag_pos != NULL) {
             pos_ty_warning(ec_incomplete_class_return_type, diag_pos,
                            orig_return_type);
