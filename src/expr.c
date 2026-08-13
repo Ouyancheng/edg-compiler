@@ -39656,9 +39656,7 @@ a capture).
       if (func_proto_ssep != NULL && func_proto_ssep->outside_parameter_list &&
           rout_type_supp(func_proto_ssep->assoc_type)->qualifiers
                                                                 == TQ_CONST) {
-        a_lambda_ptr  lambda = (expr_stack != NULL) ?
-                                  expr_stack->current_lambda_in_header :
-                                  (a_lambda_ptr)NULL;
+        a_lambda_ptr  lambda = expr_stack->current_lambda_in_header;
         if (lambda == NULL) {
           /* During constraint instantiation (and similar rescans) the
              expression-stack indication may be unset.  Recover the lambda
