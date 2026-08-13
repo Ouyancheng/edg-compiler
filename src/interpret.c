@@ -6371,9 +6371,10 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
             if (fp == NULL) {
               /* An empty union: Just clear the "active field". */
               *(a_field_ptr*)value = NULL;
-            } else if (con->explicit_braces_on_aggregate) {
-              /* A value-initialized union (e.g., "U x{};").  Initialize the
-                 first field to zero. */
+            } else if (con->explicit_braces_on_aggregate ||
+                       con->explicit_parentheses_on_aggregate) {
+              /* A value-initialized union (e.g., "U x{};" or "U()").
+                 Initialize the first field to zero. */
               a_type_ptr  ftp = skip_typerefs(fp->type);
               get_mapped_byte_count(&persistent_map, fp, offset);
               init_subobject_to_zero(ips, value+offset, ftp, complete_object);

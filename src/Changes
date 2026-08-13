@@ -1,5 +1,23 @@
 Version 6.10
 
+8/12/26  [EDGcpfe/28876]
+Representation of T() vs T{} for aggregate types
+
+A functional-notation cast T() of an aggregate was previously represented as a
+dik_zero dynamic initialization of temporary, even when it appeared in an
+aggregate initializer list (in the backing expression of the constant entry
+representing that entry).  Now it is represented as a plain aggregate constant,
+consistent with the braced case (i.e., T{}).  For example, with --c++20:
+
+  struct X {};
+  struct Y {
+    X X;
+  };
+  static Y y1 = { X{} };   // Always represented by a plain ck_aggregate.
+  static Y y2 = { X() };   // Previously a nonconstant aggregate with a
+                           // dik_zero backing expression.  Now similar to y1.
+
+
 8/12/26  [EDGcpfe/27881]
 Inconsistent conditional compilation in decl_routine
 

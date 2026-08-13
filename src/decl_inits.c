@@ -764,6 +764,41 @@ N4713.)
 }  /* is_singleton_with_extraneous_braces */
 
 
+static a_boolean fold_empty_parens_cast_to_aggregate(
+                                                a_dynamic_init_ptr  dip,
+                                                a_type_ptr          dest_type,
+                                                a_constant_ptr      *init_con)
+/*
+If dip is a dik_zero explicit functional-notation cast of an aggregate with no
+nontrivial destructor (empty T()), make *init_con an empty ck_aggregate entry
+with the same shape as T{} except for explicit_parentheses_on_aggregate, and
+return TRUE.  dest_type is the type being initialized.  Return FALSE if dip
+cannot be represented that way (including C++/CLI value classes, whose
+System::ValueType base is not a value-initialized constant).
+*/
+{
+  a_boolean       folded = FALSE;
+  a_type_ptr      utp = skip_typerefs(dest_type);
+  a_constant_ptr  con;
+
+  if (dyn_init_is(dip, dik_zero) && dip->destructor == NULL &&
+      dip->is_explicit_cast &&
+      is_immediate_class_type(utp) && is_aggregate_type(utp) &&
+      !is_value_class_type(utp) &&
+      !has_nontrivial_destructor(class_symbol_supp(symbol_for(utp)))) {
+    con = local_constant();
+    if (make_value_initialized_constant(dest_type, con)) {
+      con->explicit_cast_applied = TRUE;
+      con->explicit_parentheses_on_aggregate = TRUE;
+      *init_con = move_local_constant_to_il(&con);
+      folded = TRUE;
+    }  /* if */
+    if (con != NULL) release_local_constant(&con);
+  }  /* if */
+  return folded;
+}  /* fold_empty_parens_cast_to_aggregate */
+
+
 static void aggr_init_simple_element(an_init_component_ptr  *p_icp,
                                      a_type_ptr             dest_type,
                                      an_init_state          *is,
@@ -999,30 +1034,40 @@ remove_any_extraneous_braces:
       /* A constant initializer: Return it. */
       *init_con = elem_is.init_con;
     } else if (elem_is.init_dip != NULL) {
-      /* A nonconstant entry: Wrap it in a ck_dynamic_init entry, and record
-         the fact that a nonconstant entry was seen. */
+      /* A nonconstant entry.  T() for a trivial aggregate type T is folded to
+         a ck_aggregate (matching T{}); otherwise wrap it in a ck_dynamic_init
+	 entry and record that a nonconstant entry was seen. */
       a_dynamic_init_ptr  dip = elem_is.init_dip;
       check_assertion(!is->check_validity_only);
-      *init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      (*init_con)->variant.dynamic_init.ptr = dip;
-      (*init_con)->type = dest_type;
-      (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+      if (fold_empty_parens_cast_to_aggregate(dip, dest_type, init_con)) {
+        (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (!is_designator_component(icp)) {
-        (*init_con)->end_position = *init_component_end_pos(icp);
-      }  /* if */
+        if (!is_designator_component(icp)) {
+          (*init_con)->end_position = *init_component_end_pos(icp);
+        }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      if (dip->kind == (a_dynamic_init_kind)dik_constant ||
-          dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-        /* If this dynamic initialization embeds a designator, record it in the
-           newly created constant. */
-        (*init_con)->uses_designated_initializers =
+      } else {
+        *init_con = alloc_constant(ck_dynamic_init);
+        (*init_con)->variant.dynamic_init.ptr = dip;
+        (*init_con)->type = dest_type;
+        (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (!is_designator_component(icp)) {
+          (*init_con)->end_position = *init_component_end_pos(icp);
+        }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        if (dyn_init_is(dip, dik_constant) ||
+            dyn_init_is(dip, dik_nonconstant_aggregate)) {
+          /* If this dynamic initialization embeds a designator, record it in
+             the newly created constant. */
+          (*init_con)->uses_designated_initializers =
                       dip->variant.constant.ptr->uses_designated_initializers;
-      }  /* if */
-      is->has_dynamic_init_component = TRUE;
-      if (dip->destructor != NULL) {
-        record_partial_aggregate_cleanup_destruction(dip,
-                                                     !elem_is.not_evaluated);
+        }  /* if */
+        is->has_dynamic_init_component = TRUE;
+        if (dip->destructor != NULL) {
+          record_partial_aggregate_cleanup_destruction(dip,
+                                                       !elem_is.not_evaluated);
+        }  /* if */
       }  /* if */
     }  /* if */
   }
