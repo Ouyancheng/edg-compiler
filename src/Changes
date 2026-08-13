@@ -25,7 +25,7 @@ parameter list and trailing return type.  For example, with --c++17:
   C c = { };  // Previously shown as deduction guide "C", now "C()->C<int>"
 
 
-8/12/26  [EDGcpfe/28876]
+8/12/26  [EDGcpfe/28288,EDGcpfe/28876]
 Representation of T() vs T{} for aggregate types
 
 A functional-notation cast T() of an aggregate was previously represented as a
@@ -41,6 +41,17 @@ consistent with the braced case (i.e., T{}).  For example, with --c++20:
   static Y y1 = { X{} };   // Always represented by a plain ck_aggregate.
   static Y y2 = { X() };   // Previously a nonconstant aggregate with a
                            // dik_zero backing expression.  Now similar to y1.
+
+This also addresses a bug in the constant-evaluation of value-initialized
+union objects.  For example, with --c++20:
+
+  union U { int i; };
+  struct S {
+    U u;
+    constexpr S() : u() {}
+  };
+  constexpr S s;  // Previously an error about U::i not being initialized.
+                  // Now okay.
 
 
 8/12/26  [EDGcpfe/27881]
