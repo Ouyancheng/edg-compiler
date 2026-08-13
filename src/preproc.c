@@ -2826,31 +2826,29 @@ based on the information specified in the pragma description entry.
 is_microsoft_pragma_operator is TRUE when the pragma being scanned is a
 Microsoft __pragma operator.*/
 {
-  a_boolean             save_expand_macros;
-  a_boolean             save_caching_pragma_tokens;
-  a_boolean             save_do_string_literal_concatenation;
-  a_boolean             save_fetch_pp_tokens;
-  a_boolean             save_recognize_keywords_in_pragma;
-  a_boolean             save_in_preprocessing_directive;
-  a_pending_pragma_list *save_curr_token_pragmas;
+  a_boolean             save_expand_macros = expand_macros;
+  a_boolean             save_caching_pragma_tokens = caching_pragma_tokens;;
+  a_boolean             save_do_string_literal_concatenation =
+                                               do_string_literal_concatenation;
+  a_boolean             save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean             save_recognize_keywords_in_pragma =
+                                                  recognize_keywords_in_pragma;
+  a_boolean             save_in_preprocessing_directive =
+                                                    in_preprocessing_directive;
+  a_boolean             save_in_pp_if_expression = in_pp_if_expression;
+  a_pending_pragma_list *save_curr_token_pragmas = curr_token_pragmas;
 
   /* Cache the pragma identifier. */
   cache_curr_token(token_cache);
-  /* Save the current value of the lexical scanning mode flags. */
-  save_expand_macros = expand_macros;
-  save_caching_pragma_tokens = caching_pragma_tokens;
-  save_do_string_literal_concatenation = do_string_literal_concatenation;
-  save_fetch_pp_tokens = fetch_pp_tokens;
-  save_recognize_keywords_in_pragma = recognize_keywords_in_pragma;
-  save_in_preprocessing_directive = in_preprocessing_directive;
   /* We need to set in_preprocessing_directive in case this is called to
-     process a _Pragma operator. */
+     process a _Pragma operator.  It should not get the special "non-macro
+     identifier is equivalent to 0" treatment for #if expressions, though. */
   in_preprocessing_directive = TRUE;
+  in_pp_if_expression = FALSE;
   /* Due to the fact that we're in a preprocessing directive, the normal logic
      for saving and restoring the pragma state associated with the current
      token will be disabled.  Instead, manually save and restore the pragmas
      associated with the current token.  */
-  save_curr_token_pragmas = curr_token_pragmas;
   curr_token_pragmas = new_fe<a_pending_pragma_list>();
   /* Set the new values. */
   expand_macros = pkdp->expand_macros;
@@ -2892,6 +2890,7 @@ Microsoft __pragma operator.*/
   fetch_pp_tokens = save_fetch_pp_tokens;
   recognize_keywords_in_pragma = save_recognize_keywords_in_pragma;
   in_preprocessing_directive = save_in_preprocessing_directive;
+  in_pp_if_expression = save_in_pp_if_expression;
 }  /* cache_pragma_tokens */
 
 

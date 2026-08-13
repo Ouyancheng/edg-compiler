@@ -1,5 +1,29 @@
 Version 6.10
 
+8/13/26  [EDGcpfe/29003]
+_Pragma operator in #if expression
+
+When _Pragma appears in the expression of a #if directive, the front end
+incorrectly treated names appearing in the _Pragma operand as if they were
+part of a preprocessor expression, i.e., any identifier not defined as a
+macro was replaced by the integer value 0.  This generally resulted in the
+_Pragma failing to have its intended effect.  For example, with
+--ms_c++latest:
+
+  #define M _Pragma("pack(push, 1)")
+  #if (0 + M 1)
+  #endif
+  struct S {
+    char      c;
+    long long d;
+  };
+  static_assert(sizeof(S) == 9, "Incorrect size");
+
+Because the "push" in the _Pragma operand was replaced by the integer value
+0, the pragma attempted to set the alignment to 0 instead of 1 and the
+static assertion failed.  This is now fixed.
+
+
 8/13/26  [EDGcpfe/29001]
 Performance improvements for CTAD through template template parameters
 
