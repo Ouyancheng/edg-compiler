@@ -45815,6 +45815,41 @@ guide is recorded in the template symbol supplement associated with alias_sym.
 }  /* create_transformed_deduction_guide_for_alias_template */
 
 
+static a_boolean alias_like_ctad_transformation_needed(
+                                             a_symbol_ptr          tttp_sym,
+                                             a_template_param_ptr  tttp_params,
+                                             a_symbol_ptr          arg_sym)
+/*
+Return TRUE if class template argument deduction through the type template
+template parameter tttp_sym (whose template parameter list is tttp_params)
+needs to perform full alias-like CTAD transformations for the deduction guides
+(see N5046 [over.match.class.deduct]/3).  When tttp_sym has no constraints and
+its template parameter list either consists of a single parameter pack or is
+equivalent to the template parameter list of arg_sym (including any default
+arguments), the argument's deduction guides can be used directly.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (!template_has_constraints(
+                template_supplement_for_symbol(tttp_sym)->il_template_entry)) {
+    if (tttp_params != NULL && tttp_params->is_pack &&
+        tttp_params->next == NULL) {
+      result = FALSE;
+    } else {
+      a_template_param_ptr  arg_params;
+      arg_params = template_supplement_for_symbol(arg_sym)
+                                                ->cache->decl_info->parameters;
+      result = !equiv_template_param_lists(tttp_params, arg_params,
+                                           /*issue_errors=*/FALSE,
+                                           ETP_DEFAULT_ARGUMENT_MATCH_REQUIRED,
+                                           (a_source_position*)NULL, es_error);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* alias_like_ctad_transformation_needed */
+
+
 void create_deduction_guides_for_template_template_param(
                                               a_symbol_ptr  tttp_sym,
                                               a_symbol_ptr  arg_sym,
@@ -45823,7 +45858,9 @@ void create_deduction_guides_for_template_template_param(
 Create temporary deduction guides used for CTAD through the type template
 template parameter tttp_sym.  arg_sym is the class or alias template bound to
 tttp_sym; its implicit deduction guides must already be up to date.
-Transformed guides are stored in *result_guide_list.
+When alias-like transformations are needed, transformed guides are stored
+in *result_guide_list; otherwise *result_guide_list is set to the existing
+guides of arg_sym.
 */
 {
   a_symbol_ptr           guide_set, guide_sym, invented_alias_sym;
@@ -45832,28 +45869,33 @@ Transformed guides are stored in *result_guide_list.
   a_boolean              is_list = FALSE;
 
   if (result_guide_list == NULL) goto done;
-  tttp_params = template_supplement_for_symbol(tttp_sym)
-                    ->cache->decl_info->parameters;
-  defining_type = make_tttp_ctad_defining_type(tttp_sym, tttp_params, arg_sym);
-  if (defining_type == NULL) goto done;
-  invented_alias_sym = make_invented_class_template(tttp_params,
-                                                    tttp_sym->header,
-                                                    &tttp_sym->decl_position);
   guide_set = template_supplement_for_symbol(arg_sym)
-                  ->variant.class_template.deduction_guides;
+                                     ->variant.class_template.deduction_guides;
   if (guide_set == NULL) goto done;
-  if (symbol_is(guide_set, sk_overloaded_function)) {
-    is_list = TRUE;
-    guide_sym = guide_set->variant.overloaded_function.symbols;
+  tttp_params = template_supplement_for_symbol(tttp_sym)
+                                                ->cache->decl_info->parameters;
+  if (alias_like_ctad_transformation_needed(tttp_sym, tttp_params, arg_sym)) {
+    defining_type = make_tttp_ctad_defining_type(tttp_sym, tttp_params,
+                                                 arg_sym);
+    if (defining_type == NULL) goto done;
+    invented_alias_sym = make_invented_class_template(
+                                                 tttp_params, tttp_sym->header,
+                                                 &tttp_sym->decl_position);
+    if (symbol_is(guide_set, sk_overloaded_function)) {
+      is_list = TRUE;
+      guide_sym = guide_set->variant.overloaded_function.symbols;
+    } else {
+      guide_sym = guide_set;
+    }  /* if */
+    for (; guide_sym != NULL; guide_sym = is_list ? guide_sym->next : NULL) {
+      (void)create_transformed_deduction_guide(actck_template_template_param,
+                                               invented_alias_sym,
+                                               defining_type, tttp_sym,
+                                               guide_sym, result_guide_list);
+    }  /* for */
   } else {
-    guide_sym = guide_set;
+    *result_guide_list = guide_set;
   }  /* if */
-  for (; guide_sym != NULL; guide_sym = is_list ? guide_sym->next : NULL) {
-    (void)create_transformed_deduction_guide(actck_template_template_param,
-                                             invented_alias_sym,
-                                             defining_type, tttp_sym,
-                                             guide_sym, result_guide_list);
-  }  /* for */
 done:;
 }  /* create_deduction_guides_for_template_template_param */
 

@@ -1903,6 +1903,9 @@ symbol_name:
           /* Always put out the parameter list for functions that are
              instances of function templates. */
           force_function_params = TRUE;
+        } else if (special_kind_is(routine, sfk_deduction_guide)) {
+          /* Always put out the param list for deduction guides. */
+          force_function_params = TRUE;
         } else if (sym_to_display->overload_set_member) {
           /* Always put out the param list for overloaded functions. */
           force_function_params = TRUE;

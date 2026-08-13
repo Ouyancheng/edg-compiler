@@ -1,5 +1,30 @@
 Version 6.10
 
+8/13/26  [EDGcpfe/29001]
+Performance improvements for CTAD through template template parameters
+
+When class template argument deduction (CTAD) was performed for a placeholder
+naming a type template template parameter, the deduction guides of the template
+argument were always transformed through an invented alias template (see the
+changes for EDGcpfe/28857).  This transformation is now skipped when the
+template template parameter has no constraints and its parameter list is either
+a single parameter pack or is equivalent to that of the template argument.  For
+example, with --c++20:
+
+  template<typename T> struct B { B(T); };
+  template<template<typename...> class TT>
+  void f() { TT t(1); }  // No longer performs alias-like CTAD transformations
+  template void f<B>();
+
+In addition, a diagnostic that names a deduction guide now always includes its
+parameter list and trailing return type.  For example, with --c++17:
+
+  template<typename T>
+  struct C { };
+  explicit C() -> C<int>;
+  C c = { };  // Previously shown as deduction guide "C", now "C()->C<int>"
+
+
 8/12/26  [EDGcpfe/28876]
 Representation of T() vs T{} for aggregate types
 
