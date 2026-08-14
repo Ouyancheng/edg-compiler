@@ -8384,10 +8384,12 @@ brace/parenthesis delimiters around it should be suppressed.
     write_tok_ch(']');
   }  /* if */
   if (constant_is(eff_con, ck_aggregate)) {
-    /* The presence of braces following an aggregate can make
-       a difference.  Don't put out braces if they were implied
-       in the source. */
-    if (!eff_con->explicit_braces_on_aggregate) {
+    /* The presence of braces following a designator can make a difference.
+       Don't put out braces if they were implied in the source, but keep
+       delimiters for an explicit T() or other functional-notation cast. */
+    if (!eff_con->explicit_braces_on_aggregate &&
+        !eff_con->explicit_parentheses_on_aggregate &&
+        !eff_con->explicit_cast_applied) {
       *suppress_delims = TRUE;
       if (eff_con->variant.aggregate.first_constant != NULL &&
           constant_is(eff_con->variant.aggregate.first_constant,
