@@ -3334,7 +3334,7 @@ operator routine or do bitwise assignment.
   rtsp = rout_type_supp(skip_typerefs(rout->type));
   ptp = rtsp->param_type_list;
   dest_var = NULL;
-  if (ptp != NULL && ptp->is_explicit_this) {
+  if (ptp->is_explicit_this) {
     dest_var = implicitly_generated_param_variable(ptp);
     ptp = ptp->next;
   }  /* if */
