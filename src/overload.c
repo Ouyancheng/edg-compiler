@@ -20492,7 +20492,8 @@ no_applicable_operator_function:
                 !function_symbol->variant.routine.ptr->is_deleted &&
                 !function_symbol->variant.routine.ptr->is_consteval &&
                 function_symbol->variant.routine.ptr->
-                                                    is_trivial_copy_function) {
+                                                    is_trivial_copy_function &&
+                !has_explicit_this_parameter(routine_type)) {
               /* This function is the default bitwise copy assignment
                  operator, so generate an assignment instead of a call. */
               a_boolean access_error_reported;

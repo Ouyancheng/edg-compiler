@@ -13846,16 +13846,16 @@ a_boolean is_assignment_operator_for_copy(
 /*
 Return TRUE if sym, an sk_member_function symbol for an operator= function,
 qualifies as a "copy assignment operator" that can copy a class object.
-It qualifies if its first parameter has a type of "A", "A&", or "A const&",
-where "A" is the class of which it is a member.  If move_assign_okay is TRUE,
-the parameter can also have type "A&&" or "A const&&".  (In cfront
-compatibility mode, sym also qualifies if the first parameter involves type B
-where B is a base class of A.)  Set *is_ref_arg to TRUE if the first
-parameter is a reference type.  Set *qualifiers based on how the first
-parameter is qualified.  Return *is_base_class_match set to TRUE for the
-cfront compatibility case.  is_ref_arg, qualifiers, and/or is_base_class_match
-can be NULL if the corresponding bit of information is not needed by the
-caller.
+It qualifies if its non-object parameter has a type of "A", "A&", or
+"A const&", where "A" is the class of which it is a member.  If
+move_assign_okay is TRUE, the parameter can also have type "A&&" or
+"A const&&".  (In cfront compatibility mode, sym also qualifies if the
+non-object parameter involves type B where B is a base class of A.)
+Set *is_ref_arg to TRUE if the non-object parameter is a reference type.
+Set *qualifiers based on how that parameter is qualified.  Return
+*is_base_class_match set to TRUE for the cfront compatibility case.
+is_ref_arg, qualifiers, and/or is_base_class_match can be NULL if the
+corresponding bit of information is not needed by the caller.
 */
 {
   a_boolean  found;
@@ -14508,31 +14508,43 @@ parent class is X, it must have one of the following signatures (including the
 "const", "volatile" and "const volatile" variants, potentially):
 	X& operator=(X&)
 	X& operator=(X&&)
-The last signature ("move assignment operator") can be defaulted only in modes
-where such operators can be implicitly generated (and in some GNU C++ modes).
-From C++20, the standard allows defaulting assignment operators whose type
-differs from what would be implicitly generated, and which satisfy
-[class.copy.assign]/p1 and p3 (N4810).  These operators may be defined as
-deleted if they don't meet the criteria set out in [dcl.fct.def.default]/p2
-(N4810).  Set *is_deleted to TRUE if we are in C++20 mode and if the
-assignment operator needs to be defined as deleted.
+or the corresponding forms with an explicit object parameter:
+	X& operator=(this X&, X&)
+	X& operator=(this X&, X&&)
+	X& operator=(this X&&, X&&)
+The last signatures ("move assignment operator") can be defaulted only in
+modes where such operators can be implicitly generated (and in some GNU C++
+modes).  From C++20, the standard allows defaulting assignment operators
+whose type differs from what would be implicitly generated, and which
+satisfy [class.copy.assign].  These operators may be defined as deleted
+if they don't meet the criteria set out in [dcl.fct.def.default].  Set
+*is_deleted to TRUE if we are in C++20 mode and if the assignment operator
+needs to be defined as deleted.
 */
 {
   a_boolean         result = FALSE;
   a_type_ptr        class_type = sym_parent_class(sym);
   a_type_ptr        rout_type;
   a_param_type_ptr  params;
+  a_param_type_ptr  expl_this = NULL;
 
   *is_deleted = FALSE;
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function ||
                   (sym->is_error && sym->kind == (a_symbol_kind)sk_routine));
   rout_type = skip_typerefs(sym->variant.routine.ptr->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-  params = rout_type->variant.routine.extra_info->param_type_list;
+  params = function_type_params(rout_type);
+  if (params != NULL && params->is_explicit_this) {
+    expl_this = params;
+    params = params->next;
+  }  /* if */
   if (params == NULL || params->next != NULL) {
-    /* Assignment operators should have exactly one parameter; anything else
-       should cause an error elsewhere.  See [over.oper]/p8 (N4140). */
-    expect_error();
+    /* Assignment operators should have exactly one non-object parameter;
+       anything else should cause an error elsewhere when there is no
+       explicit "this" parameter.  See N5046 [over.oper]. */
+    if (expl_this == NULL) {
+      expect_error();
+    }  /* if */
   } else {
     a_boolean  routine_has_qualifiers, return_types_match;
     a_type_ptr return_type = make_reference_type(class_type);
@@ -14548,6 +14560,22 @@ assignment operator needs to be defined as deleted.
                                                 is_deleted);
       if (routine_has_qualifiers) {
         *is_deleted = TRUE;
+      }  /* if */
+      if (result && expl_this != NULL) {
+        /* The explicit object parameter must be a reference to the class
+           type.  Other object-parameter types can still be defaulted on
+           the first declaration, but the operator is defined as deleted. */
+        a_type_ptr obj_tp = skip_typerefs(expl_this->type);
+        if (is_any_reference_type(obj_tp)) {
+          a_type_ptr under = type_pointed_to(obj_tp);
+          if (get_type_qualifiers(under) != TQ_NONE ||
+              !identical_types(skip_typerefs(under),
+                               skip_typerefs(class_type))) {
+            *is_deleted = TRUE;
+          }  /* if */
+        } else {
+          *is_deleted = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -14626,12 +14654,9 @@ the position of the "= default" construct.
                     ((is_member && ptp->next == NULL) ||
                      (!is_member && ptp->next != NULL &&
                                                     ptp->next->next == NULL)));
-    if (has_explicit_this_parameter(rtp)) {
-      /* A comparison operator with an explicit "this" parameter cannot be
-         defaulted. */
-      pos_error(ec_explicit_this_defaulted_comparison, def_pos);
-      err = TRUE;
-    } else if (!is_member && identical_types(ptp->type, ptp->next->type) &&
+    /* An explicit "this" parameter is treated as the first parameter, so
+       the non-member (friend) checks below apply. */
+    if (!is_member && identical_types(ptp->type, ptp->next->type) &&
                identical_types(class_type, ptp->type)) {
       /* A defaulted friend comparison operator can have two parameters of
          the type of the containing class.  Otherwise, each parameter must
@@ -15493,7 +15518,7 @@ set; otherwise, it is NULL.
 static void mark_special_parameters(a_routine_ptr  rp)
 /*
 If the given routine is a move constructor or a move assignment operator,
-set the move_ctor_or_assign_parameter flag of its first parameter to TRUE.
+set the move_ctor_or_assign_parameter flag of its source parameter to TRUE.
 Similarly, if the given routine is a copy or move constructor, set the
 copy_or_move_ctor_parameter flags of its first parameter to TRUE.
 */
@@ -15515,7 +15540,7 @@ copy_or_move_ctor_parameter flags of its first parameter to TRUE.
   } else if (routine_is_move_assignment_operator(rp)) {
     a_type_ptr  rtp;
     ensure_underlying_function_type_is_modifiable(&rp->type, &rtp);
-    function_type_params(rtp)->move_ctor_or_assign_parameter = TRUE;
+    first_nonobject_param(rtp)->move_ctor_or_assign_parameter = TRUE;
   }  /* if */
 }  /* mark_special_parameters */
 
@@ -24566,12 +24591,11 @@ members.
 
   for (; rp != NULL; rp = rp->next) {
     if (rp->is_defaulted) {
-      a_routine_type_supplement_ptr   rtsp = skip_typerefs(rp->type)
-                                                 ->variant.routine.extra_info;
+      a_param_type_ptr ptp = first_nonobject_param(skip_typerefs(rp->type));
       /* For a copy constructor or copy assignment operator, check whether the
          parameter has the expected qualifiers. */
-      if (rtsp->param_type_list != NULL) {
-        a_type_ptr  param_tp = rtsp->param_type_list->type;
+      if (ptp != NULL) {
+        a_type_ptr  param_tp = ptp->type;
         param_tp = skip_typerefs(param_tp);
         if (special_kind_is(rp, sfk_constructor) &&
             param_tp->kind == (a_type_kind)tk_pointer &&

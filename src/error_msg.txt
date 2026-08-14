@@ -3296,7 +3296,7 @@ ec_mutable_qualifier_on_explicit_this_lambda;;"the mutable qualifier is not allo
 ec_static_with_explicit_this;;"a member function declared with \"static\" cannot have an explicit \"this\" parameter"
 ec_explicit_this_param_must_be_first;;"an explicit \"this\" parameter must be the first declared parameter"
 ec_bad_this;;"\"this\" is not allowed here"
-ec_explicit_this_defaulted_comparison;;"a comparison function with explicit \"this\" cannot be defaulted"
+REMOVED;ec_explicit_this_defaulted_comparison;;"a comparison function with explicit \"this\" cannot be defaulted"
 ec_explicit_this_needs_this;;"an explicit \"this\" function requires a selector operand"
 ec_if_consteval_nonstandard;;"\"if consteval\" and \"if not consteval\" are not standard in this mode"
 ec_lambda_without_parameters_nonstandard;;"omitting \"()\" in a lambda declarator is nonstandard in this mode"

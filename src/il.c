@@ -16582,20 +16582,20 @@ a_boolean is_copy_assignment_operator_type(
 Return TRUE if routine_type (an operator= function's type) is the type
 of a copy assignment operator for class class_type; if it is, also (if
 is_ref_arg is non-NULL) set *is_ref_arg to indicate whether the
-parameter has a reference type, and (if qualifiers is non-NULL) set
-*qualifiers to indicate the type qualifiers on the function's first
+non-object parameter has a reference type, and (if qualifiers is
+non-NULL) set *qualifiers to indicate the type qualifiers on that
 parameter.  If move_assign_okay is TRUE, also return TRUE if
-routine_type is the type of a "move assignment operator" (the first
-parameter has an rvalue reference type).  If is_base_class_match is
-non-NULL, return *is_base_class_match for the cfront compatibility
-case where the copy assignment operator takes a base class as its
-input.
+routine_type is the type of a "move assignment operator" (the
+non-object parameter has an rvalue reference type).  If
+is_base_class_match is non-NULL, return *is_base_class_match for the
+cfront compatibility case where the copy assignment operator takes a
+base class as its input.  An explicit "this" parameter is not counted
+as the source parameter.
 */
 {
   a_boolean                     is_copy_assign = FALSE;
   a_param_type_ptr              ptp;
   a_type_ptr                    tp;
-  a_routine_type_supplement_ptr rtsp;
 
   if (is_ref_arg != NULL) *is_ref_arg = FALSE;
   if (qualifiers != NULL) *qualifiers = TQ_NONE;
@@ -16604,36 +16604,36 @@ input.
   check_assertion(is_immediate_class_type(class_type));
   routine_type = skip_typerefs(routine_type);
   check_assertion(routine_type->kind == (a_type_kind)tk_routine);
-  rtsp = routine_type->variant.routine.extra_info;
-  ptp = rtsp->param_type_list;
-  check_assertion(ptp != NULL);
-  tp = skip_typerefs(ptp->type);
-  if (move_assign_okay ? is_reference_type(tp)
-                       : is_lvalue_reference_type(tp)) {
-    /* Reference argument. */
-    tp = type_pointed_to(tp);
-    /* Don't do a skip_typerefs on what's returned from type_pointed_to,
-       since we need to distinguish between "A&" and "const A&". */
-    if (is_ref_arg != NULL) *is_ref_arg = TRUE;
-  }  /* if */
-  if (is_class_struct_union_type(tp)) {
-    /* The type of the first parameter is a class type. */
-    if (types_are_compatible_ignoring_qualifiers(tp, class_type)) {
-      /* The parameter's type matches the class of which the assignment
-         operator is a member. */
-      is_copy_assign = TRUE;
-    } else if (allow_copy_assignment_op_with_base_class_param) {
-      if (find_base_class_of(class_type, tp) != NULL) {
-        /* The parameter's type matches a base class of the class of which the
-           assignment operator is a member. */
-        is_copy_assign = TRUE;
-        if (is_base_class_match != NULL) *is_base_class_match = TRUE;
-      }  /* if */
+  ptp = first_nonobject_param(routine_type);
+  if (ptp != NULL) {
+    tp = skip_typerefs(ptp->type);
+    if (move_assign_okay ? is_reference_type(tp)
+                         : is_lvalue_reference_type(tp)) {
+      /* Reference argument. */
+      tp = type_pointed_to(tp);
+      /* Don't do a skip_typerefs on what's returned from type_pointed_to,
+         since we need to distinguish between "A&" and "const A&". */
+      if (is_ref_arg != NULL) *is_ref_arg = TRUE;
     }  /* if */
-    if (is_copy_assign && qualifiers != NULL) {
-      /* Check the qualifiers.  (Call get_top_level_type_qualifiers instead
-         of get_type_qualifiers because we know tp cannot be an array.) */
-      *qualifiers = get_top_level_type_qualifiers(tp);
+    if (is_class_struct_union_type(tp)) {
+      /* The type of the non-object parameter is a class type. */
+      if (types_are_compatible_ignoring_qualifiers(tp, class_type)) {
+        /* The parameter's type matches the class of which the assignment
+           operator is a member. */
+        is_copy_assign = TRUE;
+      } else if (allow_copy_assignment_op_with_base_class_param) {
+        if (find_base_class_of(class_type, tp) != NULL) {
+          /* The parameter's type matches a base class of the class of which
+             the assignment operator is a member. */
+          is_copy_assign = TRUE;
+          if (is_base_class_match != NULL) *is_base_class_match = TRUE;
+        }  /* if */
+      }  /* if */
+      if (is_copy_assign && qualifiers != NULL) {
+        /* Check the qualifiers.  (Call get_top_level_type_qualifiers instead
+           of get_type_qualifiers because we know tp cannot be an array.) */
+        *qualifiers = get_top_level_type_qualifiers(tp);
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_copy_assign;
@@ -16646,10 +16646,10 @@ a_boolean routine_is_copy_or_move_assign_operator(
                                                a_boolean             *is_move)
 /*
 Return TRUE if the given function is a copy or move assignment operator.
-If it is, set *tqs to the qualifiers referred to by the first parameter (or
-TQ_NONE if that parameter is not a reference), and set *is_move to TRUE if
-it is a move constructor and to FALSE otherwise.  Otherwise, set *tqs to
-TQ_NONE and *is_move to FALSE.
+If it is, set *tqs to the qualifiers referred to by the non-object
+parameter (or TQ_NONE if that parameter is not a reference), and set
+*is_move to TRUE if it is a move assignment operator and to FALSE
+otherwise.  Otherwise, set *tqs to TQ_NONE and *is_move to FALSE.
 */
 {
   a_boolean result, base_match_only;
@@ -16663,7 +16663,7 @@ TQ_NONE and *is_move to FALSE.
            !base_match_only;
   if (result) {
     *is_move = is_rvalue_reference_type(
-                         function_type_params(skip_typerefs(rp->type))->type);
+                  first_nonobject_param(skip_typerefs(rp->type))->type);
   } else {
     *is_move = FALSE;
   }  /* if */

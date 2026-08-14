@@ -3283,6 +3283,25 @@ object, including for the case where the parameter has a reference type.
 }  /* lvalue_for_source_param */
 
 
+static an_expr_node_ptr assignment_dest_ptr_expr(a_variable_ptr dest_var)
+/*
+Return a pointer expression for the object being assigned to in a defaulted
+assignment operator.  dest_var is the explicit object parameter variable
+when the operator has an explicit "this" parameter; otherwise dest_var is
+NULL and the implicit "this" parameter is used.
+*/
+{
+  an_expr_node_ptr expr;
+
+  if (dest_var != NULL) {
+    expr = add_address_of_to_node(lvalue_for_source_param(dest_var));
+  } else {
+    expr = this_param_value_expr();
+  }  /* if */
+  return expr;
+}  /* assignment_dest_ptr_expr */
+
+
 static void make_default_assignment_body(a_scope_ptr  scope)
 /*
 Create the body for a default assignment operator.  Typically it will
@@ -3296,7 +3315,7 @@ operator routine or do bitwise assignment.
   a_routine_type_supplement_ptr  rtsp;
   a_statement_ptr                sp, top_block;
   a_statement                    head_of_statement_list;
-  a_variable_ptr                 source_var;
+  a_variable_ptr                 source_var, dest_var;
   an_expr_node_ptr               source_expr, dest_expr;
   a_base_class_ptr               bcp;
   a_field_ptr                    fp;
@@ -3308,16 +3327,25 @@ operator routine or do bitwise assignment.
   a_source_position              saved_error_position = error_position;
 
   db_enter(4, "make_default_assignment_body");
-  /* The source variable of the copy is the first parameter on the parameters
-     list for the routine.  There must be exactly one parameter for an
-     assignment function. */
+  /* The source is the non-object parameter.  When there is an explicit
+     "this" parameter, that parameter is the destination; otherwise the
+     implicit "this" parameter is used. */
   rout = scope->variant.routine.ptr;
   rtsp = rout_type_supp(skip_typerefs(rout->type));
   ptp = rtsp->param_type_list;
+  dest_var = NULL;
+  if (ptp != NULL && ptp->is_explicit_this) {
+    dest_var = implicitly_generated_param_variable(ptp);
+    ptp = ptp->next;
+  }  /* if */
   move_assign = is_rvalue_reference_type(ptp->type);
   source_var = implicitly_generated_param_variable(ptp);
-  class_type =
+  if (scope->variant.routine.this_param_variable != NULL) {
+    class_type =
           type_pointed_to(scope->variant.routine.this_param_variable->type);
+  } else {
+    class_type = parent_class_of(rout);
+  }  /* if */
   err_pos = &class_type->source_corresp.decl_position;
   error_position = *err_pos;
   /* Create the top-level block statement for the function. */
@@ -3338,7 +3366,7 @@ operator routine or do bitwise assignment.
        assignment statement. */
     source_expr = lvalue_for_source_param(source_var);
     source_expr = rvalue_expr_for_lvalue(source_expr);
-    dest_expr = add_indirection_to_node(this_param_value_expr());
+    dest_expr = add_indirection_to_node(assignment_dest_ptr_expr(dest_var));
     sp = sp->next = make_assignment_statement(dest_expr, source_expr);
     sp->parent = top_block;
   } else {
@@ -3355,11 +3383,13 @@ operator routine or do bitwise assignment.
              the assignment function of some other base class. */
           continue;
         }  /* if */
-        /* The destination is always the implicit "this" parameter cast to
-           the appropriate base class. */
-        dest_expr = base_class_selection_expr(this_param_value_expr(), bcp);
+        /* The destination is the object being assigned to, cast to the
+           appropriate base class. */
+        dest_expr = base_class_selection_expr(
+                                    assignment_dest_ptr_expr(dest_var), bcp);
         dest_expr = add_indirection_to_node(dest_expr);
-        /* The source is the first parameter cast to the same base class. */
+        /* The source is the non-object parameter cast to the same base
+           class. */
         source_expr = lvalue_for_source_param(source_var);
         source_expr = add_address_of_to_node(source_expr);
         source_expr = base_class_selection_expr(source_expr, bcp);
@@ -3420,10 +3450,11 @@ operator routine or do bitwise assignment.
         } else {
           array_type = NULL;
         }  /* if */
-        /* The destination is the appropriate field of the class pointed to
-           by the "this" parameter, as an lvalue. */
-        dest_expr = fe_field_lvalue_selection_expr(this_param_value_expr(),
-                                                   fp);
+        /* The destination is the appropriate field of the destination
+           object, as an lvalue. */
+        dest_expr = fe_field_lvalue_selection_expr(
+                                    assignment_dest_ptr_expr(dest_var),
+                                    fp);
         /* The source will be the corresponding field of the class pointed to
            by the source parameter. */
         source_expr = lvalue_for_source_param(source_var);
@@ -3549,7 +3580,8 @@ operator routine or do bitwise assignment.
   sp = sp->next = alloc_statement(stmk_return, /*compiler_generated=*/TRUE);
   sp->parent = top_block;
   sp->expr = add_reference_to_to_node(
-                  add_indirection_to_node(this_param_value_expr()));
+                  add_indirection_to_node(
+                                    assignment_dest_ptr_expr(dest_var)));
   /* We now have a list of one or more statements hanging off the local
      variable head_of_statement_list.  The start of the list is pointed to
      by the next field.  Attach the list to the top-level block. */

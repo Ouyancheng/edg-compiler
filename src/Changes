@@ -1,5 +1,21 @@
 Version 6.10
 
+8/13/26  [EDGcpfe/25524]
+C++23: Explicit object parameter for assignment and comparison
+
+The front end now implements the resolution of Core issue 2586.  A copy or
+move assignment operator may be declared with an explicit object parameter,
+and a comparison operator with an explicit object parameter may be defaulted.
+For example, with --c++23:
+
+  struct C {
+    C& operator=(this C&, C const&);  // Now a copy assignment operator.
+  };
+  struct D {
+    bool operator==(this D const&, D const&) = default;  // Now okay.
+  };
+
+
 8/13/26  [EDGcpfe/25502]
 C++20: De-deprecating volatile bitwise compound assignments
 

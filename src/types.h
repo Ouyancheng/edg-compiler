@@ -2160,6 +2160,21 @@ an explicit "this" parameter.
   return ptp != NULL && ptp->is_explicit_this;
 }  /* has_explicit_this_parameter */
 
+inline a_param_type_ptr first_nonobject_param(a_type_ptr rtp)
+/*
+Return the first non-object parameter of the given routine type, or NULL
+if there is none.  When the function has an explicit "this" parameter,
+that parameter is skipped.
+*/
+{
+  a_param_type_ptr ptp;
+
+  check_assertion(type_is(rtp, tk_routine));
+  ptp = function_type_params(rtp);
+  if (ptp != NULL && ptp->is_explicit_this) ptp = ptp->next;
+  return ptp;
+}  /* first_nonobject_param */
+
 extern void types_init(void);
 
 /* Conditionally close the "edg" namespace. */
