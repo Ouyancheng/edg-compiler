@@ -1,5 +1,20 @@
 Version 6.10
 
+8/14/26  [EDGcpfe/25502,EDGcpfe/25847]
+C++23: Un-deprecation of volatile compound assignments
+
+The front end now implements the resolutions of Core issue 2654 (a DR against
+C++23).  Compound assignment operators on volatile-qualified objects are no
+longer deprecated.  Increment, decrement, and simple assignment (when the
+value is used) of volatile objects remain deprecated.  For example,
+with --c++20:
+
+  volatile int v;
+  int i;
+  v += i;   // No longer deprecated.
+  ++v;      // Still deprecated.
+
+
 8/13/26  [EDGcpfe/25524]
 C++23: Explicit object parameter for assignment and comparison
 
@@ -14,21 +29,6 @@ For example, with --c++23:
   struct D {
     bool operator==(this D const&, D const&) = default;  // Now okay.
   };
-
-
-8/13/26  [EDGcpfe/25502]
-C++20: De-deprecating volatile bitwise compound assignments
-
-Committee document P2327R1 (a DR against C++20) restores the bitwise compound
-assignment operators (|=, &=, and ^=) on volatile-qualified objects, which
-P1152R4 (implemented via EDGcpfe/21593 in version 6.0) had deprecated.
-Arithmetic and shift compound assignments on volatile objects remain
-deprecated.  For example, with --c++20:
-
-  volatile int v;
-  int i;
-  v |= i;   // No longer deprecated.
-  v += i;   // Still deprecated.
 
 
 8/13/26  [EDGcpfe/29004]

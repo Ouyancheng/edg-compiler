@@ -37867,16 +37867,10 @@ operation_type_determined:
                                           operator_tok_seq_number,
                                           (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
-  if (!C_mode() && is_volatile_qualified_type(result->type) &&
-      save_token != tok_and_assign &&
-      save_token != tok_excl_or_assign &&
-      save_token != tok_or_assign) {
-    /* P1152R4 (in C++20) deprecated compound assignment to a volatile-
-       qualified object.  P2327R1 (a DR against C++20) restored the bitwise
-       operators |=, &=, and ^=. */
-    an_error_severity sev = cpp20_mode ? es_warning : es_remark;
-    expr_pos_diagnostic(sev, ec_volatile_op_ass_deprecated, &result->position);
-  }  /* if */
+  /* P1152R4 (in C++20) deprecated compound assignment to a volatile-
+     qualified object.  P2327R1 restored the bitwise operators, and
+     CWG 2654 (a DR against C++23) un-deprecated all compound
+     assignment operators on volatile objects. */
   db_exit();
 }  /* scan_compound_assignment_operator */
 
