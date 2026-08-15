@@ -3328,7 +3328,7 @@ operator routine or do bitwise assignment.
 
   db_enter(4, "make_default_assignment_body");
   /* The source is the non-object parameter.  When there is an explicit
-     "this" parameter, that parameter is the destination; otherwise the
+     "this" parameter, that parameter is the destination; otherwise, the
      implicit "this" parameter is used. */
   rout = scope->variant.routine.ptr;
   rtsp = rout_type_supp(skip_typerefs(rout->type));

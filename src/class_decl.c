@@ -14512,14 +14512,12 @@ or the corresponding forms with an explicit object parameter:
 	X& operator=(this X&, X&)
 	X& operator=(this X&, X&&)
 	X& operator=(this X&&, X&&)
-The last signatures ("move assignment operator") can be defaulted only in
-modes where such operators can be implicitly generated (and in some GNU C++
-modes).  From C++20, the standard allows defaulting assignment operators
-whose type differs from what would be implicitly generated, and which
-satisfy [class.copy.assign].  These operators may be defined as deleted
-if they don't meet the criteria set out in [dcl.fct.def.default].  Set
-*is_deleted to TRUE if we are in C++20 mode and if the assignment operator
-needs to be defined as deleted.
+From C++20, the standard allows defaulting assignment operators whose type
+differs from what would be implicitly generated, and which satisfy N5046
+[class.copy.assign].  These operators may be defined as deleted if they don't
+meet the criteria set out in N5046 [dcl.fct.def.default].  Set *is_deleted to
+TRUE if we are in C++20 mode and if the assignment operator needs to be defined
+as deleted.
 */
 {
   a_boolean         result = FALSE;
@@ -14529,10 +14527,10 @@ needs to be defined as deleted.
   a_param_type_ptr  expl_this = NULL;
 
   *is_deleted = FALSE;
-  check_assertion(sym->kind == (a_symbol_kind)sk_member_function ||
-                  (sym->is_error && sym->kind == (a_symbol_kind)sk_routine));
+  check_assertion(symbol_is(sym, sk_member_function) ||
+                  (sym->is_error && symbol_is(sym, sk_routine)));
   rout_type = skip_typerefs(sym->variant.routine.ptr->type);
-  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+  check_assertion(type_is(rout_type, tk_routine));
   params = function_type_params(rout_type);
   if (params != NULL && params->is_explicit_this) {
     expl_this = params;
