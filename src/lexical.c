@@ -13374,8 +13374,8 @@ The following variables declare a finite state machine giving the names
 and code points of the characters in the Unicode character set.  See the
 file unicode_name_fsm.c for the definition and description of the data.
 */
-extern unsigned char unicode_name_fsm[];
-extern sizeof_t size_of_unicode_name_fsm;
+extern const unsigned char unicode_name_fsm[];
+extern const sizeof_t size_of_unicode_name_fsm;
 
 
 static inline unsigned long val_from_unicode_name_fsm(unsigned long offset)
