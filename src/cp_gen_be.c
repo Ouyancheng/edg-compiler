@@ -20733,8 +20733,8 @@ instantiation is available.
 
 
 static a_boolean template_should_be_generated_from_prototype_instantiation(
-                                       ARG_UNUSED a_template_ptr tp,
-                                       a_boolean                 is_definition)
+                                                  a_template_ptr tp,
+                                                  a_boolean      is_definition)
 /*
 Determine whether the given template should be generated from the IL of its
 prototype instantiation (if not, it is generated from its recorded textual
@@ -20762,8 +20762,29 @@ instantiation is available; see gen_template_from_prototype_instantiation).
 {
   a_boolean  result = il_header.il_has_all_prototype_instantiations;
 
+  if (!result && tp->text == NULL) {
+    /* If the text of the template is not available, see if a prototype
+       instantiation can be used instead. */
+    switch (tp->kind) {
+      case templk_function:
+      case templk_member_function:
+        result = tp->prototype_instantiation.routine !=NULL;
+        break;
+      case templk_class:
+      case templk_member_class:
+      case templk_member_enum:
+        result = tp->prototype_instantiation.type != NULL;
+        break;
+      case templk_static_data_member:
+      case templk_variable:
+        result = tp->prototype_instantiation.variable != NULL;
+        break;
+      default:
+        break;
+    }  /* switch */
+  }  /* if */
   if (!result) {
-    if (tp->kind == (a_template_kind)templk_concept) {
+    if (tp->kind == templk_concept) {
       result = TRUE;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     } else if (all_template_info_in_il &&

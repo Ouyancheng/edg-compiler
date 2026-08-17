@@ -1,5 +1,23 @@
 Version 6.10
 
+8/17/26  [EDGcpfe/29007]
+C++-generating back end: segfault with member alias template
+
+In C++-generating back end configurations with ALL_TEMPLATE_INFO_IN_IL set
+to FALSE, an alias template that is a member of a class template could
+cause an abort dereferencing a NULL pointer.  This is now fixed.  For
+example, with --microsoft_version=1951 --ms_c++latest:
+
+  template<typename, typename = int, typename = int> struct S { };
+  struct O {
+    template <template <typename...> typename C> struct D;
+    template<> struct D<S> {
+      template<typename T, typename... Args>
+      using A = S<T, int, Args...>;   // Previously aborted
+    };
+  };
+
+
 8/14/26  [EDGcpfe/25502,EDGcpfe/25847]
 C++23: Un-deprecation of volatile compound assignments
 
