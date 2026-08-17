@@ -261,7 +261,10 @@ empty string.  EXTERN is used on the declarations of external variables
 in .h files.  This scheme makes it easy to define them in only one
 place while using the same source in all places.  VAR_INITIALIZERS is
 defined to indicate we are in the translation unit in which the definitions
-occur and also causes inclusion of initializers for those variables.
+occur and also causes inclusion of initializers for those variables.  (Note
+that using EXTERN with a variable declared "const" will not work, as the
+resulting definition will have internal linkage.  The variable should
+simply be declared "extern const" in that case.)
 */
 #ifndef VAR_INITIALIZERS
 #define VAR_INITIALIZERS 0
