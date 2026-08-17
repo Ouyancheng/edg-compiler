@@ -2827,7 +2827,7 @@ is_microsoft_pragma_operator is TRUE when the pragma being scanned is a
 Microsoft __pragma operator.*/
 {
   a_boolean             save_expand_macros = expand_macros;
-  a_boolean             save_caching_pragma_tokens = caching_pragma_tokens;;
+  a_boolean             save_caching_pragma_tokens = caching_pragma_tokens;
   a_boolean             save_do_string_literal_concatenation =
                                                do_string_literal_concatenation;
   a_boolean             save_fetch_pp_tokens = fetch_pp_tokens;
