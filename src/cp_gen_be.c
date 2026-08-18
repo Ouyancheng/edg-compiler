@@ -20750,7 +20750,7 @@ example, the input
       template<typename U> T f();
     };
     S<int> x;
-would produce the following specialization if the member template is
+would produce the following specialization if the member template were
 generated from text:
     template<> struct S<int> {
       template<typename U> T f();
@@ -20768,7 +20768,7 @@ instantiation is available; see gen_template_from_prototype_instantiation).
     switch (tp->kind) {
       case templk_function:
       case templk_member_function:
-        result = tp->prototype_instantiation.routine !=NULL;
+        result = tp->prototype_instantiation.routine != NULL;
         break;
       case templk_class:
       case templk_member_class:
