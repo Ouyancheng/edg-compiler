@@ -161,7 +161,7 @@ union objects.  For example, with --c++20:
 Inconsistent conditional compilation in decl_routine
 
 The local variable decl_modifiers in decl_routine was declared under a
-condition that did not cover all of its uses.  Uses that record the
+condition that did not cover all of its uses.  E.g., uses that record the
 marked_as_gnu_extension flag in source-sequence information were compiled
 whenever GENERATE_SOURCE_SEQUENCE_LISTS was TRUE, but the variable itself
 was declared for that purpose only when GNU_EXTENSIONS_ALLOWED was also
