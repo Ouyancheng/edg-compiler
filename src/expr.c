@@ -58205,7 +58205,7 @@ position because the trait computation suppresses diagnostics.
 
 
 static an_expr_node_ptr build_meta_trait_node(
-		                         a_builtin_operation_kind  kind,
+                                         a_builtin_operation_kind  kind,
                                          a_type_ptr                first_type,
                                          a_type_ptr                *arg_types,
                                          int                       n_args)

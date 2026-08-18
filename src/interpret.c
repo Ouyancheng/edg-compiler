@@ -32,17 +32,19 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "func_def.h"
 
+#include "il_to_str.h"
+
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
 
 #include "layout.h"
 
+#include "pch.h"
+
 #include "symbol_ref.h"
 
 #include "templates.h"
-
-#include "il_to_str.h"
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -9988,9 +9990,9 @@ static a_boolean build_source_location_value(
                                     a_byte               *complete_obj,
                                     a_boolean            *p_result)
 /*
-Build a std::source_location value describing use_pos.  A __impl object holding
-its file name, function name, line, and column is allocated and populated.  How
-its address is delivered depends on result_class_type:
+Build a std::source_location value describing use_pos.  An __impl object
+holding its file name, function name, line, and column is allocated and
+populated.  How its address is delivered depends on result_class_type:
 __builtin_source_location yields the __impl pointer directly, so
 result_class_type is NULL and the address is stored (as a scalar pointer) at
 result_storage.  std::meta::source_location_of instead returns a
@@ -11755,6 +11757,11 @@ static a_boolean copy_interpreter_object_to_constant(
                                        a_constant_ptr        con);
 
 
+STATIC_THREAD long	n_make_constexpr_array_calls;
+				/* The number of calls to make_constexpr_array
+				   (in std::meta) made in the current
+				   translation unit. */
+
 static a_boolean do_constexpr_std_meta_make_constexpr_array(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -11794,7 +11801,6 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     a_constant_ptr          init_cp, result_cp;
     a_symbol_ptr            sym;
     a_symbol_locator        loc;
-    STATIC_THREAD long      n = 0;
     get_array_pos(ips, cap, elem_type, &len, &pos, &elem_size,
                   &result);
     if (!result) goto done;
@@ -11832,7 +11838,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     vp->initializer.constant = init_cp;
     vp->is_constexpr = TRUE;
 
-    Small_string<100> name("__ce_array_", ++n);
+    Small_string<100> name("__ce_array_", ++n_make_constexpr_array_calls);
     clear_locator(&loc, &call_node->position);
     (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
     sym = make_symbol(sk_variable, &loc);
@@ -11854,6 +11860,11 @@ done:
 }  /* do_constexpr_std_meta_make_constexpr_array */
 
 
+STATIC_THREAD long	n_object_reflection_variables;
+				/* The number of calls to
+				   make_object_reflection_variable (see below)
+				   made in the current translation unit. */
+
 static a_constant_ptr make_object_reflection_variable(
                                               a_type_ptr         obj_type,
                                               a_constant_ptr     init_cp,
@@ -11874,14 +11885,13 @@ its declaration.
   a_constant_ptr      result_cp;
   a_symbol_ptr        sym;
   a_symbol_locator    loc;
-  STATIC_THREAD long  n = 0;
 
   add_temporary_to_front_of_variables_list(
                                     vp, curr_translation_unit->primary_scope);
   vp->init_kind = initk_static;
   vp->initializer.constant = init_cp;
   vp->is_constexpr = TRUE;
-  Small_string<100> name(name_prefix, ++n);
+  Small_string<100> name(name_prefix, ++n_object_reflection_variables);
   clear_locator(&loc, pos);
   (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
   sym = make_symbol(sk_variable, &loc);
@@ -12611,7 +12621,7 @@ class or union object it stays an object reflection (a class value is a
 template-argument-equivalent object); an object reflection of a scalar object
 is reduced to a value reflection of the scalar's value.  A constexpr class or
 union variable likewise yields an object reflection (via object_of).  Other
-reflections that denote a constant (for example an enumerator or a scalar
+reflections that denote a constant (for example, an enumerator or a scalar
 constexpr variable) are reduced to a value reflection via value_of.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
@@ -14339,7 +14349,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 
 
 static a_source_correspondence *source_corresp_for_parent_of(
-                                                  a_reflection_value  *rvp)
+                                                     a_reflection_value  *rvp)
 /*
 Return the source correspondence whose enclosing scope is reported as the
 parent of the entity reflected by rvp (by parent_of and has_parent), or NULL
@@ -15301,6 +15311,11 @@ reverse mapping from the array's interpreter storage back to it is recorded.
 }  /* info_array_element_pointer */
 
 
+STATIC_THREAD long	n_info_array_variables;
+				/* The number of calls to
+				   build_info_array_variable (see below) made
+				   in the current translation unit. */
+
 static a_boolean build_info_array_variable(
                                   an_interpreter_state          *ips,
                                   an_expr_node_ptr              call_node,
@@ -15343,7 +15358,6 @@ itself by emptying the initializer once the result vector has been built.
   a_symbol_locator      loc;
   a_memory_region_number
                         region;
-  STATIC_THREAD long    counter = 0;
 
   if (!result) goto done;
   /* Materialize the reflections (plus null terminator) in an interpreter
@@ -15388,7 +15402,7 @@ itself by emptying the initializer once the result vector has been built.
   vp->initializer.constant = init_cp;
   vp->is_constexpr = TRUE;
   {
-    Small_string<100>  name("__ce_members_", ++counter);
+    Small_string<100>  name("__ce_members_", ++n_info_array_variables);
     clear_locator(&loc, &call_node->position);
     (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
     sym = make_symbol(sk_variable, &loc);
@@ -32666,6 +32680,15 @@ One-time initialization for interpret.c static variables.
 */
 {
   /* Static variables in interpret.c. */
+  if (precompiled_header_processing_required) {
+    STATIC_THREAD a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(n_make_constexpr_array_calls),
+      pch_saved_var_array_elem(n_object_reflection_variables),
+      pch_saved_var_array_elem(n_info_array_variables),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
   register_trans_unit_variable(trans_unit_initialization_needed);
   register_trans_unit_variable(persistent_data);
   register_trans_unit_variable(persistent_map);
@@ -32675,6 +32698,9 @@ One-time initialization for interpret.c static variables.
   register_trans_unit_variable(n_free_variant_path_entries);
   register_trans_unit_variable(valid_placement_new_address);
   register_trans_unit_variable(valid_placement_new_type);
+  register_trans_unit_variable(n_make_constexpr_array_calls);
+  register_trans_unit_variable(n_object_reflection_variables);
+  register_trans_unit_variable(n_info_array_variables);
   useful_constants_initialized = FALSE;
   free_stack_blocks = NULL;
   free_variant_path_entries = NULL;
