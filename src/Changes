@@ -1,5 +1,21 @@
 Version 6.10
 
+8/18/26  [EDGcpfe/29008]
+Missing template string for members of an in-class explicit specialization
+
+In configurations with RECORD_TEMPLATE_STRINGS set to TRUE, the front end
+previously did not record the string representation for member templates of an
+in-class explicit specialization.  For example, with --c++11:
+
+  struct S {
+    template<typename T> struct C { };
+    template<> struct C<int> {
+      template<typename T> using A = T;  // Previously not recorded as a string
+                                         // representation in the IL.
+    };
+  };
+
+
 8/17/26  [EDGcpfe/29007]
 C++-generating back end: segfault with member alias template
 
