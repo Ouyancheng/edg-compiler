@@ -23376,17 +23376,26 @@ static an_expr_node_ptr i_copy_expr_tree(an_expr_node_ptr          expr,
 Make a copy of an expression tree and return a pointer to it.  options is
 a set of options for the copy.  cblock is a control block for the copy.
 This is an internal routine (thus the "i_" prefix); copy_expr_tree should
-be called to start a copy.
+be called to start a copy.  When CE_COPYING_FOR_LOCAL_EXPR_NODE_REF is set,
+an expression node already copied in this operation is reused rather than
+copied again.
 */
 {
-  an_expr_node_ptr            expr_copy;
+  an_expr_node_ptr            expr_copy = NULL;
   a_new_delete_supplement_ptr ndsp, copy_ndsp;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_gcnew_supplement_ptr      gsp, copy_gsp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+  if (options & CE_COPYING_FOR_LOCAL_EXPR_NODE_REF) {
+    expr_copy = (an_expr_node_ptr)find_copy_remap_address((char*)expr, cblock);
+    if (expr_copy != NULL) goto end_of_routine;
+  }  /* if */
   /* Copy the top node. */
   expr_copy = copy_node(expr);
+  if (options & CE_COPYING_FOR_LOCAL_EXPR_NODE_REF) {
+    add_copy_remap_entry((char*)expr, (char*)expr_copy, cblock);
+  }  /* if */
   if (options & (CE_COPYING_FOR_CONSTEXPR_FOLDING | CE_PRESERVE_RESCAN_INFO)) {
     expr_copy->extra.rescan_info = expr->extra.rescan_info;
     expr_copy->is_pack_expansion = expr->is_pack_expansion;
@@ -23416,8 +23425,8 @@ be called to start a copy.
         /* Copy a constant to avoid having an expression in the file-scope
            memory region pointing to a constant in a function scope
            memory region.  Also copy function-scope constants when copying
-           for inlining, because the constants are in a different
-           function-scope memory region, or when explicitly requested. */
+           for inlining or for a local-expr-node-ref, because those copies
+           land in a different function-scope memory region. */
         an_expr_copy_options_set subcopy_options = options;
         subcopy_options |= CE_COPIED_CONSTANTS_MAY_BE_SHARED;
         node_constant(expr_copy) =
@@ -23866,6 +23875,7 @@ be called to start a copy.
   if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
     do_instantiations_for_copied_default_arg_expr(expr_copy);
   }  /* if */
+end_of_routine:;
   return expr_copy;
 }  /* i_copy_expr_tree */
 
@@ -26215,18 +26225,19 @@ treat_as_potential_prvalue should always be FALSE when called during lowering
 
 static void set_up_matching_node_walk(
                         an_expr_or_stmt_traversal_block_ptr    tblock,
-                        a_traversal_expr_process_function_ptr  check_node)
+                        a_traversal_expr_process_function_ptr  check_node,
+                        a_boolean follow_folded_exprs)
 /*
 Prepare tblock for a walk that offers each node of an expression tree to
-check_node.  The walk covers constants, the expressions recorded for folded
-constants, and the constants and expressions inside template parameter
-constants.
+check_node.  The walk covers constants and the constants and expressions
+inside template parameter constants.  If follow_folded_exprs is TRUE, it
+also follows the expressions recorded for folded constants.
 */
 {
   clear_expr_or_stmt_traversal_block(tblock);
   tblock->process_expr = check_node;
   tblock->process_non_dynamic_constants = TRUE;
-  tblock->process_expressions_for_constants = TRUE;
+  tblock->process_expressions_for_constants = follow_folded_exprs;
   tblock->process_template_parameter_constants_and_expressions = TRUE;
 }  /* set_up_matching_node_walk */
 
@@ -26243,33 +26254,40 @@ cost more than the repeated visits it saves.
 
 static a_boolean expr_tree_has_matching_node(
                         an_expr_node_ptr                      expr,
-                        a_traversal_expr_process_function_ptr check_node)
+                        a_traversal_expr_process_function_ptr check_node,
+                        a_boolean follow_folded_exprs)
 /*
 Return TRUE if check_node reports a match for one of the nodes of the
 expression tree rooted in expr, which may be NULL.  check_node is called for
 each node in turn and reports a match by setting the result and terminate
 flags of the traversal block passed to it; its verdict must not depend on how
 often it is offered a given node, as a node may be reached more than once.
+follow_folded_exprs asks the walk to follow the expressions recorded for
+folded constants.
 
-Following the expressions recorded for folded constants means walking a graph,
-because those expressions are shared, and the repeated visits that come of
-covering such a graph as though it were a tree grow exponentially with its
-depth.  A walk that finds no match while following
-MAX_SHARED_EXPRS_WITHOUT_RECORDING of them is therefore abandoned and performed
-again, this time recording them so that none is followed twice.
+Following those recorded expressions means walking a graph, because they are
+shared, and the repeated visits that come of covering such a graph as though
+it were a tree grow exponentially with its depth.  A walk that finds no match
+while following MAX_SHARED_EXPRS_WITHOUT_RECORDING of them is therefore
+abandoned and performed again, this time recording them so that none is
+followed twice.  A walk that does not follow them has no such graph and does
+not use that bound.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
   a_boolean                       result = FALSE;
 
   if (expr != NULL) {
-    set_up_matching_node_walk(&tblock, check_node);
-    tblock.shared_expr_budget = MAX_SHARED_EXPRS_WITHOUT_RECORDING;
+    set_up_matching_node_walk(&tblock, check_node, follow_folded_exprs);
+    if (follow_folded_exprs) {
+      tblock.shared_expr_budget = MAX_SHARED_EXPRS_WITHOUT_RECORDING;
+    }  /* if */
     traverse_expr(expr, &tblock);
-    if (!tblock.result && tblock.shared_expr_budget == 0) {
+    if (follow_folded_exprs &&
+        !tblock.result && tblock.shared_expr_budget == 0) {
       Ptr_set<a_void_ptr>  visited_shared_exprs(/*mask_width=*/6u);
 
-      set_up_matching_node_walk(&tblock, check_node);
+      set_up_matching_node_walk(&tblock, check_node, follow_folded_exprs);
       tblock.visited_shared_exprs = &visited_shared_exprs;
       traverse_expr(expr, &tblock);
     }  /* if */
@@ -26308,7 +26326,8 @@ local scope or an enk_statement node allocated in function-scope memory.
 */
 {
   return expr_tree_has_matching_node(expr,
-                                     check_for_reference_to_local_entity);
+                                     check_for_reference_to_local_entity,
+                                     /*follow_folded_exprs=*/TRUE);
 }  /* expr_has_reference_to_local_entity */
 
 
@@ -26358,7 +26377,8 @@ region or designate a block-scope variable; otherwise, return FALSE.
   tree_has_file_scope_node = FALSE;
   tree_has_local_node = FALSE;
   return expr_tree_has_matching_node(expr,
-                                     check_node_for_mixed_memory_regions);
+                                     check_node_for_mixed_memory_regions,
+                                     /*follow_folded_exprs=*/TRUE);
 }  /* mixed_regions_in_expr_tree */
 
 
@@ -26389,10 +26409,14 @@ a_boolean expr_has_reference_to_routine_scope_variable(an_expr_node_ptr expr)
 /*
 Return TRUE if any of the nodes in the expression tree rooted in expr
 (which may be NULL) is an enk_variable node that refers to a variable in a
-local scope.
+local scope.  Original expressions recorded for nested folded constants are
+not examined: those expressions are shared, so a local named in one of them
+is not a property of this tree, and following them would treat many nontype
+template arguments as naming a local when they do not.
 */
 {
-  return expr_tree_has_matching_node(expr, check_for_routine_scope_variable);
+  return expr_tree_has_matching_node(expr, check_for_routine_scope_variable,
+                                     /*follow_folded_exprs=*/FALSE);
 }  /* expr_has_reference_to_routine_scope_variable */
 
 

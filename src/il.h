@@ -2261,7 +2261,9 @@ typedef int an_expr_copy_options_set;
 			/* When TRUE, the copy is being done to create an
 			   expression tree in function-scope memory that
 			   can be referenced by an a_local_expr_node_ref
-			   entry. */
+			   entry.  Expression nodes already copied in this
+			   operation are reused, so shared backing-expression
+			   subtrees stay shared. */
 #define CE_PRESERVE_RESCAN_INFO 0x4000
 			/* When TRUE, rescan info is preserved in the copy of
 			   expression nodes. */

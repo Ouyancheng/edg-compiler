@@ -314,7 +314,10 @@ enclosing function scope.  That check involved an IL traversal that could come
 to dominate compile time (or even trigger an abort due to exceeding call stack
 limits).  This has been fixed by reducing the circumstances in which the check
 is performed and by having the traversal performance by the check be more
-efficient.
+efficient.  The changes for EDGcpfe/28295 could also cause the proliferation
+of copies of backing expressions for constant template arguments, resulting in
+a noticeable increase in memory usage for some cases: This copying is now much
+reduced.
 
 
 8/5/26   [EDGcpfe/28995]
