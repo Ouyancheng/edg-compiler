@@ -1208,9 +1208,8 @@ done:;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_runtime_sizeof */
 
-#if LOWER_COMPLEX || LOWER_FIXED_POINT
 
-static inline a_float_kind map_extended_float_kinds(a_float_kind fkind)
+a_float_kind map_extended_float_kinds(a_float_kind fkind)
 /*
 Map certain extended floating-point kinds (i.e., ones that we have an
 implementation for) to existing floating-point formats that use the same
@@ -1229,6 +1228,7 @@ floating-point format.
   return fkind;
 }  /* map_extended_float_kinds */
 
+#if LOWER_COMPLEX || LOWER_FIXED_POINT
 
 /*
 Typedef for a list of library routine names that perform the same function

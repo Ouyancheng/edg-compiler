@@ -177,6 +177,8 @@ extern void lower_c99_trans_unit_init(void);
 
 extern void lower_c99_init(void);
 
+extern a_float_kind map_extended_float_kinds(a_float_kind fkind);
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

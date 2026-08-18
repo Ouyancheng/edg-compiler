@@ -8686,7 +8686,9 @@ Pointers to the routine entries for various *isnan* routines.  NULL until
 created.
 */
 STATIC_THREAD a_routine_ptr
-		isnan_routine, isnanf_routine, isnanl_routine;
+		isnan_routine, isnanf_routine, isnanl_routine,
+		isnanf16_routine, isnanf80_routine, isnanf128_routine,
+		isnanb16_routine;
 
 
 an_expr_node_ptr make_isnan_call(an_expr_node_ptr op)
@@ -8699,12 +8701,18 @@ all floating-point types.  Lowering assumes that these routines take exactly
 one argument (i.e., the expression supplied to this routine) and return an
 "int" type (with a value of 1 for true and 0 for false).  The routine names
 below correspond to those used by GNU compilers (and can be changed as needed).
+Note that the names of library routines for the standard floating-point types
+are well known, but names for the extended floating-point types varieties
+have been concocted here (and will need an implementation at link time).
+These names can be safely changed here to match those of any existing library
+implementations (that match the function signature).
 */
 {
   a_const_char  *name = NULL;
   a_routine_ptr rp = NULL;
-  a_type_ptr    tp = skip_typerefs(op->type);
+  a_type_ptr    tp = skip_typerefs(op->type), effective_type;
   an_expr_node  *expr;
+  a_float_kind  new_kind;
 
   check_assertion(is_floating_type(tp));
   switch (tp->variant.float_kind) {
@@ -8723,20 +8731,43 @@ below correspond to those used by GNU compilers (and can be changed as needed).
       rp = isnanl_routine;
       break;
     case fk_float16:
-    case fk_fp16:
-    case fk_float32x:
-    case fk_float64x:
-    case fk_float80:
-    case fk_float128:
-    case fk_std_bfloat16:
     case fk_std_float16:
+    case fk_fp16:
+      name = "__builtin_isnanf16";
+      rp = isnanf16_routine;
+      break;
+    case fk_float128:
     case fk_std_float128:
+      name = "__builtin_isnanf128";
+      rp = isnanf128_routine;
+      break;
+    case fk_std_bfloat16:
+      name = "__builtin_isnanb16";
+      rp = isnanb16_routine;
+      break;
+    case fk_float80:
+      name = "__builtin_isnanf80";
+      rp = isnanf80_routine;
+      break;
+    case fk_float32x:   /* mapped to "double" in the front end. */
+    case fk_float64x:   /* mapped to "long double" in the front end. */
     case fk_last:
       unexpected_condition();
     default_is_unexpected();
   }  /* switch */
-  expr = make_prototyped_runtime_call(name, &rp, integer_type(ik_int), tp,
-                                      NULL, op);
+  /* For extended floating-point types that map to standard floating-point
+     types, add a cast to the proper type. */
+  new_kind = map_extended_float_kinds(tp->variant.float_kind);
+  if (new_kind != tp->variant.float_kind) {
+    effective_type = alloc_type(tk_float);
+    copy_type(tp, effective_type);
+    effective_type->variant.float_kind = new_kind;
+    op = add_cast(op, effective_type);
+  } else {
+    effective_type = tp;
+  }  /* if */
+  expr = make_prototyped_runtime_call(name, &rp, integer_type(ik_int),
+                                      effective_type, NULL, op);
   normalize_boolean_controlling_expr_if_needed(expr);
   return expr;
 }  /* make_isnan_call */
@@ -20356,6 +20387,10 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(isnan_routine),
       pch_saved_var_array_elem(isnanf_routine),
       pch_saved_var_array_elem(isnanl_routine),
+      pch_saved_var_array_elem(isnanf16_routine),
+      pch_saved_var_array_elem(isnanf80_routine),
+      pch_saved_var_array_elem(isnanf128_routine),
+      pch_saved_var_array_elem(isnanb16_routine),
       pch_saved_var_array_elem(memcpy_routine),
       pch_saved_var_array_elem(memzero_routine),
       pch_saved_var_array_elem(record_needed_destruction_routine),
@@ -20428,6 +20463,10 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(isnan_routine);
   register_trans_unit_variable(isnanf_routine);
   register_trans_unit_variable(isnanl_routine);
+  register_trans_unit_variable(isnanf16_routine);
+  register_trans_unit_variable(isnanf80_routine);
+  register_trans_unit_variable(isnanf128_routine);
+  register_trans_unit_variable(isnanb16_routine);
   register_trans_unit_variable(memcpy_routine);
   register_trans_unit_variable(memzero_routine);
   register_trans_unit_variable(record_needed_destruction_routine);

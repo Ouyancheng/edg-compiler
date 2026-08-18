@@ -300,7 +300,9 @@ Note that this change requires runtime library support to detect NaN values
 at runtime.  In particular, it is assumed that the __builtin_isnanf,
 __builtin_isnan, and __builtin_isnanl routines are available at link time.
 Note also that a spaceship operation on extended floating-point types will
-FIXME.
+generate references to runtime library routines __builtin_isnanf16,
+__builtin_isnanf80, __builtin_isnanf128, and __builtin_isnanb16 (which are not
+supplied by EDG nor readily available in standard libraries).
 
 
 8/5/26   [EDGcpfe/28998]
