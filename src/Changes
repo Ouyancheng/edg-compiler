@@ -1,5 +1,26 @@
 Version 6.10
 
+8/19/26  [EDGcpfe/25497,EDGcpfe/27563]
+C++20: Matching operator!= disables rewritten operator== candidates
+
+The front end now implements the C++20 defect report resolution from P2468R2
+("The Equality Operator You Are Looking For").  An operator== is not used as a
+rewritten candidate (with reversed operands, or as a rewrite of !=) when a
+corresponding operator!= is found in the applicable scope.  For example, in
+C++20 mode:
+
+  struct B {
+    void operator==(B const&);
+    void operator!=(B const&);
+  };
+  struct D: B {
+    D() {
+      B x;
+      x == B();  // Previously ambiguous with a reversed candidate.  Now okay.
+    }
+  };
+
+
 8/19/26  [EDGcpfe/26102,EDGcpfe/27040]
 Abort on virtual call with a template default argument
 

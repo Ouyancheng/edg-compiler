@@ -19180,8 +19180,7 @@ operator (e.g., the "]" of a subscript operation).
      linkage that are only used by templates. */
   make_opname_locator(kind, &loc, operator_position);
   opname_symbol_table[kind]->any_function_referenced_in_dependent_call = TRUE;
-  if (kind == (an_opname_kind)onk_plus_plus ||
-      kind == (an_opname_kind)onk_minus_minus) {
+  if (kind == onk_plus_plus || kind == onk_minus_minus) {
     /* Turn postfix "++" or "--" back into a true unary operation (it has a
        zero argument added for the purpose of calling an overloaded
        operator function). */
@@ -19232,6 +19231,157 @@ operators.
 {
   cfp->arg_matches = reverse_simple_list(cfp->arg_matches);
 }  /* reverse_binary_match_descriptions */
+
+
+static a_symbol_ptr function_template_of_if_any(a_symbol_ptr  sym)
+/*
+If sym is a specialization of a function template, return that function
+template; otherwise return the fundamental symbol of sym.
+*/
+{
+  sym = fundamental_symbol_of(sym);
+  if (is_simple_function_symbol(sym) &&
+      sym->variant.routine.instance_ptr != NULL) {
+    a_symbol_ptr  ts = sym->variant.routine.instance_ptr->template_sym;
+    if (symbol_is(ts, sk_function_template)) {
+      sym = ts;
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* function_template_of_if_any */
+
+
+static a_boolean corresponding_eq_and_ne_functions(a_symbol_ptr  eq_sym,
+                                                   a_symbol_ptr  ne_sym)
+/*
+Return TRUE if the operator== represented by eq_sym and the operator!=
+represented by ne_sym would correspond (N5046 [basic.scope.scope]/4) if the
+latter were named operator==.  Only explicit parameter types, trailing
+requires-clauses, and (for function templates) template parameter lists are
+compared.  Implicit object parameters are ignored so that a derived-class
+operator!= can correspond to a base-class operator==.
+*/
+{
+  a_boolean  result = FALSE;
+
+  eq_sym = function_template_of_if_any(eq_sym);
+  ne_sym = function_template_of_if_any(ne_sym);
+  if (symbol_is(eq_sym, sk_function_template) ==
+                                    symbol_is(ne_sym, sk_function_template)) {
+    a_type_ptr  eq_type = skip_typerefs(underlying_function_type(eq_sym)),
+                ne_type = skip_typerefs(underlying_function_type(ne_sym));
+    if (eq_type != NULL && ne_type != NULL) {
+      result = param_types_are_compatible(eq_type, ne_type, TCF_NO_FLAGS);
+      if (result) {
+        a_routine_ptr  eq_rp = func_sym_routine(eq_sym),
+                       ne_rp = func_sym_routine(ne_sym);
+        result = equiv_requires_clauses(eq_rp->trailing_requires_clause,
+                                        ne_rp->trailing_requires_clause);
+      }  /* if */
+      if (result && symbol_is(eq_sym, sk_function_template)) {
+        result = equiv_template_param_lists(templ_params_of(eq_sym),
+                                            templ_params_of(ne_sym),
+                                            /*issue_errors=*/FALSE,
+                                            ETP_NO_OPTIONS,
+                                            (a_source_position *)NULL,
+                                            es_error);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* corresponding_eq_and_ne_functions */
+
+
+static a_boolean operator_eq_is_rewrite_target(
+                                             a_symbol_ptr  eq_sym,
+                                             a_type_ptr    first_operand_type)
+/*
+Return TRUE if the operator== represented by eq_sym is a rewrite target with a
+first operand of type first_operand_type (N5046 [over.match.oper]/(3.4)).  A
+corresponding operator!= in the class of that operand (when eq_sym is a member)
+or in the namespace of which eq_sym is a member (otherwise) makes eq_sym not a
+rewrite target.
+*/
+{
+  a_boolean     result = TRUE;
+  a_symbol_ptr  ne_sym = NULL;
+
+  eq_sym = function_template_of_if_any(eq_sym);
+  if (eq_sym->is_class_member) {
+    if (is_class_struct_union_type(first_operand_type)) {
+      instantiate_template_class(first_operand_type);
+      ne_sym = opname_member_function_symbol(
+                                   onk_ne, skip_typerefs(first_operand_type));
+    }  /* if */
+  } else {
+    a_symbol_locator  locator;
+    a_routine_ptr     rp = func_sym_routine(eq_sym);
+    a_namespace_ptr   nsp = parent_namespace_or_null(rp);
+    make_opname_locator(onk_ne, &locator, &error_position);
+    if (nsp != NULL) {
+      ne_sym = namespace_qualified_id_lookup(
+                            &locator, nsp, IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+    } else {
+      ne_sym = file_scope_id_lookup(il_header.primary_scope, &locator,
+                                    IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
+    }  /* if */
+  }  /* if */
+  if (ne_sym != NULL) {
+    an_overload_set_traversal_block  ostblock;
+    a_symbol_ptr                     sym;
+    for (sym = set_up_overload_set_traversal_simple(ne_sym, &ostblock);
+         sym != NULL && result;
+         sym = next_symbol_in_overload_set(&ostblock)) {
+      if (corresponding_eq_and_ne_functions(eq_sym, sym)) {
+        a_symbol_ptr   ne_fund = function_template_of_if_any(sym);
+        a_routine_ptr  ne_rp = func_sym_routine(ne_fund);
+        /* Defaulted operator!= is not a candidate for != (P2002R1);
+           the expression is rewritten from operator==.  A defaulted
+           operator!= therefore does not stop operator== from being a
+           rewrite target. */
+        if (!ne_rp->is_defaulted) {
+          result = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* operator_eq_is_rewrite_target */
+
+
+static void discard_eq_candidates_that_are_not_rewrite_targets(
+                           a_candidate_function_ptr  *p_cfp,
+                           a_candidate_function_ptr  end_cfp,
+                           a_type_ptr                first_operand_type)
+/*
+Remove operator== candidates from the list headed by *p_cfp up to but not
+including end_cfp that are not rewrite targets with a first operand of type
+first_operand_type.
+*/
+{
+  while (*p_cfp != end_cfp) {
+    a_candidate_function_ptr  cfp = *p_cfp;
+    a_boolean                 discard = FALSE;
+    if (cfp->function_symbol != NULL) {
+      a_symbol_ptr  sym = fundamental_symbol_of(cfp->function_symbol);
+      if (is_simple_function_or_template_symbol(sym)) {
+        a_routine_ptr  rp = func_sym_routine(sym);
+        if (special_kind_is(rp, sfk_operator) &&
+            opname_kind_is(rp, onk_eq) &&
+            !operator_eq_is_rewrite_target(sym, first_operand_type)) {
+          discard = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (discard) {
+      *p_cfp = cfp->next;
+      cfp->next = NULL;
+      free_candidate_function_list(cfp);
+    } else {
+      p_cfp = &cfp->next;
+    }  /* if */
+  }  /* while */
+}  /* discard_eq_candidates_that_are_not_rewrite_targets */
 
 
 static inline
@@ -19805,7 +19955,7 @@ find_more_operator_candidates:
         try_user_conversions = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cli_or_cx_enabled &&
-                 !unary_operator && kind == (an_opname_kind)onk_plus &&
+                 !unary_operator && kind == onk_plus &&
                  (is_literal_convertible_to_cli_string(operand_1,
                                                 /*allow_complex=*/FALSE) ||
                   is_literal_convertible_to_cli_string(operand_2,
@@ -19849,11 +19999,20 @@ find_more_operator_candidates:
           cfp->supplemental_reversed_candidate = TRUE;
           p_cfp = &cfp->next;
         }  /* while */
+        if (orig_kind == onk_eq || orig_kind == onk_ne) {
+          /* Drop reversed operator== candidates that are not rewrite targets
+             (P2468R2).  The first operand of the rewritten expression is the
+             original second operand. */
+          discard_eq_candidates_that_are_not_rewrite_targets(
+                                                    &candidate_functions,
+                                                    saved_candidate_functions,
+                                                    operand_2->type);
+        }  /* if */
         arg_list = reverse_simple_list(arg_list);
         kind = orig_kind;
       } else if (find_supplemental_candidates ||
-                 kind == (an_opname_kind)onk_eq ||
-                 kind == (an_opname_kind)onk_spaceship) {
+                 kind == onk_eq ||
+                 kind == onk_spaceship) {
         /* We either handled (1) above, or it didn't apply but we're
            dealing with a <=> or == operator.  Now handle (2). */
         if (find_supplemental_candidates) {
@@ -19886,6 +20045,14 @@ find_more_operator_candidates:
               free_candidate_function_list(cfp_to_delete);
             }  /* if */
           }  /* while */
+          if (orig_kind == onk_ne) {
+            /* Drop rewritten operator== candidates that are not rewrite
+               targets with the original first operand (P2468R2). */
+            discard_eq_candidates_that_are_not_rewrite_targets(
+                                                    &candidate_functions,
+                                                    saved_candidate_functions,
+                                                    operand_1->type);
+          }  /* if */
         }  /* if */
         arg_list = reverse_simple_list(arg_list);
         arg_list2 = arg_list->next;
@@ -19896,10 +20063,10 @@ find_more_operator_candidates:
       } else if (opname_is_comparison(kind)) {
         /* Handle case (1) above.  (Note that == and <=> don't get here
            because they were handled in the previous "else if" branch.) */
-        if (kind == (an_opname_kind)onk_ne) {
-          kind = (an_opname_kind)onk_eq;
+        if (kind == onk_ne) {
+          kind = onk_eq;
         } else {
-          kind = (an_opname_kind)onk_spaceship;
+          kind = onk_spaceship;
         }  /* if */
         find_supplemental_candidates = TRUE;
         goto find_more_operator_candidates;
@@ -20059,7 +20226,7 @@ selected, it is stored in *rewritten_candidate.
   a_boolean                selector_is_object_pointer = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                potential_operator_synthesis_case = FALSE;
-  an_opname_kind           corresp_simple_operator = (an_opname_kind)onk_none;
+  an_opname_kind           corresp_simple_operator = onk_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                folded_to_constant = FALSE;
   an_opname_kind           orig_kind = kind;
@@ -20103,8 +20270,8 @@ selected, it is stored in *rewritten_candidate.
         /* In C++/CLI, if the first operand is a handle to a class we can look
            for operator functions in the class underlying the handle. */
         if (!unary_operator &&
-            (kind == (an_opname_kind)onk_assign ||
-             kind == (an_opname_kind)onk_arrow_star ||
+            (kind == onk_assign ||
+             kind == onk_arrow_star ||
              (opname_is_eq_op(kind) && is_handle_type(operand_2->type)))) {
           /* This trick is not allowed for certain operators. */
         } else {
@@ -20118,7 +20285,7 @@ selected, it is stored in *rewritten_candidate.
       /* See if this is a compound assignment operator where operator
          synthesis (ECMA-372 19.7.4) might apply. */
       corresp_simple_operator=simple_opname_kind_for_compound_assignment(kind);
-      if (corresp_simple_operator != (an_opname_kind)onk_none &&
+      if (corresp_simple_operator != onk_none &&
           is_managed_class_type(eff_operand_1_type)) {
         /* Yes, operator synthesis may apply. */
         potential_operator_synthesis_case = TRUE;
@@ -20304,7 +20471,7 @@ reprocess_with_notes:
                 /* Look for a suitable operator= function. */
                 /* Again, we specify has_predef_meaning TRUE so we can issue
                    a specific error message here. */
-                check_for_operator_overloading((an_opname_kind)onk_assign,
+                check_for_operator_overloading(onk_assign,
                                                /*unary_operator=*/FALSE,
                                               /*must_be_member_function=*/TRUE,
                                                /*try_conversions=*/FALSE,
@@ -20403,7 +20570,7 @@ no_applicable_operator_function:
               kind = rp->variant.opname_kind;
             } else {
               kind = candidate_functions->opname_kind;
-              check_assertion(kind != (an_opname_kind)onk_none);
+              check_assertion(kind != onk_none);
             }  /* if */
             if (candidate_functions->supplemental_reversed_candidate) {
               /* Reverse the argument list and the corresponding match
@@ -20431,10 +20598,9 @@ no_applicable_operator_function:
                meaning. */
             if (rewritten_candidate == NULL) {
               /* Determine if either operand is conditional. */
-              if (kind == (an_opname_kind)onk_and_and ||
-                  kind == (an_opname_kind)onk_or_or) {
+              if (kind == onk_and_and || kind == onk_or_or) {
                 op_2_inside_conditional = TRUE;
-              } else if (kind == (an_opname_kind)onk_question) {
+              } else if (kind == onk_question) {
                 /* Operands 1 and 2 under a "?" here are really the second and
                    third operands. */
                 op_1_inside_conditional = TRUE;
@@ -20489,7 +20655,7 @@ no_applicable_operator_function:
                     candidate_functions->supplemental_reversed_candidate);
             }  /* if */
             /* Check for the builtin operator=. */
-            if (kind == (an_opname_kind)onk_assign &&
+            if (kind == onk_assign &&
                 symbol_is(function_symbol, sk_member_function) &&
                 !function_symbol->variant.routine.ptr->is_deleted &&
                 !function_symbol->variant.routine.ptr->is_consteval &&
