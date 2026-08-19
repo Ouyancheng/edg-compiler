@@ -4687,6 +4687,13 @@ STATIC_THREAD a_boolean
 			/* TRUE if the clang datasizeof operator is
 			   enabled. */
 
+STATIC_THREAD a_boolean
+		runtime_arrays_enabled;
+			/* TRUE if the nonstandard runtime array feature is
+			   enabled and we are not in clang mode.  Used to
+			   support the __cpp_runtime_arrays feature test
+			   macro. */
+
 /*
 The following array describes all the clang __has_feature/__has_extension
 feature strings and WG21 SG10 feature-test macros (type trait helpers can
@@ -5182,7 +5189,7 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
     "199711L" },
   { "cxx_runtime_array",
     201103,
-    &vla_enabled,
+    &runtime_arrays_enabled,
     "__cpp_runtime_arrays",
     "198712L",
      201103 },
@@ -11883,6 +11890,7 @@ command line -D options.
   cxx_constexpr_string_builtins =
                    !C_mode() && constexpr_enabled && clang_version_is(>=40000);
   datasizeof_enabled = clang_version_is(>= 180000);
+  runtime_arrays_enabled = vla_enabled && !clang_mode;
   /* __cplusplus is defined to reflect the appropriate variant if we are
      compiling C++, left undefined otherwise.  In most modes, __cplusplus
      can be redefined as this is needed in some environments.  In Microsoft

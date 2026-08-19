@@ -1,5 +1,19 @@
 Version 6.10
 
+8/18/26  [EDGcpfe/29009]
+Clang compatibility: __cpp_runtime_arrays
+
+The changes for EDGcpfe/28560 in version 6.8 added the feature-test macro
+__cpp_runtime_arrays used by gcc to indicate support for the non-standard
+variable length array feature.  Although clang supports the feature, it
+does not define that macro, so the front end has now been changed
+accordingly.  For example, with --clang_version=200000:
+
+  #if __cpp_runtime_arrays
+  #error Incorrect macro setting   // Previously triggered, now skipped
+  #endif
+
+
 8/18/26  [EDGcpfe/29008]
 Missing template string for members of an in-class explicit specialization
 
