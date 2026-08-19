@@ -1,5 +1,21 @@
 Version 6.10
 
+8/19/26  [EDGcpfe/29010]
+Microsoft C compatibility: Local static variables in extern-inline functions
+
+In Microsoft C99 and later modes, the front end previously issued a
+discretionary error for the following example:
+
+  inline int g(void) {
+    static int i = 42;
+    return i;
+  }
+
+because C disallows local static variables in non-static inline definitions.
+MSVC, however, silently permits this and the front end now emulates that by
+only issuing a remark in that case.
+
+
 8/19/26  [EDGcpfe/29006]
 Clang compatibility: enable_if and deleted converting constructors
 

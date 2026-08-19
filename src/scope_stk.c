@@ -1302,8 +1302,7 @@ the suspect construct is a reference to a file-scope static entity.
 {
   a_boolean  suspect_construct = TRUE;
 
-  check_assertion(var == NULL ||
-                  var->storage_class == (a_storage_class)sc_static);
+  check_assertion(var == NULL || var->storage_class == sc_static);
   if (var != NULL) {
     /* Declarations of local static variables in inline definitions are not a
        problem if the variable is not modifiable. */
@@ -1369,6 +1368,10 @@ therefore called when the file scope is popped for the first time.)
       an_error_code      code;
       if (strict_ansi_mode) {
         severity = strict_ansi_discretionary_severity;
+      } else if (microsoft_mode) {
+        /* MSVC does not diagnose these at all.  Issue a remark since it
+           is a potential portability issue. */
+        severity = es_remark;
       } else if (gcc_mode || clang_mode) {
         severity = es_warning;
       } else {
