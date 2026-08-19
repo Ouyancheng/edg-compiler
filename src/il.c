@@ -26407,16 +26407,16 @@ enk_variable node that refers to a variable in a local scope.
 
 a_boolean expr_has_reference_to_routine_scope_variable(an_expr_node_ptr expr)
 /*
-Return TRUE if any of the nodes in the expression tree rooted in expr
-(which may be NULL) is an enk_variable node that refers to a variable in a
-local scope.  Original expressions recorded for nested folded constants are
-not examined: those expressions are shared, so a local named in one of them
-is not a property of this tree, and following them would treat many nontype
-template arguments as naming a local when they do not.
+Return TRUE if any of the nodes in the expression tree rooted in expr (which
+may be NULL) is an enk_variable node that refers to a variable in a local
+scope.  Original expressions recorded for nested folded constants are examined
+too: A copy of this tree for a local-expr-node-ref includes those expressions,
+so the local-expr-node-ref must be recorded in the function that owns the
+variables they name.
 */
 {
   return expr_tree_has_matching_node(expr, check_for_routine_scope_variable,
-                                     /*follow_folded_exprs=*/FALSE);
+                                     /*follow_folded_exprs=*/TRUE);
 }  /* expr_has_reference_to_routine_scope_variable */
 
 
