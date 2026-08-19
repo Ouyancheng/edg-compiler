@@ -3158,7 +3158,7 @@ Create the body for a default destructor.  It will return no value.
   class_type = parent_class_of(rp);
   if (!type_is(class_type, tk_union)) {
     /* Create entries describing destructions to be done in the wrapper
-       code.  Do not do this for a union (the only union type that should
+       code.  Do not do this for a union (the only union types that should
        get here are those created by std::meta::define_aggregate). */
     scope->variant.routine.constructor_inits = dtor_initializer(rp);
   }  /* if */

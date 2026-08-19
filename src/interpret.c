@@ -11649,7 +11649,7 @@ passed for the R&& argument: its value is bound to
 the (initializer-less) __range variable so that begin/end operate on the actual
 argument object.  The collected reflections are returned in *reflections (which
 is cleared first).  ips is the interpreter state and diag_pos positions any
-diagnostics.  Returns TRUE on success; otherwise a diagnostic has been recorded
+diagnostics.  Return TRUE on success; otherwise a diagnostic has been recorded
 and FALSE is returned.
 */
 {
@@ -13063,10 +13063,11 @@ Return TRUE if code with member access privilege to access_class may reach a
 protected member -- or a protected base-class relationship -- of member_class.
 access_class must derive from member_class along a path that itself admits
 protected access, which have_protected_access_from_derived_class checks
-(unlike a bare find_base_class_of test, it rejects e.g. a private intermediate
-derivation).  For a class member the [class.protected] restriction also
-requires the naming (designating, object) class to be access_class or derived
-from it; a base-class relationship is not subject to that extra restriction.
+(unlike a bare find_base_class_of test, it rejects, e.g., a private
+intermediate derivation).  For a class member the [class.protected] restriction
+also requires the naming (designating, object) class to be access_class or
+derived from it; a base-class relationship is not subject to that extra
+restriction.
 */
 {
   a_boolean  accessible = FALSE;
@@ -13168,10 +13169,8 @@ already diagnosed that case.
       { a_routine_ptr  rp = (a_routine*)scope_rvp->entity.ptr;
         ctx->context_routine = rp;
         if (rp->source_corresp.is_class_member) {
-          a_type_ptr  c = skip_typerefs(parent_class_of(rp));
-          if (is_immediate_class_type(c)) {
-            ctx->enclosing_class_scope = class_type_supp(c)->assoc_scope;
-          }  /* if */
+          ctx->enclosing_class_scope =
+                     class_type_supp(parent_class_of(rp))->assoc_scope;
         }  /* if */
       }
       break;
@@ -14348,15 +14347,20 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_return_type_of */
 
 
-static a_source_correspondence *source_corresp_for_parent_of(
-                                                     a_reflection_value  *rvp)
+static a_boolean parent_of_reflection(a_reflection_value  *rvp,
+                                      a_reflection_value  *parent_rvp)
 /*
-Return the source correspondence whose enclosing scope is reported as the
-parent of the entity reflected by rvp (by parent_of and has_parent), or NULL
-when the entity has no reportable parent.  rvp is modified in place: its
-template argument, if any, is stripped and its entity is extracted.
+Set *parent_rvp to the reflection of the parent that std::meta::parent_of and
+std::meta::has_parent report for the entity reflected by rvp; i.e., the class
+of which that entity is a member, or else the nearest namespace or file scope
+that encloses its declaration.  Return TRUE when there is such a parent, and
+FALSE (leaving *parent_rvp untouched) when the entity is of a kind that has
+none to report, such as an unnamed constant or a type that is not a class, an
+enumeration, or a typedef.  rvp is modified in place: It is normalized by
+applying strip_template_arg and extract_reflected_entity to it (in that order).
 */
 {
+  a_boolean                result = FALSE;
   a_source_correspondence  *scp = NULL;
 
   strip_template_arg(rvp);
@@ -14393,13 +14397,26 @@ template argument, if any, is stripped and its entity is extracted.
     default:
       break;
   }  /* switch */
-  return scp;
-}  /* source_corresp_for_parent_of */
+  if (scp != NULL) {
+    if (scp->is_class_member) {
+      parent_rvp->entity.kind = iek_type;
+      parent_rvp->entity.ptr = (char*)scp_parent_class(scp);
+    } else {
+      parent_rvp->entity.kind = iek_scope;
+      parent_rvp->entity.ptr = (char*)get_parent_scope_of(scp);
+    }  /* if */
+    parent_rvp->local_scope_number = rvp->local_scope_number;
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* parent_of_reflection */
 
 
 DEFINE_entity_predicate(std_meta, has_parent,
   ([&]{
-    answer = source_corresp_for_parent_of(rvp) != NULL;
+    a_reflection_value  parent_rv;
+
+    answer = parent_of_reflection(rvp, &parent_rv);
   }))
 
 
@@ -14416,23 +14433,15 @@ Implement std::meta::parent_of(info).
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean                result = TRUE;
-  a_reflection_value       *rvp = (a_reflection_value*)p_arg_bytes[0],
-                           *result_rvp = (a_reflection_value*)result_storage;
-  a_source_correspondence  *scp = source_corresp_for_parent_of(rvp);
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],
+                      *result_rvp = (a_reflection_value*)result_storage;
 
-  if (scp == NULL) {
+  if (!parent_of_reflection(rvp, result_rvp)) {
     do_constexpr_fail(result);
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
-  } else if (scp->is_class_member) {
-    result_rvp->entity.kind = iek_type;
-    result_rvp->entity.ptr = (char*)scp_parent_class(scp);
-  } else {
-    result_rvp->entity.kind = iek_scope;
-    result_rvp->entity.ptr = (char*)get_parent_scope_of(scp);
   }  /* if */
-  result_rvp->local_scope_number = rvp->local_scope_number;
   return result;
 }  /* do_constexpr_std_meta_parent_of */
 
@@ -14875,7 +14884,7 @@ static a_boolean make_reflective_string_view(
 tp represents a std::basic_string_view specialization and should be a class
 type with no base classes, one pointer to a contiguous sequence of characters,
 and one integer member representing the length of the sequence.  char_type is
-the character element type of that sequence (e.g. plain char for
+the character element type of that sequence (e.g., plain char for
 std::string_view or char8_t for std::u8string_view).  Create a static array of
 characters with the contents of the null-terminated string pointed to by str
 and store in result_storage (part of the complete object pointed to by
@@ -15435,7 +15444,7 @@ Recursively replace every std::meta::info (ck_reflection) value reachable from
 the constant cp with a null reflection (info{}).  This is used to neutralize
 the initializer of the intermediate constexpr info array built by
 build_info_array_variable once the result vector has been constructed from it:
-the array may hold reflections of entities with transient lifetime (e.g. the
+the array may hold reflections of entities with transient lifetime (e.g., the
 parameter variables reported by current_parameters, which live in a function's
 local memory region that is reclaimed when the function is finished), so the
 file-scope array must not retain those pointers, which would otherwise be
@@ -16409,7 +16418,7 @@ diagnostics.
 
   if (plan == NULL) {
     /* No plan was cached at parse time.  This happens when the call was first
-       formed under suppressed diagnostics (e.g. during SFINAE), where
+       formed under suppressed diagnostics (e.g., during SFINAE), where
        func_call_expr skips plan construction.  Build (and cache) it now. */
     plan = build_reflection_range_plan(range_referent);
   }  /* if */
@@ -16440,7 +16449,7 @@ template-argument wrapper from *templ_rvp (the first argument's reflection),
 and load the std::meta::info elements of the second argument (a reference to a
 reflection_range) into *arg_reflections.  *p_hard_fail is set to TRUE when
 interpretation must stop with a failure that has already been diagnosed (the
-call is not being constant-evaluated or the range is invalid).  Returns TRUE if
+call is not being constant-evaluated or the range is invalid).  Return TRUE if
 the arguments were loaded and *templ_rvp denotes a template, and FALSE
 otherwise.  ips is the interpreter state, p_arg_bytes the call arguments, and
 call_node positions any diagnostics.
@@ -16540,12 +16549,12 @@ static a_boolean do_constexpr_std_meta_can_substitute(
                                         a_byte                *result_storage,
                                         ARG_UNUSED a_byte     *complete_obj)
 /*
-Implement std::meta::can_substitute(info, R&&).  Set the boolean result to TRUE
-when substitute with the same arguments would succeed without an error in the
-immediate context, and to FALSE otherwise.  As for substitute, the range's
-std::meta::info elements are read via load_substitution_args, so any
-std::ranges::input_range of info is accepted.  No diagnostics are issued for a
-failing substitution.
+Implement std::meta::can_substitute(info, R&&).  The value of the call is TRUE
+when a std::meta::substitute call with the same arguments would succeed without
+an error in the immediate context, and FALSE otherwise.  As with substitute,
+the range's std::meta::info elements are read via load_substitution_args, so
+any std::ranges::input_range of info is accepted.  No diagnostics are issued
+for a failing substitution.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -17637,17 +17646,16 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 
   if (!ips->is_constant_evaluated) {
     do_constexpr_fail(result);
-    goto done;
+  } else {
+    capture_current_scope(ips, callee, &scope_rv);
+    dc_rv.entity.kind = iek_none;
+    dc_rv.entity.ptr = NULL;
+    dc_rv.local_scope_number = FILE_SCOPE_NUMBER;
+    result = store_access_context(ips,
+                                  skip_typerefs(return_type_of(callee->type)),
+                                  &scope_rv, &dc_rv, result_storage,
+                                  complete_obj);
   }  /* if */
-  capture_current_scope(ips, callee, &scope_rv);
-  dc_rv.entity.kind = iek_none;
-  dc_rv.entity.ptr = NULL;
-  dc_rv.local_scope_number = FILE_SCOPE_NUMBER;
-  result = store_access_context(ips,
-                                skip_typerefs(return_type_of(callee->type)),
-                                &scope_rv, &dc_rv, result_storage,
-                                complete_obj);
-done:
   return result;
 }  /* do_constexpr_std_meta_current */
 
@@ -17674,15 +17682,14 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 
   if (!ips->is_constant_evaluated) {
     do_constexpr_fail(result);
-    goto done;
-  }  /* if */
-  capture_current_scope(ips, callee, &scope_rv);
-  if (scope_rv.entity.kind == iek_routine) {
-    *result_rvp = scope_rv;
   } else {
-    do_constexpr_fail(result);
+    capture_current_scope(ips, callee, &scope_rv);
+    if (scope_rv.entity.kind == iek_routine) {
+      *result_rvp = scope_rv;
+    } else {
+      do_constexpr_fail(result);
+    }  /* if */
   }  /* if */
-done:
   return result;
 }  /* do_constexpr_std_meta_current_function */
 
@@ -18022,8 +18029,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 Type traits.
 
 The macros DEFINE_type_predicate, DEFINE_type_predicate2, and
-DEFINE_type_transform below expand to function definitions implementing the
-handling of a type trait query as intrinsic functions (see
+DEFINE_type_transform below expand to function definitions, each implementing
+the handling of a type trait query as an intrinsic function (see
 do_constexpr_intrinsic_call for the meaning of their parameters).  The first
 and second macro arguments match the description of the function in
 interpret.h (see the macro NS_scope_constexpr_intrinsics).  The third macro
@@ -19113,7 +19120,7 @@ kind that has no such enumerator.
 
 static a_const_char *meta_operator_symbol(int  ordinal)
 /*
-Return the operator symbol spelling (a null-terminated narrow string, e.g. "+"
+Return the operator symbol spelling (a null-terminated narrow string, e.g., "+"
 or "<=>") for the std::meta::operators enumerator whose ordinal is the given
 value, as produced by meta_operator_ordinal.  Return NULL when the ordinal
 does not designate an enumerator.  The spellings are pure ASCII, so the same
@@ -19183,7 +19190,7 @@ static a_boolean do_constexpr_std_meta_symbol_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::symbol_of(operators): a std::string_view naming the
-operator symbol (e.g. "+", "<=>", "co_await") for the given enumerator, whose
+operator symbol (e.g., "+", "<=>", "co_await") for the given enumerator, whose
 value is read in integer form (the enumeration has an integer underlying type).
 The evaluation fails if the argument is not one of the operators enumerators.
 
@@ -19271,15 +19278,16 @@ static a_boolean meta_find_subobject(an_interpreter_state  *ips,
                                      a_byte_count          *p_offset,
                                      a_type_ptr            *p_type)
 /*
-Descend the base classes and allocated fields of the class type tp (a subobject
-beginning at byte offset base_offset within some enclosing object), recursing
-into base classes and non-union class-type fields, to locate the lowest-offset
-subobject whose offset is at least min_offset and that matches want: a boolean
-field (meta_leaf_bool), a pointer field (meta_leaf_pointer), or a union field
-(meta_leaf_union, whose own bytes hold the active member).  Union fields are
-never entered, so members nested inside an inactive union alternative are not
-considered.  min_offset lets a caller find successive matches (e.g. the second
-pointer of a std::vector) by excluding earlier ones; pass 0 to find the first.
+Descend into the base classes and allocated fields of the class type tp (a
+subobject beginning at byte offset base_offset within some enclosing object),
+recursing into base classes and non-union class-type fields, to locate the
+lowest-offset subobject whose offset is at least min_offset and that matches
+want: a boolean field (meta_leaf_bool), a pointer field (meta_leaf_pointer), or
+a union field (meta_leaf_union, whose own bytes hold the active member).  Union
+fields are never entered, so members nested inside an inactive union
+alternative are not considered.  min_offset lets a caller find successive
+matches (e.g., the second pointer of a std::vector) by excluding earlier ones;
+pass 0 to find the first.
 Keeping the lowest qualifying offset makes the result independent of the order
 in which subobjects are visited.  On success store the match's offset (relative
 to the enclosing object) in *p_offset and its type in *p_type and return TRUE;
@@ -19410,7 +19418,7 @@ static a_constant *meta_annotation_constant(a_reflection_value  *rvp)
 Return the constant value carried by the annotation-element reflection *rvp:
 the constant of a value/object reflection (iek_constant) or the value of an
 existing annotation reflection (iek_attribute with ak_annotation).  Return NULL
-if *rvp denotes neither, i.e. is not usable as an annotation value.
+if *rvp denotes neither, i.e., is not usable as an annotation value.
 */
 {
   a_constant  *cp = NULL;

@@ -19350,8 +19350,8 @@ namespace indicated by ns_sym.
   a_boolean  result = FALSE;
 
   if (ns_sym != NULL && rp->source_corresp.is_class_member) {
-    a_type_ptr  c = skip_typerefs(parent_class_of(rp));
-    if (is_immediate_class_type(c) && is_namespace_member(c) &&
+    a_type_ptr  c = parent_class_of(rp);
+    if (is_namespace_member(c) &&
         parent_namespace_of(c) == ns_sym->variant.namespace_info.ptr) {
       result = TRUE;
     }  /* if */

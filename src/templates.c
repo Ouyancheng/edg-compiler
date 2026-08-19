@@ -9620,10 +9620,11 @@ a_type_ptr compute_meta_common_type(a_type_ptr  *types,
                                     int         n,
                                     a_boolean   *p_err)
 /*
-Compute std::meta::common_type for the n types in "types" as the type denoted
-by std::common_type_t<types...>, computed through the same machinery (including
-compute_common_type) that the front end uses for that library template.  See
-substitute_std_alias_template for the meaning of *p_err and the return value.
+Compute std::meta::common_type for the n types in the array "types" as the type
+denoted by std::common_type_t<types...>, computed through the same machinery
+(including compute_common_type) that the front end uses for that library
+template.  See substitute_std_alias_template for the meaning of *p_err and the
+return value.
 */
 {
   return substitute_std_alias_template("common_type_t", types, n, p_err);
@@ -9634,8 +9635,8 @@ a_type_ptr compute_meta_common_reference(a_type_ptr  *types,
                                          int         n,
                                          a_boolean   *p_err)
 /*
-Compute std::meta::common_reference for the n types in "types" as the type
-denoted by std::common_reference_t<types...>.  See
+Compute std::meta::common_reference for the n types in the array "types" as the
+type denoted by std::common_reference_t<types...>.  See
 substitute_std_alias_template for the meaning of *p_err and the return value.
 */
 {
@@ -9649,7 +9650,7 @@ a_type_ptr compute_meta_invoke_result(a_type_ptr  fn_type,
                                       a_boolean   *p_err)
 /*
 Compute std::meta::invoke_result for a callable of type fn_type invoked with
-the n argument types in arg_types, as the type denoted by
+the n argument types in the array arg_types, as the type denoted by
 std::invoke_result_t<fn_type, arg_types...>.  See substitute_std_alias_template
 for the meaning of *p_err and the return value.
 */
@@ -12355,10 +12356,10 @@ not match the corresponding parameter.
             if (template_arg_has_value(*tap) &&
                 tpp->def_arg_involves_template_param) {
               /* A default argument can refer to earlier template parameters
-                 (e.g. the std::allocator<T> default for the allocator
+                 (e.g., the std::allocator<T> default for the allocator
                  parameter of std::vector).  Substitute the arguments gathered
                  so far into it (as all_templ_params_have_values does after
-                 deduction) so the completed argument (e.g. the type
+                 deduction) so the completed argument (e.g., the type
                  std::allocator<int>) is the same entity that a written
                  template-id would produce.  Without this,
                  std::meta::substitute would yield a distinct instance whose

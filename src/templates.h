@@ -1007,16 +1007,16 @@ extern void find_enum_member(a_symbol_ptr		alias_sym,
 
 extern void check_for_uninstantiated_template_class(a_type_ptr  type);
 
-extern a_type_ptr compute_meta_common_type(a_type_ptr  *types,
+extern a_type_ptr compute_meta_common_type(a_type_ptr  types[],
                                            int         n,
                                            a_boolean   *p_err);
 
-extern a_type_ptr compute_meta_common_reference(a_type_ptr  *types,
+extern a_type_ptr compute_meta_common_reference(a_type_ptr  types[],
                                                 int         n,
                                                 a_boolean   *p_err);
 
 extern a_type_ptr compute_meta_invoke_result(a_type_ptr  fn_type,
-                                             a_type_ptr  *arg_types,
+                                             a_type_ptr  arg_types[],
                                              int         n,
                                              a_boolean   *p_err);
 

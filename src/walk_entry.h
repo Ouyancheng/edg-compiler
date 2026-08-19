@@ -1041,13 +1041,14 @@ handle_next_entry:
             { an_il_entry_kind  kind = eptr->variant.reflection.entity.kind;
               /* Unlike a reflected routine, scope, or namespace (each of which
                  is written from its own memory region and so is merely
-                 remapped here) a reflected type must be written wherever it is
-                 reached.  A type reflected inside an uninstantiated template
-                 can be reachable only through the reflection that designates
-                 it (e.g. a dependent type used as a name qualifier), so it is
-                 walked, like the other entities below, rather than just
-                 remapped.  A data member specification is likewise reachable
-                 only through the reflection that describes it. */
+                 remapped here), a reflected type must be written wherever it
+                 is reached.  A type reflected inside an uninstantiated
+                 template can be reachable only through the reflection that
+                 designates it (e.g., a dependent type used as a name
+                 qualifier), so it is walked, like the other entities below,
+                 rather than just remapped.  A data member specification is
+                 likewise reachable only through the reflection that describes
+                 it. */
               if (kind == iek_expr_node || kind == iek_constant ||
                   kind == iek_token_sequence ||
                   kind == iek_data_member_spec ||

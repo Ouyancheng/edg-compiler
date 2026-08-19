@@ -481,7 +481,7 @@ STATIC_THREAD a_collision_table_ptr
 Last discriminator values assigned to unnamed types / closure types in the
 file scope.  Saved here (rather than on a_scope_pointers_block) because there
 is only one file scope per translation unit, and these must survive
-file-scope reactivation (e.g. namespace_inject into ::).
+file-scope reactivation (e.g., namespace_inject into ::).
 */
 STATIC_THREAD a_discriminator
 		last_file_scope_unnamed_type_number;

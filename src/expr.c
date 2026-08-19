@@ -51287,7 +51287,7 @@ record it as the dynamic initializer of plan->iterator, an element variable of
 type std::meta::info.  This mirrors the construction of the for-range-
 declaration in fill_in_range_based_for_loop_constructs, but the element is
 always taken by value as a std::meta::info so that the interpreter can read
-the reflection out of the variable's storage on each iteration.  Returns TRUE
+the reflection out of the variable's storage on each iteration.  Return TRUE
 if the dereference is well-formed; otherwise a diagnostic is issued and FALSE
 is returned.
 */

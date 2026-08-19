@@ -6691,11 +6691,15 @@ name, with no word naming the kind of entity.
         a_type_ptr     ftp = skip_typerefs(rp->type);
         form_reflection_prefix(ec_function, octl);
         if (octl->reflection_display_form && type_is(ftp, tk_routine)) {
-          /* The display form of a function is its whole signature. */
-          form_type(ftp->variant.routine.return_type, octl);
-          octl->output_str(" ", octl);
+          /* The display form of a function is its whole signature, which is
+             rendered as a declaration of its name: the declarator surrounds
+             the name, as in "int (*f())()" for a function returning a pointer
+             to a function. */
+          form_type_first_part_simple(ftp, /*under_lhs_declarator=*/FALSE,
+                                      /*need_trailing_space=*/FALSE, octl);
           form_name(&rp->source_corresp, iek_routine, octl);
-          form_function_declarator(ftp, octl);
+          form_type_second_part_simple(ftp, /*under_lhs_declarator=*/FALSE,
+                                       octl);
         } else {
           form_name(&rp->source_corresp, iek_routine, octl);
         }  /* if */
