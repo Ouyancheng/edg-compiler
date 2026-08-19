@@ -39586,6 +39586,50 @@ entity with a "constant address".
 }  /* var_is_reference_to_constant_address */
 
 
+static a_boolean p2579_const_suppressed_in_gnu_or_clang_mode(void)
+/*
+GCC and Clang implement P2579 only when computing the type of a (parenthesized)
+id-expression in decltype.  They do not const-qualify a by-copy capture while
+type-checking a postfix expression that uses it as the object of a member
+access or as a callee.  Return TRUE if we are in GCC or Clang mode and this
+appears to be a situation where the corresponding compilers would not add the
+required qualification.  Called while the current token is still the
+identifier, so the following token is examined.
+*/
+{
+  a_boolean     suppress = FALSE;
+  a_token_kind  tok;
+
+  if (gpp_mode || clang_mode) {
+    tok = next_token();
+    switch (tok) {
+      case tok_period:
+      case tok_arrow:
+      case tok_lparen:
+      case tok_lbracket:
+      case tok_plus_plus:
+      case tok_minus_minus:
+      case tok_assign:
+      case tok_times_assign:
+      case tok_divide_assign:
+      case tok_remainder_assign:
+      case tok_plus_assign:
+      case tok_minus_assign:
+      case tok_shift_left_assign:
+      case tok_shift_right_assign:
+      case tok_and_assign:
+      case tok_excl_or_assign:
+      case tok_or_assign:
+        suppress = TRUE;
+        break;
+      default:
+        break;
+    }  /* switch */
+  }  /* if */
+  return suppress;
+}  /* p2579_const_suppressed_in_gnu_or_clang_mode */
+
+
 static a_boolean bad_nested_function_variable_ref(
                                           a_symbol_ptr         sym_ptr,
                                           a_source_position    *ref_pos,
@@ -39647,12 +39691,13 @@ a capture).
         !var_has_static_or_thread_storage_duration(var) &&
         !(gpp_version_is(<160000) || clang_version_is(<170000) ||
           ms_version_is(any_version))) {
-      /* P2579 causes mentions of automatic variables in a lambda header
-         after the parameter list (and after any "mutable" qualifier) to be
-         treated as a "const" lvalue if no mutable qualifier was specified
-         and the variable would be captured by copy.  (A by-reference
-         capture, or a use in an unevaluated operand when the capture list
-         does not permit a by-copy capture, does not get this treatment.) */
+      /* P2579 (resolving Core issue 2569) causes mentions of automatic
+         variables in a lambda header after the parameter list (and after any
+         "mutable" qualifier) to be treated as a "const" lvalue if no mutable
+         qualifier was specified and the variable would be captured by copy.
+         (A by-reference capture, or a use in an unevaluated operand when the
+         capture list does not permit a by-copy capture, does not get this
+         treatment.) */
       if (func_proto_ssep != NULL && func_proto_ssep->outside_parameter_list &&
           rout_type_supp(func_proto_ssep->assoc_type)->qualifiers
                                                                 == TQ_CONST) {
@@ -39664,7 +39709,8 @@ a capture).
           a_scope_depth  sd = get_innermost_closure_scope_depth();
           lambda = get_lambda_for_closure_class(scope_stack[sd].assoc_type);
         }  /* if */
-        if (lambda != NULL && var_is_copy_captured(lambda, var)) {
+        if (lambda != NULL && var_is_copy_captured(lambda, var) &&
+            !p2579_const_suppressed_in_gnu_or_clang_mode()) {
           *add_const = TRUE;
         }  /* if */
       }  /* if */
