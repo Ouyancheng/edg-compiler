@@ -12165,14 +12165,16 @@ or handle to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
       check_assertion(is_routine_node(function_expr));
       function = function_expr->variant.routine.ptr;
       class_of_orig_function = parent_class_of(function);
-      /* If the statically-determined function involves default parameters
-         that haven't been instantiated yet, the optimization strategy
-         below does not work; skip the optimization in such cases. */
       if (identical_types(complete_object_type, class_of_orig_function)) {
         /* The function is a direct member of the class of the complete
            object.  Everything is already set up to call it directly, so
            we just need to flag it as a non-virtual call. */
         function_operand->virtual_function = FALSE;
+      } else if (has_uninstantiated_default_arg(
+                                              skip_typerefs(function->type))) {
+        /* If the statically-determined function involves default parameters
+           that haven't been instantiated yet, the optimization strategy
+           below does not work; skip the optimization in such cases. */
       } else {
         /* The routine is not a direct member of the class of the complete
            object, so we have to check if it is overridden there.  (This

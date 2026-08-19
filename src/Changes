@@ -1,5 +1,27 @@
 Version 6.10
 
+8/19/26  [EDGcpfe/26102,EDGcpfe/27040]
+Abort on virtual call with a template default argument
+
+In configurations with OPTIMIZE_VIRTUAL_FUNCTION_CALLS set to TRUE, a virtual
+call to a function with a default argument, where that function is a member of
+a class template, aborted due to a failed internal assertion in
+instantiate_default_argument when the function was found via a
+using-declaration and called from a constructor or destructor.  For example,
+with --gnu_version=150200:
+
+  template<typename> struct B {
+    virtual void f(int = 0);
+  };
+  template<typename> struct D : B<int> {
+    void f(int);
+  };
+  struct C : D<int> {
+    using B<int>::f;
+    C() { f(); }  // Previously triggered an abort.  Now okay.
+  };
+
+
 8/18/26  [EDGcpfe/29009]
 Clang compatibility: __cpp_runtime_arrays
 
