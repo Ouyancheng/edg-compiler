@@ -9183,10 +9183,8 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                requires_gnu_target_attr = FALSE;
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
   a_boolean                use_std_c99_inlining = std_c99_inlining;
-#if DECL_MODIFIERS_IN_USE
-  a_decl_modifiers_block_ptr
+  LOCAL_UNUSED a_decl_modifiers_block_ptr
                            decl_modifiers = &dps->decl_modifiers;
-#endif /* DECL_MODIFIERS_IN_USE */
   a_boolean                update_sym_pos = FALSE;
 
   db_enter(3, "decl_routine");
