@@ -5665,8 +5665,8 @@ is used in the constraint, its evaluation will fail.
     ptp = rout_type_supp(skip_typerefs(routine_type))->param_type_list;
     alep = arg_list;
     while (alep != NULL && arg_match != NULL && ptp != NULL) {
-      an_operand  *opnd = operand_of_arg_list_elem(alep);
-      an_operand  converted_opnd;
+      an_operand  *opnd = operand_of_arg_list_elem(alep),
+                  converted_opnd;
       /* First compute the argument value if it is constant, ignoring any
          conversions associated with binding to the routine's parameters. */
       if (is_constant_operand(opnd)) {
@@ -5683,12 +5683,29 @@ is used in the constraint, its evaluation will fail.
       /* Apply any needed argument->parameter conversions to the resulting
          constant and try to obtain a constant again.  This does not affect
          the original arguments (which may be needed to match against other
-         candidate functions). */
-      make_constant_operand(args[k], &converted_opnd);
-      converted_alep = alloc_arg_list_elem_for_operand(&converted_opnd);
-      prep_argument(converted_alep, ptp, &arg_match->conversion,
-                    ec_incompatible_param, &converted_opnd);
-      free_init_component_list(converted_alep);
+         candidate functions).  Diagnostics are suppressed because an
+         ill-formed conversion (for example, one that would call a deleted
+         constructor) only makes that argument unavailable to the
+         enable_if condition. */
+      {
+        a_boolean  saved_suppress = expr_stack->suppress_diagnostics,
+                   saved_any_error = expr_stack->any_suppressed_error,
+                   conv_failed;
+        make_constant_operand(args[k], &converted_opnd);
+        converted_alep = alloc_arg_list_elem_for_operand(&converted_opnd);
+        expr_stack->suppress_diagnostics = TRUE;
+        expr_stack->any_suppressed_error = FALSE;
+        prep_argument(converted_alep, ptp, &arg_match->conversion,
+                      ec_incompatible_param, &converted_opnd);
+        conv_failed = expr_stack->any_suppressed_error;
+        expr_stack->suppress_diagnostics = saved_suppress;
+        expr_stack->any_suppressed_error = saved_any_error;
+        free_init_component_list(converted_alep);
+        if (conv_failed) {
+          set_error_constant(args[k]);
+          goto next_arg;
+        }  /* if */
+      }
       opnd = &converted_opnd;
       if (is_constant_operand(opnd)) {
         *args[k] = opnd->variant.constant;
@@ -5699,18 +5716,18 @@ is used in the constraint, its evaluation will fail.
         /* Evaluation was successful and args[k] is now updated. */
       } else {
         set_error_constant(args[k]);
-        goto next_arg;
       }  /* if */
 next_arg:
       alep = next_elem(alep);
       arg_match = arg_match->next;
       ptp = ptp->next;
+      ++k;
     }  /* while */
     /* If there are any arguments left (e.g., because of a variadic function),
        map those to error constants (they cannot be used in the enable_if
        condition). */
     for (; alep != NULL; alep = next_elem(alep)) {
-      set_error_constant(args[++k]);
+      set_error_constant(args[k++]);
     }  /* if */
     if (!interpret_clang_enable_if_opnd(expr, args, &aap->position,
                                         p_result)) {

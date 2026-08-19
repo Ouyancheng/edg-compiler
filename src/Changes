@@ -1,5 +1,25 @@
 Version 6.10
 
+8/19/26  [EDGcpfe/29006]
+Clang compatibility: enable_if and deleted converting constructors
+
+Evaluating a Clang enable_if attribute on a multi-argument candidate could
+issue a diagnostic for a conversion that uses a deleted function, even when
+that candidate was not selected.  For example, in Clang C++17 mode:
+
+  struct S {
+    operator unsigned long long() const;
+    S(int) = delete;
+  };
+  bool operator==(unsigned long long lhs, const S &rhs)
+      __attribute__((enable_if(lhs == 0, "")));
+  bool g(S s) { return s == 0; }
+                      // Previously an error (S::S(int) is deleted).
+                      // Now accepted.
+
+This is now fixed.
+
+
 8/19/26  [EDGcpfe/29005]
 GNU and Clang compatibility: Member calls on by-copy captures in lambda
 headers
