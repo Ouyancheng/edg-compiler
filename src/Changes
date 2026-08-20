@@ -105,7 +105,8 @@ The front end now emulates that behavior in GNU and Clang modes.  For example:
   }
 
 
-8/19/26  [EDGcpfe/25497,EDGcpfe/27563]
+8/19/26  [EDGcpfe/25497,EDGcpfe/26173,EDGcpfe/26947,EDGcpfe/27563,
+          EDGcpfe/28495]
 C++20: Matching operator!= disables rewritten operator== candidates
 
 The front end now implements the C++20 defect report resolution from P2468R2
