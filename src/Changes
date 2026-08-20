@@ -1,6 +1,6 @@
 Version 6.10
 
-8/19/26  [EDGcpfe/28992]
+8/19/26  [EDGcpfe/28991,EDGcpfe/28992]
 C++: Friend defined in a class template used from a constexpr destructor
 
 A friend function defined in a class template could be left with a dangling
