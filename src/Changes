@@ -1,5 +1,31 @@
 Version 6.10
 
+8/19/26  [EDGcpfe/28992]
+C++: Friend defined in a class template used from a constexpr destructor
+
+A friend function defined in a class template could be left with a dangling
+pointer to a freed routine-fixup entry if the function was already referenced
+(for example, from a constexpr destructor) before the enclosing class
+template was instantiated.  A later reference then aborted.  For example:
+
+  template<typename T> struct P {
+    T *px;
+    P(bool = true);
+    constexpr ~P() { f(px); }
+  };
+  struct B;
+  template<typename T> struct C {
+    friend void f(B*) {}
+  };
+  void f(B*);
+  P<B> a;
+  struct B : C<B> {};
+  template<typename T> struct D: B {};
+  P<D<int>> b;  // Previously an internal error.  Now accepted.
+
+This is now fixed.
+
+
 8/19/26  [EDGcpfe/29010]
 Microsoft C compatibility: Local static variables in extern-inline functions
 

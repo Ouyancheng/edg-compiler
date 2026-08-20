@@ -12350,13 +12350,15 @@ possibility.
           !class_type->variant.class_struct_union.is_specialized) {
         /* Record the routine fixup in the routine early if this is a friend
            definition in a class template instance so that the body of the
-           function can be "instantiated" early if needed.  Also record
-           whether a trailing requires clause might need substitution when
-           the function is referenced. */
+           function can be "instantiated" early if needed.  Mark the fixup
+           deferred so later processing will not free it while the routine
+           still points at it.  Also record whether a trailing requires
+           clause might need substitution when the function is referenced. */
         a_routine_ptr  rp = sym->variant.routine.ptr;
         if (rp->defined_in_friend_decl && func_info->is_definition &&
             !func_info->is_deleted && !func_info->is_defaulted) {
-          sym->variant.routine.ptr->routine_fixup = curr_routine_fixup;
+          curr_routine_fixup->deferred = TRUE;
+          rp->routine_fixup = curr_routine_fixup;
           sym->variant.routine.pending_trailing_requires_clause =
                                       state->pending_trailing_requires_clause;
           func_info->keep_param_id_list = TRUE;
