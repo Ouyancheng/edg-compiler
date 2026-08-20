@@ -4778,8 +4778,8 @@ number.
 */
 {
   auto      get_tsn = [cache](size_t idx) -> a_token_sequence_number {
-    return (*cache)[idx]->get_starting_seq_number();
-  };
+                        return (*cache)[idx]->get_starting_seq_number();
+                      };
   ptrdiff_t first_idx = low_bound(cache->length(), tsn, get_tsn);
 
   if (first_idx != -1 &&
@@ -5041,46 +5041,52 @@ original source line because of trigraphs and line splices.
 
 
 #if FULLY_RESOLVED_MACRO_POSITIONS
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-int compare_macro_text_map_entry_with_offset(a_const_void_ptr offset_ptr,
-                                             a_const_void_ptr entry_ptr)
+a_macro_text_map_entry_ptr find_macro_text_map_entry_for_offset(
+                                                   a_macro_text_map_ptr mtmp,
+                                                   sizeof_t             offset)
 /*
-Comparison function used by bsearch to test whether a given offset is in the
-range of a specified macro text map entry.  This assumes that the specified
-macro text map entry always has a succeeding entry, i.e., that the entries in
-a given macro text map will always have a terminating entry whose offset is
-higher than any actual offset.
+Return the entry in mtmp that covers the given offset, or NULL if there is
+no such entry.  The last entry in a map is a terminator whose offset is
+larger than any actual offset in the text buffer; an offset equal to that
+terminator is treated as belonging to the preceding entry when the
+terminator has a zero sequence number.
 */
 {
-  a_macro_text_map_entry_ptr mtmep = (a_macro_text_map_entry_ptr)entry_ptr;
-  sizeof_t                   offset = *(sizeof_t*)offset_ptr;
-  int                        result;
+  a_macro_text_map_entry_ptr entries = mtmp->entries;
+  a_macro_text_map_entry_ptr result = NULL;
+  auto get_start = [entries](size_t idx) {
+                     return entries[idx].start_of_region;
+                   };
+  /* Search all but the terminator so that a match always has a succeeding
+     entry for the range comparison, as the terminator's offset is larger
+     than any actual offset. */
+  ptrdiff_t idx = low_bound(mtmp->num_entries - 1, offset, get_start);
 
-  if (offset >= mtmep[0].start_of_region &&
-      (offset < mtmep[1].start_of_region ||
-       /* Treat the offset of the map's terminating entry as belonging to
-          the next-to-last entry. */
-       (offset == mtmep[1].start_of_region &&
-        mtmep[1].corresponding_source_pos.seq == 0))) {
-    /* The offset is in the range of this entry. */
-    result = 0;
-  } else if (offset < mtmep->start_of_region) {
-    /* The matching entry precedes this one. */
-    result = -1;
-  } else {
-    /* The matching entry follows this one. */
-    result = 1;
+  if (idx == -1) {
+    /* Every non-terminator entry starts before offset.  The last real
+       entry covers the offset if it falls in that entry's range, including
+       the terminator offset when the terminator has a zero sequence
+       number. */
+    if (mtmp->num_entries >= 2) {
+      a_macro_text_map_entry_ptr last_real =
+                                         &entries[mtmp->num_entries - 2];
+      a_macro_text_map_entry_ptr terminator =
+                                         &entries[mtmp->num_entries - 1];
+      if (offset >= last_real->start_of_region &&
+          (offset < terminator->start_of_region ||
+           (offset == terminator->start_of_region &&
+            terminator->corresponding_source_pos.seq == 0))) {
+        result = last_real;
+      }  /* if */
+    }  /* if */
+  } else if (entries[idx].start_of_region == offset) {
+    result = &entries[idx];
+  } else if (idx > 0) {
+    /* start[idx] is greater than offset, so the previous entry covers it. */
+    result = &entries[idx - 1];
   }  /* if */
   return result;
-}  /* compare_macro_text_map_entry_with_offset */
-
-
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+}  /* find_macro_text_map_entry_for_offset */
 
 
 static void get_source_pos_from_macro_text_map(
@@ -5099,17 +5105,8 @@ results in *seq, *column, and *macro_context.
   a_macro_text_map_entry_ptr mtmep;
   sizeof_t                   offset = loc_in_line - slmp->inserted_text;
 
-  /* Call bsearch to find the macro text map entry that covers the specified
-     offset.  Note the "-1" in the bsearch argument for the number of entries;
-     the last entry is assumed to be a terminator whose offset is larger than
-     any actual offset in the text buffer.  This allows the search routine to
-     rely on having a "next" entry for the range comparison in all cases. */
-  mtmep = (a_macro_text_map_entry_ptr)bsearch(
-                                     (a_bsearch_arg_type)&offset,
-                                     (a_bsearch_arg_type)mtmp->entries,
-                                     size_t_arg(mtmp->num_entries-1),
-                                     sizeof(a_macro_text_map_entry),
-                                     compare_macro_text_map_entry_with_offset);
+  /* Find the macro text map entry that covers the specified offset. */
+  mtmep = find_macro_text_map_entry_for_offset(mtmp, offset);
   check_assertion_str2(mtmep != NULL, "get_source_pos_from_macro_text_map:",
                        "offset not found");
   /* Copy the corresponding source position, with the appropriate offset from
@@ -13067,31 +13064,6 @@ pp tokens).
   }  /* if */
 }  /* scan_boolean_constant */
 
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-static int UCN_char_is_in_range(const void* char_ptr,
-                                const void* table_entry_ptr)
-/*
-Comparison function used by bsearch to test whether a given UCN
-value is within the specified range.  char_ptr points to the UCN
-value being looked up, and table_entry_ptr points to the entry in the
-UCN range table.
-
-Return -1 if the character precedes the range, zero if it is in the range,
-or +1 if the character follows the range.
-*/
-{
-  unsigned long		uchar = *(unsigned long*)char_ptr;
-  a_UCN_range_ptr	range = (a_UCN_range_ptr)table_entry_ptr;
-  return (uchar < range->start ? -1 : uchar <= range->end ? 0 : 1);
-}  /* UCN_char_is_in_range */
-
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
 #if !(CPPCLI_ENABLING_POSSIBLE && EDG_WIN32)
 static
 #endif /* !(CPPCLI_ENABLING_POSSIBLE && EDG_WIN32) */
@@ -13108,7 +13080,12 @@ identifier character is invalid.
 {
   an_error_code result = ec_no_error;
   a_byte        dialect;
-  a_UCN_range   *range;
+  a_UCN_range const
+                *range = NULL;
+  ptrdiff_t     idx;
+  auto          get_end = [](size_t table_idx) {
+                            return UCN_table[table_idx].end;
+                          };
 
   if ((!C_mode() || c23_mode) && !old_id_chars) {
     dialect = UAX44;
@@ -13119,11 +13096,13 @@ identifier character is invalid.
   } else {
     dialect = CPP03;
   }  /* if */
-  range = (a_UCN_range *)bsearch(
-			  (a_bsearch_arg_type)&uchar,
-			  (a_bsearch_arg_type)UCN_table,
-                          size_t_arg(sizeof(UCN_table) / sizeof(a_UCN_range)),
-                          sizeof(a_UCN_range), UCN_char_is_in_range);
+  /* The table is sorted by increasing range end (and start).  The first
+     range whose end is not less than uchar is the candidate containing
+     range. */
+  idx = low_bound(sizeof(UCN_table) / sizeof(a_UCN_range), uchar, get_end);
+  if (idx != -1 && UCN_table[idx].start <= uchar) {
+    range = &UCN_table[idx];
+  }  /* if */
   if (range == NULL || (range->dialects & dialect) == 0) {
     /* Not a valid identifier character in this dialect. */
     result = ec_invalid_identifier_UCN;
@@ -16972,38 +16951,22 @@ indistinguishable but that are actually spelled using different Unicode
 characters.
 */
 
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-static int compare_confusable(const void *chp,
-                              const void *elemp)
-/*
-Return <0, 0, or >0 depending on whether the (int) Unicode code point
-pointed to by chp is less than, equal to, or greater than the src_char of
-the a_confusable_map_elem entry pointed to by elemp.
-*/
-{
-  return *(int *)chp - ((a_confusable_map_elem_ptr)elemp)->src_char;
-}  /* compare_confusable */
-
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-
 static a_confusable_map_elem_ptr confusable_char(unsigned long ch)
 /*
 If ch is the src_char in an entry in confusable_map, return a pointer to
 that entry; otherwise, return NULL.
 */
 {
-  void *elem;
-  int  val = (int)ch;
+  int       val = (int)ch;
+  auto      get_src = [](size_t idx) { return confusable_map[idx].src_char; };
+  ptrdiff_t idx = low_bound(num_confusable_characters, val, get_src);
+  a_confusable_map_elem_ptr
+	    result = NULL;
 
-  elem = bsearch(&val, confusable_map, num_confusable_characters,
-                 sizeof(a_confusable_map_elem), compare_confusable);
-  return (a_confusable_map_elem_ptr)elem;
+  if (idx != -1 && confusable_map[idx].src_char == val) {
+    result = &confusable_map[idx];
+  }  /* if */
+  return result;
 }  /* confusable_char */
 
 

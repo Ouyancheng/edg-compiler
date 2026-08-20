@@ -4365,66 +4365,6 @@ number conversions.
 }  /* update_seq_cache */
 
 
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-
-static int compare_seq_info(a_const_void_ptr arg1,
-                            a_const_void_ptr arg2)
-/*
-Function called by bsearch to compare two sequence number lookup entries.
-The first pointer represents the sequence number to be found.  The second
-pointer points into the lookup array.
-*/
-{
-  a_seq_number_lookup_entry_ptr	snlep1;
-  a_seq_number_lookup_entry_ptr	snlep2;
-  int				result;
-  a_seq_number			seq_to_find;
-
-  snlep1 = (a_seq_number_lookup_entry_ptr)arg1;
-  snlep2 = *(a_seq_number_lookup_entry_ptr*)arg2;
-  seq_to_find = snlep1->first;
-  if (snlep1->source_file != NULL && seq_to_find == snlep2->last) {
-    /* When snlep1 has a non-NULL source file pointer, the sequence
-       number supplied was the special end-of-source sequence number for
-       the translation unit associated with the specified source file.
-       When a source file ends with an include, the included file and
-       the source file have the same ending sequence number.  When the
-       condition above is TRUE, we have found one of those two (or more)
-       files.  The test below determines whether we've found the entry
-       for the primary source file.  Note also that when the primary
-       source file ends in an include, the lookup entry will actually
-       have a starting sequence number one greater than the ending
-       sequence number.  That is why the test above checks for equality
-       with the ending sequence number. */
-    if (!snlep2->source_file->is_include_file) {
-      /* We've found the entry for the primary source file. */
-      result = 0;
-    } else {
-      /* This is the entry for an include file.  The entry for the primary
-         source file follows this entry. */
-      result = 1;
-    }  /* if */
-  } else if (seq_to_find < snlep2->first) {
-    /* The sequence number we're looking for precedes this entry. */
-    result = -1;
-  } else if (seq_to_find > snlep2->last) {
-    /* The sequence number we're looking for follows this entry. */
-    result = 1;
-  } else {
-    /* The sequence number we're looking for is within the range of this
-       entry. */
-    result = 0;
-  }  /* if */
-  return result;
-}  /* compare_seq_info */
-
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
 static a_source_file_ptr find_seq_in_lookup_table(
 					a_seq_number	seq_number,
 					a_line_number	*line_number,
@@ -4439,11 +4379,10 @@ are not looking for a physical line).  This lookup uses the sequence number
 lookup table.
 */
 {
-  a_seq_number_lookup_entry	snle_to_find = {NULL}; /*lint !e785*/
-  a_seq_number_lookup_entry_ptr	snlep_found;
+  a_seq_number_lookup_entry_ptr	snlep_found = NULL;
   a_source_file_ptr		curr_file;
   long				line_offset;
-  a_seq_number_lookup_entry_ptr	*bsearch_result;
+  ptrdiff_t			idx;
 
   /* Check whether this is the end-of-file position for any of the
      translation units being processed. */
@@ -4456,21 +4395,43 @@ lookup table.
       break;
     }  /* if */
   }  /* for */
-  /* Construct a special lookup entry whose "first" value holds the sequence
-     number we are looking for. */
-  snle_to_find.first = seq_number;
-  snle_to_find.source_file = *at_end_of_source ? curr_file : NULL;
-  /* Use bsearch to find the entry that contains the sequence number that we
-     are looking for. */
-  bsearch_result = (a_seq_number_lookup_entry_ptr*)
-                   bsearch((a_bsearch_arg_type)&snle_to_find,
-                           (a_bsearch_arg_type)seq_number_lookup_table,
-                           size_t_arg(il_header.num_seq_number_lookup_entries),
-                           sizeof(a_seq_number_lookup_entry_ptr),
-                           compare_seq_info);
-  check_assertion_str2(bsearch_result != NULL, "find_seq_in_lookup_table:",
+  /* The lookup table is ordered by increasing last sequence number (with
+     a possible duplicate last value when a source file ends in an include).
+     Find the first entry whose last sequence number is not less than the
+     one we are looking for. */
+  auto get_last = [](size_t table_idx) {
+                    return seq_number_lookup_table[table_idx]->last;
+                  };
+  idx = low_bound((size_t)il_header.num_seq_number_lookup_entries,
+                  seq_number, get_last);
+  if (idx != -1) {
+    if (*at_end_of_source) {
+      /* When a source file ends with an include, the included file and the
+         source file have the same ending sequence number.  Skip include
+         entries so that we return the primary source file.  Note also that
+         when the primary source file ends in an include, the lookup entry
+         will actually have a starting sequence number one greater than the
+         ending sequence number. */
+      for (; (unsigned long)idx <
+                             il_header.num_seq_number_lookup_entries; ++idx) {
+        a_seq_number_lookup_entry_ptr snlep = seq_number_lookup_table[idx];
+        if (snlep->last != seq_number) {
+          break;
+        }  /* if */
+        if (!snlep->source_file->is_include_file) {
+          snlep_found = snlep;
+          break;
+        }  /* if */
+      }  /* for */
+    } else {
+      a_seq_number_lookup_entry_ptr snlep = seq_number_lookup_table[idx];
+      if (seq_number >= snlep->first && seq_number <= snlep->last) {
+        snlep_found = snlep;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  check_assertion_str2(snlep_found != NULL, "find_seq_in_lookup_table:",
                        "seq_number not found");
-  snlep_found = *bsearch_result;
   curr_file = snlep_found->source_file;
   line_offset = -(long)(snlep_found->first) + snlep_found->line_number;
   /* Save information about this conversion so that subsequent conversions
@@ -18667,38 +18628,19 @@ Display the current list of moves to perform.
 
 #endif /* DEBUG */
 
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-static int compare_routine_move(const void *r1,
-                                const void *r2)
+static a_boolean compare_routine_move(a_routine_move_descr const &x,
+                                      a_routine_move_descr const &y)
 /*
-r1 and r2 point to routine move descriptions.  Return -1, 0, or 1 depending
-on the relative positions of the initial declarations of the routines being
-moved.
+Return TRUE if the routine move described by x should be ordered before
+that described by y.  The entry with the later first_pos is ordered first
+so that routines originally declared earlier are moved first when the
+array is traversed from the end.  Since multiple routine declarations are
+rarely placed on the same line, the column ordering is ignored.
 */
 {
-  a_routine_move_descr  *x = (a_routine_move_descr *)r1;
-  a_routine_move_descr  *y = (a_routine_move_descr *)r2;
-  int                   result;
-
-  /* Move first the entry with the earliest position (by placing it later
-     in the sorting order).  Since multiple routine declarations are rarely
-     placed on the same line, we ignore the column ordering. */
-  if (x->first_pos < y->first_pos) {
-    result = 1;
-  } else if (x->first_pos > y->first_pos) {
-    result = -1;
-  } else {
-    result = 0;
-  }  /* if */
-  return result;
+  return y.first_pos < x.first_pos;
 }  /* compare_routine_move */
 
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 void perform_scheduled_routine_moves(void)
 /*
@@ -18719,10 +18661,9 @@ declaration order on their list.
   /* Sort the moves in the order of the original declarations of the routines
      (which is normally the order in which the routines appear on their
      respective scope lists).  (We actually invert that order.) */
-  qsort((a_void_ptr)scheduled_routine_moves,
-        (qsort_nmemb_type)n_scheduled_routine_moves,
-        (qsort_nmemb_type)sizeof(a_routine_move_descr),
-        compare_routine_move);
+  sort(scheduled_routine_moves,
+       scheduled_routine_moves + n_scheduled_routine_moves,
+       compare_routine_move);
   /* Traverse the ordered move schedule and find each routine-to-move on its
      scope list. */
   rmdp = &scheduled_routine_moves[n_scheduled_routine_moves-1];

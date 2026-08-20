@@ -729,14 +729,9 @@ source entry will be preserved.
   a_macro_invocation_record_index ctx = macro_context;
   a_column_number                 adjusted_column;
 
-  /* Call bsearch to find the macro text map entry that covers the specified
-     source buffer starting offset. */
-  mtmep = (a_macro_text_map_entry_ptr)bsearch(
-                                     (a_bsearch_arg_type)&starting_src_offset,
-                                     (a_bsearch_arg_type)src_map->entries,
-                                     size_t_arg(src_map->num_entries-1),
-                                     sizeof(a_macro_text_map_entry),
-                                     compare_macro_text_map_entry_with_offset);
+  /* Find the macro text map entry that covers the specified source buffer
+     starting offset. */
+  mtmep = find_macro_text_map_entry_for_offset(src_map, starting_src_offset);
   check_assertion_str2(mtmep != NULL, "clone_macro_text_map_entries",
                        "offset not found");
 #if RECORD_MACRO_INVOCATIONS
@@ -4699,7 +4694,7 @@ The following array describes all the clang __has_feature/__has_extension
 feature strings and WG21 SG10 feature-test macros (type trait helpers can
 also be tested by the clang macros, but those are represented by a separate
 table).  It is sorted by the clang __has_feature string so it can be used
-with bsearch when the __has_feature or __has_extension macro is
+with a binary search when the __has_feature or __has_extension macro is
 encountered.  The current contents reflect WG21 N4842 and the clang 6
 documentation at clang.llvm.org/docs/LanguageExtensions.html.
 */
@@ -5263,28 +5258,8 @@ STATIC_THREAD a_feature_support feature_support_list[] = {
 
 #define NUM_FEATURES (sizeof(feature_support_list) / sizeof(a_feature_support))
 
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-static int compare_feature_names(a_const_void_ptr id_ptr,
-                                 a_const_void_ptr feature_ptr)
 /*
-Function used by bsearch to compare the identifier to which id_ptr points
-with the clang_name of the feature to which feature_ptr points.
-*/
-{
-  int result = strcmp((const char *)id_ptr,
-                      ((a_feature_support *)feature_ptr)->clang_name);
-  return result;
-}  /* compare_feature_names */
-
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-/*
-The following table (sorted for use with bsearch) has one entry for each
+The following table (sorted for binary search) has one entry for each
 type trait helper function for which support can be tested using the clang
 __has_feature/__has_extension macros.  Although the clang documentation
 says that these can be tested only by __has_extension and not by
@@ -5340,25 +5315,6 @@ null character.
 */
 #define MAX_CLANG_FEATURE_NAME_LEN 64
 
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-static int compare_type_traits_helper_names(a_const_void_ptr id_ptr,
-                                            a_const_void_ptr helper_ptr)
-/*
-Function used by bsearch to compare the identifier to which id_ptr points
-with the type traits helper name to which helper_ptr points.
-*/
-{
-  int result = strcmp((const char *)id_ptr, *(const char **)helper_ptr);
-  return result;
-}  /* compare_type_traits_helper_names */
-
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
 /*
 The following struct associates a standard attribute-token with the value
 returned by __has_cpp_attribute or __has_c_attribute when that attribute is
@@ -5385,7 +5341,7 @@ month in which the attribute was adopted by the standard committee.
 Attributes that are standard in C++ but not in C and vice versa have the
 value "1" in the nonstandard dialect in case the attribute is supported as
 am extension in the current emulation.  The entries are sorted by the token
-spelling so the table can be used with bsearch.
+spelling so the table can be used with a binary search.
 */
 
 static constexpr an_attribute_support attribute_support_list[] = {
@@ -5408,27 +5364,6 @@ static constexpr an_attribute_support attribute_support_list[] = {
 
 #define NUM_CPP_ATTRIBUTES (sizeof(attribute_support_list) / \
                             sizeof(an_attribute_support))
-
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-static int compare_attribute_names(a_const_void_ptr id_ptr,
-                                   a_const_void_ptr attr_supp_ptr)
-/*
-Function used by bsearch to compare the attribute-token to which id_ptr
-points with the attribute-token spelling of the attribute support entry to
-which attr_supp_ptr points.
-*/
-{
-  int result = strcmp((const char *)id_ptr,
-                      ((an_attribute_support *)attr_supp_ptr)->token);
-  return result;
-}  /* compare_attribute_names */
-
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static a_const_char *clang_feature_test_id(a_macro_arg_ptr   macro_arg,
                                            a_const_char      **ns_id_ptr,
@@ -7658,12 +7593,18 @@ end_arg_expansion:;
       } else if (feature_name != NULL) {
         /* First check to see if the specified identifier is the name of a
            feature. */
-        feature = 
-         (a_feature_support *)bsearch((a_bsearch_arg_type)feature_name,
-                                      (a_bsearch_arg_type)feature_support_list,
-                                      size_t_arg(NUM_FEATURES),
-                                      sizeof(a_feature_support),
-                                      compare_feature_names);
+        a_string_view feature_name_view(feature_name);
+        auto          get_feature_name =
+	  [](size_t idx) {
+            return a_string_view(feature_support_list[idx].clang_name);
+          };
+        ptrdiff_t     feature_idx = low_bound(NUM_FEATURES, feature_name_view,
+                                              get_feature_name);
+        feature = NULL;
+        if (feature_idx != -1 &&
+            get_feature_name((size_t)feature_idx) == feature_name_view) {
+          feature = &feature_support_list[feature_idx];
+        }  /* if */
         if (feature != NULL) {
           feature_supported = (feature->enabled != NULL && *feature->enabled);
           if (feature_supported && macro_symbol == has_feature_symbol &&
@@ -7676,13 +7617,17 @@ end_arg_expansion:;
         } else if (type_traits_helpers_enabled) {
           /* The identifier is not the name of a feature, so check it
              against the list of supported C++ type trait helpers. */
-          /* coverity[suspicious_sizeof] */
+          a_string_view  helper_name_view(feature_name);
+          auto           get_helper_name =
+            [](size_t idx) {
+              return a_string_view(clang_type_traits_helpers[idx]);
+            };
+          ptrdiff_t      helper_idx = low_bound(NUM_CLANG_TYPE_TRAITS,
+                                                helper_name_view,
+                                                get_helper_name);
           feature_supported =
-                        (bsearch((a_bsearch_arg_type)feature_name,
-                                 (a_bsearch_arg_type)clang_type_traits_helpers,
-                                 size_t_arg(NUM_CLANG_TYPE_TRAITS),
-                                 sizeof(a_const_char *),
-                                 compare_type_traits_helper_names) != NULL);
+              (helper_idx != -1 &&
+               get_helper_name((size_t)helper_idx) == helper_name_view);
         }  /* if */
       }  /* if */
       strcpy(repl_text, feature_supported ? "1" : "0");
@@ -7726,13 +7671,19 @@ end_arg_expansion:;
       if (attribute_name != NULL &&
           attribute_is_supported(attribute_name, namespace_name,
                                  af_has_attribute)) {
-        an_attribute_support *attr_supp_entry;
-        attr_supp_entry = (an_attribute_support *)bsearch(
-                                    (a_bsearch_arg_type)attribute_name,
-                                    (a_bsearch_arg_type)attribute_support_list,
-                                    size_t_arg(NUM_CPP_ATTRIBUTES),
-                                    sizeof(an_attribute_support),
-                                    compare_attribute_names);
+        an_attribute_support const
+                       *attr_supp_entry = NULL;
+        a_string_view  attr_name_view(attribute_name);
+        auto           get_attr_name =
+          [](size_t idx) {
+            return a_string_view(attribute_support_list[idx].token);
+          };
+        ptrdiff_t      attr_idx = low_bound(NUM_CPP_ATTRIBUTES, attr_name_view,
+                                            get_attr_name);
+        if (attr_idx != -1 &&
+            get_attr_name((size_t)attr_idx) == attr_name_view) {
+          attr_supp_entry = &attribute_support_list[attr_idx];
+        }  /* if */
         if (attr_supp_entry != NULL) {
           /* This is a standard attribute, although not necessarily in the
              current dialect (C or C++).  For attributes supported by the

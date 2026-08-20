@@ -6110,29 +6110,6 @@ error is issued.
 }  /* open_input_file_with_error_handling */
 
 
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-static int compare_tag_info(a_const_void_ptr arg1,
-                            a_const_void_ptr arg2)
-/*
-Function called by bsearch to compare two error_tag_entry records based on
-the tag.
-*/
-{
-  an_error_tag_entry_ptr	eip1;
-  an_error_tag_entry_ptr	eip2;
-
-  eip1 = (an_error_tag_entry_ptr)arg1;
-  eip2 = (an_error_tag_entry_ptr)arg2;
-  return strcmp(eip1->tag, eip2->tag);
-}  /* compare_tag_info */
-
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
 static an_error_code convert_error_tag_to_error_code(a_const_char *tag,
                                                      a_boolean    *err)
 /*
@@ -6140,20 +6117,15 @@ Given an error tag string, convert it to an error code.  *err is set to
 TRUE if the error tag is invalid.
 */
 {
-  an_error_tag_entry	        ete_to_find;
-  an_error_tag_entry_ptr	etep_found;
-  an_error_code			error_code = ec_no_error;
+  an_error_code  error_code = ec_no_error;
+  a_string_view	 tag_view(tag);
+  auto           get_tag = [](size_t idx) {
+                             return a_string_view(error_tags[idx].tag);
+                           };
+  ptrdiff_t      idx = low_bound(NUMBER_OF_ERROR_TAGS, tag_view, get_tag);
 
-  ete_to_find.tag = tag;
-  /* Look up the enumeration code in the error_info table. */
-  etep_found = (an_error_tag_entry_ptr)
-                    bsearch((a_bsearch_arg_type)&ete_to_find,
-                            (a_bsearch_arg_type)error_tags,
-                            size_t_arg(NUMBER_OF_ERROR_TAGS),
-                            sizeof(an_error_tag_entry),
-                            compare_tag_info);
-  if (etep_found != NULL) {
-    error_code = etep_found->code;
+  if (idx != -1 && get_tag((size_t)idx) == tag_view) {
+    error_code = error_tags[idx].code;
     *err = FALSE;
   } else {
     *err = TRUE;

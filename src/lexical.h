@@ -4385,15 +4385,9 @@ extern void rem_source_line_modif_from_hash_table(
 extern a_token_kind get_token_with_colon_separation(
                                               a_boolean *seen_tok_colon_colon);
 #if FULLY_RESOLVED_MACRO_POSITIONS
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-extern int compare_macro_text_map_entry_with_offset(
-                                                   a_const_void_ptr offset_ptr,
-                                                   a_const_void_ptr entry_ptr);
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+extern a_macro_text_map_entry_ptr find_macro_text_map_entry_for_offset(
+                                                a_macro_text_map_ptr mtmp,
+                                                sizeof_t             offset);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 extern void add_concatenation_record(a_concatenation_record_ptr *headp,
                                      a_concatenation_record_ptr *tailp,
@@ -5347,7 +5341,7 @@ extern void replace_curr_token(a_token_kind  new_token);
 The following table is adapted from the confusables.txt data described in
 unicode.org/reports/tr39, "Unicode Security Mechanisms", section 4.  It
 associates various Unicode code points with their "prototypes".  It must be
-sorted by src_char so that it can be searched by bsearch.  The current
+sorted by src_char so that it can be searched by a binary search.  The current
 contents reflect version 17.0.0 (2025-07-22) of the data.
 */
 

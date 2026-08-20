@@ -1310,26 +1310,14 @@ get_token_with_colon_separation for a description of seen_tok_colon_colon.
 }  /* asm_labels_spec */
 
 
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-extern "C" {
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-static int compare_n2r(const void *a,
-                       const void *b)
+static a_boolean compare_n2r(name_to_reg const  &x,
+                             name_to_reg const  &y)
 /*
-Compare a <=> b, which are really pointers to name_to_reg structures,
-by their name strings.
+Return TRUE if the register name of x comes before that of y.
 */
 {
-  struct name_to_reg *x = (struct name_to_reg *)a;
-  struct name_to_reg *y = (struct name_to_reg *)b;
-
-  return strcmp(x->name, y->name);
+  return strcmp(x.name, y.name) < 0;
 }  /* compare_n2r */
-
-#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-}  /* extern "C" */
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 
 void extasm_one_time_init(void)
@@ -1372,8 +1360,7 @@ extended asm statements.
                size_t_arg(sizeof(extra_reg_names) -
                                                   sizeof(struct name_to_reg)));
   /* name_to_register requires that regmap be sorted. */
-  qsort((a_void_ptr)regmap, (qsort_nmemb_type)regmap_size,
-        (qsort_nmemb_type)sizeof(struct name_to_reg), compare_n2r);
+  sort(regmap, regmap + regmap_size, compare_n2r);
   /* Save variables from extasm.h and extasm.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {

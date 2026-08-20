@@ -1,5 +1,12 @@
 Version 6.10
 
+8/20/26  [EDGcpfe/29012]
+Replace remaining stdlib qsort/bsearch calls in the front end
+
+The remaining front-end uses of the C library qsort and bsearch routines
+have been replaced by the util.h sort and low_bound templates.
+
+
 8/19/26  [EDGcpfe/28991,EDGcpfe/28992]
 C++: Friend defined in a class template used from a constexpr destructor
 
