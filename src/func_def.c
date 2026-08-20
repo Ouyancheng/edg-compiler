@@ -174,7 +174,14 @@ Require definitions for the virtual functions of the indicated class.
            that the defer-inline flag is important here to prevent the actual
            instantiation of these functions from occurring earlier than is
            absolutely necessary. */
-        if (rp->is_defaulted) {
+        if (rp->is_defaulted ||
+            (rp->compiler_generated &&
+             special_kind_is(rp, sfk_operator) &&
+             opname_kind_is(rp, onk_assign))) {
+          /* Generate bodies for defaulted virtual functions and for
+             implicitly-declared assignment operators that override a
+             virtual operator=.  Virtual destructors are handled
+             separately, subject to the vtable-decider function. */
           force_definition_of_compiler_generated_routine(rp);
         }  /* if */
         if (instantiate_extern_inline ||
