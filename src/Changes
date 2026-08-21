@@ -74,6 +74,8 @@ discretionary error for the following example:
 because C disallows local static variables in non-static inline definitions.
 MSVC, however, silently permits this and the front end now emulates that by
 only issuing a remark in that case.
+
+
 8/19/26  [EDGcpfe/29011]
 Implicit assignment operators that override a virtual operator=
 
