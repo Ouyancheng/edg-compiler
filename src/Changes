@@ -1,5 +1,15 @@
 Version 6.10
 
+8/20/26  [EDGcpfe/28940]
+Unicode version 17.0.0
+
+The set of characters that can be used in identifiers, the table of similar
+glyphs that might be used in source-level malicious exploits (see
+EDGcpfe/24810,EDGcpfe/24829), and the list of character names and code
+points (see EDGcpfe/25513,EDGcpfe/25845) have been updated to reflect
+version 17.0.0 of the Unicode standard.
+
+
 8/20/26  [EDGcpfe/29012]
 Replace remaining stdlib qsort/bsearch calls in the front end
 
