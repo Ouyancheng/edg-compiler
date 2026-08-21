@@ -6598,11 +6598,6 @@ file.
 #else /* !defined(BOOL_ENABLING_POSSIBLE) */
   comment_undefined_macro_name(BOOL_ENABLING_POSSIBLE);
 #endif /* defined(BOOL_ENABLING_POSSIBLE) */
-#if defined(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C)
-  define_numeric_valued_macro(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C);
-#else /* !defined(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C) */
-  comment_undefined_macro_name(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C);
-#endif /* defined(BSEARCH_QSORT_FUNCTION_IS_EXTERN_C) */
 #if defined(BUILTIN_FUNCTIONS_ENABLED)
   define_string_valued_macro(BUILTIN_FUNCTIONS_ENABLED);
 #else /* !defined(BUILTIN_FUNCTIONS_ENABLED) */

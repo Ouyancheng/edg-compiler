@@ -4128,19 +4128,6 @@ typedef int qsort_nmemb_type;
 typedef sizeof_t qsort_nmemb_type;
 #endif /* __BSD__ */
 
-/*
-The C++ standard specifies that two versions of bsearch and qsort must
-be supplied so that either a C or C++ linkage pointer may be passed as
-an argument.  However, some implementations only provide the version
-that takes a C linkage function.  When using an implementation that
-requires a C linkage function, this flag may be set cause the
-functions that are passed to bsearch and qsort to be declared as
-extern "C".  This flag must not be TRUE when compiling in C mode.
-*/
-#ifndef BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
-#define BSEARCH_QSORT_FUNCTION_IS_EXTERN_C TRUE
-#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
 #if EDG_WIN32
 extern void open_mapped_input_file(a_const_char     *file_name,
                                    a_windows_handle *mapped_input,
