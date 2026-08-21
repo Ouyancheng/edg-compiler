@@ -3306,6 +3306,11 @@ struct a_requires_range_descr {
   a_boolean	is_friend_template;
 			/* TRUE if this is a requires-clause for a friend
 			   template. */
+  a_pack_reference_ptr
+		packs_referenced;
+			/* For a requires-expression, a list of copies of the
+			   pack references that were recorded when the
+			   expression was originally parsed. */
   union {
     a_requires_clause_ptr
 		requires_clause;

@@ -1,5 +1,22 @@
 Version 6.10
 
+8/21/26  [EDGcpfe/25572,EDGcpfe/28978]
+Pack expansion of requires expression
+
+Previously, expanding a requires expression was spuriously rejected with "pack
+expansion does not make use of any argument packs".  For example, with --c++20:
+
+  template<bool ... Bs>
+  struct B {
+    static constexpr bool v = true;
+  };
+  template<typename ... Ts>
+  struct C {
+    static constexpr bool v =
+      B<requires(Ts t) { t; } ...>::v;  // Previously a spurious error.
+  };                                    // Now okay.
+
+
 8/20/26  [EDGcpfe/28940]
 Unicode version 17.0.0
 

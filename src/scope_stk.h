@@ -2575,6 +2575,12 @@ extern a_pack_reference_ptr alloc_pack_reference(a_pack_reference_kind	kind);
 
 extern a_pack_reference_ptr copy_pack_reference(a_pack_reference_ptr	prp);
 
+extern a_pack_reference_ptr copy_pack_references_in_token_range(
+				a_token_sequence_number		first_token,
+				a_token_sequence_number		last_token);
+
+extern void rerecord_pack_references(a_pack_reference_ptr		prp);
+
 extern a_pack_expansion_descr_ptr alloc_pack_expansion_descr(void);
 
 extern void add_pack_expansion_descr_to_prototype_arg(

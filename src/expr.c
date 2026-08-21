@@ -43546,6 +43546,10 @@ done_with_requirements:
            (e.g., when rescanning a variable template initializer). */
         rrd.next_tsn = rbrace_tsn;
         rrd.requires_expr = node;
+        /* Save any pack references recorded while scanning this
+           requires-expression. */
+        rrd.packs_referenced =copy_pack_references_in_token_range(requires_tsn,
+                                                                  rbrace_tsn);
         (void)requires_ranges->map_or_replace(requires_tsn, rrd);
       }  /* if */
     }  /* if */
@@ -43570,6 +43574,12 @@ done_with_requirements:
       (void)get_token();
     } while (curr_token_sequence_number <= rrd.next_tsn &&
              curr_token != tok_end_of_source);
+    if (rrd.packs_referenced != NULL) {
+      /* Re-record the pack references that were saved when the
+         requires-expression was originally parsed since the tokens that
+         produced them are not rescanned here. */
+      rerecord_pack_references(rrd.packs_referenced);
+    }  /* if */
     if (is_prototype_instantiation_context() ||
         is_alias_in_template_decl_context() ||
         (scope_stack_top().in_nonreal_instantiation &&
@@ -54283,6 +54293,7 @@ If discard is FALSE, return a pointer to the scanned representation.
        used to skip the clause in instantiations (see below). */
     rrd.next_tsn = curr_token_sequence_number;
     rrd.is_friend_template = FALSE;
+    rrd.packs_referenced = NULL;
     rrd.requires_clause = rcp;
     (void)requires_ranges->map_or_replace(requires_tsn, rrd);
   } else {

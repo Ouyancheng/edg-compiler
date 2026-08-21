@@ -12425,6 +12425,48 @@ Return a pointer to the copy.
 }  /* copy_pack_reference */
 
 
+a_pack_reference_ptr copy_pack_references_in_token_range(
+                                          a_token_sequence_number  first_token,
+                                          a_token_sequence_number  last_token)
+/*
+Return a list of copies of the pack references recorded in the current
+context whose token sequence numbers fall in the range [first_token,
+last_token].  This is used to save the pack references of a construct
+(like a requires-expression) whose tokens will be skipped rather than
+rescanned during instantiations; see rerecord_pack_references.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = get_scope_for_pack_references();
+  a_pack_reference_ptr     prp, result = NULL, *p_tail = &result;
+
+  /* The list is in token sequence number order. */
+  for (prp = ssep->packs_referenced; prp != NULL; prp = prp->next) {
+    if (prp->token_sequence_number > last_token) break;
+    if (prp->token_sequence_number >= first_token) {
+      *p_tail = copy_pack_reference(prp);
+      p_tail = &(*p_tail)->next;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* copy_pack_references_in_token_range */
+
+
+void rerecord_pack_references(a_pack_reference_ptr  prp)
+/*
+Re-record the pack references on the list pointed to by prp, which was
+created by copy_pack_references_in_token_range when a construct was
+originally parsed.  This is done when the tokens of the construct are
+skipped during an instantiation so that an enclosing pack expansion
+context sees the references even though the tokens that produced them
+are not rescanned.
+*/
+{
+  for (; prp != NULL; prp = prp->next) {
+    record_potential_pack_reference(prp->symbol, &prp->position);
+  }  /* for */
+}  /* rerecord_pack_references */
+
+
 static a_template_arg_ptr make_base_class_arg_list(
 						a_type_ptr	class_type,
 						a_boolean	direct_bases,
