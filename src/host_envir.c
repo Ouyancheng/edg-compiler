@@ -5461,6 +5461,39 @@ Otherwise, allocations will occur in the intermediate language memory region.
 
 #if __MICROSOFT_OS__ && EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
 
+static unsigned short upper_case_utf16_char(unsigned short utf16_char)
+/*
+Return the locale-insensitive upper-case mapping of the UTF-16 code unit
+"utf16_char" or "utf16_char" itself when it has no upper-case mapping.
+Unpaired surrogates are returned unchanged.
+
+Note: the CharUpperW performs this mapping, but it is deliberately not used
+here to avoid depending on User32.dll.
+*/
+{
+  if (utf16_char < 0x80) {
+    /* ASCII, which is by far the common case for file names.  This is the
+       same mapping that CharUpperW performs for these code units. */
+    if (utf16_char >= (unsigned short)'a' &&
+        utf16_char <= (unsigned short)'z') {
+      utf16_char -= (unsigned short)('a' - 'A');
+    }  /* if */
+  } else if (utf16_char < 0xD800 || utf16_char > 0xDFFF) {
+    WCHAR  source_char;
+    WCHAR  upper_case_char;
+
+    /* Not half of a surrogate pair, so this code unit is a complete
+       character and can be mapped on its own. */
+    source_char = (WCHAR)utf16_char;
+    if (LCMapStringW(LOCALE_INVARIANT, LCMAP_UPPERCASE, &source_char,
+                     /*cchSrc=*/1, &upper_case_char, /*cchDest=*/1) == 1) {
+      utf16_char = (unsigned short)upper_case_char;
+    }  /* if */
+  }  /* if */
+  return utf16_char;
+}  /* upper_case_utf16_char */
+
+
 int compare_file_chars_case_insensitive(a_const_char *file1,
                                         a_const_char *file2)
 /*
@@ -5537,12 +5570,9 @@ upper-case mapping each UTF-16 code unit.
       break;
     } else if (file1_utf16_char != file2_utf16_char) {
       /* The UTF-16 code units are different.  Compare their
-         locale-insensitive upper-case mappings.  The cast via DWORD_PTR
-         is done to avoid a warning from the Microsoft compiler. */
-      file1_utf16_char =
-               (unsigned short)(DWORD_PTR)CharUpperW((LPWSTR)file1_utf16_char);
-      file2_utf16_char =
-               (unsigned short)(DWORD_PTR)CharUpperW((LPWSTR)file2_utf16_char);
+         locale-insensitive upper-case mappings. */
+      file1_utf16_char = upper_case_utf16_char(file1_utf16_char);
+      file2_utf16_char = upper_case_utf16_char(file2_utf16_char);
       if (file1_utf16_char != file2_utf16_char) {
         /* The upper-case mappings of the UTF-16 code units are different. */
         result = file2_utf16_char - file1_utf16_char;
