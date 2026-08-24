@@ -6122,9 +6122,9 @@ TRUE if the error tag is invalid.
   auto           get_tag = [](size_t idx) {
                              return a_string_view(error_tags[idx].tag);
                            };
-  ptrdiff_t      idx = low_bound(NUMBER_OF_ERROR_TAGS, tag_view, get_tag);
+  ptrdiff_t      idx = bin_search(NUMBER_OF_ERROR_TAGS, tag_view, get_tag);
 
-  if (idx != -1 && get_tag((size_t)idx) == tag_view) {
+  if (idx != -1) {
     error_code = error_tags[idx].code;
     *err = FALSE;
   } else {

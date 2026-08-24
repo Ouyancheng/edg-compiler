@@ -7598,11 +7598,11 @@ end_arg_expansion:;
 	  [](size_t idx) {
             return a_string_view(feature_support_list[idx].clang_name);
           };
-        ptrdiff_t     feature_idx = low_bound(NUM_FEATURES, feature_name_view,
-                                              get_feature_name);
+        ptrdiff_t     feature_idx = bin_search(NUM_FEATURES,
+                                               feature_name_view,
+                                               get_feature_name);
         feature = NULL;
-        if (feature_idx != -1 &&
-            get_feature_name((size_t)feature_idx) == feature_name_view) {
+        if (feature_idx != -1) {
           feature = &feature_support_list[feature_idx];
         }  /* if */
         if (feature != NULL) {
@@ -7622,12 +7622,10 @@ end_arg_expansion:;
             [](size_t idx) {
               return a_string_view(clang_type_traits_helpers[idx]);
             };
-          ptrdiff_t      helper_idx = low_bound(NUM_CLANG_TYPE_TRAITS,
-                                                helper_name_view,
-                                                get_helper_name);
-          feature_supported =
-              (helper_idx != -1 &&
-               get_helper_name((size_t)helper_idx) == helper_name_view);
+          ptrdiff_t      helper_idx = bin_search(NUM_CLANG_TYPE_TRAITS,
+                                                 helper_name_view,
+                                                 get_helper_name);
+          feature_supported = helper_idx != -1;
         }  /* if */
       }  /* if */
       strcpy(repl_text, feature_supported ? "1" : "0");
@@ -7678,10 +7676,9 @@ end_arg_expansion:;
           [](size_t idx) {
             return a_string_view(attribute_support_list[idx].token);
           };
-        ptrdiff_t      attr_idx = low_bound(NUM_CPP_ATTRIBUTES, attr_name_view,
-                                            get_attr_name);
-        if (attr_idx != -1 &&
-            get_attr_name((size_t)attr_idx) == attr_name_view) {
+        ptrdiff_t      attr_idx = bin_search(NUM_CPP_ATTRIBUTES,
+                                             attr_name_view, get_attr_name);
+        if (attr_idx != -1) {
           attr_supp_entry = &attribute_support_list[attr_idx];
         }  /* if */
         if (attr_supp_entry != NULL) {

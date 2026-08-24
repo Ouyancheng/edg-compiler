@@ -4799,10 +4799,9 @@ number.
   auto      get_tsn = [cache](size_t idx) -> a_token_sequence_number {
                         return (*cache)[idx]->get_starting_seq_number();
                       };
-  ptrdiff_t first_idx = low_bound(cache->length(), tsn, get_tsn);
+  ptrdiff_t first_idx = bin_search(cache->length(), tsn, get_tsn);
 
-  if (first_idx != -1 &&
-      (*cache)[(size_t)first_idx]->get_starting_seq_number() == tsn) {
+  if (first_idx != -1) {
     a_token_cache_iterator it(cache, (int)first_idx);
 
     /* Discard any tokens on the non-reusable rescan list. */
@@ -16978,11 +16977,11 @@ that entry; otherwise, return NULL.
 {
   int       val = (int)ch;
   auto      get_src = [](size_t idx) { return confusable_map[idx].src_char; };
-  ptrdiff_t idx = low_bound(num_confusable_characters, val, get_src);
+  ptrdiff_t idx = bin_search(num_confusable_characters, val, get_src);
   a_confusable_map_elem_ptr
 	    result = NULL;
 
-  if (idx != -1 && confusable_map[idx].src_char == val) {
+  if (idx != -1) {
     result = &confusable_map[idx];
   }  /* if */
   return result;

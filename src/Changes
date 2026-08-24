@@ -52,7 +52,7 @@ version 17.0.0 of the Unicode standard.
 Replace remaining stdlib qsort/bsearch calls in the front end
 
 The remaining front-end uses of the C library qsort and bsearch routines
-have been replaced by the util.h sort and low_bound templates.
+have been replaced by the util.h sort and bin_search templates.
 
 
 8/19/26  [EDGcpfe/28991,EDGcpfe/28992]
