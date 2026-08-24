@@ -5464,16 +5464,14 @@ Otherwise, allocations will occur in the intermediate language memory region.
 static unsigned short upper_case_utf16_char(unsigned short utf16_char)
 /*
 Return the locale-insensitive upper-case mapping of the UTF-16 code unit
-"utf16_char" or "utf16_char" itself when it has no upper-case mapping.
-Unpaired surrogates are returned unchanged.
+utf16_char or utf16_char itself when it has no upper-case mapping.
 
-Note: the CharUpperW performs this mapping, but it is deliberately not used
-here to avoid depending on User32.dll.
+Note: the CharUpperW function performs this mapping, but it is deliberately not
+used here to avoid depending on User32.dll.
 */
 {
   if (utf16_char < 0x80) {
-    /* ASCII, which is by far the common case for file names.  This is the
-       same mapping that CharUpperW performs for these code units. */
+    /* ASCII: which is by far the common case for file names. */
     if (utf16_char >= (unsigned short)'a' &&
         utf16_char <= (unsigned short)'z') {
       utf16_char -= (unsigned short)('a' - 'A');
