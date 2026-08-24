@@ -24348,10 +24348,10 @@ Validate the type obtained for a new statement.
     expr_pos_error(ec_new_of_cli_interface_class, &nps->type_position);
     nps->err = nps->type_err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (is_abstract_class_type(nps->new_type)
+  } else if (is_abstract_class_type(nps->unqual_new_type)
              if_microsoft_extensions(
                && !(cppcx_enabled &&
-                    class_type_supp(nps->new_type)->is_cppcx_box))) {
+                    class_type_supp(nps->unqual_new_type)->is_cppcx_box))) {
     /* The type is an abstract class type, so an object of the type cannot be
        allocated.  One exception is the C++/CX Platform::Box<T> class, which
        is defined as "abstract" to disallow stack-based instances, but

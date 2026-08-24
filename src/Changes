@@ -1,5 +1,19 @@
 Version 6.10
 
+8/24/26  [EDGcpfe/28592]
+C++/CX: missing skip_typerefs in type validation for new-expression
+
+A missing skip_typerefs call could lead to undefined behavior when validating
+the allocated type in a new-expression.  For example, with --cppcx:
+
+  using namespace Platform;
+  using BoxInt = Box<int>;
+
+  void f() {
+    BoxInt^ v = ref new BoxInt(0);
+  }
+
+
 8/21/26  [EDGcpfe/25572,EDGcpfe/28978]
 Pack expansion of requires expression
 
