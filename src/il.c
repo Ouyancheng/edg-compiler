@@ -23334,9 +23334,6 @@ copied again.
   }  /* if */
   /* Copy the top node. */
   expr_copy = copy_node(expr);
-  if (options & CE_COPYING_FOR_LOCAL_EXPR_NODE_REF) {
-    add_copy_remap_entry((char*)expr, (char*)expr_copy, cblock);
-  }  /* if */
   if (options & (CE_COPYING_FOR_CONSTEXPR_FOLDING | CE_PRESERVE_RESCAN_INFO)) {
     expr_copy->extra.rescan_info = expr->extra.rescan_info;
     expr_copy->is_pack_expansion = expr->is_pack_expansion;
@@ -23815,6 +23812,16 @@ copied again.
 #endif /* MINIMAL_INLINING */
   if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
     do_instantiations_for_copied_default_arg_expr(expr_copy);
+  }  /* if */
+  if (options & CE_COPYING_FOR_LOCAL_EXPR_NODE_REF) {
+    /* Record the copy of this node so that another reference to expr in
+       this copy operation reuses it.  Some kinds of nodes are copied as a
+       node other than the one returned by copy_node, so this is done once
+       expr_copy has its final value.  A node is never reached again while
+       its own copy is in progress: The sharing comes from the expressions
+       recorded for folded constants, and such an expression always
+       predates the constants that point to it. */
+    add_copy_remap_entry((char*)expr, (char*)expr_copy, cblock);
   }  /* if */
 end_of_routine:;
   return expr_copy;
