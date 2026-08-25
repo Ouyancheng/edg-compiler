@@ -1,5 +1,29 @@
 Version 6.10
 
+8/25/26  [EDGcpfe/25155,EDGcpfe/28856]
+Abort on constrained templated friend function
+
+A friend function defined in a class template and declared with a trailing
+requires-clause could trigger an internal error due to a failed assertion in
+resolve_pending_trailing_requires_clause when it was referenced again after an
+earlier call.  For example, with --c++20:
+
+  template<typename T> concept X = requires(T t) { f(t); };
+  template<bool B> struct C {
+    friend int f(C) requires B { return 0; }
+  };
+  int i = f(C<true>());
+  bool b = X<C<true>>;  // Previously triggered an internal error.  Now okay.
+
+Additionally, a direct call to such a function did not check its trailing
+requires-clause when it was the only candidate.  For example, with --c++20:
+
+  template<bool B> struct D {
+    friend int f(D) requires B { return 0; }
+  };
+  int i = f(D<false>());  // Previously incorrectly accepted.  Now an error.
+
+
 8/24/26  [EDGcpfe/29016]
 GNU compatibility: __builtin_is_structural
 

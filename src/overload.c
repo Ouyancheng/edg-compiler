@@ -11555,6 +11555,7 @@ in_instantiation:
            resolution is not required. */
         function_symbol = fundamental_symbol_of(overloaded_function_symbol);
         if (is_simple_function_symbol(function_symbol) &&
+            !is_ineligible(function_symbol) &&
             !rout_has_enable_if_attr(function_symbol->variant.routine.ptr) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !hide_by_sig_lookup_applies(overloaded_function_symbol) &&
@@ -11650,6 +11651,7 @@ in_instantiation:
            resolution is not required. */
         function_symbol = fundamental_symbol_of(symbol_list->symbol);
         if (is_simple_function_symbol(function_symbol) &&
+            !is_ineligible(function_symbol) &&
             !rout_has_enable_if_attr(function_symbol->variant.routine.ptr) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !hide_by_sig_lookup_applies(symbol_list->symbol) &&
