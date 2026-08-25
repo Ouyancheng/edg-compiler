@@ -4,7 +4,8 @@ Version 6.10
 GNU compatibility: __builtin_is_structural
 
 GCC 16 introduced a new intrinsic __builtin_is_structural.  The front end now
-also supports that intrinsic to test for structural types (in all C++ modes).
+also supports that intrinsic to test for structural types in GNU C++ modes
+with gnu_version >= 160000.
 
 
 8/24/26  [EDGcpfe/29015]
