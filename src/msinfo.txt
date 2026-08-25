@@ -41,11 +41,11 @@ Building the EDG C++ front end for a Windows Environment
     3) Compile and link the source files.  If you are building without
        C++/CLI support, as described above, use the command
 
-       cl -Feedgcpfe.exe *.c user32.lib
-    
+       cl -Feedgcpfe.exe *.c
+
        If you are including C++/CLI support, use the command
 
-       cl -EHsc -Feedgcpfe.exe *.c *.cpp mscoree.lib oleaut32.lib user32.lib
+       cl -EHsc -Feedgcpfe.exe *.c *.cpp mscoree.lib oleaut32.lib
 
 - For configurations that enable C++/CLI and/or C++/CX, a C++ source file
   ms_metadata.cpp must be compiled and linked into the front end (this
