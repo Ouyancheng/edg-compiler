@@ -1584,6 +1584,7 @@ enum a_token_kind : unsigned short {
   tok_builtin_gt_synthesizes_from_spaceship,
   tok_builtin_le_synthesizes_from_spaceship,
   tok_builtin_ge_synthesizes_from_spaceship,
+  tok_builtin_is_structural,
   /* Placeholder for last position in enumeration. */
   tok_last
 };
@@ -1853,6 +1854,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, token_names, tok_last + 1)
    "__builtin_gt_synthesizes_from_spaceship",
    "__builtin_le_synthesizes_from_spaceship",
    "__builtin_ge_synthesizes_from_spaceship",
+   "__builtin_is_structural",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -14517,6 +14519,8 @@ enum a_builtin_operation_kind : a_byte {
   bok_builtin_ge_synthesizes_from_spaceship,
 			/* __builtin_ge_synthesizes_from_spaceship.  Two
 			   operands, both types. */
+  bok_builtin_is_structural,
+			/* __builtin_is_structural.  One type operand. */
   bok_last              /* Marks the end of the list. */
 };
 
@@ -19243,6 +19247,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, builtin_operation_names, bok_last + 1)
   "__builtin_gt_synthesizes_from_spaceship",
   "__builtin_le_synthesizes_from_spaceship",
   "__builtin_ge_synthesizes_from_spaceship",
+  "__builtin_is_structural",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

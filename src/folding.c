@@ -9568,6 +9568,9 @@ and, if pos is not NULL, an error will be reported.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
                                           ;
           break;
+        case bok_builtin_is_structural:
+          result = is_structural_type(orig_type);
+          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -9865,6 +9868,9 @@ and, if pos is not NULL, an error will be reported.
         break;
       case bok_builtin_is_implicit_lifetime:
         result = is_implicit_lifetime_class(type);
+        break;
+      case bok_builtin_is_structural:
+        result = is_structural_type(orig_type);
         break;
       case bok_is_arithmetic:
       case bok_is_floating_point:
@@ -10675,6 +10681,7 @@ constant is set as well.
       case bok_is_bitwise_cloneable:
       case bok_is_trivially_equality_comparable:
       case bok_builtin_is_implicit_lifetime:
+      case bok_builtin_is_structural:
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,

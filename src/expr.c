@@ -16884,6 +16884,7 @@ indication in *rcblock).
       case tok_builtin_is_implicit_lifetime:
                                         bok = bok_builtin_is_implicit_lifetime;
                                         break;
+      case tok_builtin_is_structural:   bok = bok_builtin_is_structural; break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -34977,6 +34978,7 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_builtin_gt_synthesizes_from_spaceship:
     case tok_builtin_le_synthesizes_from_spaceship:
     case tok_builtin_ge_synthesizes_from_spaceship:
+    case tok_builtin_is_structural:
       result = TRUE;
       break;
     default:
@@ -38124,6 +38126,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_builtin_gt_synthesizes_from_spaceship:
     case tok_builtin_le_synthesizes_from_spaceship:
     case tok_builtin_ge_synthesizes_from_spaceship:
+    case tok_builtin_is_structural:
     case tok_coroutine_yield:
     case tok_coroutine_await:
     case tok_lsplice:
@@ -45503,6 +45506,7 @@ handle_nullptr:
     case tok_is_trivially_relocatable:
     case tok_is_bitwise_cloneable:
     case tok_builtin_is_implicit_lifetime:
+    case tok_builtin_is_structural:
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);

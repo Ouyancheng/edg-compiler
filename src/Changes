@@ -1,5 +1,12 @@
 Version 6.10
 
+8/24/26  [EDGcpfe/29016]
+GNU compatibility: __builtin_is_structural
+
+GCC 16 introduced a new intrinsic __builtin_is_structural.  The front end now
+also supports that intrinsic to test for structural types (in all C++ modes).
+
+
 8/24/26  [EDGcpfe/29015]
 Avoid dependency on User32.dll (Windows only)
 

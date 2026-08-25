@@ -872,6 +872,9 @@ modes.
     enter_keyword(tok_builtin_is_implicit_lifetime,
                   "__builtin_is_implicit_lifetime");
   }  /* if */
+  if (gnu_version_is(>=160000)) {
+    enter_keyword(tok_builtin_is_structural, "__builtin_is_structural");
+  }  /* if */
   enter_keyword(tok_has_trivial_move_constructor,
                 "__has_trivial_move_constructor");
   enter_keyword(tok_has_trivial_move_assign, "__has_trivial_move_assign");
