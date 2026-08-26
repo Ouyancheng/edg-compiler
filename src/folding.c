@@ -10682,8 +10682,8 @@ constant is set as well.
       case bok_is_trivially_equality_comparable:
       case bok_builtin_is_implicit_lifetime:
       case bok_builtin_is_structural:
-        /* Various type trait helpers that require their single argument to be
-           a complete class type. */
+        /* Various type trait helpers that require their single argument not to
+           be an incomplete class type (or array thereof). */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
                                      /*complete_class_property=*/TRUE);
         break;
