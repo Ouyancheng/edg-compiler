@@ -2853,7 +2853,8 @@ number of comparisons (2 or 3) and moves (0, 3, or 4).
     a_value  tmp = move_from(p_a);
     if (cmp(*p_b, *p_c)) {
       *p_a = move_from(p_b);
-      if (cmp(*p_a, *p_c)) {
+      /* tmp holds the original *p_a. */
+      if (cmp(tmp, *p_c)) {
         /* b <= a < c: */
         *p_b = move_from(&tmp);
       } else {
@@ -2904,7 +2905,8 @@ number of comparisons (4 or 5) and moves (at most 6).
           /* b <= a < c < d: */
           *p_b = move_from(&tmp);
         } else {
-          if (cmp(*p_a, *p_d)) {
+          /* tmp holds the original *p_a. */
+          if (cmp(tmp, *p_d)) {
             /* b <= a < d <= c: */
             *p_b = move_from(&tmp);
             tmp = move_from(p_d);
@@ -2944,7 +2946,8 @@ number of comparisons (4 or 5) and moves (at most 6).
           *p_b = move_from(&tmp);
         } else {
           *p_d = move_from(p_c);
-          if (cmp(*p_a, *p_b)) {
+          /* tmp holds the original *p_a. */
+          if (cmp(tmp, *p_b)) {
             /* d <= a < b <= c: */
             *p_c = move_from(p_b);
             *p_b = move_from(&tmp);
@@ -2960,8 +2963,9 @@ number of comparisons (4 or 5) and moves (at most 6).
       if (cmp(*p_c, *p_b)) {
         a_value  tmp = move_from(p_a);
         *p_a = move_from(p_c);
-        if (cmp(*p_a, *p_d)) {
-          if (cmp(*p_b, *p_a)) {
+        /* tmp holds the original *p_a. */
+        if (cmp(tmp, *p_d)) {
+          if (cmp(*p_b, tmp)) {
             /* c < b < a < d: */
             *p_c = move_from(&tmp);
           } else {
@@ -2977,7 +2981,8 @@ number of comparisons (4 or 5) and moves (at most 6).
       } else {
         a_value  tmp = move_from(p_a);
         *p_a = move_from(p_b);
-        if (cmp(*p_a, *p_d)) {
+        /* tmp holds the original *p_a. */
+        if (cmp(tmp, *p_d)) {
           /* b <= c <= a < d: */
           *p_b = move_from(p_c);
           *p_c = move_from(&tmp);
@@ -2997,8 +3002,9 @@ number of comparisons (4 or 5) and moves (at most 6).
       if (cmp(*p_c, *p_d)) {
         a_value  tmp = move_from(p_a);
         *p_a = move_from(p_c);
-        if (cmp(*p_a, *p_b)) {
-          if (cmp(*p_d, *p_a)) {
+        /* tmp holds the original *p_a. */
+        if (cmp(tmp, *p_b)) {
+          if (cmp(*p_d, tmp)) {
             /* c < d < a < b: */
   	    *p_c = move_from(&tmp);
             tmp = move_from(p_d);
@@ -3017,7 +3023,8 @@ number of comparisons (4 or 5) and moves (at most 6).
       } else {
         a_value  tmp = move_from(p_a);
         *p_a = move_from(p_d);
-        if (cmp(*p_a, *p_b)) {
+        /* tmp holds the original *p_a. */
+        if (cmp(tmp, *p_b)) {
           /* d <= c <= a < b: */
           *p_d = move_from(p_b);
           *p_b = move_from(p_c);

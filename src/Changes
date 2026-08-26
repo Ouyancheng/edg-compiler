@@ -98,8 +98,9 @@ version 17.0.0 of the Unicode standard.
 8/20/26  [EDGcpfe/29012]
 Replace remaining stdlib qsort/bsearch calls in the front end
 
-The remaining front-end uses of the C library qsort and bsearch routines
-have been replaced by the util.h sort and bin_search templates.
+The remaining front-end uses of the C library qsort and bsearch routines have
+been replaced by the util.h sort and bin_search templates.  This change also
+fixed bugs in sort_args (in util.h) for the 3- and 4-element cases.
 
 
 8/19/26  [EDGcpfe/28991,EDGcpfe/28992]
