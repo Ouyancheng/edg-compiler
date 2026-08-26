@@ -15952,9 +15952,11 @@ If there is an error in the copying, set *copy_error to TRUE.
     /* If we have run out of parameters and this is not a variadic template,
        consider this a copy error.  Note that above, we consider the presence
        of a pack to make something variadic, so we need to ignore the start
-       of expansion placeholder below. */
+       of expansion placeholder below.  An unexpanded pack argument is also
+       ignored when packs are not being preserved. */
     if (have_params && tpp == NULL && !is_variadic && tap != NULL &&
-        !is_start_of_pack_expansion_templ_arg(tap)) {
+        !is_start_of_pack_expansion_templ_arg(tap) &&
+        (!tap->is_pack || preserve_packs)) {
       subst_fail(*copy_error);
       break;
     }  /* if */
