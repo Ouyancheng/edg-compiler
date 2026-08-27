@@ -5,9 +5,9 @@ C++26 and GNU compatibility: <meta> support
 
 The front end's experimental support for reflection (see the entry for
 EDGcpfe/26698) has been upgraded to support most metafunctions adopted for
-C++26 (through the committee's papers P2996, P3096, and P3394R4).  In addition,
-the front end can now ingest GCC 16.1's version of the <meta> header and
-intrinsically evaluate most of the consteval functions it declares.
+C++26 (through the committee's papers P2996R13, P3096R12, and P3394R4).  In
+addition, the front end can now ingest GCC 16.1's version of the <meta> header
+and intrinsically evaluate most of the consteval functions it declares.
 
 
 8/27/26  [EDGcpfe/29023]

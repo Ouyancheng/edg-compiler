@@ -41292,24 +41292,25 @@ type_identifier_case:
           /* No need to call change_refs_to_error; rep is NULL. */
           break;
         case sk_parameter:
+          /* A function parameter referenced outside that function's body
+             (in the body, we'd have found the corresponding sk_variable
+             instead).  This is only possible in a function declarator or
+             in requires-expressions (which may have parameters). */
           if (expr_is_inside_default_arg_expression() ||
               (curr_expr_is_potentially_evaluated() &&
                !expr_stack->is_vla_dimension_expression &&
                !is_requires_expr_parameter(sym_ptr))) {
-            /* This is a parameter referenced within a C++ default argument
-               expression, which is an error (ARM 8.2.6); or, any reference
-               except in a sizeof, a function prototype VLA dimension
-               expression, or the requirements of a requires-expression.  A
-               parameter of a requires-expression denotes no object, but it may
-               appear in a constant expression among the requirements, as in
-                 requires (R &r) { typename int[size(r) >= 0 ? 1 : 2]; }
-               as long as nothing about the object it denotes is needed. */
+            /* Within a function declarator, a parameter can only be used
+               outside default argument expressions and even then only in 
+                 (a) an unevaluated context (like decltype(p)),
+                 (b) a requirement (N5046 [expr.prim.req]), or
+                 (c) the dimension of a VLA parameter.
+               */
             error_and_make_error_operand(ec_param_not_allowed, result);
             change_refs_to_error(rep);
             rep = NULL;
           } else if (expr_stack->is_vla_dimension_expression &&
-                     scope_stack[depth_scope_stack].kind ==
-                                            (a_scope_kind)sck_func_prototype) {
+                     scope_is(&scope_stack_top(), sck_func_prototype)) {
             /* Use of a parameter in function prototype VLA dimension
                expression, e.g.:
                    void f(a, int b[a]);

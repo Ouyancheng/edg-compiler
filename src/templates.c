@@ -9574,7 +9574,7 @@ type.  This is how the std::meta type-trait functions whose results are defined
 in terms of a standard library template are computed.  Set *p_err to TRUE and
 return NULL if the template cannot be found or its instantiation is an
 immediate-context substitution failure (so the trait is not a constant
-subexpression); otherwise clear *p_err.
+subexpression); otherwise, clear *p_err.
 */
 {
   a_type_ptr    result = NULL;
@@ -9679,7 +9679,7 @@ is how the std::meta predicates whose results are defined in terms of such a
 library trait, rather than in terms of a property the front end tracks itself,
 are computed.  Set *p_err to TRUE and return FALSE if the trait cannot be
 found, if its instantiation is an immediate-context substitution failure, or if
-it does not supply a constant value; otherwise clear *p_err.
+it does not supply a constant value; otherwise, clear *p_err.
 */
 {
   a_boolean   result = FALSE;

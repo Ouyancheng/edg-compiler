@@ -12302,7 +12302,7 @@ static a_boolean do_constexpr_std_meta_reflect_constant_array(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::reflect_constant_array(R&& r).  See
-build_constant_array_reflection, and do_constexpr_intrinsic_call for the
+build_constant_array_reflection and do_constexpr_intrinsic_call for the
 meaning of the parameters.
 */
 {
@@ -12321,7 +12321,7 @@ static a_boolean do_constexpr_std_meta_reflect_constant_string(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::reflect_constant_string(R&& r).  See
-build_constant_array_reflection, and do_constexpr_intrinsic_call for the
+build_constant_array_reflection and do_constexpr_intrinsic_call for the
 meaning of the parameters.
 */
 {
@@ -30864,11 +30864,11 @@ the value representation of the integer value.
                      is_any_reference_type(tp))) &&
                    expr->variant.param_ref.levels_up == 0) {
           /* The parameter as an lvalue, or the value of a parameter of
-             reference type: either stands for an object that is not known
+             reference type: Either stands for an object that is not known
              here, and an address of run-time data is produced for it.  The
              latter comes up in a constant expression among the requirements of
              a requires-expression, as in
-               requires (R &r) { typename int[size(r) >= 0 ? 1 : 2]; }
+               requires (R &r) { typename int[std::size(r) >= 0 ? 1 : 2]; }
              where nothing about the object bound to r is needed. */
           a_constant  *cp = local_constant();
           clear_constant(cp, ck_address);

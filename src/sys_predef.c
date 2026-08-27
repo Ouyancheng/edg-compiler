@@ -1209,7 +1209,7 @@ done:;
 static a_boolean builtin_is_unimplemented(a_builtin_function_kind  kind)
 /*
 Return TRUE if the builtin function identified by kind appears in the tables of
-builtin functions of the compilers that are emulated, but is not implemented
+builtin functions of the compilers that are emulated but is not implemented
 here.  Such a builtin is not declared, and __has_builtin therefore answers
 FALSE for it, so that library headers testing for its presence use their
 fallback code instead of relying on the front end to provide it.  FIXME
