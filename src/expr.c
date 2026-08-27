@@ -10642,12 +10642,18 @@ a left parenthesis in the source.
                              (symbol_is(sym, sk_constant) &&
                               constant_is(sym->variant.constant,
                                           ck_template_param) &&
-                              sym->variant.constant
-                                 ->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_member)) {
+                              (sym->variant.constant
+                                  ->variant.template_param.kind ==
+                                                                 tpck_member ||
+                               (sym->is_nonreal_member &&
+                                sym->variant.constant
+                                   ->variant.template_param.kind ==
+                                                    tpck_unknown_function)))) {
                     /* Function templates are okay with or without an explicit
                        template argument list.  (For dependent members, assume
-                       they could be a function template.) */
+                       they could be a function template; likewise, a nonreal
+                       member recorded as an unknown function might be a
+                       function template.) */
                     if (is_template_ref) {
                       /* Something like "p.template f<T>()". */
                       is_template_id = TRUE;
