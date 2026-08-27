@@ -5420,13 +5420,8 @@ so its values are checked against the range [0, 1].
                             (a_host_large_integer)
                                                 !is_false_constant(constant));
         } else {
-          and_integer_values(&constant->variant.integer_value,
-                             &max_integer_value_of_kind[
-                                      unsigned_int_kind_of[underlying_kind]]);
-          if (int_kind_is_signed[underlying_kind]) {
-            sign_extend_integer_value(&constant->variant.integer_value,
-                                      underlying_type->size * targ_char_bit);
-          }  /* if */
+          trim_integer_value_to_type(&constant->variant.integer_value,
+                                     underlying_type);
         }  /* if */
       } else {
         pos_ty_error(ec_enum_value_out_of_underlying_range, &error_position,
