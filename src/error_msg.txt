@@ -3448,8 +3448,8 @@ ec_bad_std_string_view;;"use of %t instead of std::string_view (= std::basic_str
 ec_inconsistent_std_string_view;;"std::string_view used here is inconsistent with use in other intrinsics"
 ec_invalid_std_string_view_for_reflection;;"definition of std::string_view does not match assumptions of reflection (no base classes and data members for pointer and length)"
 ec_constexpr_reflection_not_of_constant;;"reflection is not that of a constant value"
-ec_constexpr_cannot_make_zero_length_array;;"cannot make a zero-length array"
-ec_constexpr_length_too_long_for_make_constexpr_array;;"length (%d1) passed to make_constexpr_array is larger than number of elements available (%d2)"
+REMOVED;ec_constexpr_cannot_make_zero_length_array;;"cannot make a zero-length array"
+REMOVED;ec_constexpr_length_too_long_for_make_constexpr_array;;"length (%d1) passed to make_constexpr_array is larger than number of elements available (%d2)"
 REMOVED;ec_invalid_infovec_for_reflection;;"definition of std::meta::infovec does not match assumptions of reflection (no base classes and data members for pointer, length, and capacity)"
 ec_bad_reflection_kind_for_expression_splice;;"bad reflection (%r) for expression splice"
 ec_already_defined_with_pos;;"%n has already been defined (previous definition %p)"
@@ -3668,7 +3668,7 @@ ec_non_c_like_because_of_lambda;;"type is not C-like because of this lambda expr
 ec_enum_qualifier_is_cpp11;;"an enum-type name qualifier is a C++11 feature"
 ec_unrestricted_unions_is_cpp11;;"unrestricted unions are a C++11 feature"
 ec_pack_expansion_for_non_pack_alias_param;;"a pack expansion cannot be used as an argument for non-pack %n1 of %n2"
-ec_uniterable_reflection_range;;"the range passed as a range of reflections cannot be iterated"
+ec_uniterable_reflection_range;;"the range passed to the metafunction cannot be iterated"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

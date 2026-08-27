@@ -7024,6 +7024,26 @@ done:
 }  /* base_is_final */
 
 
+static a_boolean is_std_meta_exception_what(a_symbol_ptr  sym)
+/*
+Return TRUE if sym is the "what" member of std::meta::exception.  That member
+overrides std::exception::what, and some implementations of <meta> declare it
+"consteval"; see the use of this routine for what is done about that.
+*/
+{
+  a_boolean     result = FALSE;
+  a_symbol_ptr  class_sym;
+
+  if (symbol_for_namespace_std_meta != NULL &&
+      strcmp(sym->header->identifier, "what") == 0) {
+    class_sym = symbol_for(sym_parent_class(sym));
+    result = strcmp(class_sym->header->identifier, "exception") == 0 &&
+             is_member_of_namespace(class_sym, symbol_for_namespace_std_meta);
+  }  /* if */
+  return result;
+}  /* is_std_meta_exception_what */
+
+
 static void check_virtual_function_override(
                                  a_class_def_state_ptr   class_state,
                                  a_member_decl_info_ptr  decl_info,
@@ -7122,8 +7142,21 @@ return_types_are_override_compatible.
   }  /* if */
   if (rout->is_consteval) {
     if (!rp->is_consteval) {
-      pos_sy_error(ec_consteval_overrides_nonconsteval, source_pos,
-                   overridden_sym);
+      if (is_std_meta_exception_what(overrider_sym)) {
+        /* std::meta::exception::what is "constexpr" (N5046 [meta.reflection.
+           exception]), but the <meta> header of some implementations declares
+           it "consteval", which requires the immediate virtual function that
+           P4101 removes again.  Treat the member as though it had been
+           declared "constexpr": Nothing needs it to be immediate, and the
+           class then has an ordinary virtual function table entry for it. */
+        rout->is_consteval = FALSE;
+        rout->is_declared_constexpr = TRUE;
+        dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEVAL;
+        dps->dso_flags |= DSO_CONSTEXPR;
+      } else {
+        pos_sy_error(ec_consteval_overrides_nonconsteval, source_pos,
+                     overridden_sym);
+      }  /* if */
     }  /* if */
   } else if (rp->is_consteval) {
       pos_sy_error(ec_nonconsteval_overrides_consteval, source_pos,

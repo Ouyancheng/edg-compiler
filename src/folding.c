@@ -979,15 +979,16 @@ integral type.
 }  /* set_pointer_offset */
 
 
-static char *base_object(a_constant           *constant,
-                         ARG_UNUSED a_boolean *unknown)
+static char *base_object(a_constant  *constant,
+                         a_boolean   *unknown)
 /*
 Return a pointer to the "base object" that underlies the pointer constant.
 This is NULL if the pointer is an integer cast to a pointer type.  Otherwise,
-it points to the variable, routine, or constant entry.  An exception is
-pointers to "weak" variables or functions: Their "base object" is considered
-unknown and *unknown is set to TRUE in those cases (it is left unchanged
-otherwise).
+it points to the variable, routine, or constant entry.  There are exceptions
+whose "base object" is considered unknown, and for which *unknown is set to
+TRUE (it is left unchanged otherwise): pointers to "weak" variables or
+functions, and constants standing for the object a reference or a "this"
+pointer of unknown value designates.
 */
 {
   char *object = NULL;
@@ -1005,6 +1006,12 @@ otherwise).
       case abk_variable:
         { a_variable_ptr  vp = constant->variant.address.variant.variable;
           object = (char *)vp;
+          if (is_any_reference_type(vp->type) || vp->is_this_parameter) {
+            /* The constant stands for the object a reference or a "this"
+               pointer designates, which is not known where the reference or
+               pointer itself does not have a constant value. */
+            *unknown = TRUE;
+          }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
           if (vp->is_weak) {
             *unknown = TRUE;
@@ -7643,26 +7650,28 @@ are the same ignoring cv-qualifiers.
 }  /* identical_pointer_types_ignoring_qualifiers */
 
 
-a_boolean constant_is_pointer_to_string_literal(a_constant *con,
-                                                a_constant **scon)
+static a_boolean pointer_to_string_literal(a_constant  *con,
+                                           a_constant  **scon,
+                                           a_boolean   allow_interior)
 /*
-Return TRUE if the indicated constant is a pointer to a string literal,
-i.e., a string literal that has decayed (or been cast to) a pointer to
-the underlying character type (possibly with different cv-qualifiers,
-e.g., a const string could be cast to plain char *).  The string need not
-be a narrow string literal.  If scon is non-NULL, *scon is set to point
-to the string literal constant if there is one.
+Shared implementation of constant_is_pointer_to_string_literal and
+constant_is_pointer_into_string_literal: Return TRUE if con is a pointer to the
+first character of a string literal or, when allow_interior is TRUE, to any of
+its characters.  *scon is set as described for those routines.
 */
 {
   a_boolean result = FALSE;
 
   if (scon != NULL) *scon = NULL;
-  if (con->kind == (a_constant_repr_kind)ck_address &&
-      con->variant.address.kind == (an_address_base_kind)abk_constant &&
-      con->variant.address.offset == 0 &&
+  if (constant_is(con, ck_address) &&
+      address_base_is(con, abk_constant) &&
       con->implicit_cast) {
-    a_constant_ptr acon = con->variant.address.variant.constant;
-    if (acon->kind == (a_constant_repr_kind)ck_string) {
+    a_constant_ptr    acon = con->variant.address.variant.constant;
+    a_targ_ptrdiff_t  offset = con->variant.address.offset;
+    if (constant_is(acon, ck_string) &&
+        (offset == 0 ||
+         (allow_interior && offset > 0 &&
+          offset < (a_targ_ptrdiff_t)acon->variant.string.length))) {
       /* We have a ck_address constant pointing to a ck_string constant.
          Make sure the ck_address type is the type of the string after
          array-to-pointer decay. */
@@ -7674,7 +7683,35 @@ to the string literal constant if there is one.
     }  /* if */
   }  /* if */
   return result;
+}  /* pointer_to_string_literal */
+
+
+a_boolean constant_is_pointer_to_string_literal(a_constant *con,
+                                                a_constant **scon)
+/*
+Return TRUE if the indicated constant is a pointer to a string literal,
+i.e., a string literal that has decayed (or been cast to) a pointer to
+the underlying character type (possibly with different cv-qualifiers,
+e.g., a const string could be cast to plain char *).  The string need not
+be a narrow string literal.  If scon is non-NULL, *scon is set to point
+to the string literal constant if there is one.
+*/
+{
+  return pointer_to_string_literal(con, scon, /*allow_interior=*/FALSE);
 }  /* constant_is_pointer_to_string_literal */
+
+
+a_boolean constant_is_pointer_into_string_literal(a_constant *con,
+                                                  a_constant **scon)
+/*
+Like constant_is_pointer_to_string_literal, except that the pointer may
+designate any character of the string literal rather than only the first one.
+A pointer one past the last character does not qualify, since it does not
+designate a character.
+*/
+{
+  return pointer_to_string_literal(con, scon, /*allow_interior=*/TRUE);
+}  /* constant_is_pointer_into_string_literal */
 
 
 a_boolean expr_is_pointer_to_string_literal(an_expr_node_ptr expr,

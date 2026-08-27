@@ -5672,6 +5672,29 @@ return FALSE.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static void make_runtime_data_address(an_interpreter_state  *ips,
+                                      a_variable_ptr        var,
+                                      a_byte                *result_storage)
+/*
+Store in result_storage, as the value of the reference or pointer variable var,
+an address of run-time data standing for the object that variable designates,
+which the interpreter does not have.  Such an address can be carried along by
+an evaluation, but reading through it or comparing it is diagnosed where that
+is attempted.
+*/
+{
+  a_constant_ptr  con = local_constant();
+
+  clear_constant(con, ck_address);
+  con->next = ips->constants;
+  ips->constants = con;
+  con->variant.address.kind = abk_variable;
+  con->variant.address.variant.variable = var;
+  con->type = make_reference_type(var->type);
+  clear_runtime_constant_address(result_storage, con);
+}  /* make_runtime_data_address */
+
+
 static a_boolean extract_value_from_constant(
                                an_interpreter_state       *ips,
                                a_constant_ptr             con,
@@ -10764,6 +10787,50 @@ done:
 }  /* do_constexpr_builtin_elementwise_binary_op */
 
 
+static a_boolean address_is_string_literal(an_interpreter_state  *ips,
+                                           a_constexpr_address   *cap)
+/*
+Return TRUE if cap is the address of a character of a string literal, i.e., of
+a subobject of a ck_string object (N5046 [meta.string.literal]).  If the
+address is still a run-time-data address, its underlying constant is a
+ck_address decaying a ck_string; once the string has been materialized in
+interpreter storage, the address instead points at those bytes, of which the
+first are reverse-mapped to the ck_string constant.  Any other object, for
+example a "const char a[] = ..." array, is not a string literal.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_runtime_data_address(cap)) {
+    result = constant_is_pointer_into_string_literal(cap->variant.addr_con,
+                                                    (a_constant**)NULL);
+  } else if (cap->address != NULL && !is_function_address(cap)) {
+    a_byte  *mapped;
+    a_byte  *object = is_array_element(cap) ? get_base_address(cap)
+                                            : cap->address;
+    get_stack_bytes(ips, object, mapped);
+    if (mapped != NULL && constant_is((a_constant*)mapped, ck_string)) {
+      if (is_array_element(cap)) {
+        /* The address of a character other than the first one, expressed as an
+           offset in interpreter storage from the address of character zero.
+           An address one past the last character designates no character. */
+        a_boolean     okay = TRUE;
+        a_type_ptr    stp = skip_typerefs(((a_constant*)mapped)->type);
+        a_byte_count  elem_bytes = value_bytes_for_type(
+                                    ips, stp->variant.array.element_type,
+                                    &okay);
+        result = okay &&
+                 (a_byte_count)(cap->address - object) / elem_bytes <
+                                                (a_byte_count)cap->length;
+      } else {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* address_is_string_literal */
+
+
 static a_boolean do_constexpr_builtin_function(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -10852,24 +10919,8 @@ to FALSE and the reason for the failure is recorded in *ips.
               !do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
             do_constexpr_fail(*p_result);
           } else {
-            a_constexpr_address  *cap = (a_constexpr_address*)arg1_bytes;
-            /* A string-literal pointer denotes the first character of a
-               ck_string object.  If it is still a run-time-data address, its
-               underlying constant is a ck_address decaying a ck_string; once
-               the string has been materialized in interpreter storage, the
-               address instead points at those bytes, which are reverse-mapped
-               to the ck_string constant.  Any other object (for example a
-               "const char a[] = ..." array, a subobject, or a pointer into the
-               middle of a literal) is not a string literal. */
-            if (is_runtime_data_address(cap)) {
-              answer = constant_is_pointer_to_string_literal(
-                                   cap->variant.addr_con, (a_constant**)NULL);
-            } else if (cap->address != NULL && !is_function_address(cap)) {
-              a_byte  *mapped;
-              get_stack_bytes(ips, cap->address, mapped);
-              answer = (mapped != NULL &&
-                        constant_is((a_constant*)mapped, ck_string));
-            }  /* if */
+            answer = address_is_string_literal(
+                                     ips, (a_constexpr_address*)arg1_bytes);
             *(an_integer_value*)result_storage = answer ? one_int : zero_int;
           }  /* if */
         }  /* if */
@@ -11609,6 +11660,21 @@ static a_boolean make_info_vector(
                                 a_byte                        *result_storage,
                                 a_byte                        *complete_obj);
 
+typedef a_boolean (*a_range_element_sink)(an_interpreter_state *ips,
+                                          a_byte               *element,
+                                          a_byte               *complete_obj,
+                                          void                 *context,
+                                          a_boolean            *stop);
+			/* The type of the routines that consume the elements
+			   of a range traversed by
+			   iterate_via_reflection_range_plan.  element is the
+			   storage holding the current element by value and
+			   complete_obj its complete object; context is the
+			   sink's own data.  Setting *stop ends the traversal
+			   after the element (the sink is called with *stop
+			   already FALSE).  A sink returns FALSE, having
+			   recorded a diagnostic, to abandon the evaluation. */
+
 
 static void push_entity_reflection(
                                 Dyn_array<a_reflection_value>  *reflections,
@@ -11632,25 +11698,25 @@ reallocation on push_back.
 }  /* push_entity_reflection */
 
 
-static a_boolean collect_via_reflection_range_plan(
+static a_boolean iterate_via_reflection_range_plan(
                                    an_interpreter_state          *ips,
                                    a_reflection_range_plan_ptr   plan,
                                    a_constexpr_address           *range_ref,
-                                   Dyn_array<a_reflection_value> *reflections,
+                                   a_range_element_sink          sink,
+                                   void                          *sink_context,
                                    a_source_position             *diag_pos)
 /*
-Collect the std::meta::info elements of a reflection_range by replaying the
-iteration plan that build_reflection_range_plan built (once per range type) at
-parse time.  The plan supplies the __range/__begin/__end variables, an element
-variable (plan->iterator, of type std::meta::info), and the "__begin != __end",
-"++__begin", and "*__begin" constructs of an equivalent range-based for loop.
-This handles any std::ranges::input_range of info.  range_ref is the reference
-passed for the R&& argument: its value is bound to
-the (initializer-less) __range variable so that begin/end operate on the actual
-argument object.  The collected reflections are returned in *reflections (which
-is cleared first).  ips is the interpreter state and diag_pos positions any
-diagnostics.  Return TRUE on success; otherwise a diagnostic has been recorded
-and FALSE is returned.
+Traverse a std::ranges::input_range by replaying the iteration plan that
+build_reflection_range_plan built (once per range type) at parse time, handing
+each element to sink (with sink_context) as described for
+a_range_element_sink.  The plan supplies the __range/__begin/__end variables,
+an element variable (plan->iterator, holding the element by value), and the
+"__begin != __end", "++__begin", and "*__begin" constructs of an equivalent
+range-based for loop.  range_ref is the reference passed for the R&& argument:
+its value is bound to the (initializer-less) __range variable so that begin/end
+operate on the actual argument object.  ips is the interpreter state and
+diag_pos positions any diagnostics.  Return TRUE on success; otherwise a
+diagnostic has been recorded and FALSE is returned.
 */
 {
   a_boolean              result = TRUE;
@@ -11690,14 +11756,13 @@ and FALSE is returned.
       break;
     }  /* if */
   }  /* for */
-  reflections->clear();
   if (result) {
     an_expr_node_ptr      ne = plan->ne_call_expr, incr = plan->incr_call_expr;
     a_type_ptr            ne_tp = skip_typerefs(ne->type),
                           incr_tp = skip_typerefs(incr->type);
     a_byte                *ne_value, *incr_value;
     a_byte_count          n_bytes;
-    a_boolean             ovfl = FALSE;
+    a_boolean             ovfl = FALSE, stop = FALSE;
     a_host_large_integer  bool_val = 0;
     n_bytes = expr_result_size(ips, ne, ne_tp, &result);
     if (!result) goto unmap_storage;
@@ -11728,16 +11793,21 @@ and FALSE is returned.
             do_constexpr_fail(result);
             break;
           }  /* if */
-          /* The element variable now holds the std::meta::info for *__begin
-             (do_constexpr_dynamic_init succeeded above); read it out. */
-          reflections->push_back(*(a_reflection_value*)var_storage[0]);
+          /* The element variable now holds the value of *__begin
+             (do_constexpr_dynamic_init succeeded above); hand it to the
+             sink. */
+          if (!sink(ips, var_storage[0], var_storage[0], sink_context,
+                    &stop)) {
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
           /* Evaluate "++__begin". */
           do_constexpr_full_expression(ips, incr, incr_value, incr_value,
                                        result);
           release_address_structures(incr, incr_tp, incr_value);
         }  /* if */
       }  /* if */
-    } while (result && !ovfl && bool_val);
+    } while (result && !stop && !ovfl && bool_val);
   }  /* if */
 unmap_storage:
   for (k = 4; k--;) {
@@ -11746,6 +11816,43 @@ unmap_storage:
   restore_storage_stack(ips, saved_stack, result);
 done:
   return result;
+}  /* iterate_via_reflection_range_plan */
+
+
+static a_boolean push_reflection_range_element(
+                                     ARG_UNUSED an_interpreter_state  *ips,
+                                     a_byte                           *element,
+                                     ARG_UNUSED a_byte                *cobj,
+                                     void                             *context,
+                                     ARG_UNUSED a_boolean             *stop)
+/*
+An a_range_element_sink that appends the std::meta::info element to the
+Dyn_array of reflections that context points to.
+*/
+{
+  ((Dyn_array<a_reflection_value>*)context)->push_back(
+                                             *(a_reflection_value*)element);
+  return TRUE;
+}  /* push_reflection_range_element */
+
+
+static a_boolean collect_via_reflection_range_plan(
+                                   an_interpreter_state          *ips,
+                                   a_reflection_range_plan_ptr   plan,
+                                   a_constexpr_address           *range_ref,
+                                   Dyn_array<a_reflection_value> *reflections,
+                                   a_source_position             *diag_pos)
+/*
+Collect the std::meta::info elements of a reflection_range, i.e., of a
+std::ranges::input_range of info, into *reflections (which is cleared first).
+See iterate_via_reflection_range_plan for plan, range_ref, ips, diag_pos, and
+the return value.
+*/
+{
+  reflections->clear();
+  return iterate_via_reflection_range_plan(ips, plan, range_ref,
+                                           push_reflection_range_element,
+                                           (void*)reflections, diag_pos);
 }  /* collect_via_reflection_range_plan */
 
 
@@ -11755,109 +11862,6 @@ static a_boolean copy_interpreter_object_to_constant(
                                        a_byte                *complete_object,
                                        a_type_ptr            type,
                                        a_constant_ptr        con);
-
-
-STATIC_THREAD long	n_make_constexpr_array_calls;
-				/* The number of calls to make_constexpr_array
-				   (in std::meta) made in the current
-				   translation unit. */
-
-static a_boolean do_constexpr_std_meta_make_constexpr_array(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement std::meta::make_constexpr_array(T*, prtdiff_t n).  It creates IL for
-a constexpr namespace-scope array of n elements of type T with internal
-linkage, initialized with the values pointed to by the first argument.  A
-pointer to the first element of the generated variable is returned.
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
-*/
-{
-  a_boolean            result = TRUE;
-  a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[0];
-
-  if (is_runtime_data_address(cap) || is_function_address(cap)) {
-    do_constexpr_fail(result);
-    info_with_pos(ec_constexpr_access_to_runtime_storage,
-                  &call_node->position, ips);
-  } else if (cap->address == NULL) {
-    do_constexpr_fail(result);
-    info_with_pos(ec_constexpr_invalid_null_ptr_operation, 
-                  &call_node->position, ips);
-  } else {
-    a_memory_region_number  region_to_switch_back_to;
-    a_template_arg_ptr      tap = callee->template_arg_list;
-    a_type_ptr              array_type, elem_type = tap->variant.type;
-    a_byte_count            elem_size, pos, len;
-    an_integer_value        *param2 = (an_integer_value*)p_arg_bytes[1];
-    a_host_large_integer    n_elems;
-    a_boolean               ovfl;
-    a_variable_ptr          vp;
-    a_constant_ptr          init_cp, result_cp;
-    a_symbol_ptr            sym;
-    a_symbol_locator        loc;
-    get_array_pos(ips, cap, elem_type, &len, &pos, &elem_size,
-                  &result);
-    if (!result) goto done;
-    conv_integer_value_to_host_large_integer(param2, /*is_signed=*/FALSE,
-                                             &n_elems, &ovfl);
-    if (ovfl || n_elems > (a_host_large_integer)(len-pos)) {
-      do_constexpr_fail(result);
-      info_with_pos_num2(ec_constexpr_length_too_long_for_make_constexpr_array,
-                         &call_node->position, (int32_t)n_elems,
-                         (int32_t)(len-pos), ips);
-      goto done;
-    } else if (n_elems == 0) {
-      do_constexpr_fail(result);
-      info_with_pos(ec_constexpr_cannot_make_zero_length_array,
-                    &call_node->position, ips);
-      goto done;
-    }  /* if */
-    array_type = alloc_type(tk_array);
-    array_type->variant.array.element_type = make_qualified_type(elem_type,
-                                                                 TQ_CONST);
-    array_type->variant.array.variant.number_of_elements =
-                                                       (a_targ_size_t)n_elems;
-    init_cp = fs_constant(ck_aggregate);
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    if (!copy_interpreter_object_to_constant(
-              ips, cap->address, cap->complete_object, array_type, init_cp)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-    switch_back_to_original_region(region_to_switch_back_to);
-    vp = make_variable(array_type, sc_static, NO_SCOPE_DEPTH);
-    add_temporary_to_front_of_variables_list(
-                                    vp, curr_translation_unit->primary_scope);
-    vp->init_kind = initk_static;
-    vp->initializer.constant = init_cp;
-    vp->is_constexpr = TRUE;
-
-    Small_string<100> name("__ce_array_", ++n_make_constexpr_array_calls);
-    clear_locator(&loc, &call_node->position);
-    (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
-    sym = make_symbol(sk_variable, &loc);
-    sym->variant.variable.ptr = vp;
-    set_source_corresp(&vp->source_corresp, sym);
-    result_cp = local_constant();
-    set_variable_address_constant(vp, result_cp,
-                                  /*set_address_taken_flag=*/FALSE);
-    result_cp->type = return_type_of(callee->type);
-    result_cp->variant.address.subobject_path = alloc_subobject_path();
-    result_cp->variant.address.subobject_path->is_offset = TRUE;
-    result_cp->variant.address.subobject_path->variant.ptr_offset = 0;
-    result_cp->next = ips->constants;
-    ips->constants = result_cp;
-    clear_runtime_constant_address(result_storage, result_cp);
-  }  /* if */
-done:
-  return result;
-}  /* do_constexpr_std_meta_make_constexpr_array */
 
 
 STATIC_THREAD long	n_object_reflection_variables;
@@ -11907,7 +11911,7 @@ its declaration.
 }  /* make_object_reflection_variable */
 
 
-static a_boolean do_constexpr_std_meta_reflect_result(
+static a_boolean do_constexpr_std_meta_reflect_constant(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -11915,13 +11919,12 @@ static a_boolean do_constexpr_std_meta_reflect_result(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::reflect_result<T>(T val), which underlies
-std::meta::reflect_constant.  For a scalar value it creates IL (an a_constant)
+Implement std::meta::reflect_constant<T>(T val) (N5046
+[meta.reflection.result]).  For a scalar value it creates IL (an a_constant)
 for the value and returns an iek_constant value reflection.  For a class or
 union value it instead materializes a namespace-scope constexpr object holding
 the value and returns an object reflection for that object (is_object is true),
-matching reflect_constant's treatment of a class value as a
-template-argument-equivalent object.
+treating a class value as a template-argument-equivalent object.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -11971,7 +11974,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     }  /* if */
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_reflect_result */
+}  /* do_constexpr_std_meta_reflect_constant */
 
 
 static a_boolean do_constexpr_std_meta_reflect_object(
@@ -12061,25 +12064,87 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_reflect_function */
 
 
-static a_boolean do_constexpr_std_meta___reflect_constant_array(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
-/*
-Implement the header helper std::meta::__reflect_constant_array<T>(const T* p,
-size_t n).  It creates IL for a constexpr namespace-scope array of n elements
-of type T with internal linkage, initialized from the n values pointed to by p,
-and returns an object reflection for that array object.  This underlies
-std::meta::reflect_constant_array and reflect_constant_string.
+typedef struct a_constant_array_builder_s {
+  a_constant_ptr  aggregate;
+			/* The ck_aggregate constant collecting the element
+			   constants. */
+  a_type_ptr      elem_type;
+			/* The unqualified type of the elements. */
+  a_targ_size_t   count;
+			/* The number of elements appended so far. */
+  a_boolean       stop_at_null;
+			/* TRUE if a null element ends the collection, i.e.,
+			   for reflect_constant_string. */
+} a_constant_array_builder;
 
-See do_constexpr_intrinsic_call for the meaning of the parameters.
+
+static void append_element_constant(a_constant_array_builder  *builder,
+                                    a_constant_ptr            con)
+/*
+Append con, a file-scope constant for one element, to the aggregate constant
+being built by *builder, and count it.
 */
 {
-  a_boolean            result = TRUE;
-  a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[0];
+  if (builder->aggregate->variant.aggregate.first_constant == NULL) {
+    builder->aggregate->variant.aggregate.first_constant = con;
+  } else {
+    builder->aggregate->variant.aggregate.last_constant->next = con;
+  }  /* if */
+  builder->aggregate->variant.aggregate.last_constant = con;
+  ++builder->count;
+}  /* append_element_constant */
+
+
+static a_boolean append_constant_array_element(an_interpreter_state  *ips,
+                                               a_byte                *element,
+                                               a_byte                *cobj,
+                                               void                  *context,
+                                               a_boolean             *stop)
+/*
+An a_range_element_sink that appends a constant for one element (whose storage
+is element, within the complete object cobj) to the array being built by the
+a_constant_array_builder that context points to.  When that builder's
+stop_at_null flag is set, a null element instead ends the collection: the
+terminator of a reflect_constant_string result is appended by
+build_constant_array_reflection, whether or not the range has a null element.
+*/
+{
+  a_boolean                 result;
+  a_constant_array_builder  *builder = (a_constant_array_builder*)context;
+  a_memory_region_number    region_to_switch_back_to;
+  a_constant_ptr            con;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  con = fs_constant(ck_error);
+  result = copy_interpreter_object_to_constant(ips, element, cobj,
+                                               builder->elem_type, con);
+  switch_back_to_original_region(region_to_switch_back_to);
+  if (result) {
+    if (builder->stop_at_null && is_zero_constant(con)) {
+      *stop = TRUE;
+    } else {
+      append_element_constant(builder, con);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* append_constant_array_element */
+
+
+static a_boolean collect_array_elements(an_interpreter_state      *ips,
+                                        a_constexpr_address       *cap,
+                                        a_type_ptr                array_type,
+                                        a_constant_array_builder  *builder,
+                                        an_expr_node_ptr          call_node)
+/*
+Collect the elements of the array object addressed by cap, whose type is
+array_type, into *builder.  An array is contiguous and of known extent, so its
+elements are taken directly from interpreter storage; this is the case that the
+iteration plans of build_reflection_range_plan, which cover class ranges, do
+not describe.  ips is the interpreter state and call_node positions any
+diagnostics.  Return TRUE on success.
+*/
+{
+  a_boolean  result = TRUE;
 
   if (is_runtime_data_address(cap) || is_function_address(cap)) {
     do_constexpr_fail(result);
@@ -12090,51 +12155,180 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_constexpr_invalid_null_ptr_operation,
                   &call_node->position, ips);
   } else {
-    a_memory_region_number  region_to_switch_back_to;
-    a_template_arg_ptr      tap = callee->template_arg_list;
-    a_type_ptr              array_type, elem_type = tap->variant.type;
-    a_byte_count            elem_size, pos, len;
-    an_integer_value        *param2 = (an_integer_value*)p_arg_bytes[1];
-    a_host_large_integer    n_elems;
-    a_boolean               ovfl;
-    a_constant_ptr          init_cp, result_cp;
-    a_reflection_value      *rvp = (a_reflection_value*)result_storage;
-    get_array_pos(ips, cap, elem_type, &len, &pos, &elem_size, &result);
-    if (!result) goto done;
-    conv_integer_value_to_host_large_integer(param2, /*is_signed=*/FALSE,
-                                             &n_elems, &ovfl);
-    if (ovfl || n_elems > (a_host_large_integer)(len-pos)) {
-      do_constexpr_fail(result);
-      info_with_pos_num2(ec_constexpr_length_too_long_for_make_constexpr_array,
-                         &call_node->position, (int32_t)n_elems,
-                         (int32_t)(len-pos), ips);
-      goto done;
-    }  /* if */
-    array_type = alloc_type(tk_array);
-    array_type->variant.array.element_type = make_qualified_type(elem_type,
-                                                                 TQ_CONST);
-    array_type->variant.array.variant.number_of_elements =
-                                                       (a_targ_size_t)n_elems;
-    init_cp = fs_constant(ck_aggregate);
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    if (!copy_interpreter_object_to_constant(
-              ips, cap->address, cap->complete_object, array_type, init_cp)) {
-      switch_back_to_original_region(region_to_switch_back_to);
-      result = FALSE;
-      goto done;
-    }  /* if */
-    result_cp = make_object_reflection_variable(array_type, init_cp,
-                                                "__ce_const_array_",
-                                                &call_node->position);
-    rvp->entity.kind = iek_constant;
-    rvp->entity.ptr = (char*)result_cp;
-    rvp->local_scope_number = FILE_SCOPE_NUMBER;
-    switch_back_to_original_region(region_to_switch_back_to);
-    mark_subobject_initialized(result_storage, complete_obj);
+    a_targ_size_t  i,
+                   n_elems = array_type->variant.array
+                                        .variant.number_of_elements;
+    a_boolean      stop = FALSE;
+    a_byte_count   elem_size = value_bytes_for_type(ips, builder->elem_type,
+                                                    &result);
+    for (i = 0; result && !stop && i<n_elems; ++i) {
+      result = append_constant_array_element(ips,
+                                             cap->address + i*elem_size,
+                                             cap->complete_object,
+                                             (void*)builder, &stop);
+    }  /* for */
   }  /* if */
-done:
   return result;
-}  /* do_constexpr_std_meta___reflect_constant_array */
+}  /* collect_array_elements */
+
+
+static a_boolean build_constant_array_reflection(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj,
+                                        a_boolean             is_string)
+/*
+Shared implementation of std::meta::reflect_constant_array (is_string FALSE)
+and std::meta::reflect_constant_string (is_string TRUE); see N5046
+[meta.reflection.array].  Both create IL for a constexpr namespace-scope array
+with internal linkage, holding copies of the elements of the
+std::ranges::input_range argument, and return an object reflection for that
+array object.  For reflect_constant_string the elements are of one of the
+character types, the array stops at the first null character of the range, and
+a null terminator is added, so that
+	reflect_constant_string("abc")
+reflects an object of type "const char[4]".  When the range is empty, and there
+is therefore no array type to be had, the result reflects a null pointer value
+instead; std::define_static_array checks for that by asking whether the result
+is of array type.
+
+See do_constexpr_intrinsic_call for the meaning of the remaining parameters.
+*/
+{
+  a_boolean                   result = TRUE;
+  a_constexpr_address         *cap = (a_constexpr_address*)p_arg_bytes[0];
+  a_reflection_value          *rvp = (a_reflection_value*)result_storage;
+  a_type_ptr                  range_type, elem_type = NULL;
+  a_reflection_range_plan_ptr plan = NULL;
+  a_constant_array_builder    builder;
+  a_memory_region_number      region_to_switch_back_to;
+
+  /* The template parameter is the deduced R of the "R&&" parameter, so it is a
+     reference type when the argument is an lvalue. */
+  range_type = skip_typerefs(callee->template_arg_list->variant.type);
+  if (is_any_reference_type(range_type)) {
+    range_type = skip_typerefs(type_pointed_to(range_type));
+  }  /* if */
+  if (is_array_type(range_type)) {
+    elem_type = make_unqualified_type(
+                                   range_type->variant.array.element_type);
+  } else {
+    plan = reflection_range_plan_for_type(range_type);
+    if (plan == NULL) {
+      /* No plan was cached at parse time; see collect_reflection_range_arg. */
+      plan = build_reflection_range_plan(range_type);
+    }  /* if */
+    if (plan != NULL && plan->usable) {
+      elem_type = make_unqualified_type(plan->iterator->type);
+    } else {
+      do_constexpr_fail(result);
+      info_with_pos(ec_uniterable_reflection_range, &call_node->position, ips);
+    }  /* if */
+  }  /* if */
+  if (result && is_string && !is_general_character_type(elem_type)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+  }  /* if */
+  if (result) {
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    builder.aggregate = fs_constant(ck_aggregate);
+    switch_back_to_original_region(region_to_switch_back_to);
+    builder.elem_type = elem_type;
+    builder.count = 0;
+    builder.stop_at_null = is_string;
+    if (plan == NULL) {
+      result = collect_array_elements(ips, cap, range_type, &builder,
+                                      call_node);
+    } else {
+      result = iterate_via_reflection_range_plan(
+                                             ips, plan, cap,
+                                             append_constant_array_element,
+                                             (void*)&builder,
+                                             &call_node->position);
+    }  /* if */
+  }  /* if */
+  if (result) {
+    a_constant_ptr  result_cp;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    if (is_string) {
+      a_constant_ptr  term_cp = fs_constant(ck_error);
+      result = make_value_initialized_constant(elem_type, term_cp);
+      if (result) append_element_constant(&builder, term_cp);
+    }  /* if */
+    if (!result) {
+      /* No constant can be made for the terminator. */
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                    ips);
+    } else if (builder.count == 0) {
+      result_cp = fs_constant(ck_error);
+      result = make_value_initialized_constant(
+                 make_pointer_type(make_qualified_type(elem_type, TQ_CONST)),
+                 result_cp);
+      rvp->entity.kind = iek_constant;
+      rvp->entity.ptr = (char*)result_cp;
+      rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    } else {
+      a_type_ptr  array_type = alloc_type(tk_array);
+      array_type->variant.array.element_type =
+                                    make_qualified_type(elem_type, TQ_CONST);
+      array_type->variant.array.variant.number_of_elements = builder.count;
+      builder.aggregate->type = array_type;
+      result_cp = make_object_reflection_variable(
+                    array_type, builder.aggregate,
+                    is_string ? "__ce_const_string_" : "__ce_const_array_",
+                    &call_node->position);
+      rvp->entity.kind = iek_constant;
+      rvp->entity.ptr = (char*)result_cp;
+      rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    }  /* if */
+    switch_back_to_original_region(region_to_switch_back_to);
+    if (result) mark_subobject_initialized(result_storage, complete_obj);
+  }  /* if */
+  return result;
+}  /* build_constant_array_reflection */
+
+
+static a_boolean do_constexpr_std_meta_reflect_constant_array(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::reflect_constant_array(R&& r).  See
+build_constant_array_reflection, and do_constexpr_intrinsic_call for the
+meaning of the parameters.
+*/
+{
+  return build_constant_array_reflection(ips, callee, call_node, p_arg_bytes,
+                                         result_storage, complete_obj,
+                                         /*is_string=*/FALSE);
+}  /* do_constexpr_std_meta_reflect_constant_array */
+
+
+static a_boolean do_constexpr_std_meta_reflect_constant_string(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::reflect_constant_string(R&& r).  See
+build_constant_array_reflection, and do_constexpr_intrinsic_call for the
+meaning of the parameters.
+*/
+{
+  return build_constant_array_reflection(ips, callee, call_node, p_arg_bytes,
+                                         result_storage, complete_obj,
+                                         /*is_string=*/TRUE);
+}  /* do_constexpr_std_meta_reflect_constant_string */
 
 
 static a_boolean handle_pm_case_for_extract(
@@ -12240,13 +12434,12 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                array-to-pointer decay: the result is a pointer to the first
                element.  Build an array-element pointer (base + offset-0 path
                with the array-to-pointer decay recorded via implicit_cast) and
-               return it as a run-time constant address, as
-               make_constexpr_array does, so the pointer survives being stored
-               in a persistent constexpr object.  The recorded decay makes a
-               later materialization mark the address as an array element
-               carrying the array's bounds, so subscripting/arithmetic
-               through it stay in range.  This underlies
-               std::define_static_string/array. */
+               return it as a run-time constant address, so the pointer
+               survives being stored in a persistent constexpr object.  The
+               recorded decay makes a later materialization mark the address
+               as an array element carrying the array's bounds, so
+               subscripting/arithmetic through it stay in range.  This
+               underlies std::define_static_string/array. */
             a_constexpr_address  dst_addr;
             a_constant_ptr       ptr_cp = local_constant();
             copy_constant_full(cp, ptr_cp,
@@ -12435,18 +12628,17 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_extract */
 
 
-static a_boolean do_constexpr_std_meta_value_of(
-                                        an_interpreter_state  *ips,
-                                        a_routine_ptr         callee,
-                                        an_expr_node_ptr      call_node,
-                                        a_byte                **p_arg_bytes,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_obj)
+static a_boolean make_value_reflection(an_interpreter_state  *ips,
+                                       an_expr_node_ptr      call_node,
+                                       a_byte                **p_arg_bytes,
+                                       a_byte                *result_storage,
+                                       a_byte                *complete_obj)
 /*
-Implement std::meta::value_of(r).  Return at result_storage a reflection for
-the value of the item represented by r.
-
-See do_constexpr_intrinsic_call for the meaning of the parameters.
+Return at result_storage a value reflection for the value that the reflection
+at p_arg_bytes[0] denotes: the argument of an annotation, a constant, or the
+value held by a variable.  This is how constant_of reduces a reflection that
+denotes a constant.  See do_constexpr_intrinsic_call for the meaning of ips,
+call_node, result_storage, and complete_obj.
 */
 {
   a_boolean           result = TRUE;
@@ -12513,7 +12705,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     mark_subobject_initialized(result_storage, complete_obj);
   }  /* if */
   return result;
-}  /* do_constexpr_std_meta_value_of */
+}  /* make_value_reflection */
 
 
 static a_boolean is_object_reflection_constant(a_reflection_value  *rvp)
@@ -12622,7 +12814,7 @@ template-argument-equivalent object); an object reflection of a scalar object
 is reduced to a value reflection of the scalar's value.  A constexpr class or
 union variable likewise yields an object reflection (via object_of).  Other
 reflections that denote a constant (for example, an enumerator or a scalar
-constexpr variable) are reduced to a value reflection via value_of.
+constexpr variable) are reduced to a value reflection.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -12681,9 +12873,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                                              p_arg_bytes, result_storage,
                                              complete_obj);
   } else {
-    result = do_constexpr_std_meta_value_of(ips, callee, call_node,
-                                            p_arg_bytes, result_storage,
-                                            complete_obj);
+    result = make_value_reflection(ips, call_node, p_arg_bytes,
+                                   result_storage, complete_obj);
   }  /* if */
   if (result) {
     mark_subobject_initialized(result_storage, complete_obj);
@@ -18563,11 +18754,9 @@ builtin operation that does not fold to a constant yields a false answer
 rather than a constant-evaluation failure.
 */
 {
-  a_type_ptr            types[2];
+  a_type_ptr            types[2] = { t1, t2 };
   a_host_large_integer  val = 0;
 
-  types[0] = t1;
-  types[1] = t2;
   (void)meta_fold_builtin_type_trait(kind, types, t2 == NULL ? 1 : 2, &val);
   return val != 0;
 }  /* meta_folded_type_pred */
@@ -18790,6 +18979,89 @@ DEFINE_type_predicate2(std_meta, is_pointer_interconvertible_base_of_type,
     answer = meta_folded_type_pred(bok_is_pointer_interconvertible_base_of,
                                    tp1, tp2);
   }))
+
+
+static a_boolean meta_library_type_pred(a_const_char          *name,
+                                        a_type_ptr            t1,
+                                        a_type_ptr            t2,
+                                        an_interpreter_state  *ips,
+                                        an_expr_node_ptr      call_node,
+                                        a_boolean             *p_result)
+/*
+Return the value of the standard library type predicate named name (such as
+is_swappable) applied to t1, and to t2 as well unless t2 is NULL, which selects
+the one-operand form.  The std::meta queries whose results are defined in terms
+of such a trait are evaluated by instantiating it.  When the trait cannot be
+instantiated or supplies no constant value, a diagnostic is issued at the
+position of call_node and *p_result is cleared.
+*/
+{
+  a_boolean   answer, err = FALSE;
+  a_type_ptr  types[2];
+
+  types[0] = t1;
+  types[1] = t2;
+  answer = compute_meta_library_predicate(name, types, t2 == NULL ? 1 : 2,
+                                          &err);
+  if (err) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+    do_constexpr_fail(*p_result);
+    answer = FALSE;
+  }  /* if */
+  return answer;
+}  /* meta_library_type_pred */
+
+
+DEFINE_type_predicate(std_meta, is_swappable_type,
+  ([&]{
+    answer = meta_library_type_pred("is_swappable", tp, (a_type_ptr)NULL, ips,
+                                    call_node, &result);
+  }))
+
+
+DEFINE_type_predicate(std_meta, is_nothrow_swappable_type,
+  ([&]{
+    answer = meta_library_type_pred("is_nothrow_swappable", tp,
+                                    (a_type_ptr)NULL, ips, call_node, &result);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, is_swappable_with_type,
+  ([&]{
+    answer = meta_library_type_pred("is_swappable_with", tp1, tp2, ips,
+                                    call_node, &result);
+  }))
+
+
+DEFINE_type_predicate2(std_meta, is_nothrow_swappable_with_type,
+  ([&]{
+    answer = meta_library_type_pred("is_nothrow_swappable_with", tp1, tp2, ips,
+                                    call_node, &result);
+  }))
+
+
+static a_boolean do_constexpr_std_meta_type_order(
+                             an_interpreter_state        *ips,
+                             ARG_UNUSED a_routine_ptr    callee,
+                             an_expr_node_ptr            call_node,
+                             ARG_UNUSED a_byte           **p_arg_bytes,
+                             ARG_UNUSED a_byte           *result_storage,
+                             ARG_UNUSED a_byte           *complete_obj)
+/*
+std::meta::type_order(info, info) is recognized as a constexpr intrinsic, but
+an invocation is currently not evaluated to a constant.  (FIXME)
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean  result = TRUE;
+
+  info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                &call_node->position, ips);
+  do_constexpr_fail(result);
+  return result;
+}  /* do_constexpr_std_meta_type_order */
 
 
 static a_type_ptr meta_unwrap_reference(a_type_ptr  tp)
@@ -20019,8 +20291,8 @@ the corresponding reflection value at the location denoted by result_cap.
             a_constant  *cp = values[interpolator_num];
             if (constant_is(cp, ck_reflection) &&
                 cp->variant.reflection.entity.kind == iek_token_sequence) {
-              a_token_sequence  *in_seq = (a_token_sequence*)cp->variant.
-                                                         reflection.entity.ptr;
+              a_token_sequence  *in_seq = (a_token_sequence*)
+                                            cp->variant.reflection.entity.ptr;
 
               rescan_persistent_reusable_cache(
                                         ((a_token_cache*)in_seq->token_cache));
@@ -20467,6 +20739,29 @@ STATIC_THREAD a_type_ptr
 			/* The type of the object stored at the
 			   valid_placement_new_address.  NULL if no address
 			   is acceptable. */
+
+
+static a_boolean do_constexpr_std_is_string_literal(
+                                   an_interpreter_state        *ips,
+                                   ARG_UNUSED a_routine_ptr    callee,
+                                   ARG_UNUSED an_expr_node_ptr call_node,
+                                   a_byte                      **p_arg_bytes,
+                                   a_byte                      *result_storage,
+                                   ARG_UNUSED a_byte           *complete_obj)
+/*
+Execute a call to:
+	std::is_string_literal(const C *p)
+where C is one of the character types, setting *result_storage to "true" if the
+argument points at a character of a string literal.  See
+do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[0];
+
+  *(an_integer_value*)result_storage =
+              address_is_string_literal(ips, cap) ? one_int : zero_int;
+  return TRUE;
+}  /* do_constexpr_std_is_string_literal */
 
 
 static a_boolean do_constexpr_std_construct_at(
@@ -30231,6 +30526,17 @@ the value representation of the integer value.
               rvp->entity.kind = iek_none;
               rvp->entity.ptr = (char*)NULL;
               rvp->local_scope_number = FILE_SCOPE_NUMBER;
+            } else if (reference_to_unknown_object_allowed &&
+                       (is_any_reference_type(var->type) ||
+                        var->is_this_parameter)) {
+              /* The object this reference, or this pointer, is bound to is not
+                 known here, as for a reference parameter of the function being
+                 compiled.  The reference itself may still be used, as in
+                   constexpr int f(int (&a)[3]) { return std::size(a); }
+                 so an address of run-time data is produced for it; that stands
+                 for the unknown object and is diagnosed if the evaluation goes
+                 on to read through it or to compare it. */
+              make_runtime_data_address(ips, var, result_storage);
             } else {
               if (var->is_this_parameter) {
                 if ((clang_mode || gpp_version_is(>= 90000)) &&
@@ -30241,14 +30547,7 @@ the value representation of the integer value.
                      where an lvalue-to-rvalue transformation applies to
                      __closure.ref_x.  we emulate that by producing a run-time
                      address constant for the local variable lvalue. */ 
-                  con = local_constant();
-                  clear_constant(con, (a_constant_repr_kind)ck_address);
-                  con->next = ips->constants;
-                  ips->constants = con;
-                  con->variant.address.kind = abk_variable;
-                  con->variant.address.variant.variable = var;
-                  con->type = make_reference_type(var->type);
-                  clear_runtime_constant_address(result_storage, con);
+                  make_runtime_data_address(ips, var, result_storage);
                   break;
                 }  /* if */
                 info_with_pos(ec_star_this_not_constant_valued,
@@ -30560,8 +30859,17 @@ the value representation of the integer value.
             info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                           &expr->position, ips);
           }  /* if */
-        } else if ((expr->is_lvalue || expr->is_xvalue) &&
+        } else if ((expr->is_lvalue || expr->is_xvalue ||
+                    (reference_to_unknown_object_allowed &&
+                     is_any_reference_type(tp))) &&
                    expr->variant.param_ref.levels_up == 0) {
+          /* The parameter as an lvalue, or the value of a parameter of
+             reference type: either stands for an object that is not known
+             here, and an address of run-time data is produced for it.  The
+             latter comes up in a constant expression among the requirements of
+             a requires-expression, as in
+               requires (R &r) { typename int[size(r) >= 0 ? 1 : 2]; }
+             where nothing about the object bound to r is needed. */
           a_constant  *cp = local_constant();
           clear_constant(cp, ck_address);
           cp->next = ips->constants;
@@ -32690,7 +32998,6 @@ One-time initialization for interpret.c static variables.
   /* Static variables in interpret.c. */
   if (precompiled_header_processing_required) {
     STATIC_THREAD a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(n_make_constexpr_array_calls),
       pch_saved_var_array_elem(n_object_reflection_variables),
       pch_saved_var_array_elem(n_info_array_variables),
       pch_saved_var_array_terminating_elem()
@@ -32706,7 +33013,6 @@ One-time initialization for interpret.c static variables.
   register_trans_unit_variable(n_free_variant_path_entries);
   register_trans_unit_variable(valid_placement_new_address);
   register_trans_unit_variable(valid_placement_new_type);
-  register_trans_unit_variable(n_make_constexpr_array_calls);
   register_trans_unit_variable(n_object_reflection_variables);
   register_trans_unit_variable(n_info_array_variables);
   useful_constants_initialized = FALSE;

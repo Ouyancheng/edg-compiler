@@ -5720,6 +5720,7 @@ routine will be the same as the one passed in.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       new_routine->is_weak = routine->is_weak;
       new_routine->is_weakref = routine->is_weakref;
+      new_routine->gnu_c89_inline = routine->gnu_c89_inline;
       if (has_gnu_routine_supp(routine)) {
         ensure_gnu_routine_supp(new_routine)->section =
                                             gnu_routine_supp(routine)->section;

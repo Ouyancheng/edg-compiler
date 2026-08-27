@@ -58,11 +58,6 @@ namespace std {
   namespace meta {
     using info = decltype(^^::);
 
-    using  __refl_ptrdiff = decltype((int*)2-(int*)1);
-
-    template<typename __T>
-    consteval __T const* make_constexpr_array(__T*, __refl_ptrdiff);
-
     using __str = std::string_view;
 
     consteval bool has_identifier(info);
@@ -182,33 +177,12 @@ namespace std {
     template<reflection_range __R = initializer_list<info>>
       consteval info invoke_result(info __type, __R&& __type_args);
 
-    /* reflect_result is the front-end intrinsic that manufactures a constant
-       from a value and reflects it.  reflect_constant is the [meta.reflection]
-       spelling built on top of it; reflect_value is the old EDG name, kept as
-       a deprecated alias. */
-    template<typename T>
-    consteval info reflect_result(T);
-
     template<typename T>
       requires (std::is_copy_constructible_v<T>)
-    consteval info reflect_constant(T v) {
-      return reflect_result<T>(v);
-    }
-
-    template<typename T>
-    [[deprecated("use std::meta::reflect_constant")]]
-    consteval info reflect_value(T v) {
-      return reflect_constant<T>(v);
-    }
+    consteval info reflect_constant(T v);
 
     template<typename T>
     consteval T extract(info);
-
-    template<typename T>
-    [[deprecated("use std::meta::extract")]]
-    consteval T value_of(info r) {
-      return extract<T>(r);
-    }
 
     template<typename T>
       requires (!std::is_function_v<std::remove_reference_t<T>>)
@@ -221,28 +195,11 @@ namespace std {
     consteval info object_of(info);
     consteval info constant_of(info);
 
-    /* FIXME reflection: Eliminate this helper and handle
-       reflect_constant_array intrinsically to be compatible with GCC's
-       <meta> header. */
-    template<typename T>
-    consteval info __reflect_constant_array(const T* __p, std::size_t __n);
+    template<std::ranges::input_range __R>
+    consteval info reflect_constant_string(__R&& __r);
 
-    template<typename __R>
-    consteval info reflect_constant_array(__R&& __r) {
-      using __T = std::remove_cvref_t<std::ranges::range_value_t<__R>>;
-      std::vector<__T> __v;
-      for (auto&& __e : __r) __v.push_back(__e);
-      return __reflect_constant_array<__T>(__v.data(), __v.size());
-    }
-
-    template<typename __R>
-    consteval info reflect_constant_string(__R&& __r) {
-      using __C = std::remove_cvref_t<std::ranges::range_value_t<__R>>;
-      std::vector<__C> __v;
-      for (auto&& __e : __r) __v.push_back(__e);
-      __v.push_back(__C{});  /* terminating null character */
-      return __reflect_constant_array<__C>(__v.data(), __v.size());
-    }
+    template<std::ranges::input_range __R>
+    consteval info reflect_constant_array(__R&& __r);
 
     consteval bool is_public(info);
     consteval bool is_protected(info);
@@ -649,12 +606,11 @@ namespace std {
 
     consteval info tuple_element(std::size_t, info);
 
-    /* [meta.reflection.traits] additional type-property predicates,
+    /* N5046 [meta.reflection.traits] additional type-property predicates,
        type-relation predicates, rank/extent, unwrap_reference and
-       unwrap_ref_decay, and the variant queries.  is_swappable_* and
-       type_order are not yet provided.  The constructible, assignable, and
-       destructible predicates below are the non-variadic forms; the variadic
-       is_constructible_type family appears earlier. */
+       unwrap_ref_decay, and the variant queries.  The constructible,
+       assignable, and destructible predicates below are the non-variadic
+       forms; the variadic is_constructible_type family appears earlier. */
     consteval bool is_structural_type(info);
 
     consteval bool is_default_constructible_type(info);
@@ -686,6 +642,13 @@ namespace std {
     consteval bool is_nothrow_destructible_type(info);
 
     consteval bool is_implicit_lifetime_type(info);
+
+    consteval std::strong_ordering type_order(info, info);
+
+    consteval bool is_swappable_type(info);
+    consteval bool is_nothrow_swappable_type(info);
+    consteval bool is_swappable_with_type(info, info);
+    consteval bool is_nothrow_swappable_with_type(info, info);
 
     consteval bool has_virtual_destructor(info);
     consteval bool has_unique_object_representations(info);
@@ -767,21 +730,11 @@ namespace std {
     }
   }  /* namespace meta */
 
-  consteval bool is_string_literal(const char* __p) {
-    return __builtin_is_string_literal(__p);
-  }
-  consteval bool is_string_literal(const char8_t* __p) {
-    return __builtin_is_string_literal(__p);
-  }
-  consteval bool is_string_literal(const char16_t* __p) {
-    return __builtin_is_string_literal(__p);
-  }
-  consteval bool is_string_literal(const char32_t* __p) {
-    return __builtin_is_string_literal(__p);
-  }
-  consteval bool is_string_literal(const wchar_t* __p) {
-    return __builtin_is_string_literal(__p);
-  }
+  consteval bool is_string_literal(const char*);
+  consteval bool is_string_literal(const char8_t*);
+  consteval bool is_string_literal(const char16_t*);
+  consteval bool is_string_literal(const char32_t*);
+  consteval bool is_string_literal(const wchar_t*);
 
   template<std::ranges::input_range __R>
   consteval const std::ranges::range_value_t<__R>*

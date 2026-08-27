@@ -110,11 +110,13 @@ The "type codes" currently recognized are:
   - "b": bool
   - "r": std::meta::info
   - "v": void
-  - "C": a built-in character type
+  - "C": a "char" type (plain, signed, or unsigned)
+  - "G": any of the character types (i.e., also wchar_t and the charN_t types)
   - "I": an integral type
   - "Sv": std::string_view
   - "Sz": std::size_t
   - "Su": std::u8string_view
+  - "So": std::strong_ordering
   - "Vr": std::vector<std::meta::info>
   - "L": std::source_location
   - "A": std::meta::access_context
@@ -130,7 +132,7 @@ must be defined in interpret.c to implement its evaluation.
   M(std, is_constant_evaluated, "()b") \
   M(std, construct_at, "<T,>(*.,)*.") \
   M(std, __report_constexpr_value, "(I)v|(*C)v|(*C,I)v") \
-  M(std_meta, make_constexpr_array, "<T>(*.,I)*.") \
+  M(std, is_string_literal, "(*G)b") \
   M(std_meta, identifier_of, "(r)Sv") \
   M(std_meta, u8identifier_of, "(r)Su") \
   M(std_meta, display_string_of, "(r)Sv") \
@@ -165,10 +167,11 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, invoke_result, "<T>(r,&.)r") \
   M(std_meta, is_same_type, "(r,r)b") \
   M(std_meta, remove_cvref, "(r)r") \
-  M(std_meta, reflect_result, "<T>(.)r") \
+  M(std_meta, reflect_constant, "<T>(.)r") \
   M(std_meta, reflect_object, "<T>(&.)r") \
   M(std_meta, reflect_function, "<T>(&.)r") \
-  M(std_meta, __reflect_constant_array, "<T>(*.,Sz)r") \
+  M(std_meta, reflect_constant_array, "<T>(&.)r") \
+  M(std_meta, reflect_constant_string, "<T>(&.)r") \
   M(std_meta, extract, "<T>(r).") \
   M(std_meta, object_of, "(r)r") \
   M(std_meta, constant_of, "(r)r") \
@@ -359,6 +362,11 @@ must be defined in interpret.c to implement its evaluation.
   M(std_meta, is_convertible_type, "(r,r)b") \
   M(std_meta, is_nothrow_convertible_type, "(r,r)b") \
   M(std_meta, is_layout_compatible_type, "(r,r)b") \
+  M(std_meta, type_order, "(r,r)So") \
+  M(std_meta, is_swappable_type, "(r)b") \
+  M(std_meta, is_nothrow_swappable_type, "(r)b") \
+  M(std_meta, is_swappable_with_type, "(r,r)b") \
+  M(std_meta, is_nothrow_swappable_with_type, "(r,r)b") \
   M(std_meta, is_pointer_interconvertible_base_of_type, "(r,r)b") \
   M(std_meta, unwrap_reference, "(r)r") \
   M(std_meta, unwrap_ref_decay, "(r)r") \

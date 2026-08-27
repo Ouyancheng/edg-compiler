@@ -19177,6 +19177,10 @@ more_components:
       if (!is_character_type(tp)) okay = FALSE;
       ++sig;
       break;
+    case 'G':
+      if (!is_general_character_type(tp)) okay = FALSE;
+      ++sig;
+      break;
     case 'I':
       if (!is_integral_type(tp)) okay = FALSE;
       ++sig;
@@ -19193,6 +19197,9 @@ more_components:
                                                          eff_char8_t_type()) {
           okay = FALSE;
         }  /* if */
+        sig += 2;
+      } else if (sig[1] == 'o') {
+        if (!is_std_class(tp, "strong_ordering")) okay = FALSE;
         sig += 2;
       } else {
         unexpected_condition();

@@ -843,6 +843,21 @@ Return TRUE if the type is a character type (signed, unsigned, or "plain").
 }  /* is_character_type */
 
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_boolean is_general_character_type(a_type_ptr tp)
+/*
+Return TRUE if the type is one of the character types, i.e., a char type
+(signed, unsigned, or "plain"), wchar_t, char8_t, char16_t, or char32_t.
+*/
+{
+  tp = skip_typerefs(tp);
+  return (is_general_character(tp));
+}  /* is_general_character_type */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+
 a_boolean is_plain_char_type(a_type_ptr tp)
 /*
 Return TRUE if the type is a "plain" char type (not signed or unsigned).

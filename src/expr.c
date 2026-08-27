@@ -40120,6 +40120,27 @@ by param_sym (sk_parameter).
 }  /* make_param_ref_operand */
 
 
+static a_boolean is_requires_expr_parameter(a_symbol_ptr  param_sym)
+/*
+Return TRUE if param_sym, which is an sk_parameter symbol, names a parameter of
+a requires-expression whose requirements are being scanned.
+*/
+{
+  a_boolean                result = FALSE;
+  a_scope_stack_entry_ptr  ssep;
+
+  for (ssep = &scope_stack_top(); ssep != scope_stack; ssep -= 1) {
+    if (scope_is(ssep, sck_func_prototype) &&
+        ssep->number == param_sym->decl_scope) {
+      result = ssep->decl_parse_state != NULL &&
+               ssep->decl_parse_state->for_requires_expr_params;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* is_requires_expr_parameter */
+
+
 a_boolean concept_id_value(an_expr_node_ptr  node,
                            a_boolean         *fatal)
 /*
@@ -41273,11 +41294,16 @@ type_identifier_case:
         case sk_parameter:
           if (expr_is_inside_default_arg_expression() ||
               (curr_expr_is_potentially_evaluated() &&
-               !expr_stack->is_vla_dimension_expression)) {
+               !expr_stack->is_vla_dimension_expression &&
+               !is_requires_expr_parameter(sym_ptr))) {
             /* This is a parameter referenced within a C++ default argument
                expression, which is an error (ARM 8.2.6); or, any reference
-               except in a sizeof or function prototype VLA dimension
-               expression. */
+               except in a sizeof, a function prototype VLA dimension
+               expression, or the requirements of a requires-expression.  A
+               parameter of a requires-expression denotes no object, but it may
+               appear in a constant expression among the requirements, as in
+                 requires (R &r) { typename int[size(r) >= 0 ? 1 : 2]; }
+               as long as nothing about the object it denotes is needed. */
             error_and_make_error_operand(ec_param_not_allowed, result);
             change_refs_to_error(rep);
             rep = NULL;

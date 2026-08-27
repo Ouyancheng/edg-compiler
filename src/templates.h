@@ -1020,6 +1020,11 @@ extern a_type_ptr compute_meta_invoke_result(a_type_ptr  fn_type,
                                              int         n,
                                              a_boolean   *p_err);
 
+extern a_boolean compute_meta_library_predicate(a_const_char  *name,
+                                                a_type_ptr    types[],
+                                                int           n,
+                                                a_boolean     *p_err);
+
 extern
 void complete_template_variable_type_is_needed(a_variable_ptr vp);
 

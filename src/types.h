@@ -170,6 +170,9 @@ extern a_boolean is_integral_or_unscoped_enum_type(a_type_ptr tp);
 extern a_boolean is_bool_type(a_type_ptr tp);
 extern a_boolean enum_has_bool_underlying_type(a_type_ptr tp);
 extern a_boolean is_character_type(a_type_ptr tp);
+#if !STANDALONE_UTILITY_PROGRAM
+extern a_boolean is_general_character_type(a_type_ptr tp);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 extern a_boolean is_plain_char_type(a_type_ptr tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_narrow_or_wide_character_type(a_type_ptr tp);

@@ -236,6 +236,9 @@ extern a_boolean constant_prvalue_pointer(an_expr_node_ptr expr,
                                           a_constant       *con,
                                           a_boolean        address_escapes);
 
+extern a_boolean constant_is_pointer_into_string_literal(a_constant *con,
+                                                         a_constant **scon);
+
 extern a_boolean constant_is_pointer_to_string_literal(a_constant *con,
                                                        a_constant **scon);
 

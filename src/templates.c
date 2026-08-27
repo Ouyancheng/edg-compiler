@@ -9667,6 +9667,47 @@ for the meaning of *p_err and the return value.
 }  /* compute_meta_invoke_result */
 
 
+a_boolean compute_meta_library_predicate(a_const_char  *name,
+                                         a_type_ptr    types[],
+                                         int           n,
+                                         a_boolean     *p_err)
+/*
+Compute the value of the standard library type predicate named name (such as
+is_swappable or is_nothrow_swappable_with) for the n types in the array types,
+as the value of the "value" member of the specialization of that trait.  This
+is how the std::meta predicates whose results are defined in terms of such a
+library trait, rather than in terms of a property the front end tracks itself,
+are computed.  Set *p_err to TRUE and return FALSE if the trait cannot be
+found, if its instantiation is an immediate-context substitution failure, or if
+it does not supply a constant value; otherwise clear *p_err.
+*/
+{
+  a_boolean   result = FALSE;
+  a_type_ptr  tp = substitute_std_alias_template(name, types, n, p_err);
+
+  if (!*p_err) {
+    a_symbol_ptr  sym = NULL;
+    tp = skip_typerefs(tp);
+    complete_type_is_needed(tp);
+    if (is_class_struct_union_type(tp) && !tp->incomplete) {
+      sym = look_up_name_string_in_class("value", tp, IDL_NO_OPTIONS);
+    }  /* if */
+    if (sym != NULL && symbol_is(sym, sk_static_data_member)) {
+      a_variable_ptr  vp = sym->variant.static_data_member.variable;
+      if (vp->init_kind == initk_static &&
+          constant_is(vp->initializer.constant, ck_integer)) {
+        result = !is_zero_constant(vp->initializer.constant);
+      } else {
+        *p_err = TRUE;
+      }  /* if */
+    } else {
+      *p_err = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* compute_meta_library_predicate */
+
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean is_open_constructed_generic_arg_list(

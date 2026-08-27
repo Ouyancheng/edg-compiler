@@ -4315,6 +4315,7 @@ default mode (e.g., exception handling).
     if (relaxed_constexpr_enabled) {
       local_static_constexpr_enabled = TRUE;
     }  /* if */
+    reference_to_unknown_object_allowed = TRUE;
     static_call_operator_enabled = TRUE;
     auto_cast_enabled = TRUE;
     inheriting_ctor_ctad_enabled = TRUE;
@@ -13136,6 +13137,7 @@ variables declared in cmd_line.h.
   constinit_enabled = FALSE;
   relaxed_constexpr_enabled = FALSE;
   local_static_constexpr_enabled = FALSE;
+  reference_to_unknown_object_allowed = FALSE;
   constexpr_virtual_enabled = FALSE;
   constexpr_try_enabled = FALSE;
   constexpr_dynamic_alloc_enabled = FALSE;

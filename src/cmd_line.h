@@ -701,6 +701,15 @@ EXTERN_THREAD a_boolean
 			   circumstances (a C++23 feature). */
 
 EXTERN_THREAD a_boolean
+		reference_to_unknown_object_allowed;
+			/* TRUE if a reference whose referent is not known to
+			   the constant evaluator, such as a reference
+			   parameter of the function being compiled, can be
+			   used in a constant expression as long as the
+			   evaluation does not depend on the object it is
+			   bound to (a C++23 feature). */
+
+EXTERN_THREAD a_boolean
 		constexpr_virtual_enabled;
 			/* TRUE if constexpr virtual functions (a C++20
 			   feature) are enabled. */

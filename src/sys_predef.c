@@ -1206,6 +1206,22 @@ done:;
 }  /* preload_builtin_symbol */
 
 
+static a_boolean builtin_is_unimplemented(a_builtin_function_kind  kind)
+/*
+Return TRUE if the builtin function identified by kind appears in the tables of
+builtin functions of the compilers that are emulated, but is not implemented
+here.  Such a builtin is not declared, and __has_builtin therefore answers
+FALSE for it, so that library headers testing for its presence use their
+fallback code instead of relying on the front end to provide it.  FIXME
+*/
+{
+  /* __builtin_constexpr_diag (GCC's rendition of the P2758 facility to
+     produce diagnostics from constant evaluation) is the only such builtin so
+     far. */
+  return kind == bfk_constexpr_diag;
+}  /* builtin_is_unimplemented */
+
+
 static void preload_builtin_symbols(void)
 /*
 Loop through each builtin declaration (including user-defined builtins) and
@@ -1227,7 +1243,8 @@ current emulation mode.
     }  /* if */
   }  /* for */
   for (bdp = builtin_common_table, i = 0; bdp->name != NULL; bdp++, i++) {
-    if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
+    if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE) &&
+        !builtin_is_unimplemented(bdp->kind)) {
       preload_builtin_symbol(bdp->name, bdp->cond_index, NULL, i, bfc_common,
                              bdp->kind, bdp->type_index, NULL);
     }  /* if */
