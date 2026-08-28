@@ -2255,7 +2255,7 @@ the entirety of optstr in *str1.
 static void process_diag_override_option(an_option_kind kind,
 					 a_const_char	*arg)
 /*
-Go through a comma separated list of error tags and call an error
+Go through a comma-separated list of error tags and call an error
 processing routine to update the severity.
 */
 {
@@ -2330,7 +2330,7 @@ static void process_constexpr_diag_override_option(an_option_kind  kind,
                                                    a_const_char    *arg)
 /*
 Process one of the --constexpr_diag_* options, indicated by kind, whose
-argument arg is a comma separated list of the tags whose diagnostics are to
+argument arg is a comma-separated list of the tags whose diagnostics are to
 get the severity that kind requests.  Record the tags for
 severity_for_constexpr_diag_tag, complaining about any of them that no call
 of __builtin_constexpr_diag could supply.
@@ -2344,7 +2344,7 @@ of __builtin_constexpr_diag could supply.
     case optk_constexpr_diag_remark:   severity = es_remark;  break;
     case optk_constexpr_diag_warning:  severity = es_warning; break;
     case optk_constexpr_diag_error:    severity = es_error;   break;
-    default: unexpected_condition();
+    default_is_unexpected();
   }  /* switch */
   /* Make a copy of the option argument in which each comma is replaced by a
      null character, so that every tag becomes a string of its own.  The
@@ -11068,7 +11068,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_diag_error:
       case optk_diag_once:
         /* Options that override the severity of a given diagnostic.  The
-           option argument contains a comma separated list of error tags. */
+           option argument contains a comma-separated list of error tags. */
         process_diag_override_option(kind, opt_arg);
         break;
       case optk_constexpr_diag_suppress:
@@ -11077,7 +11077,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_constexpr_diag_error:
         /* Options that override the severity of the diagnostics that calls
            of __builtin_constexpr_diag produce with a given tag.  The option
-           argument contains a comma separated list of tags. */
+           argument contains a comma-separated list of tags. */
         process_constexpr_diag_override_option(kind, opt_arg);
         break;
       case optk_display_error_number:

@@ -10921,11 +10921,11 @@ warning, and 2 for an error, with 16 added to ask that the diagnostic be
 positioned at the call of the routine containing this call, which is what
 wrappers such as std::constexpr_error_str want), a tag naming the diagnostic
 (empty when none is wanted), and the text to be reported.  Issue the requested
-diagnostic for the interpreter state *ips, unless a --constexpr_diag_* option
-naming the tag asks for a different severity or for no diagnostic at all.  An
-error does not by itself make the enclosing expression non-constant.  Set
-*p_result to FALSE, recording the reason in *ips, if the call is malformed or
-if no constant is required here.
+diagnostic for the interpreter state *ips with the requested severity as
+modified by any --constexpr_diag_... options.  An error does not by itself
+make the enclosing expression non-constant.  Set *p_result to FALSE, recording
+the reason in *ips, if the call is malformed or if no constant is required
+here.
 */
 {
   an_expr_node_ptr      args = call_node->variant.operation.operands->next;
@@ -10944,7 +10944,7 @@ if no constant is required here.
   if (!ips->is_constant_evaluated) {
     /* Produce nothing when a constant is not actually required, and fail
        interpretation so that the call is evaluated again should a constant be
-       required after all.  Otherwise each speculative attempt to fold the
+       required after all.  Otherwise, each speculative attempt to fold the
        call would repeat the diagnostic. */
     do_constexpr_fail(*p_result);
     goto done;
@@ -20376,7 +20376,7 @@ static a_boolean get_string_from_string_view(
 *cp is a std::string_view value produced by the current interpreter invocation
 (whose state is tracked by ips).  Return the string it represents via *p_string
 (a pointer to an array of characters) and *p_len (the length of the view).
-The view must denote characters of a single byte each (as std::string_view and
+The view must denote elements of a single byte each (as std::string_view and
 std::u8string_view do) that lie within one string literal.
 */
 {
