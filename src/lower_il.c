@@ -13288,6 +13288,23 @@ Note that the expression (and argument) have already been lowered.
 }  /* lower_builtin_zero_non_value_bits */
 
 
+static void lower_builtin_constexpr_diag(an_expr_node_ptr  expr)
+/*
+Lower a call of __builtin_constexpr_diag, whose sole purpose is to produce a
+diagnostic while it is being interpreted for constant evaluation, by replacing
+it with a noop.  The arguments are dropped along with the call, so that
+nothing at all is generated for it, and side effects they may have are
+therefore not performed at run time.  Note that the expression (and its
+arguments) have already been lowered.
+*/
+{
+  overwrite_node(expr,
+                 add_cast(node_for_integer_constant(0L,
+                                                    (an_integer_kind)ik_int),
+                          void_type()));
+}  /* lower_builtin_constexpr_diag */
+
+
 static void lower_builtin_function_call(an_expr_node_ptr expr)
 /*
 Called to potentially lower a builtin function call.  The expression is
@@ -13306,6 +13323,9 @@ an eok_call of a builtin function.  The expression has already been lowered.
       unexpected_condition();
     case bfk_zero_non_value_bits:
       lower_builtin_zero_non_value_bits(expr);
+      break;
+    case bfk_constexpr_diag:
+      lower_builtin_constexpr_diag(expr);
       break;
     default:
       break;

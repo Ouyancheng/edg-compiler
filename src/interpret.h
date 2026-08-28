@@ -394,6 +394,9 @@ enum a_constexpr_intrinsic {
 void register_constexpr_intrinsic(a_constexpr_intrinsic  tag,
                                   a_routine_ptr          rp);
 
+a_boolean constexpr_diag_tag_is_valid(a_const_char   *tag,
+                                      a_targ_size_t  tag_len);
+
 
 #if DEBUG
 uintptr_t db_hash_ptr(void  *ptr);

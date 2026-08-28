@@ -3669,6 +3669,16 @@ ec_enum_qualifier_is_cpp11;;"an enum-type name qualifier is a C++11 feature"
 ec_unrestricted_unions_is_cpp11;;"unrestricted unions are a C++11 feature"
 ec_pack_expansion_for_non_pack_alias_param;;"a pack expansion cannot be used as an argument for non-pack %n1 of %n2"
 ec_uniterable_reflection_range;;"the range passed to the metafunction cannot be iterated"
+ec_interpreter_message_prefix;INTERNAL;"interpreter:"
+ec_interpreter_message_remark;;"%s1 %s2"
+ec_interpreter_message_warning;;"%s1 %s2"
+ec_interpreter_message_error;;"%s1 %s2"
+ec_constexpr_diag_arg_count;;"a call to \"__builtin_constexpr_diag\" requires three arguments"
+ec_constexpr_diag_bad_level;;"the first argument in a call to \"__builtin_constexpr_diag\" must be 0 (remark), 1 (warning), 2 (error), 16 (remark at caller), 17 (warning at caller), or 18 (error at caller)"
+ec_constexpr_diag_bad_string;;"a string literal or an object with the representation of std::string_view is required for the tag and the message in a call to \"__builtin_constexpr_diag\""
+ec_constexpr_diag_bad_tag;;"the tag in a call to \"__builtin_constexpr_diag\" may contain only letters, digits, and underscores"
+ec_cl_invalid_constexpr_diag_tag;;"invalid tag in constexpr diagnostic control option: %s"
+
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -2427,14 +2427,13 @@ Release the storage allocated for the given interpreter state.
 }  /* release_interpreter_state */
 
 
-static void info_call_stack(an_interpreter_state  *ips)
+static void info_call_stack(a_call_frame_ptr  frame,
+                            a_diag_list_ptr   diag_list)
 /*
-Record diagnostic entries (on the list pointed to by ips->diag_list) describing
-the interpreter's current call stack.
+Record diagnostic entries (on the list pointed to by diag_list) describing the
+interpreter's call stack starting at the given frame.
 */
 {
-  a_call_frame_ptr  frame = ((an_interpreter_state*)ips)->curr_call_frame;
-
   if (frame != NULL) {
     for (; frame->parent != NULL; frame = frame->parent) {
       a_routine_ptr  rp = frame->routine;
@@ -2450,10 +2449,10 @@ the interpreter's current call stack.
            function. */
         more_info_sym_diagnostic(ec_constexpr_called_from_rout,
                                  frame->variant.position, symbol_for(rp),
-                                 &ips->diag_list);
+                                 diag_list);
       } else {
         more_info_diagnostic(ec_constexpr_called_from, frame->variant.position,
-                             &ips->diag_list);
+                             diag_list);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -2471,7 +2470,7 @@ stack.
 {
   if (!ips->suspend_diag_list) {
     more_info_diagnostic(err_code, pos, &ips->diag_list);
-    info_call_stack(ips);
+    info_call_stack(ips->curr_call_frame, &ips->diag_list);
   }  /* if */
 }  /* info_with_pos */
 
@@ -2489,7 +2488,7 @@ stack.  Use the given reflection to replace fill-ins.
   if (!ips->suspend_diag_list) {
     a_diagnostic  *dp = pos_start_diagnostic(es_more_info, err_code, pos, rv);
     ips->diag_list.append(dp);
-    info_call_stack(ips);
+    info_call_stack(ips->curr_call_frame, &ips->diag_list);
   }  /* if */
 }  /* info_with_pos_refl */
 
@@ -2506,7 +2505,7 @@ stack.  Use the given type to replace fill-ins.
 {
   if (!ips->suspend_diag_list) {
     more_info_type_diagnostic(err_code, pos, tp, &ips->diag_list);
-    info_call_stack(ips);
+    info_call_stack(ips->curr_call_frame, &ips->diag_list);
   }  /* if */
 }  /* info_with_pos_type */
 
@@ -2524,7 +2523,7 @@ stack.  Use the given types to replace fill-ins.
 {
   if (!ips->suspend_diag_list) {
     more_info_type2_diagnostic(err_code, pos, tp1, tp2, &ips->diag_list);
-    info_call_stack(ips);
+    info_call_stack(ips->curr_call_frame, &ips->diag_list);
   }  /* if */
 }  /* info_with_pos_type2 */
 
@@ -2541,7 +2540,7 @@ stack.
 {
   if (!ips->suspend_diag_list) {
     more_info_num_diagnostic(err_code, pos, num, &ips->diag_list);
-    info_call_stack(ips);
+    info_call_stack(ips->curr_call_frame, &ips->diag_list);
   }  /* if */
 }  /* info_with_pos_num */
 
@@ -2559,7 +2558,7 @@ stack.
 {
   if (!ips->suspend_diag_list) {
     more_info_num2_diagnostic(err_code, pos, num1, num2, &ips->diag_list);
-    info_call_stack(ips);
+    info_call_stack(ips->curr_call_frame, &ips->diag_list);
   }  /* if */
 }  /* info_with_pos_num2 */
 
@@ -2576,7 +2575,7 @@ diagnostic string.  Also record annotations describing the call stack.
 {
   if (!ips->suspend_diag_list) {
     more_info_sym_diagnostic(err_code, pos, sym, &ips->diag_list);
-    info_call_stack(ips);
+    info_call_stack(ips->curr_call_frame, &ips->diag_list);
   }  /* if */
 }  /* info_with_pos_sym */
 
@@ -2594,7 +2593,7 @@ the diagnostic string.  Also record annotations describing the call stack.
 {
   if (!ips->suspend_diag_list) {
     more_info_sym_type_diagnostic(err_code, pos, sym, type, &ips->diag_list);
-    info_call_stack(ips);
+    info_call_stack(ips->curr_call_frame, &ips->diag_list);
   }  /* if */
 }  /* info_with_pos_sym_type */
 
@@ -2612,7 +2611,7 @@ the diagnostic string.  Also record annotations describing the call stack.
 {
   if (!ips->suspend_diag_list) {
     more_info_sym2_diagnostic(err_code, pos, sym1, sym2, &ips->diag_list);
-    info_call_stack(ips);
+    info_call_stack(ips->curr_call_frame, &ips->diag_list);
   }  /* if */
 }  /* info_with_pos_sym2 */
 
@@ -5294,6 +5293,11 @@ static a_boolean evaluate_expr(an_interpreter_state  *ips,
                                an_expr_node_ptr      expr,
                                a_boolean             force_prvalue,
                                a_constant_ptr        result_con);
+
+static a_boolean get_string_from_string_view(an_interpreter_state  *ips,
+                                             a_constant            *cp,
+                                             a_const_char          **p_string,
+                                             a_targ_size_t         *p_len);
 
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt);
@@ -10831,6 +10835,220 @@ example a "const char a[] = ..." array, is not a string literal.
 }  /* address_is_string_literal */
 
 
+/*
+Values for the first argument of a call of __builtin_constexpr_diag.  The bits
+selected by CONSTEXPR_DIAG_LEVEL_MASK choose the severity of the requested
+diagnostic, and CONSTEXPR_DIAG_AT_CALLER may be added to any of them.
+*/
+#define CONSTEXPR_DIAG_REMARK      0
+#define CONSTEXPR_DIAG_WARNING     1
+#define CONSTEXPR_DIAG_ERROR       2
+#define CONSTEXPR_DIAG_LEVEL_MASK  15
+#define CONSTEXPR_DIAG_AT_CALLER   16
+
+
+static a_boolean get_constexpr_diag_string(an_interpreter_state  *ips,
+                                           an_expr_node_ptr      arg,
+                                           a_const_char          **p_string,
+                                           a_targ_size_t         *p_len)
+/*
+arg is the tag or the message argument of a call of __builtin_constexpr_diag.
+Evaluate it for the interpreter state *ips and return the characters it
+supplies through *p_string and their number through *p_len.  The argument may
+be a pointer to a string literal of one-byte characters, in which case the
+characters preceding the terminating null character are used, or an object
+with the representation of std::string_view.  Return FALSE, recording the
+reason in *ips, if it is neither.
+*/
+{
+  a_boolean   result = TRUE;
+  a_constant  *cp = local_constant(), *str_cp = NULL;
+
+  if (!evaluate_expr(ips, arg, /*force_prvalue=*/TRUE, cp)) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  if (constant_is(cp, ck_address) && address_base_is(cp, abk_constant)) {
+    str_cp = cp->variant.address.variant.constant;
+  }  /* if */
+  if (str_cp != NULL && constant_is(str_cp, ck_string) &&
+      character_size[str_cp->character_kind] == 1 &&
+      cp->variant.address.offset >= 0 &&
+      (a_targ_size_t)cp->variant.address.offset <
+                                          str_cp->variant.string.length) {
+    /* The recorded length of a string literal counts its terminating null
+       character, which is not part of the text being supplied. */
+    a_targ_size_t  offset = (a_targ_size_t)cp->variant.address.offset;
+    *p_string = str_cp->variant.string.value + offset;
+    *p_len = str_cp->variant.string.length - offset - 1;
+  } else if (!get_string_from_string_view(ips, cp, p_string, p_len)) {
+    info_with_pos(ec_constexpr_diag_bad_string, &arg->position, ips);
+    do_constexpr_fail(result);
+  }  /* if */
+done:
+  release_local_constant(&cp);
+  return result;
+}  /* get_constexpr_diag_string */
+
+
+a_boolean constexpr_diag_tag_is_valid(a_const_char   *tag,
+                                      a_targ_size_t  tag_len)
+/*
+Return TRUE if the tag_len characters at tag are acceptable as the tag naming
+a diagnostic requested by a call of __builtin_constexpr_diag, which is to say
+that each of them is a letter, a digit, or an underscore.  The empty tag,
+which asks that no tag be shown, is acceptable.
+*/
+{
+  a_boolean      result = TRUE;
+  a_targ_size_t  k;
+
+  for (k = 0; k < tag_len && result; ++k) {
+    result = isalnum((unsigned char)tag[k]) != 0 || tag[k] == '_';
+  }  /* for */
+  return result;
+}  /* constexpr_diag_tag_is_valid */
+
+
+static void do_constexpr_builtin_diag(an_interpreter_state  *ips,
+                                      an_expr_node_ptr      call_node,
+                                      a_boolean             *p_result)
+/*
+call_node represents a call of __builtin_constexpr_diag, the GNU rendition of
+the facility proposed in C++ paper P2758 to let constant evaluation produce
+diagnostics.  Its three arguments are a severity (0 for a remark, 1 for a
+warning, and 2 for an error, with 16 added to ask that the diagnostic be
+positioned at the call of the routine containing this call, which is what
+wrappers such as std::constexpr_error_str want), a tag naming the diagnostic
+(empty when none is wanted), and the text to be reported.  Issue the requested
+diagnostic for the interpreter state *ips, unless a --constexpr_diag_* option
+naming the tag asks for a different severity or for no diagnostic at all.  An
+error does not by itself make the enclosing expression non-constant.  Set
+*p_result to FALSE, recording the reason in *ips, if the call is malformed or
+if no constant is required here.
+*/
+{
+  an_expr_node_ptr      args = call_node->variant.operation.operands->next;
+  a_constant            *level_cp;
+  a_host_large_integer  level = 0;
+  a_boolean             ovflo = FALSE;
+  a_const_char          *tag = NULL, *text = NULL;
+  a_targ_size_t         tag_len = 0, text_len = 0, k, pos_in_buffer;
+  a_source_position     *pos = &call_node->position;
+  a_call_frame_ptr      note_frame = ips->curr_call_frame;
+  an_error_severity     severity;
+  an_error_code         err_code;
+  a_diag_list           diag_list;
+  a_diagnostic_ptr      dp;
+
+  if (!ips->is_constant_evaluated) {
+    /* Produce nothing when a constant is not actually required, and fail
+       interpretation so that the call is evaluated again should a constant be
+       required after all.  Otherwise each speculative attempt to fold the
+       call would repeat the diagnostic. */
+    do_constexpr_fail(*p_result);
+    goto done;
+  }  /* if */
+  if (args == NULL || args->next == NULL || args->next->next == NULL ||
+      args->next->next->next != NULL) {
+    info_with_pos(ec_constexpr_diag_arg_count, pos, ips);
+    do_constexpr_fail(*p_result);
+    goto done;
+  }  /* if */
+  level_cp = local_constant();
+  if (!evaluate_expr(ips, args, /*force_prvalue=*/TRUE, level_cp) ||
+      !constant_is(level_cp, ck_integer)) {
+    do_constexpr_fail(*p_result);
+  } else {
+    level = value_of_integer_constant(level_cp, &ovflo);
+  }  /* if */
+  release_local_constant(&level_cp);
+  if (!*p_result) goto done;
+  if (ovflo || level < 0 ||
+      level > CONSTEXPR_DIAG_AT_CALLER + CONSTEXPR_DIAG_ERROR ||
+      (level & CONSTEXPR_DIAG_LEVEL_MASK) > CONSTEXPR_DIAG_ERROR) {
+    info_with_pos(ec_constexpr_diag_bad_level, pos, ips);
+    do_constexpr_fail(*p_result);
+    goto done;
+  }  /* if */
+  if (!get_constexpr_diag_string(ips, args->next, &tag, &tag_len) ||
+      !get_constexpr_diag_string(ips, args->next->next, &text, &text_len)) {
+    do_constexpr_fail(*p_result);
+    goto done;
+  }  /* if */
+  if (!constexpr_diag_tag_is_valid(tag, tag_len)) {
+    info_with_pos(ec_constexpr_diag_bad_tag, &args->next->position, ips);
+    do_constexpr_fail(*p_result);
+    goto done;
+  }  /* if */
+  if ((level & CONSTEXPR_DIAG_AT_CALLER) != 0) {
+    a_call_frame_ptr  frame = note_frame;
+    /* Skip frames that do not correspond to an actual call (which is what a
+       GNU statement expression produces). */
+    for (; frame != NULL && frame->routine == NULL; frame = frame->parent) {
+    }  /* for */
+    if (frame != NULL) {
+      /* The call being reported at need not also be noted as the innermost
+         call the diagnostic came through. */
+      pos = frame->variant.position;
+      note_frame = frame->parent;
+    }  /* if */
+  }  /* if */
+  switch (level & CONSTEXPR_DIAG_LEVEL_MASK) {
+    case CONSTEXPR_DIAG_REMARK:
+      severity = es_remark;
+      break;
+    case CONSTEXPR_DIAG_WARNING:
+      severity = es_warning;
+      break;
+    default:
+      severity = es_error;
+      break;
+  }  /* switch */
+  /* A --constexpr_diag_* option naming this tag asks for a severity of its
+     own, and may ask that nothing be produced at all. */
+  severity = severity_for_constexpr_diag_tag(tag, tag_len, severity);
+  if (severity == es_none) goto done;
+  switch (severity) {
+    case es_remark:
+      err_code = ec_interpreter_message_remark;
+      break;
+    case es_warning:
+      err_code = ec_interpreter_message_warning;
+      break;
+    default:
+      err_code = ec_interpreter_message_error;
+      break;
+  }  /* switch */
+  /* Assemble the text to be reported, followed by the tag (if any) in
+     brackets.  As for other text supplied by the program being translated,
+     characters outside the basic source character set are not shown. */
+  ensure_temp_text_buffer_space(text_len + tag_len + 4);
+  for (k = 0; k < text_len; ++k) {
+    temp_text_buffer[k] = (text[k] == '\0' ||
+                           is_nonstandard_character(text[k])) ? '?' : text[k];
+  }  /* for */
+  pos_in_buffer = text_len;
+  if (tag_len != 0) {
+    temp_text_buffer[pos_in_buffer++] = ' ';
+    temp_text_buffer[pos_in_buffer++] = '[';
+    for (k = 0; k < tag_len; ++k) {
+      temp_text_buffer[pos_in_buffer++] = tag[k];
+    }  /* for */
+    temp_text_buffer[pos_in_buffer++] = ']';
+  }  /* if */
+  temp_text_buffer[pos_in_buffer] = '\0';
+  clear_diag_list(&diag_list);
+  info_call_stack(note_frame, &diag_list);
+  dp = pos_start_diagnostic(severity, err_code, pos,
+                            error_text(ec_interpreter_message_prefix),
+                            temp_text_buffer);
+  add_more_info_list(dp, &diag_list);
+  end_diagnostic(dp);
+done:;
+}  /* do_constexpr_builtin_diag */
+
+
 static a_boolean do_constexpr_builtin_function(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -10904,6 +11122,10 @@ to FALSE and the reason for the failure is recorded in *ips.
           ips->suspend_diag_list = saved_suspend_diag_list;
         }  /* if */
       }  /* if */
+      break;
+    case bfk_constexpr_diag:
+      interpreted = TRUE;
+      do_constexpr_builtin_diag(ips, call_node, p_result);
       break;
     case bfk_is_string_literal:
       {
@@ -20154,10 +20376,13 @@ static a_boolean get_string_from_string_view(
 *cp is a std::string_view value produced by the current interpreter invocation
 (whose state is tracked by ips).  Return the string it represents via *p_string
 (a pointer to an array of characters) and *p_len (the length of the view).
+The view must denote characters of a single byte each (as std::string_view and
+std::u8string_view do) that lie within one string literal.
 */
 {
-  a_boolean   result = TRUE, ovflo = FALSE;
-  a_constant  *length_cp, *str_cp;
+  a_boolean         result = TRUE, ovflo = FALSE;
+  a_constant        *length_cp, *str_cp;
+  a_targ_ptrdiff_t  offset;
 
   /* FIXME: Currently, this code assumes the string_view is represented as a
      pointer and a length.  Adjust it to also handle two pointers. */
@@ -20176,18 +20401,25 @@ static a_boolean get_string_from_string_view(
     do_constexpr_fail(result);
     goto done;
   } else {
+    /* A view need not start at the beginning of the literal it addresses,
+       e.g., when it was produced by std::string_view::substr. */
+    offset = str_cp->variant.address.offset;
     str_cp = str_cp->variant.address.variant.constant;
   }  /* if */
-  if (!constant_is(str_cp, ck_string)) {
+  if (!constant_is(str_cp, ck_string) ||
+      character_size[str_cp->character_kind] != 1 ||
+      offset < 0 ||
+      (a_targ_size_t)offset > str_cp->variant.string.length) {
     do_constexpr_fail(result);
     goto done;
   }  /* if */
-  *p_string = str_cp->variant.string.value;
   *p_len = (a_targ_size_t)value_of_integer_constant(length_cp, &ovflo);
-   if (ovflo) {
+  if (ovflo ||
+      *p_len > str_cp->variant.string.length - (a_targ_size_t)offset) {
     do_constexpr_fail(result);
     goto done;
   }  /* if */
+  *p_string = str_cp->variant.string.value + offset;
 done:
   return result;
 }  /* get_string_from_string_view */

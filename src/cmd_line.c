@@ -27,6 +27,7 @@ cmd_line.c -- Command-line parsing.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "interpret.h"
 #include "macro.h"
 #include "pch.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -53,6 +54,31 @@ STATIC_THREAD a_def_undef_string_ptr
 		last_defs_from_cmd_line;
 			/* Points to the last element in the list
 			   defs_from_cmd_line. */
+
+/*
+Structure used to build a list of the severities requested for the
+diagnostics that calls of __builtin_constexpr_diag produce with a given tag.
+*/
+typedef struct a_constexpr_diag_tag *a_constexpr_diag_tag_ptr;
+struct a_constexpr_diag_tag {
+  a_constexpr_diag_tag_ptr
+		next;	/* Pointer to the next entry in a linked list of
+			   requested severities. */
+  a_const_char	*tag;
+			/* The tag to which this entry applies. */
+  an_error_severity
+		severity;
+			/* The severity to be used for a diagnostic carrying
+			   this tag, or es_none to suppress it. */
+};
+
+STATIC_THREAD a_constexpr_diag_tag_ptr
+		constexpr_diag_tags,
+			/* Points to the list of the severities requested by
+			   --constexpr_diag_* options. */
+		last_constexpr_diag_tag;
+			/* Points to the last element in the list
+			   constexpr_diag_tags. */
 
 /*
 Structure used to map keyword and/or letter options into the
@@ -435,6 +461,22 @@ Initialize the option information table.
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
   add_option_description(optk_diag_once, "diag_once", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_constexpr_diag_suppress,
+                         "constexpr_diag_suppress", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_constexpr_diag_remark,
+                         "constexpr_diag_remark", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_constexpr_diag_warning,
+                         "constexpr_diag_warning", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_constexpr_diag_error,
+                         "constexpr_diag_error", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
   add_option_description(optk_display_error_number, "display_error_number",
@@ -2282,6 +2324,85 @@ processing routine to update the severity.
     ptr = opt_end + 1;
   }  /* for */
 }  /* process_diag_override_option */
+
+
+static void process_constexpr_diag_override_option(an_option_kind  kind,
+                                                   a_const_char    *arg)
+/*
+Process one of the --constexpr_diag_* options, indicated by kind, whose
+argument arg is a comma separated list of the tags whose diagnostics are to
+get the severity that kind requests.  Record the tags for
+severity_for_constexpr_diag_tag, complaining about any of them that no call
+of __builtin_constexpr_diag could supply.
+*/
+{
+  an_error_severity  severity = es_none;
+  char               *copy, *ptr;
+
+  switch (kind) {
+    case optk_constexpr_diag_suppress: severity = es_none;    break;
+    case optk_constexpr_diag_remark:   severity = es_remark;  break;
+    case optk_constexpr_diag_warning:  severity = es_warning; break;
+    case optk_constexpr_diag_error:    severity = es_error;   break;
+    default: unexpected_condition();
+  }  /* switch */
+  /* Make a copy of the option argument in which each comma is replaced by a
+     null character, so that every tag becomes a string of its own.  The
+     entries recorded below point into this copy, which is therefore kept. */
+  copy = (char *)alloc_general((sizeof_t)(strlen(arg) + 1));
+  (void)strcpy(copy, arg);
+  ptr = copy;
+  while (ptr != NULL) {
+    char                      *comma = strchr(ptr, ',');
+    a_constexpr_diag_tag_ptr  cdtp;
+
+    if (comma != NULL) *comma++ = '\0';
+    if (*ptr == '\0' ||
+        !constexpr_diag_tag_is_valid(ptr, (a_targ_size_t)strlen(ptr))) {
+      /* Note that this routine does not return. */
+      str_command_line_error(ec_cl_invalid_constexpr_diag_tag, ptr);
+    }  /* if */
+    cdtp = alloc_general_of_type(a_constexpr_diag_tag);
+    cdtp->next = NULL;
+    cdtp->tag = ptr;
+    cdtp->severity = severity;
+    /* Keep the entries in command-line order, which is the order in which
+       severity_for_constexpr_diag_tag expects to find them. */
+    if (constexpr_diag_tags == NULL) {
+      constexpr_diag_tags = cdtp;
+    } else {
+      last_constexpr_diag_tag->next = cdtp;
+    }  /* if */
+    last_constexpr_diag_tag = cdtp;
+    ptr = comma;
+  }  /* while */
+}  /* process_constexpr_diag_override_option */
+
+
+an_error_severity severity_for_constexpr_diag_tag(
+                                              a_const_char       *tag,
+                                              a_targ_size_t      tag_len,
+                                              an_error_severity  severity)
+/*
+tag, whose length is tag_len, is the tag supplied by a call of
+__builtin_constexpr_diag that asks for a diagnostic of the given severity.
+Return the severity that should actually be used, which is es_none when the
+diagnostic is to be suppressed.  A --constexpr_diag_* option naming the tag
+decides it; when several do, the last one on the command line wins.  The
+severity that was asked for is returned when no option applies.
+*/
+{
+  an_error_severity         result = severity;
+  a_constexpr_diag_tag_ptr  cdtp;
+
+  for (cdtp = constexpr_diag_tags; cdtp != NULL; cdtp = cdtp->next) {
+    if (strncmp(cdtp->tag, tag, size_t_arg(tag_len)) == 0 &&
+        cdtp->tag[tag_len] == '\0') {
+      result = cdtp->severity;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* severity_for_constexpr_diag_tag */
 
 
 static void process_preinclude_option(an_option_kind	kind,
@@ -10950,6 +11071,15 @@ Process the arguments on the command line that invoked the compiler.
            option argument contains a comma separated list of error tags. */
         process_diag_override_option(kind, opt_arg);
         break;
+      case optk_constexpr_diag_suppress:
+      case optk_constexpr_diag_remark:
+      case optk_constexpr_diag_warning:
+      case optk_constexpr_diag_error:
+        /* Options that override the severity of the diagnostics that calls
+           of __builtin_constexpr_diag produce with a given tag.  The option
+           argument contains a comma separated list of tags. */
+        process_constexpr_diag_override_option(kind, opt_arg);
+        break;
       case optk_display_error_number:
         /* Enable or disable display of error number in diagnostic messages. */
         display_error_number = opt_value;
@@ -13066,6 +13196,8 @@ variables declared in cmd_line.h.
   option_descriptions_used = 0;
   opt_ind = 1;
   last_defs_from_cmd_line = NULL;
+  constexpr_diag_tags = NULL;
+  last_constexpr_diag_tag = NULL;
   optchar = NULL;
   memzero((a_void_ptr)option_kind_used, sizeof(option_kind_used));
   old_style_preprocessing = FALSE;

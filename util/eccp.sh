@@ -912,6 +912,10 @@ check_abbreviation()
 --compound_literals
 --concepts
 --const_string_literals
+--constexpr_diag_error
+--constexpr_diag_remark
+--constexpr_diag_suppress
+--constexpr_diag_warning
 --context_limit
 --cpfe_only
 --cppcli
@@ -2017,6 +2021,10 @@ process_option()
          --diag_warning | \
          --diag_error | \
          --diag_once | \
+         --constexpr_diag_suppress | \
+         --constexpr_diag_remark | \
+         --constexpr_diag_warning | \
+         --constexpr_diag_error | \
          --embed_directory | \
          --header_unit | \
          --inline_statement_limit | \
@@ -2145,6 +2153,10 @@ process_option()
           --diag_warning=* | \
           --diag_error=* | \
           --diag_once=* | \
+          --constexpr_diag_suppress=* | \
+          --constexpr_diag_remark=* | \
+          --constexpr_diag_warning=* | \
+          --constexpr_diag_error=* | \
           --header_unit=* | \
           --inline_statement_limit=* | \
           --max_cost_constexpr_call=* | \

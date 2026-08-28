@@ -105,6 +105,10 @@ enum an_option_kind {
   optk_diag_warning,
   optk_diag_error,
   optk_diag_once,
+  optk_constexpr_diag_suppress,
+  optk_constexpr_diag_remark,
+  optk_constexpr_diag_warning,
+  optk_constexpr_diag_error,
   optk_display_error_number,
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   optk_gen_c_file_name,
@@ -3040,6 +3044,11 @@ extern void add_to_def_undef_list(a_const_char           *str,
                                   a_def_undef_string_ptr *du_list,
                                   a_def_undef_string_ptr *du_list_end,
                                   a_boolean              is_undef);
+
+extern an_error_severity severity_for_constexpr_diag_tag(
+                                            a_const_char       *tag,
+                                            a_targ_size_t      tag_len,
+                                            an_error_severity  severity);
 
 #if MAKE_FRONT_END_CALLABLE
 extern void cmd_line_cleanup(void);
