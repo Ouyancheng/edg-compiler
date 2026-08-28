@@ -10823,6 +10823,7 @@ example a "const char a[] = ..." array, is not a string literal.
         a_byte_count  elem_bytes = value_bytes_for_type(
                                     ips, stp->variant.array.element_type,
                                     &okay);
+        check_assertion(elem_bytes != 0);
         result = okay &&
                  (a_byte_count)(cap->address - object) / elem_bytes <
                                                 (a_byte_count)cap->length;
