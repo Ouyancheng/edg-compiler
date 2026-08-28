@@ -1,5 +1,14 @@
 Version 6.10
 
+8/28/26  [EDGcpfe/26323,EDGcpfe/29024]
+Clang compatibility: two argument form of "deprecated" attribute
+
+The front end now accepts the two-argument form of the "deprecated" attribute
+in Clang emulation modes.  For example, with --clang:
+
+  void f(void) __attribute__((deprecated("message", "replacement")));
+
+
 8/27/26  [EDGcpfe/29026]
 GNU compatibility: __builtin_constexpr_diag
 

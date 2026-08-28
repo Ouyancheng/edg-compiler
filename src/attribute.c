@@ -296,6 +296,7 @@ static constexpr an_attr_descr known_attr_table[] = {
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "deprecated", "?(sx)", "gx(30100-)", ak_deprecated },
   { "deprecated", "?(sx)", "lx[gnu](60000-)", ak_deprecated },
+  { "deprecated", "?(sx+)", "lx", ak_deprecated },
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { "destructor", "?(ci)", "gx", ak_destructor },
 #else /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -5377,12 +5378,11 @@ the "unavailable" error will trump the "deprecated" warning).
     if (ap->arguments != NULL) {
       an_attribute_arg_ptr  aap = ap->arguments;
       a_constant_ptr        cp;
-      check_assertion(aap->next == NULL &&
-                      aap->kind == (an_attribute_arg_kind)aak_constant);
+      check_assertion(aap->kind == aak_constant);
       cp = aap->variant.constant;
-      check_assertion(cp->kind == (a_constant_repr_kind)ck_string);
-      check_assertion(
-               cp->variant.string.value[cp->variant.string.length-1] == '\0');
+      check_assertion(cp->kind == ck_string &&
+                      cp->variant.string.value[cp->variant.string.length-1] ==
+                                                                         '\0');
       if ((ap->family == af_ms_declspec &&
            microsoft_mode && microsoft_version < 1400) ||
           (ap->family == af_gnu &&
@@ -5394,6 +5394,17 @@ the "unavailable" error will trump the "deprecated" warning).
         /* Issue any diagnostics associated with the string literal, if
            needed. */
         check_for_previous_string_literal(ap->kind, scp, cp, &aap->position);
+      }  /* if */
+      if (aap->next != NULL) {
+        /* Clang allows for two strings in their deprecated attribute (a
+           "message" and a "replacement").  A redeclaration with different
+           strings isn't flagged by Clang (and is not checked here). */
+        aap = aap->next;
+        check_assertion(aap->kind == aak_constant);
+        cp = aap->variant.constant;
+        check_assertion(cp->kind == ck_string &&
+                        cp->variant.string.value[cp->variant.string.length-1]
+                                                                      == '\0');
       }  /* if */
     }  /* if */
     if (scp != NULL && ap->kind != ak_unrecognized) {
