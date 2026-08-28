@@ -2344,7 +2344,7 @@ of __builtin_constexpr_diag could supply.
     case optk_constexpr_diag_remark:   severity = es_remark;  break;
     case optk_constexpr_diag_warning:  severity = es_warning; break;
     case optk_constexpr_diag_error:    severity = es_error;   break;
-    default_is_unexpected();
+    default: unexpected_condition();
   }  /* switch */
   /* Make a copy of the option argument in which each comma is replaced by a
      null character, so that every tag becomes a string of its own.  The
