@@ -41304,8 +41304,7 @@ type_identifier_case:
                outside default argument expressions and even then only in 
                  (a) an unevaluated context (like decltype(p)),
                  (b) a requirement (N5046 [expr.prim.req]), or
-                 (c) the dimension of a VLA parameter.
-               */
+                 (c) the dimension of a VLA parameter. */
             error_and_make_error_operand(ec_param_not_allowed, result);
             change_refs_to_error(rep);
             rep = NULL;
