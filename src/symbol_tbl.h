@@ -5439,8 +5439,10 @@ EXTERN_THREAD a_symbol_ptr
 /*
 Enumerates the cli_symbols array.  The array is apportioned as follows:
 
-1) The first section is indexable by the an_integer_kind enumeration and
-   should contain the corresponding C++/CLI type for each integer kind.
+1) The first section is indexable by the an_integer_kind enumerators from
+   ik_char through ik_unsigned_long_long and contains the corresponding
+   C++/CLI type for each of those kinds.  Later integer kinds (__int128,
+   _BitInt) have no corresponding CLI type.
 2) The second section is indexable by the a_float_kind enumeration and
    should contain the corresponding C++/CLI type for each float kind.
 3) The remainder of the array is for other well-known C++/CLI types
@@ -5790,14 +5792,23 @@ EXTERN_CONSTINIT_ARRAY_END(cli_symbol_names)
 #define cli_symbol_is_required(csk)                                          \
   ((cli_symbol_names[(int)(csk)].init_flags & CISF_OPTIONAL) == 0)
 
+inline a_cli_symbol_kind integer_kind_to_cli_symbol_kind(an_integer_kind  ik)
 /*
-The following macros convert an_integer_kind/a_float_kind respectively into
-an index suitable for use in indexing the cli_symbols or cli_symbol_names
-arrays.
+Return the CLI symbol kind corresponding to the integer kind ik, or csk_none
+if there is no corresponding C++/CLI type.  Only the kinds from ik_char
+through ik_unsigned_long_long have System counterparts.
 */
-#define integer_kind_to_cli_symbol_kind(ik)                           \
-  ((a_cli_symbol_kind)((int)csk_first_integer + (int)(ik)))
-inline a_cli_symbol_kind float_kind_to_cli_symbol_kind(a_float_kind fk)
+{
+  a_cli_symbol_kind csk = csk_none;
+
+  if ((int)ik <= (int)ik_unsigned_long_long) {
+    csk = (a_cli_symbol_kind)((int)csk_first_integer + (int)ik);
+  }  /* if */
+  return csk;
+}  /* integer_kind_to_cli_symbol_kind */
+
+
+inline a_cli_symbol_kind float_kind_to_cli_symbol_kind(a_float_kind  fk)
 /*
 Return the CLI symbol kind corresponding to the float kind fk.
 */

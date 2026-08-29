@@ -9432,12 +9432,12 @@ Many of these symbols will be accessible through the cli_symbols array.
   int  csk;
 
 #if CHECKING
-  /* Check that the a_cli_symbol_kind enumeration is correctly defined. */
+  /* The CLI integer kinds must span ik_char through ik_unsigned_long_long.
+     Later integer kinds (__int128, _BitInt) have no CLI counterpart. */
   /*lint -e{506,1564}*/
   if ((int)csk_last_integer - (int)csk_first_integer !=
                                                  (int)ik_unsigned_long_long) {
-    internal_error(
-         "init_cli_symbols: incorrect a_cli_symbol_kind");
+    internal_error("init_cli_symbols: incorrect a_cli_symbol_kind");
   }  /* if */
 #endif /* CHECKING */
   /* Initialize the symbols in the cli_symbols array. */

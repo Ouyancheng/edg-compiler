@@ -1,5 +1,21 @@
 Version 6.10
 
+8/28/26  [EDGcpfe/29022]
+C++/CLI: Incorrect mapping of certain integer types to System:: types
+
+integer_kind_to_cli_symbol_kind converted an_integer_kind values to
+a_cli_symbol_kind by unchecked offset arithmetic.  That only matches
+ik_char through ik_unsigned_long_long.  Later kinds (__int128, _BitInt)
+landed on unrelated CLI types (System::Single, System::Double,
+System::Boolean).  For example, with --cppcli --bit_precise_integers:
+
+  typedef _BitInt(24) i24;
+  int f() { return i24::MaxValue; }
+      // Previously accepted as System::Double::MaxValue.
+
+That is now fixed.
+
+
 8/28/26  [EDGcpfe/24003,EDGcpfe/26323,EDGcpfe/29024]
 Clang compatibility: two argument form of "deprecated" attribute
 
