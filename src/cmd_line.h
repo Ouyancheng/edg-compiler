@@ -711,7 +711,9 @@ EXTERN_THREAD a_boolean
 			   parameter of the function being compiled, can be
 			   used in a constant expression as long as the
 			   evaluation does not depend on the object it is
-			   bound to (a C++23 feature). */
+			   bound to.  This was adopted for C++23 as a defect
+			   report, and so applies to every standard that has
+			   constexpr. */
 
 EXTERN_THREAD a_boolean
 		constexpr_virtual_enabled;

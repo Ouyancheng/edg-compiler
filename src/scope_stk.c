@@ -2702,9 +2702,30 @@ function that is not a member function of a local class.
        any.  If there is no enclosing function, then assoc_routine is a
        top-level routine. */
     a_scope_ptr	scope = get_parent_scope_of(parent_class);
-    while (scope != NULL && !scope_is(scope, sck_function) &&
-           is_local_scope_kind(scope->kind)) {
-      scope = scope->parent;
+    /* Enclosing class scopes are traversed as well as block scopes, because
+       the parent class can itself be a member of a class that is local to a
+       function, as in
+         void f() { struct L { struct M { void m() {} }; }; }
+       and, less obviously, for the closure class of a lambda that appears in
+       the declarator of another lambda, as in
+         short f() {
+           const int k = 0;
+           return []() -> B<[k]{ return k; }()>::C { return 29; }();
+         }
+       where the closure class of the inner lambda is a member of the closure
+       class of the outer one.  The IL of a routine in such a class can refer
+       to the entities of the enclosing function, and therefore must be
+       allocated in the memory region of that function.  The parent pointer of
+       a class scope is not set, so the parent scope of such a scope must be
+       obtained through get_parent_scope_of. */
+    while (scope != NULL && !scope_is(scope, sck_function)) {
+      if (scope_is(scope, sck_class_struct_union)) {
+        scope = get_parent_scope_of(scope->variant.assoc_type);
+      } else if (is_local_scope_kind(scope->kind)) {
+        scope = scope->parent;
+      } else {
+        break;
+      }  /* if */
     }  /* while */
     if (scope != NULL && scope_is(scope, sck_function)) {
       a_function_def_number	number;

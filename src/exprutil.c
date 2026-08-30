@@ -6325,6 +6325,18 @@ the current context.
         (core_constant_expr_is_noexcept || gpp_version_is(<90000))))) {
     fold = TRUE;
   }  /* if */
+  if (fold && innermost_function_scope != NULL) {
+    a_routine_ptr  curr_rp = current_routine_entry();
+    if (curr_rp->has_deducible_return_type &&
+        !curr_rp->has_deduced_return_type) {
+      /* Speculative folding of a constexpr call instantiates the callee.
+         That must not happen while this function's return type is still
+         being deduced: a recursive call (for example a generic lambda
+         invoked from a decltype(auto) member) would then diagnose the
+         incomplete function. */
+      fold = FALSE;
+    }  /* if */
+  }  /* if */
   return fold;
 }  /* constexpr_call_folding_should_be_done */
 
@@ -22760,6 +22772,20 @@ lvalue_adjust:
        -- If processed is TRUE (and the above do not apply), node will have
           been set to the prvalue version of the expression.
   */
+  if (con_expr_value != NULL && expr_has_reused_value_init(node)) {
+    /* The expression initializes a temporary whose value is reused elsewhere
+       in the enclosing expression.  Using the constant value in place of the
+       expression would leave those reuses without a value, as in
+         struct E { bool operator==(E) const; bool operator<(E) const; };
+         struct S {
+           E e;
+           std::strong_ordering operator<=>(const S &) const = default;
+         };
+       where the two comparisons of the synthesized member comparison share
+       the address of the member and the second operand of the "==" folds to
+       the value of the empty class E.  Keep the expression instead. */
+    con_expr_value = NULL;
+  }  /* if */
   if (con_expr_value != NULL) {
     /* The expression is constant-valued. */
     if (node != NULL &&

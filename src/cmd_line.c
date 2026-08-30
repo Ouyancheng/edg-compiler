@@ -4436,7 +4436,6 @@ default mode (e.g., exception handling).
     if (relaxed_constexpr_enabled) {
       local_static_constexpr_enabled = TRUE;
     }  /* if */
-    reference_to_unknown_object_allowed = TRUE;
     static_call_operator_enabled = TRUE;
     auto_cast_enabled = TRUE;
     inheriting_ctor_ctad_enabled = TRUE;
@@ -12603,6 +12602,12 @@ enable_microsoft_mode:
       }  /* if */
       bool_is_keyword = TRUE;
     }  /* if */
+  }  /* if */
+  if (constexpr_enabled) {
+    /* The relaxation that lets a reference with an unknown referent be used
+       in a constant expression (C++ paper P2280R4) was adopted for C++23 as
+       a defect report, and so applies to every standard that has constexpr. */
+    reference_to_unknown_object_allowed = TRUE;
   }  /* if */
   if (!noexcept_enabled && implicit_noexcept_enabled) {
     /* --implicit_noexcept cannot be specified in modes that don't permit

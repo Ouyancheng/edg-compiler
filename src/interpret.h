@@ -41,6 +41,8 @@ a_boolean interpret_bool_assertion(an_expr_node_ptr  expr,
                                    a_constant_ptr    result_con,
                                    a_diag_list_ptr   diag_list);
 
+a_boolean address_con_is_unknown_object(a_constant_ptr  con);
+
 a_boolean interpret_expr(an_expr_node_ptr  expr,
                          a_boolean         is_constant_evaluated,
                          a_boolean         force_prvalue,

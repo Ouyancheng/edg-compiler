@@ -5699,6 +5699,70 @@ is attempted.
 }  /* make_runtime_data_address */
 
 
+a_boolean address_con_is_unknown_object(a_constant_ptr  con)
+/*
+Return TRUE if con is an address constant that designates the unspecified
+object bound to a reference or a "this" pointer whose value the interpreter
+does not have.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (constant_is(con, ck_address)) {
+    if (address_base_is(con, abk_variable)) {
+      a_variable_ptr  var = con->variant.address.variant.variable;
+      result = is_any_reference_type(var->type) || var->is_this_parameter;
+    } else if (address_base_is(con, abk_param_ref)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* address_con_is_unknown_object */
+
+
+static a_boolean is_unknown_object_address(a_constexpr_address const  *cap)
+/*
+Return TRUE if the address described by cap designates the unspecified object
+that a reference, or a "this" pointer, whose value the interpreter does not
+have is taken to be bound to (see make_runtime_data_address).  Such an object
+has no identity and no dynamic type as far as the evaluation is concerned, so
+operations that depend on either of those cannot be part of a constant
+expression.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_runtime_data_address(cap)) {
+    result = address_con_is_unknown_object(cap->variant.addr_con);
+  }  /* if */
+  return result;
+}  /* is_unknown_object_address */
+
+
+static a_boolean unknown_object_is_mapped(an_interpreter_state  *ips,
+                                          a_constant_ptr        con)
+/*
+Return TRUE if con designates a P2280 unknown object that nonetheless has
+an interpreter binding: the this parameter or reference is mapped in
+ips->map, or a constructor frame provides *this.
+*/
+{
+  a_boolean  result = FALSE;
+  a_byte     *bytes = NULL;
+
+  if (constant_is(con, ck_address)) {
+    if (address_base_is(con, abk_variable)) {
+      get_stack_bytes(ips, con->variant.address.variant.variable, bytes);
+      result = bytes != NULL;
+    } else if (address_base_is(con, abk_param_ref)) {
+      get_stack_bytes(ips, &ips->curr_call_frame, bytes);
+      result = bytes != NULL;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* unknown_object_is_mapped */
+
+
 static a_boolean extract_value_from_constant(
                                an_interpreter_state       *ips,
                                a_constant_ptr             con,
@@ -5725,6 +5789,9 @@ by implied_src.
       goto done;
     } else if (con->expr != NULL && !con->is_reinterpret_like_cast &&
                !con->is_result_of_constexpr_call &&
+               !(reference_to_unknown_object_allowed &&
+                 address_con_is_unknown_object(con) &&
+                 !unknown_object_is_mapped(ips, con)) &&
                !(constant_is(con, ck_integer) ||
                  (constant_is(con, ck_address) &&
                   con->variant.address.kind == abk_temporary))) {
@@ -5736,7 +5803,9 @@ by implied_src.
          should generally be treated as run-time address constants if they
          refer to a mutable temporary: Evaluating the underlying enk_temp_init
          node would make the storage subject to mutation during this evaluation
-         and that is not permitted. */
+         and that is not permitted.  Skip backing-expr evaluation for a P2280
+         placeholder only when that this/reference has no interpreter
+         binding. */
       if (!do_constexpr_expr(ips, con->expr, result_cap)) {
         result = FALSE;
       }  /* if */
@@ -21787,6 +21856,17 @@ update *ips accordingly.
         }  /* if */
       }  /* if */
     }  /* if */
+    if (is_member_call && !callee->defined) {
+      a_constexpr_address  *this_addr =
+                      (a_constexpr_address*)*(a_byte**)arg_ptrs;
+      if (is_unknown_object_address(this_addr)) {
+        /* Instantiating a member function on a P2280 placeholder this
+           can evaluate concept static_asserts in the callee.  If the
+           function is already defined, the call may still be interpreted. */
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+    }  /* if */
     if (special_kind_is(callee, sfk_operator) &&
         callee->variant.opname_kind == onk_assign) {
       /* An assignment operator may change the active field in a union. */
@@ -24421,14 +24501,22 @@ static a_type_ptr address_con_complete_object_type(a_constant_ptr  addr_con)
 /*
 Return the type of the complete object on which the given address constant is
 based, or NULL if such an object is not unambiguously defined (e.g., if it's
-the address of a routine).
+the address of a routine, or a constexpr-unknown reference or "this"
+pointer whose dynamic type is not known).
 */
 {
   a_type_ptr  type;
 
   switch (addr_con->variant.address.kind) {
     case abk_variable:
-      type = addr_con->variant.address.variant.variable->type;
+      { a_variable_ptr  vp = addr_con->variant.address.variant.variable;
+        if (is_any_reference_type(vp->type) || vp->is_this_parameter) {
+          /* The designated object is constexpr-unknown. */
+          type = NULL;
+        } else {
+          type = vp->type;
+        }  /* if */
+      }
       break;
     case abk_constant:
     case abk_temporary:
@@ -24477,9 +24565,12 @@ given complete object).
            path ignoring base-class casts (since we want the most-derived
            object address).  If that doesn't produce a type (because there is
            no path or the path only consists of base class casts), determine
-           the type of the complete object. */
+           the type of the complete object.  The unspecified object bound to a
+           reference whose value is not known has no dynamic type, and so no
+           result can be produced for it. */
         a_constant_ptr  addr_con = opnd_addr->variant.addr_con;
-        if (constant_is(addr_con, ck_address)) {
+        if (constant_is(addr_con, ck_address) &&
+            !is_unknown_object_address(opnd_addr)) {
           a_subobject_path_ptr  path;
           path = addr_con->variant.address.subobject_path;
           for (; path != NULL; path = path->next) {
@@ -24629,6 +24720,14 @@ represented by an entry of type a_constant (ck_address or ck_integer).
     }  /* if */
     if (type_is(tp, tk_pointer)) {
       tp = skip_typerefs(tp->variant.pointer.type);
+    }  /* if */
+    if (is_unknown_object_address(opnd_addr)) {
+      /* The dynamic type of the unspecified object bound to a reference whose
+         value is not known cannot be determined. */
+      info_with_pos(ec_constexpr_access_to_runtime_storage, &expr->position,
+                    ips);
+      do_constexpr_fail(result);
+      goto done;
     }  /* if */
     if (same_entities(tp, opnd_type)) {
       /* The type is already as requested. */
@@ -27753,7 +27852,9 @@ the value representation of the integer value.
                          diff_con, &did_not_fold, &err_code, &sev);
                 if (did_not_fold) {
                   do_constexpr_fail(result);
-                  info_with_pos(err_code, &expr->position, ips);
+                  info_with_pos(err_code == ec_no_error ?
+                                           ec_constexpr_invalid_pdiff :
+                                           err_code, &expr->position, ips);
                 } else {
                   result = extract_value_from_constant(ips, diff_con,
                                                        result_cap);
@@ -30760,11 +30861,13 @@ the value representation of the integer value.
               rvp->entity.ptr = (char*)NULL;
               rvp->local_scope_number = FILE_SCOPE_NUMBER;
             } else if (reference_to_unknown_object_allowed &&
+                       ips->curr_call_frame == NULL &&
                        (is_any_reference_type(var->type) ||
                         var->is_this_parameter)) {
               /* The object this reference, or this pointer, is bound to is not
                  known here, as for a reference parameter of the function being
-                 compiled.  The reference itself may still be used, as in
+                 compiled (no interpreter call frame maps it).  The reference
+                 itself may still be used, as in
                    constexpr int f(int (&a)[3]) { return std::size(a); }
                  so an address of run-time data is produced for it; that stands
                  for the unknown object and is diagnosed if the evaluation goes
@@ -31041,7 +31144,8 @@ the value representation of the integer value.
       break;
     case enk_param_ref:
       /* A reference to a parameter or "this" outside a function body. */
-      { a_byte  *param_table_bytes = NULL;
+      { a_byte     *param_table_bytes = NULL;
+        a_boolean  produce_unknown = FALSE;
         if (ips->curr_call_frame == NULL) {
           /* If no call is active, this may be a parameter value for a Clang
              enable_if attribute operand.  If so, &ips->constants is mapped to
@@ -31087,6 +31191,12 @@ the value representation of the integer value.
             } else {
               mark_subobject_initialized(result_storage, complete_object);
             }  /* if */
+          } else if (reference_to_unknown_object_allowed &&
+                     ips->curr_call_frame == NULL) {
+            /* P2280R4: "this" in a member-function constant expression
+               (for example, a noexcept specifier) when no constructor
+               call is being interpreted and this is not mapped. */
+            produce_unknown = TRUE;
           } else {
             do_constexpr_fail(result);
             info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
@@ -31103,6 +31213,13 @@ the value representation of the integer value.
              a requires-expression, as in
                requires (R &r) { typename int[std::size(r) >= 0 ? 1 : 2]; }
              where nothing about the object bound to r is needed. */
+          produce_unknown = TRUE;
+        } else {
+          do_constexpr_fail(result);
+          info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                        &expr->position, ips);
+        }  /* if */
+        if (produce_unknown) {
           a_constant  *cp = local_constant();
           clear_constant(cp, ck_address);
           cp->next = ips->constants;
@@ -31113,10 +31230,6 @@ the value representation of the integer value.
                                             expr->variant.param_ref.param_num;
           cp->type = make_reference_type(tp);
           clear_runtime_constant_address(result_storage, cp);
-        } else {
-          do_constexpr_fail(result);
-          info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                        &expr->position, ips);
         }  /* if */
       }
       break;
@@ -31416,6 +31529,13 @@ subobject path.
             type = skip_typerefs(type->variant.vector.element_type);
           }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+          if (type_is(type, tk_complex)) {
+            /* __real/__imag lvalues address a component of the complex
+               object; treat it as an array of two floating elements. */
+            type = float_type(type->variant.float_kind);
+          }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           elem_size = value_bytes_for_type(ips, type, &okay);
           check_assertion(okay && elem_size != 0);
           pos = i_offset/elem_size;
@@ -31561,7 +31681,10 @@ diagnostic in *ips.
           a_constant_ptr  rt_con = cap->variant.addr_con;
           a_boolean       dllimport_address = FALSE;
           /* Catch the case of a pointer or reference to a variable that is
-             not constant-valued. */
+             not constant-valued.  Under P2280R4 a constexpr reference may
+             still be bound to the unspecified object designated by a
+             reference whose value is not known, but the address of that
+             object is not itself a constant (its identity is unknown). */
           if (constant_is(rt_con, ck_address)) {
             an_address_base_kind  abk = rt_con->variant.address.kind;
             if (abk == abk_variable) {
@@ -31569,10 +31692,13 @@ diagnostic in *ips.
 #if MICROSOFT_EXTENSIONS_ALLOWED
               dllimport_address = !!(vp->decl_modifiers & DM_DLLIMPORT);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-              if (!variable_has_constant_address(vp) && !dllimport_address &&
-                  !(cpp26_mode && ips->is_constant_evaluated &&
-                    type->variant.pointer.is_reference &&
-                    is_addressable_auto_var(vp))) {
+              if ((is_unknown_object_address(cap) &&
+                   !(reference_to_unknown_object_allowed &&
+                     type->variant.pointer.is_reference)) ||
+                  (!variable_has_constant_address(vp) && !dllimport_address &&
+                   !(cpp26_mode && ips->is_constant_evaluated &&
+                     type->variant.pointer.is_reference &&
+                     is_addressable_auto_var(vp)))) {
                 a_symbol_ptr  var_sym = symbol_for(vp);
                 do_constexpr_fail(result);
                 if (var_sym == NULL) {

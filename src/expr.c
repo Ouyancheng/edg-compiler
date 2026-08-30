@@ -39318,10 +39318,29 @@ look_for_var:
         /* Report the intermediate lambda to the caller. */
         a_scope_depth  body_depth = sd+1; 
         a_lambda_ptr   assoc_lambda;
-        if (scope_is(&scope_stack[body_depth], sck_template_instantiation)) {
+        if (scope_is(&scope_stack[body_depth], sck_template_instantiation) ||
+            scope_is(&scope_stack[body_depth], sck_template_declaration)) {
+          /* Generic lambdas have a template instantiation scope around the
+             function scope of the call operator, and a template declaration
+             scope around its declarator. */
           ++body_depth;
         }  /* if */
         check_assertion(body_depth <= depth_scope_stack);
+        if (scope_is(&scope_stack[body_depth], sck_func_prototype)) {
+          /* The body of the intermediate lambda has not been entered: We are
+             in its declarator, as in
+               struct S {
+                 short f() {
+                   return []() -> B<[this]{ return 1; }()>::C { return 2; }();
+                 }
+               };
+             where the reference to "this" appears in the trailing return type
+             of the outer lambda.  Such a reference belongs to the context
+             surrounding that lambda, so the lambda is not a capture spot and
+             the search continues outward. */
+          --sd;
+          goto look_for_var;
+        }  /* if */
         if (!scope_is(&scope_stack[body_depth], sck_function)) {
           expect_error();
           sd = NO_SCOPE_DEPTH;
@@ -53473,8 +53492,7 @@ stack).
        expression reference node for it instead of pointing to it
        directly. */
     an_expr_node_ptr expr = cp->variant.template_param.variant.expr;
-    an_expr_node_ptr var_node = get_routine_scope_variable_node_found();
-    a_variable_ptr   var = node_variable(var_node);
+    a_variable_ptr   var = get_routine_scope_variable_found();
     a_routine_ptr    rp = var->source_corresp.enclosing_routine;
     a_scope_ptr      func_scope = scope_for_routine(rp);
     switch_il_region(mem_region_for_routine(rp));
@@ -53645,8 +53663,7 @@ memory region).  Do various error checks.
              function scope from that variable so the local-expr-node-ref
              mechanism can anchor the expression there.  This is only an issue
              within local classes. */
-          an_expr_node_ptr  vnode = get_routine_scope_variable_node_found();
-          a_routine_ptr     rp = node_variable(vnode)
+          a_routine_ptr     rp = get_routine_scope_variable_found()
                                            ->source_corresp.enclosing_routine;
           if (rp != NULL) {
             scope_for_local_ref = scope_for_routine_or_null(rp);

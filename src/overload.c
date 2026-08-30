@@ -13699,12 +13699,16 @@ wondering if it's available.
       if (is_error_operand(result)) {
         okay = FALSE;
       } else if (!in_potential_constant_constexpr_context() &&
+                 !reference_to_unknown_object_allowed &&
                  !(microsoft_mode || gpp_mode) &&
                  construct_not_allowed_in_cpp11_constant_expr(
                                                        ec_this_not_constant,
                                                        member_pos)) {
-        /* Use of "this" not allowed in C++11 constant expressions, but
-           GCC and MSVC do permit it. */
+        /* Use of "this" was not allowed in C++11 constant expressions, but
+           GCC and MSVC did permit it.  P2280R4 (a DR) made it valid as well
+           when it appears as the object of a class member access, which is the
+           case here, because the object the "this" pointer points to need not
+           be known to evaluate such an access. */
         conv_to_error_operand(result);
         okay = FALSE;
       }  /* if */

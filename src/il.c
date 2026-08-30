@@ -5643,8 +5643,7 @@ fix them.
              template argument value carrying such a reference is substituted
              while instantiating an unrelated function).  So obtain the scope
              to refer to from the variable. */
-          an_expr_node_ptr  vnode = get_routine_scope_variable_node_found();
-          a_routine_ptr     var_rp = node_variable(vnode)
+          a_routine_ptr     var_rp = get_routine_scope_variable_found()
                                            ->source_corresp.enclosing_routine;
           if (var_rp != NULL) {
             a_scope_ptr  var_scope = scope_for_routine_or_null(var_rp);
@@ -26279,6 +26278,38 @@ local scope or an enk_statement node allocated in function-scope memory.
 }  /* expr_has_reference_to_local_entity */
 
 
+static void check_for_reused_value_init(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called via traverse_expr from expr_has_reused_value_init; sets tblock->result
+to TRUE and terminates the traversal if expr is an enk_temp_init node whose
+dynamic initialization computes a value that is reused elsewhere.
+*/
+{
+  if (expr != NULL && node_is(expr, enk_temp_init) &&
+      expr->variant.init.dynamic_init->is_reused_value) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* check_for_reused_value_init */
+
+
+a_boolean expr_has_reused_value_init(an_expr_node_ptr expr)
+/*
+Return TRUE if the expression tree rooted in expr, which may be NULL, contains
+the initialization of a temporary whose value is reused by an enk_reuse_value
+node elsewhere in the enclosing expression (see make_expr_reusable_copy).
+Folding such an expression to a constant would take that initialization out of
+the code that is generated for the enclosing expression, leaving the reuses
+with no value to use, so the folding must be suppressed.
+*/
+{
+  return expr_tree_has_matching_node(expr, check_for_reused_value_init,
+                                     /*follow_folded_exprs=*/FALSE);
+}  /* expr_has_reused_value_init */
+
+
 /*
 Variables used for detecting mixed memory regions in an expression tree.
 They are set to FALSE by mixed_regions_in_expr_tree and updated by
@@ -26330,9 +26361,9 @@ region or designate a block-scope variable; otherwise, return FALSE.
 }  /* mixed_regions_in_expr_tree */
 
 
-STATIC_THREAD an_expr_node_ptr
-		last_routine_scope_variable_node_found;
-			/* A pointer to the last node found by
+STATIC_THREAD a_variable_ptr
+		last_routine_scope_variable_found;
+			/* The last variable found by
 			   check_for_routine_scope_variable. */
 
 static void check_for_routine_scope_variable(
@@ -26340,27 +26371,42 @@ static void check_for_routine_scope_variable(
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called via traverse_expr from expr_has_reference_to_routine_scope_variable;
-sets tblock->result to TRUE and terminates the traversal if expr is an
-enk_variable node that refers to a variable in a local scope.
+sets tblock->result to TRUE and terminates the traversal if expr refers to a
+variable in a local scope, either directly as an enk_variable node or through
+the capture list of a lambda.
 */
 {
-  if (expr != NULL && is_variable_node(expr) &&
-      !in_file_scope(node_variable(expr))) {
-    last_routine_scope_variable_node_found = expr;
-    tblock->result = TRUE;
-    tblock->terminate = TRUE;
+  if (expr != NULL) {
+    a_variable_ptr  var = NULL;
+    if (is_variable_node(expr)) {
+      var = node_variable(expr);
+    } else if (node_is(expr, enk_lambda)) {
+      /* The captures of a lambda name variables of the enclosing function,
+         but they are recorded in the lambda entry rather than in the
+         expression tree, so the traversal does not reach them. */
+      for (a_lambda_capture_ptr lcp =
+                            expr->variant.init.source.lambda->capture_list;
+           lcp != NULL && var == NULL; lcp = lcp->next) {
+        if (!lcp->is_indirect_init_capture) var = lcp->captured.variable;
+      }  /* for */
+    }  /* if */
+    if (var != NULL && !in_file_scope(var)) {
+      last_routine_scope_variable_found = var;
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_for_routine_scope_variable */
 
 
 a_boolean expr_has_reference_to_routine_scope_variable(an_expr_node_ptr expr)
 /*
-Return TRUE if any of the nodes in the expression tree rooted in expr (which
-may be NULL) is an enk_variable node that refers to a variable in a local
-scope.  Original expressions recorded for nested folded constants are examined
-too: A copy of this tree for a local-expr-node-ref includes those expressions,
-so the local-expr-node-ref must be recorded in the function that owns the
-variables they name.
+Return TRUE if the expression tree rooted in expr (which may be NULL) refers
+to a variable in a local scope, either through an enk_variable node or through
+the captures of a lambda.  Original expressions recorded for nested folded
+constants are examined too: A copy of this tree for a local-expr-node-ref
+includes those expressions, so the local-expr-node-ref must be recorded in the
+function that owns the variables they name.
 */
 {
   return expr_tree_has_matching_node(expr, check_for_routine_scope_variable,
@@ -26368,14 +26414,14 @@ variables they name.
 }  /* expr_has_reference_to_routine_scope_variable */
 
 
-an_expr_node_ptr get_routine_scope_variable_node_found(void)
+a_variable_ptr get_routine_scope_variable_found(void)
 /*
-Return a pointer to the enk_variable node found by the last call of
+Return the local variable found by the last call of
 expr_has_reference_to_routine_scope_variable that produced TRUE.
 */
 {
-  return last_routine_scope_variable_node_found;
-}  /* get_routine_scope_variable_node_found */
+  return last_routine_scope_variable_found;
+}  /* get_routine_scope_variable_found */
 
 
 static a_routine_ptr alloc_or_dealloc_routine_from_new_delete(
@@ -34193,7 +34239,7 @@ in il_init.)
       pch_saved_var_array_elem(module_id_scp),
       pch_saved_var_array_elem(module_id_kind),
 #endif /* MODULE_ID_NEEDED */
-      pch_saved_var_array_elem(last_routine_scope_variable_node_found),
+      pch_saved_var_array_elem(last_routine_scope_variable_found),
       pch_saved_var_array_elem(strong_ordering_equal),
       pch_saved_var_array_elem(strong_ordering_less),
       pch_saved_var_array_elem(strong_ordering_greater),
@@ -34448,7 +34494,7 @@ can be redone to compile more than one source file in a single invocation
 of the front end.
 */
 {
-  last_routine_scope_variable_node_found = NULL;
+  last_routine_scope_variable_found = NULL;
 #if DEBUG
   num_shareable_constants                = 0;
   num_func_shareable_constants           = 0;

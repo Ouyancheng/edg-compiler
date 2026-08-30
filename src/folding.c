@@ -983,12 +983,13 @@ static char *base_object(a_constant  *constant,
                          a_boolean   *unknown)
 /*
 Return a pointer to the "base object" that underlies the pointer constant.
-This is NULL if the pointer is an integer cast to a pointer type.  Otherwise,
+This is NULL if the pointer is an integer cast to a pointer type, or if it
+is an abk_param_ref (there is no IL entity for that parameter).  Otherwise,
 it points to the variable, routine, or constant entry.  There are exceptions
 whose "base object" is considered unknown, and for which *unknown is set to
 TRUE (it is left unchanged otherwise): pointers to "weak" variables or
-functions, and constants standing for the object a reference or a "this"
-pointer of unknown value designates.
+functions, constants standing for the object a reference or a "this"
+pointer of unknown value designates, and abk_param_ref constants.
 */
 {
   char *object = NULL;
@@ -1053,12 +1054,35 @@ pointer of unknown value designates.
         object = (char *)constant->variant.address.variant.label;
         break;
       case abk_param_ref:
+        /* There is no IL entity for the parameter. */
+        *unknown = TRUE;
+        break;
       default:
         unexpected_condition_str("base_object: bad address constant kind");
     }  /* switch */
   }  /* if */
   return object;
 }  /* base_object */
+
+
+static a_boolean same_param_ref_base(a_constant_ptr  cp1,
+                                     a_constant_ptr  cp2)
+/*
+Return TRUE if cp1 and cp2 are both abk_param_ref address constants for the
+same parameter.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (constant_is(cp1, ck_address) && constant_is(cp2, ck_address) &&
+      address_base_is(cp1, abk_param_ref) &&
+      address_base_is(cp2, abk_param_ref) &&
+      cp1->variant.address.variant.param_ref.param_num ==
+                           cp2->variant.address.variant.param_ref.param_num) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* same_param_ref_base */
 
 
 static a_boolean same_address_base(a_constant_ptr  cp1,
@@ -1078,7 +1102,17 @@ unknown, return FALSE and set *unknown_base to TRUE; otherwise set
   base_1 = base_object(cp1, unknown_base);
   base_2 = base_object(cp2, unknown_base);
   if (*unknown_base) {
-    result = FALSE;
+    /* Constexpr-unknown addresses (P2280R4) of the same entity are the
+       same base; distinct unknown entities are not comparable.  Clear
+       *unknown_base when they match so callers such as do_pdiff do not
+       treat a successful same-base result as un-foldable. */
+    if (reference_to_unknown_object_allowed) {
+      result = (base_1 != NULL && base_1 == base_2) ||
+               same_param_ref_base(cp1, cp2);
+      if (result) *unknown_base = FALSE;
+    } else {
+      result = FALSE;
+    }  /* if */
   } else if (base_1 == base_2) {
     result = TRUE;
   } else {
@@ -5559,7 +5593,14 @@ to zero otherwise.
   base_1 = base_object(con1, &unknown_base);
   base_2 = base_object(con2, &unknown_base);
   if (unknown_base) {
-    /* This can happen with weak variables. */
+    if (reference_to_unknown_object_allowed &&
+        ((base_1 != NULL && base_1 == base_2) ||
+         same_param_ref_base(con1, con2))) {
+      unknown_base = FALSE;
+    }  /* if */
+  }  /* if */
+  if (unknown_base) {
+    /* This can happen with weak variables or distinct unknown objects. */
     result = FALSE;
   } else if (constant_is(con1, ck_integer) || constant_is(con2, ck_integer)) {
     /* Integers cast to pointer types. */
@@ -6575,6 +6616,12 @@ expression is a glvalue, do not fold (see fold_glvalue_expr instead).
     clear_diag_list(&diag_list);
     folded = interpret_expr(expr, /*is_constant_evaluated=*/FALSE,
                             /*force_rvalue=*/FALSE, result_con, &diag_list);
+    if (folded && address_con_is_unknown_object(result_con)) {
+      /* P2280R4 allows a reference to an unspecified object as a constant
+         expression, but that object's identity is not a constant address
+         and must not be recorded for lowering. */
+      folded = FALSE;
+    }  /* if */
     discard_more_info_list(&diag_list);
   }  /* if */
   return folded;
@@ -6607,7 +6654,11 @@ the expression is not a glvalue, do not fold (see fold_expr instead).
     clear_diag_list(&diag_list);
     folded = interpret_expr(expr, /*is_constant_evaluated=*/FALSE,
                             /*force_rvalue=*/FALSE, result_con, &diag_list);
-    if (folded && is_reference_type(result_con->type)) {
+    if (folded && address_con_is_unknown_object(result_con)) {
+      /* P2280R4 allows a reference to an unspecified object as a constant
+         expression, but that object's identity is not a constant address. */
+      folded = FALSE;
+    } else if (folded && is_reference_type(result_con->type)) {
       /* The interpreter will produce a reference constant when folding a
          glvalue.  Make it a pointer constant instead. */
       a_type_ptr  tpt = type_pointed_to(result_con->type);
@@ -6919,35 +6970,37 @@ start_underlying_expression:
     case enk_variable:
       /* An lvalue for a variable. */
       { a_variable_ptr var = node_variable(expr);
-        if (var->init_kind == (an_init_kind)initk_binding) {
+        if (var->init_kind == initk_binding) {
           /* A variable that represents an "alias" for the underlying
              lvalue expression. */
           expr = var->initializer.bound_expr;
           goto start_underlying_expression;
         }  /* if */
-        if (variable_has_constant_address(var) ||
-            ((options & CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT) &&
-             var->storage_class == (a_storage_class)sc_auto)) {
+        if ((variable_has_constant_address(var) ||
+             ((options & CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT) &&
+              var->storage_class == sc_auto)) &&
+            !(reference_to_unknown_object_allowed &&
+              is_any_reference_type(var->type))) {
           /* The variable has a constant address.  (Or we're pretending it
              has a static address when it's a local variable.  In that case,
              the caller should make sure not to save the resulting
-             constant.) */
-          a_storage_class sc = (a_storage_class)sc_unspecified;
-          a_boolean       auto_case = (var->storage_class ==
-                                                     (a_storage_class)sc_auto);
+             constant.)  A reference variable's own address is not the
+             address of the object it is bound to. */
+          a_storage_class sc = sc_unspecified;
+          a_boolean       auto_case = (var->storage_class == sc_auto);
           if (auto_case) {
             /* Save and restore the storage class so the variable looks
                static. */
             sc = var->storage_class;
-            var->storage_class = (a_storage_class)sc_static;
+            var->storage_class = sc_static;
           }  /* if */
           is_constant_addr = TRUE;
           set_variable_address_constant(var, con,
                                         /*set_address_taken=*/address_escapes);
           if (auto_case) var->storage_class = sc;
           if (var->source_corresp.is_class_member &&
-              scp_parent_class(&var->source_corresp)->
-                     variant.class_struct_union.is_nonreal_class) {
+              scp_parent_class(&var->source_corresp)
+                     ->variant.class_struct_union.is_nonreal_class) {
             /* In a prototype instantiation, a static data member of the
                current class is template-dependent. */
             *template_constant = TRUE;
@@ -7437,7 +7490,8 @@ prefer to handle that higher up.
          C++11. */
       if (constexpr_enabled) {
         a_constant_ptr var_con = var_constant_value(node_variable(expr));
-        if (var_con != NULL) {
+        if (var_con != NULL &&
+            !address_con_is_unknown_object(var_con)) {
           copy_constant(var_con, con);
           is_constant_ptr = TRUE;
         }  /* if */
@@ -12420,6 +12474,11 @@ prvalue.
   clear_diag_list(&diag_list);
   folded = interpret_expr(expr, is_constant_evaluated, force_prvalue,
                           result_con, &diag_list);
+  if (folded && address_con_is_unknown_object(result_con)) {
+    /* P2280R4 unknown-object addresses are not usable constant addresses
+       for code generation. */
+    folded = FALSE;
+  }  /* if */
   discard_more_info_list(&diag_list);
   return folded;
 }  /* fold_constexpr_expr */
