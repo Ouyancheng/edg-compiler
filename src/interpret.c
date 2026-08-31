@@ -2287,6 +2287,34 @@ return &ips->position.
   return pos;
 }  /* constant_pos */
 
+
+inline a_source_position* expr_pos(an_expr_node_ptr     expr,
+                                   an_interpreter_state *ips)
+/*
+Helper function to produce a position for the given expression.  If the
+expression has no source position (for example, a compiler-generated
+call), try ips->position and then the interpreter call stack.
+*/
+{
+  a_source_position  *pos = &expr->position;
+
+  if (pos->seq == 0) {
+    pos = &ips->position;
+  }  /* if */
+  if (pos->seq == 0) {
+    a_call_frame_ptr  frame = ips->curr_call_frame;
+    for (; frame != NULL; frame = frame->parent) {
+      if (frame->routine != NULL &&
+          frame->variant.position != NULL &&
+          frame->variant.position->seq != 0) {
+        pos = frame->variant.position;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return pos;
+}  /* expr_pos */
+
 /*
 Convenience macro to get the position of a type.
  */
@@ -5694,6 +5722,7 @@ is attempted.
   ips->constants = con;
   con->variant.address.kind = abk_variable;
   con->variant.address.variant.variable = var;
+  con->source_corresp.decl_position = var->source_corresp.decl_position;
   con->type = make_reference_type(var->type);
   clear_runtime_constant_address(result_storage, con);
 }  /* make_runtime_data_address */
@@ -5737,6 +5766,28 @@ expression.
   }  /* if */
   return result;
 }  /* is_unknown_object_address */
+
+
+static an_error_code unknown_object_access_error(
+                                          a_constexpr_address const *cap)
+/*
+Return the diagnostic for an attempt to use the unknown object designated
+by cap.  Access through "this" is reported as a missing constant value of
+*this; other unknown objects use the general run-time storage diagnostic.
+*/
+{
+  an_error_code  err_code = ec_constexpr_access_to_runtime_storage;
+
+  if (is_runtime_data_address(cap)) {
+    a_constant_ptr  con = cap->variant.addr_con;
+    if (constant_is(con, ck_address) &&
+        address_base_is(con, abk_variable) &&
+        con->variant.address.variant.variable->is_this_parameter) {
+      err_code = ec_star_this_not_constant_valued;
+    }  /* if */
+  }  /* if */
+  return err_code;
+}  /* unknown_object_access_error */
 
 
 static a_boolean unknown_object_is_mapped(an_interpreter_state  *ips,
@@ -21858,11 +21909,20 @@ update *ips accordingly.
     }  /* if */
     if (is_member_call && !callee->defined) {
       a_constexpr_address  *this_addr =
-                      (a_constexpr_address*)*(a_byte**)arg_ptrs;
+                                    (a_constexpr_address*)*(a_byte**)arg_ptrs;
       if (is_unknown_object_address(this_addr)) {
-        /* Instantiating a member function on a P2280 placeholder this
-           can evaluate concept static_asserts in the callee.  If the
-           function is already defined, the call may still be interpreted. */
+        /* Fail the call rather than attempt to instantiate the undefined
+           member.  Instantiating the definition could evaluate constraints
+           that re-enter the check that produced this call; e.g.,
+             template<class T> concept C = requires(T t) { t.f(); };
+             template<class D> struct B {
+               constexpr D& f() {
+                 static_assert(C<D>);
+                 return static_cast<D&>(*this);
+               }
+             };
+           Checking C<E> for "struct E : B<E> {}" would instantiate f and
+           re-enter C<E>. */
         do_constexpr_fail(result);
         goto done;
       }  /* if */
@@ -21885,14 +21945,16 @@ update *ips accordingly.
     if (callee->is_virtual &&
         (call_node->variant.operation.is_virtual_call || pm_target != NULL) &&
         !adjust_virtual_callee(&callee, (a_byte**)arg_ptrs, &retval_offset)) {
-      info_with_pos(ec_constexpr_access_to_runtime_storage,
-                    &callee_node->position, ips);
+      a_constexpr_address  *this_addr =
+                                    (a_constexpr_address*)*(a_byte**)arg_ptrs;
+      info_with_pos(unknown_object_access_error(this_addr),
+                    expr_pos(call_node, ips), ips);
       do_constexpr_fail(result);
       goto done;
     }  /* if */
     if (!callee->is_constexpr) {
       info_with_pos_sym(ec_constexpr_call_to_nonconstexpr_function,
-                        &callee_node->position, symbol_for(callee), ips);
+                        expr_pos(callee_node, ips), symbol_for(callee), ips);
       do_constexpr_fail(result);
       goto done;
     }  /* if */
@@ -23838,8 +23900,8 @@ conversion to an rvalue is forced externally.
            ips, cap->variant.addr_con, tp, result_storage, complete_object)) {
       /* Not a compile-time constant value. */
       do_constexpr_fail(result);
-      info_with_pos(ec_constexpr_access_to_runtime_storage,
-                    &expr->position, ips);
+      info_with_pos(unknown_object_access_error(cap),
+                    expr_pos(expr, ips), ips);
     } else {
       result = TRUE;
     }  /* if */
@@ -24724,8 +24786,8 @@ represented by an entry of type a_constant (ck_address or ck_integer).
     if (is_unknown_object_address(opnd_addr)) {
       /* The dynamic type of the unspecified object bound to a reference whose
          value is not known cannot be determined. */
-      info_with_pos(ec_constexpr_access_to_runtime_storage, &expr->position,
-                    ips);
+      info_with_pos(unknown_object_access_error(opnd_addr),
+                    expr_pos(expr, ips), ips);
       do_constexpr_fail(result);
       goto done;
     }  /* if */
@@ -26298,8 +26360,8 @@ the value representation of the integer value.
                     &nonconstant, &expr->position, &err_code);
                 if (nonconstant || err_code != ec_no_error) {
                   do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_access_to_runtime_storage,
-                                &expr->position, ips);
+                  info_with_pos(unknown_object_access_error(result_addr),
+                                expr_pos(expr, ips), ips);
                 } else {
                   result_addr->variant.addr_con =
                               make_interpreter_copy_of_constant(ips, new_con);
@@ -26339,8 +26401,8 @@ the value representation of the integer value.
             { a_constexpr_address  *src = (a_constexpr_address*)opnd1_value;
               if (is_runtime_data_address(src)) {
                 do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_access_to_runtime_storage,
-                              &expr->position, ips);
+                info_with_pos(unknown_object_access_error(src),
+                              expr_pos(expr, ips), ips);
               } else if (src->address == NULL) {
                 *(a_constexpr_address*)result_storage = *src;
               } else if (!subobject_is_initialized(src->address,
@@ -28780,8 +28842,8 @@ the value representation of the integer value.
                   }  /* if */
                 } else {
                   do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_access_to_runtime_storage,
-                                &expr->position, ips);
+                  info_with_pos(unknown_object_access_error(dst),
+                                expr_pos(expr, ips), ips);
                 }  /* if */
               } else if (dst->address == NULL) {
                 /* An attempt to write through a null pointer. */

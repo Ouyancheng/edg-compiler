@@ -26404,7 +26404,7 @@ a_boolean expr_has_reference_to_routine_scope_variable(an_expr_node_ptr expr)
 Return TRUE if the expression tree rooted in expr (which may be NULL) refers
 to a variable in a local scope, either through an enk_variable node or through
 the captures of a lambda.  Original expressions recorded for nested folded
-constants are examined too: A copy of this tree for a local-expr-node-ref
+constants are examined, too: A copy of this tree for a local-expr-node-ref
 includes those expressions, so the local-expr-node-ref must be recorded in the
 function that owns the variables they name.
 */

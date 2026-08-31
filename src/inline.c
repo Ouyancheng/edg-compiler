@@ -1542,13 +1542,17 @@ This is useful in cases where iterative inlining can create huge routines.
              that is that it doesn't allow inlining aggregate
              initializations in statement insert mode. */
           if (is_array_type(var->type)) {
-            /* Aggregates can't be handled. */
+            /* Arrays can't be handled. */
             goto cannot_inline_ever;
-          } else if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-            /* Aggregates can't be handled. */
-            if (dip->variant.constant.ptr->kind ==
-                                          (a_constant_repr_kind)ck_aggregate) {
-              goto cannot_inline_ever;
+          } else if (dyn_init_is(dip, dik_constant)) {
+            if (constant_is(dip->variant.constant.ptr, ck_aggregate)) {
+              /* Aggregate constants cannot in general be assigned, but an
+                 empty aggregate has no data to transfer. */
+              if (dip->variant.constant.ptr
+                     ->variant.aggregate.first_constant != NULL) {
+                goto cannot_inline_ever;
+              }  /* if */
+              break;
             }  /* if */
             /* Non-aggregate constant initial value. */
             /* This uses copy_constant_full because that routine does
@@ -1557,7 +1561,7 @@ This is useful in cases where iterative inlining can create huge routines.
                        copy_constant_full(dip->variant.constant.ptr,
                                           (a_constant *)NULL,
                                           CE_DOING_INLINING_OF_FUNCTION_CALL));
-          } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+          } else if (dyn_init_is(dip, dik_expression)) {
             init_expr = copy_expr_tree_for_inlining(dip->variant.expression,
                                                     failed);
           } else {
