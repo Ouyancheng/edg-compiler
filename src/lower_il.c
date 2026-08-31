@@ -16327,8 +16327,8 @@ Floating-point types require additional run-time checking for NaN (see below).
     minus_one = spaceship_result_constant_expr(-1, expr->type);
     op1_has_side_effects = node_has_side_effects(op1, (a_boolean *)NULL);
     op2_has_side_effects = node_has_side_effects(op2, (a_boolean *)NULL);
-    temp1 = make_reusable_copy(op1, op2_has_side_effects);
-    temp2 = make_reusable_copy(op2, op1_has_side_effects);
+    temp1 = make_reusable_copy(op1, op1_has_side_effects);
+    temp2 = make_reusable_copy(op2, op2_has_side_effects);
     if (type_kind_is_simple_float_like(type_kind)) {
       /* If either operand is a NaN, then return
          std::partial_ordering::unordered:
