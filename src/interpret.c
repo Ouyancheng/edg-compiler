@@ -31257,7 +31257,7 @@ the value representation of the integer value.
                      ips->curr_call_frame == NULL) {
             /* P2280R4: "this" in a member-function constant expression
                (for example, a noexcept specifier) when no constructor
-               call is being interpreted and this is not mapped. */
+               call is being interpreted and "this" is not mapped. */
             produce_unknown = TRUE;
           } else {
             do_constexpr_fail(result);
