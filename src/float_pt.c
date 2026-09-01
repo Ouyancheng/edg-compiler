@@ -2229,14 +2229,16 @@ effective exponent to be used (the combination of an explicit exponent
 and the implied exponent based on the position of the decimal point).
 kind specifies the type of floating point value being used.
 
-If the number of mantissa bits exceeds the precision of the result
-type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
+If the number of mantissa bits of the result type is insufficient to
+represent the value exactly or if the value is too small to be represented
+by a denormalized value, set *inexact to TRUE.  If the exponent is out of
+range, set *err to TRUE.
 */
 {
-  int           min_exp = 0;
-  int           max_exp = 0;
-  a_targ_size_t mant_dig = 0;
-  unsigned      bits;
+  int min_exp = 0;
+  int max_exp = 0;
+  int mant_dig = 0;
+  int bits;
 
   if (long_double_is_double && repr_is_long_double(kind)) {
     /* When long double is mapped onto double, store this value as a double. */
@@ -2244,27 +2246,30 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
   }  /* if */
   min_exp = min_exponent[(int)kind];
   max_exp = max_exponent[(int)kind];
-  mant_dig = num_mantissa_bits[(int)kind];
+  mant_dig = (int)num_mantissa_bits[(int)kind];
   /* Note that the minimum and maximum exponent values are actually both
      one greater than the values that should be used.  This is strange, but
-     it is the way those values are specified by the C standard. */
+     it is the way those values are specified by the C and C++ standards. */
   min_exp--;
   max_exp--;
   /* Compute the number of bits of mantissa that are present. */
-  bits = number_of_bits_in_mantissa(mp, /*normalize=*/FALSE);
+  bits = (int)number_of_bits_in_mantissa(mp, /*normalize=*/FALSE);
   /* If the exponent is too small, see if we can represent the value by
      denormalizing it. */
   if (*exponent < min_exp) {
-    long bits_needed, bits_total;
-    int  implicit_bits = kind_has_implicit_mantissa_bit(kind) ? 1 : 0;
-    /* Compute the number of additional bits needed to represent the value
-       in denormalized form. */
+    int bits_needed, bits_total;
+    int implicit_bits = kind_has_implicit_mantissa_bit(kind) ? 1 : 0;
+    /* Compute the number of mantissa bits needed to represent the value in
+       denormalized form.  bits_needed is the number of bits to shift in
+       order to represent the difference between the specified exponent and
+       the minimum normalized exponent.  bits_total is the bit-shift plus
+       the number of bits in the specified mantissa value. */
     bits_needed = min_exp - *exponent;
-    bits_total = (bits_needed + bits + implicit_bits);
-    if (bits_total <= (long)mant_dig) {
-      /* We can denormalize the number without losing precision.  Do
-         the first shift and make the implicit first bit of the mantissa
-         explicit. */
+    bits_total = bits_needed + bits + implicit_bits;
+    if (bits_needed <= mant_dig) {
+      /* We can denormalize the number (potentially losing some bits of
+         precision).  Do the first shift and make the implicit first bit of
+         the mantissa explicit. */
       if (implicit_bits != 0) {
         shift_right_mantissa(mp, 1);
         mp->parts[0] |= 0x80000000;
@@ -2273,6 +2278,16 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
       if (bits_needed > implicit_bits) {
         shift_right_mantissa(mp, (int)(bits_needed - implicit_bits));
       }  /* if */
+      if (bits_total > mant_dig) {
+        /* The denormalized form does not have enough bits of precision to
+           represent the value exactly.  Round the value. */
+        round_hex_fp_value(mp, exponent,
+                           (a_targ_size_t)(mant_dig - implicit_bits),
+                           /*is_fixed_point=*/FALSE, /*is_signed=*/TRUE,
+                           inexact);
+        /* Warn about the loss of precision. */
+        *inexact = TRUE;
+      }  /* if *?
       /* Assign the special exponent used with denormalized values. */
       *exponent = min_exp - 1;
     }  /* if */
@@ -2281,13 +2296,20 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
      mant_dig includes the implicit bit. */
   {
     /* Some long double kinds do not make use of an implicit mantissa bit. */
-    unsigned implicit_bits = kind_has_implicit_mantissa_bit(kind) ? 1 : 0;
-    long     value_bits = bits + implicit_bits;
-    if (value_bits > (long)mant_dig) *inexact = TRUE;
+    int implicit_bits = kind_has_implicit_mantissa_bit(kind) ? 1 : 0;
+    int value_bits = bits + implicit_bits;
+    if (value_bits > mant_dig) {
+      *inexact = TRUE;
+    }  /* if */
   }
   /* Check for a value that cannot be represented.  The "min_exp - 1" is
      used to permit the special denormalized value. */
-  if (*exponent < (min_exp - 1) || *exponent > max_exp) {
+  if (*exponent < (min_exp - 1)) {
+    /* Set the value to 0 and issue a warning about the underflow. */
+    init_mantissa(mp);
+    *exponent = min_exp - 1;
+    *inexact = TRUE;
+  } else if (*exponent > max_exp) {
 #if TARG_HAS_IEEE_FLOATING_POINT
     if (gnu_mode) {
       /* gcc silently uses infinity for values out of range.  The error flag is

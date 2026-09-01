@@ -1,5 +1,16 @@
 Version 6.10
 
+9/1/26   [EDGcpfe/28964]
+Subnormal hex floating-point literals that cannot be represented exactly
+
+The front end previously produced incorrect values for hexadecimal
+floating-point literals whose values require a subnormal representation but
+cannot be represented exactly in the associated data type.  This is now
+fixed.  For example:
+
+  double d = 0x3p-1075;   // Previously infinity, now equal to 0x1p-1073
+
+
 9/1/26   [EDGcpfe/29030]
 --[no_]bit_precise_integers in eccp.sh script
 
