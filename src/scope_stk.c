@@ -11517,6 +11517,7 @@ to it.
   pedp->ellipsis_position = null_source_position;
   pedp->param_symbol_header = NULL;
   pedp->param_symbol_type = NULL;
+  pedp->param_symbol_is_template_template = FALSE;
   pedp->ellipsis_seen = FALSE;
   pedp->is_function_declarator = FALSE;
   pedp->uses_only_enclosing_packs = FALSE;

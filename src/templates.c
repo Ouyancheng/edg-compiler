@@ -2557,37 +2557,48 @@ checking.
   a_boolean       do_old_style_check;
   a_boolean       old_style_match = FALSE;
   a_boolean       match = FALSE;
+  a_template_symbol_supplement_ptr
+                  arg_tssp = template_supplement_for_template(arg_template);
 
-  do_old_style_check = !generalized_template_template_matching ||
-                       /*lint -e(506)*/EXPENSIVE_CHECKING;
-  /* The checking of template template argument compatibility was changed
-     in C++17 (core issue 150/P0522R0).  When EXPENSIVE_CHECKING is used
-     and the new checking is being done, we also do the old checking to
-     make sure the new processing is a superset of the old. */
-  if (do_old_style_check) {
-    a_template_symbol_supplement_ptr
-                  tssp1 = template_supplement_for_template(param_template);
-    a_template_symbol_supplement_ptr
-                  tssp2 = template_supplement_for_template(arg_template);
-    if (equiv_template_param_lists(tssp1->cache->decl_info->parameters,
-                                   tssp2->cache->decl_info->parameters,
-                                   /*issue_errors=*/FALSE,
-                                   ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
-                                   (a_source_position*)NULL, es_error)) {
-      old_style_match = TRUE;
-    }  /* if */
-  }  /* if */
-  if (generalized_template_template_matching) {
-    if (template_template_arg_is_compatible_with_param(arg_template,
-                                                       param_template)) {
-      match = TRUE;
-    }  /* if */
-    /* In EXPENSIVE_CHECKING configurations we make sure the new checking
-       is a superset of the old. */
-    check_assertion_or_expect_error(!do_old_style_check ||
-                                    (old_style_match ? match : TRUE));
+  if (arg_tssp->cache->decl_info == NULL) {
+    /* The argument is a placeholder for a template template parameter declared
+       as a pack expansion of an enclosing pack that expanded to an empty pack.
+       Such a placeholder has no template parameter list, so no compatibility
+       check is needed. */
+    check_assertion(arg_template->kind == templk_template_template_param &&
+                    arg_template->is_pack &&
+                    arg_template->template_decl == NULL);
+    match = TRUE;
   } else {
-    match = old_style_match;
+    do_old_style_check = !generalized_template_template_matching ||
+                         /*lint -e(506)*/EXPENSIVE_CHECKING;
+    /* The checking of template template argument compatibility was changed
+       in C++17 (core issue 150/P0522R0).  When EXPENSIVE_CHECKING is used
+       and the new checking is being done, we also do the old checking to
+       make sure the new processing is a superset of the old. */
+    if (do_old_style_check) {
+      a_template_symbol_supplement_ptr
+                 param_tssp = template_supplement_for_template(param_template);
+      if (equiv_template_param_lists(param_tssp->cache->decl_info->parameters,
+                                     arg_tssp->cache->decl_info->parameters,
+                                     /*issue_errors=*/FALSE,
+                                     ETP_TEMPLATE_TEMPLATE_PARAM_MATCH,
+                                     (a_source_position*)NULL, es_error)) {
+        old_style_match = TRUE;
+      }  /* if */
+    }  /* if */
+    if (generalized_template_template_matching) {
+      if (template_template_arg_is_compatible_with_param(arg_template,
+                                                         param_template)) {
+        match = TRUE;
+      }  /* if */
+      /* In EXPENSIVE_CHECKING configurations we make sure the new checking
+         is a superset of the old. */
+      check_assertion_or_expect_error(!do_old_style_check ||
+                                      (old_style_match ? match : TRUE));
+    } else {
+      match = old_style_match;
+    }  /* if */
   }  /* if */
   return match;
 }  /* check_template_template_arg_compatibility */
@@ -8173,12 +8184,19 @@ called from this routine.
     /* No further checking necessary. */
   } else if (must_be_identical) {
     result = tssp1 == tssp2;
+  } else if (!compare_parameters) {
+    result = TRUE;
   } else {
-    result = !compare_parameters ||
-             equiv_template_param_lists(tssp1->cache->decl_info->parameters,
-                                        tssp2->cache->decl_info->parameters,
-                                        /*issue_errors=*/FALSE, etp_options,
-                                        (a_source_position*)NULL, es_error);
+    /* A template template parameter that is a placeholder for an empty
+       pack expansion has no decl_info; treat that as an empty parameter
+       list. */
+    a_template_decl_info_ptr  tdip1 = tssp1->cache->decl_info;
+    a_template_decl_info_ptr  tdip2 = tssp2->cache->decl_info;
+    result = equiv_template_param_lists(
+              tdip1 == NULL ? (a_template_param_ptr)NULL : tdip1->parameters,
+              tdip2 == NULL ? (a_template_param_ptr)NULL : tdip2->parameters,
+              /*issue_errors=*/FALSE, etp_options,
+              (a_source_position*)NULL, es_error);
   }  /* if */
   return result;
 }  /* equiv_templates_given_supplement */
@@ -12428,20 +12446,29 @@ not match the corresponding parameter.
     } else {
       if (!in_pack) {
         /* This is the first time we see the pack parameter.  Create a
-           start-of-pack-expansion entry in the argument list.  Note that this
-           is done even for an empty expansion. */
-        sop_entry = alloc_template_arg(
-                               (a_templ_arg_kind)tak_start_of_pack_expansion);
-        sop_entry->next = *tap;
-        *tap = sop_entry;
-        tap = &sop_entry->next;
-        in_pack = TRUE;
+           start-of-pack-expansion entry in the argument list if one is not
+           already present.  Note that this is done even for an empty
+           expansion. */
+        if (*tap != NULL &&
+            is_start_of_pack_expansion_templ_arg(*tap)) {
+          /* Start marker already present; advance past it. */
+          tap = &(*tap)->next;
+          in_pack = TRUE;
+        } else {
+          sop_entry = alloc_template_arg(tak_start_of_pack_expansion);
+          sop_entry->next = *tap;
+          *tap = sop_entry;
+          tap = &sop_entry->next;
+          in_pack = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (*tap == NULL) {
       break;
     } else {
-      if (in_pack) (*tap)->is_pack_element = TRUE;
+      if (in_pack && !is_start_of_pack_expansion_templ_arg(*tap)) {
+        (*tap)->is_pack_element = TRUE;
+      }  /* if */
       tap = &(*tap)->next;
     }  /* if */
   }  /* while */
@@ -12462,12 +12489,12 @@ a_symbol_ptr find_class_template_instance(a_symbol_ptr        class_templ,
 Find the instance of the given class template matching the given template
 argument list.  The heavy lifting is mostly done by a call to
 find_template_class, but this function transforms arg_list to account for
-template parameter packs prior to the call (as such, the given template
-argument list is assumed not to have "is_pack_element" flags set nor to have
-tak_start_of_pack_expansion delimiter entries).  If an insufficient number of
-template arguments have been provided, return NULL to indicate no matching
-instance has been found (the class template could not be instantiated with the
-provided argument list).
+template parameter packs prior to the call.  Start-of-pack-expansion markers
+may already be present in arg_list (they are reused rather than duplicated);
+"is_pack_element" flags need not be set by the caller.  If an insufficient
+number of template arguments have been provided, return NULL to indicate no
+matching instance has been found (the class template could not be instantiated
+with the provided argument list).
 */
 {
   a_symbol_ptr          sym = NULL;
@@ -12518,20 +12545,29 @@ provided argument list).
     } else {
       if (!in_pack) {
         /* This is the first time we see the pack parameter.  Create a
-           start-of-pack-expansion entry in the argument list.  Note that this
-           is done even for an empty expansion. */
-        sop_entry = alloc_template_arg(
-                               (a_templ_arg_kind)tak_start_of_pack_expansion);
-        sop_entry->next = *tap;
-        *tap = sop_entry;
-        tap = &sop_entry->next;
-        in_pack = TRUE;
+           start-of-pack-expansion entry in the argument list if one is not
+           already present.  Note that this is done even for an empty
+           expansion. */
+        if (*tap != NULL &&
+            is_start_of_pack_expansion_templ_arg(*tap)) {
+          /* Start marker already present; advance past it. */
+          tap = &(*tap)->next;
+          in_pack = TRUE;
+        } else {
+          sop_entry = alloc_template_arg(tak_start_of_pack_expansion);
+          sop_entry->next = *tap;
+          *tap = sop_entry;
+          tap = &sop_entry->next;
+          in_pack = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (*tap == NULL) {
       break;
     } else {
-      if (in_pack) (*tap)->is_pack_element = TRUE;
+      if (in_pack && !is_start_of_pack_expansion_templ_arg(*tap)) {
+        (*tap)->is_pack_element = TRUE;
+      }  /* if */
       tap = &(*tap)->next;
     }  /* if */
   }  /* while */
@@ -12867,6 +12903,19 @@ done:
 }  /* find_template_variable */
 
 
+static a_template_param_ptr skip_empty_pack_params(a_template_param_ptr  tpp)
+/*
+Advance tpp past any parameters that are placeholders for pack expansions of
+empty enclosing packs and return the resulting pointer.
+*/
+{
+  while (tpp != NULL && tpp->is_empty_pack) {
+    tpp = tpp->next;
+  }  /* while */
+  return tpp;
+}  /* skip_empty_pack_params */
+
+
 a_template_arg_ptr create_initial_template_arg_list(
 		a_template_param_ptr		templ_param_list,
 		a_template_arg_ptr		partial_arg_list,
@@ -12904,12 +12953,15 @@ doing C++17-style template template parameter matching.
          tpp != NULL && tap != NULL;
          tpp = tpp->is_pack ? tpp : tpp->next,
            tap = tap == NULL ? NULL : tap->next) {
-      a_symbol_kind		sym_kind = tpp->param_symbol->kind;
+      a_symbol_kind		sym_kind;
       /* Skip any pack expansion placeholders. */
       while (tap != NULL && is_start_of_pack_expansion_templ_arg(tap)) {
         tap_is_pack = TRUE;
         tap = tap->next;
       }  /* while */
+      tpp = skip_empty_pack_params(tpp);
+      if (tpp == NULL) break;
+      sym_kind = tpp->param_symbol->kind;
       /* An injected class name is acceptable for a template template
          parameter. */
       if (tap != NULL &&
@@ -12951,16 +13003,35 @@ doing C++17-style template template parameter matching.
            tpp = is_parameter_pack && !is_special_pack &&
            specified_tap != NULL ? tpp
                                  : (is_parameter_pack = FALSE, tpp->next)) {
-      a_symbol_kind		sym_kind = tpp->param_symbol->kind;
+      a_symbol_kind		sym_kind;
       a_templ_arg_kind		arg_kind;
+      if (is_special_pack && tpp->param_num != param_num) {
+        is_special_pack = FALSE;
+      }  /* if */
+      /* Parameters that are placeholders for pack expansions of empty
+         enclosing packs represent empty parameter packs and consume no
+         explicitly specified argument.  Emit just a start-of-pack-expansion
+         marker for the empty pack. */
+      while (tpp != NULL && tpp->is_empty_pack) {
+        tap = alloc_template_arg(tak_start_of_pack_expansion);
+        /* Link this entry on to the argument list. */
+        if (new_list == NULL) {
+          new_list = tap;
+        } else {
+          /* Add to the end of the list. */
+          check_assertion(prev_tap != NULL);
+          prev_tap->next = tap;
+        }  /* if */
+        prev_tap = tap;
+        tpp = tpp->next;
+      }  /* while */
+      if (tpp == NULL) break;
       if (specified_tap == NULL && is_templ_templ_param_check) {
         /* If we run out of arguments when doing a template template parameter
            check, exit the loop. */
         break;
       }  /* if */
-      if (is_special_pack && tpp->param_num != param_num) {
-        is_special_pack = FALSE;
-      }  /* if */
+      sym_kind = tpp->param_symbol->kind;
       if (specified_tap != NULL &&
           is_start_of_pack_expansion_templ_arg(specified_tap)) {
         /* If we encounter a placeholder, set the pack flag. */
@@ -23384,9 +23455,15 @@ old_list can match zero or more parameters from new_list.
   old_tpp = old_list;
   new_tpp = new_list;
   while (new_tpp != NULL && old_tpp != NULL) {
-    a_symbol_ptr	old_sym = old_tpp->param_symbol;
-    a_symbol_ptr	new_sym = new_tpp->param_symbol;
+    a_symbol_ptr	old_sym;
+    a_symbol_ptr	new_sym;
     a_boolean		err = FALSE;
+    /* Empty pack placeholders are ignored for equivalence. */
+    old_tpp = skip_empty_pack_params(old_tpp);
+    new_tpp = skip_empty_pack_params(new_tpp);
+    if (old_tpp == NULL || new_tpp == NULL) break;
+    old_sym = old_tpp->param_symbol;
+    new_sym = new_tpp->param_symbol;
     if (old_sym->kind != new_sym->kind) {
       /* One argument is a type and the other is a constant -- this is an
          error. */
@@ -23509,6 +23586,8 @@ old_list can match zero or more parameters from new_list.
     prev_new_tpp = new_tpp;
     new_tpp = new_tpp->next;
   }  /* while */
+  old_tpp = skip_empty_pack_params(old_tpp);
+  new_tpp = skip_empty_pack_params(new_tpp);
   if ((old_tpp != NULL &&
        is_templ_templ_param_match && old_tpp->is_pack) ||
       (generalized_template_template_matching && new_tpp != NULL &&
@@ -24585,6 +24664,7 @@ created for template parameters that are packs.
       if (list_tail != NULL) list_tail->next = tap;
       list_tail = tap;
     }  /* if */
+    if (tpp->is_empty_pack) continue;
     param_sym = tpp->param_symbol;
     if (param_sym->kind == (a_symbol_kind)sk_type) {
       a_type_ptr	tp = tpp->variant.type;
@@ -29366,13 +29446,15 @@ static a_template_param_ptr make_empty_template_param(
 			a_tmpl_decl_state_ptr		decl_state,
 			a_tmpl_param_state_ptr		param_state,
 			a_symbol_header_ptr		symbol_header,
-			a_type_ptr			symbol_type)
+			a_type_ptr			symbol_type,
+			a_boolean			is_template_template)
 /*
 A template parameter declaration that expands an enclosing pack expands
 to an empty pack.  Add a placeholder parameter to record that information.
 symbol_header is the symbol header associated with the original parameter
-declaration.  If symbol_type is non-NULL, create a template type parameter
-with that type; otherwise, create a template nontype parameter.
+declaration.  If is_template_template is TRUE, create a template template
+parameter; otherwise, if symbol_type is non-NULL, create a template type
+parameter with that type; otherwise, create a template nontype parameter.
 */
 {
   a_symbol_ptr		sym;
@@ -29381,7 +29463,19 @@ with that type; otherwise, create a template nontype parameter.
 
   clear_locator(&locator, &null_source_position);
   locator.symbol_header = symbol_header;
-  if (symbol_type != NULL) {
+  if (is_template_template) {
+    sym = create_template_for_template_template_param(
+                            (a_template_decl_ptr)NULL,
+                            symbol_header->is_unnamed ? (a_symbol_locator*)NULL
+                                                      : &locator,
+                            decl_state->nesting_depth, param_state->list_pos,
+                            /*is_named=*/!symbol_header->is_unnamed,
+                            /*is_rescan=*/FALSE, /*is_pack=*/TRUE,
+                            /*is_variadic=*/FALSE,
+                            /*has_variadic_template_params=*/FALSE,
+                            /*has_template_param_constraint=*/FALSE);
+    record_template_param_symbol(sym);
+  } else if (symbol_type != NULL) {
     sym = make_type_template_param_symbol(symbol_header->is_unnamed,
                                           &locator, symbol_type);
   } else {
@@ -29461,9 +29555,11 @@ to represent the template parameters.
       ++param_state.list_pos;
       /* A pack expands to an empty expansion.  Add a placeholder
          parameter. */
-      template_param = make_empty_template_param(decl_state, &param_state,
-                                                 pedp->param_symbol_header,
-                                                 pedp->param_symbol_type);
+      template_param = make_empty_template_param(
+                                      decl_state, &param_state,
+                                      pedp->param_symbol_header,
+                                      pedp->param_symbol_type,
+                                      pedp->param_symbol_is_template_template);
       /* Add the template param to the end of the list. */
       if (template_param_list == NULL) {
         template_param_list = template_param;
@@ -29553,6 +29649,9 @@ to represent the template parameters.
         if (symbol_is(template_param->param_symbol, sk_type)) {
           pedp->param_symbol_type = template_param->param_symbol
                                                   ->variant.type.ptr;
+        } else if (symbol_is(template_param->param_symbol,
+                             sk_class_template)) {
+          pedp->param_symbol_is_template_template = TRUE;
         }  /* if */
       }  /* if */
     }  /* while */
@@ -36681,7 +36780,7 @@ this routine, *is_dependent is set to TRUE.
       check_assertion(decl_state != NULL);
       *nesting_depth_addr_of_template_param(tpp) = decl_state->nesting_depth;
     }  /* if */
-    if (sym_kind == (a_symbol_kind)sk_class_template) {
+    if (sym_kind == sk_class_template && !tpp->is_empty_pack) {
       /* Recursively process any parameters of template template parameters. */
       a_boolean	local_is_dependent = FALSE;
       process_params_of_template_template_param(tpp, &local_is_dependent);

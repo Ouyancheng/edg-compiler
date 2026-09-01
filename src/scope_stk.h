@@ -524,6 +524,10 @@ typedef struct a_pack_expansion_descr {
   a_bit_field	is_pack_index:1;
 			/* TRUE if this pack expansion describes a C++26
 			   pack-index construct (T...[N] or id...[N]). */
+  a_bit_field	param_symbol_is_template_template:1;
+			/* For a template template parameter declaration
+			   that is a pack expansion, this is TRUE (in which
+			   case param_symbol_type is NULL). */
 } a_pack_expansion_descr;
 
 

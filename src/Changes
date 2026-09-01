@@ -1,5 +1,21 @@
 Version 6.10
 
+9/1/26   [EDGcpfe/28645]
+Template template parameter expanding an empty enclosing pack
+
+During the instantiation of an enclosing template with an empty parameter pack,
+a template template parameter declared as a pack expansion of that enclosing
+pack was incorrectly treated as a nontype template parameter, which could
+trigger an internal error due to a failed assertion in
+update_template_param_symbol.  For example, with --c++20:
+
+  template<typename ... Ts>
+  void f() {
+    auto l = []<template<Ts> typename ...>{ };
+  }
+  template void f<>();  // Previously triggered an internal error, now okay.
+
+
 8/28/26  [EDGcpfe/25498]
 Using unknown references in constant expressions
 
