@@ -10911,6 +10911,8 @@ done:
 }  /* do_constexpr_builtin_elementwise_binary_op */
 
 
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+
 static a_boolean address_is_string_literal(an_interpreter_state  *ips,
                                            a_constexpr_address   *cap)
 /*
@@ -10955,6 +10957,8 @@ example a "const char a[] = ..." array, is not a string literal.
   return result;
 }  /* address_is_string_literal */
 
+
+#if BUILTIN_FUNCTIONS_ENABLED
 
 /*
 Values for the first argument of a call of __builtin_constexpr_diag.  The bits
