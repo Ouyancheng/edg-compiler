@@ -1,5 +1,13 @@
 Version 6.10
 
+9/1/26   [EDGcpfe/29030]
+--[no_]bit_precise_integers in eccp.sh script
+
+The changes for EDGcpfe/25899 et al. added command-line options to control
+whether C23 _BitInt types are accepted.  However, the eccp.sh script was not
+updated to accept and propagate those same options: That is now fixed.
+
+
 9/1/26   [EDGcpfe/29000]
 Spurious error on deduction guide return types when using name references
 

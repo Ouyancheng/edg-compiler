@@ -868,6 +868,7 @@ check_abbreviation()
 --auto_storage
 --auto_type
 --base_assign_op_is_default
+--bit_precise_integers
 --bool
 --brief_diagnostics
 --building_runtime
@@ -1067,6 +1068,7 @@ check_abbreviation()
 --no_auto_storage
 --no_auto_type
 --no_base_assign_op_is_default
+--no_bit_precise_integers
 --no_bool
 --no_brief_diagnostics
 --no_c23_typeof
@@ -1915,6 +1917,8 @@ process_option()
          --no_keep_restrict_in_signatures | \
          --concepts | \
          --no_concepts | \
+         --bit_precise_integers | \
+         --no_bit_precise_integers | \
          --force_vtbl | \
          --utf8_char_literals | \
          --no_utf8_char_literals | \
