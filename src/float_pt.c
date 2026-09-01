@@ -2264,7 +2264,7 @@ range, set *err to TRUE.
        order to represent the difference between the specified exponent and
        the minimum normalized exponent.  bits_total is the bit-shift plus
        the number of bits in the specified mantissa value. */
-    bits_needed = min_exp - *exponent;
+    bits_needed = (int)(min_exp - *exponent);
     bits_total = bits_needed + bits + implicit_bits;
     if (bits_needed <= mant_dig) {
       /* We can denormalize the number (potentially losing some bits of
@@ -2287,7 +2287,7 @@ range, set *err to TRUE.
                            inexact);
         /* Warn about the loss of precision. */
         *inexact = TRUE;
-      }  /* if *?
+      }  /* if */
       /* Assign the special exponent used with denormalized values. */
       *exponent = min_exp - 1;
     }  /* if */
