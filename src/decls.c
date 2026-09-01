@@ -21619,6 +21619,14 @@ typedef typeref relaxation may be applied when examining the return type.
        template name used in the deduced type ("A" here) must be the same
        as the deduction guide itself and no cv-qualifiers are permitted. */
     rtp = skip_typerefs(rtp);
+  } else {
+    /* Use skip_lexical_typerefs, not skip_typerefs: skip_typerefs would peel
+       typedef and alias-template typerefs and treat a return type written via
+       a type alias as a direct designation of the class template (e.g.,
+       AliasClass<T> for C<T,T>).  skip_lexical_typerefs only removes typerefs
+       that record lexical source form; any remaining typeref is rejected
+       below via is_immediate_class_type. */
+    rtp = skip_lexical_typerefs(rtp);
   }  /* if */
   if (is_error_type(rtp)) {
     expect_error();

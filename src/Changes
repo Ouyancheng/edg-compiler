@@ -1,5 +1,22 @@
 Version 6.10
 
+9/1/26   [EDGcpfe/29000]
+Spurious error on deduction guide return types when using name references
+
+In configurations with DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE (as
+with the C++-generating back end), a valid deduction guide return type written
+as a class template specialization could be rejected because lexical typerefs
+recording the form of the name (e.g., trk_template_arg_list) were not skipped
+when checking the return type.  For example:
+
+  using INT = int;
+  template<typename> struct C { };
+  C<int> *c;
+  C() -> C<INT>;  // Was erroneously diagnosed
+
+This is now fixed.  (This is a regression from version 6.8.)
+
+
 9/1/26   [EDGcpfe/28645]
 Template template parameter expanding an empty enclosing pack
 
