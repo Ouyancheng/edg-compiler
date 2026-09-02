@@ -32563,10 +32563,18 @@ to a prvalue (without changing expr itself).
       } else {
         if (expr->next == NULL &&
             (expr_stack == NULL ||
-             curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
+             curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) &&
+            !(in_file_scope(result_con) &&
+              mixed_regions_in_expr_tree(expr))) {
           /* If expr is part of an expression list and followed by other
              expressions, do not record it as the backing expression since
-             it could cause IL traversal problems later on. */
+             it could cause IL traversal problems later on.  A constant in
+             the file scope memory region cannot retain a backing expression
+             whose tree spans the file scope and a function scope memory
+             region: The mechanisms that later relocate such an expression
+             (see fix_memory_region_problems_in_copied_constant) can only
+             move a tree that lies entirely in one region, so nodes in the
+             region that is not moved would be left dangling. */
           result_con->expr = expr;
         }  /* if */
         if (expr->is_brace_notation_cast) {

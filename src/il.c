@@ -26387,7 +26387,11 @@ the capture list of a lambda.
       for (a_lambda_capture_ptr lcp =
                             expr->variant.init.source.lambda->capture_list;
            lcp != NULL && var == NULL; lcp = lcp->next) {
-        if (!lcp->is_indirect_init_capture) var = lcp->captured.variable;
+        /* Only a plain capture names a variable; for the other forms the
+           "captured" union holds a field or an initializer instead. */
+        if (!lcp->is_init_capture && !lcp->is_indirect_init_capture) {
+          var = lcp->captured.variable;
+        }  /* if */
       }  /* for */
     }  /* if */
     if (var != NULL && !in_file_scope(var)) {

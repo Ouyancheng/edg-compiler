@@ -8491,6 +8491,11 @@ entry).
     template_param_objects->map(ch, vp);
     sym->variant.variable.ptr = vp;
   }  /* if */
+  /* Making an operand for the object is a use of it and because the object
+     is an inline variable its definition must then be emitted here.  The
+     usual symbol reference path does not record that because the object is
+     synthesized rather than named in the source. */
+  set_instance_required(symbol_for(vp), TRUE, SIR_NONE);
   make_lvalue_variable_operand(vp, &pos_curr_token,
                                end_position_or_null(&end_pos_curr_token),
                                operand, (a_ref_entry_ptr)NULL);
