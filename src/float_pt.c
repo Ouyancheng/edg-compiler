@@ -2231,8 +2231,8 @@ kind specifies the type of floating point value being used.
 
 If the number of mantissa bits of the result type is insufficient to
 represent the value exactly or if the value is too small to be represented
-by a denormalized value, set *inexact to TRUE.  If the exponent is out of
-range, set *err to TRUE.
+even by a denormalized value, set *inexact to TRUE.  If the exponent is too
+large, set *err to TRUE.
 */
 {
   int min_exp = 0;
@@ -2262,7 +2262,7 @@ range, set *err to TRUE.
     /* Compute the number of mantissa bits needed to represent the value in
        denormalized form.  bits_needed is the number of bits to shift in
        order to represent the difference between the specified exponent and
-       the minimum normalized exponent.  bits_total is the bit-shift plus
+       the minimum normalized exponent.  bits_total is that bit-shift plus
        the number of bits in the specified mantissa value. */
     bits_needed = (int)(min_exp - *exponent);
     bits_total = bits_needed + bits + implicit_bits;
