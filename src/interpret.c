@@ -10958,6 +10958,26 @@ example a "const char a[] = ..." array, is not a string literal.
 }  /* address_is_string_literal */
 
 
+a_boolean constexpr_diag_tag_is_valid(a_const_char   *tag,
+                                      a_targ_size_t  tag_len)
+/*
+Return TRUE if the tag_len characters at tag are acceptable as the tag naming
+a diagnostic requested by a call of __builtin_constexpr_diag or by a
+--constexpr_diag_* option, which is to say that each of them is a letter, a
+digit, or an underscore.  The empty tag, which asks that no tag be shown, is
+acceptable.
+*/
+{
+  a_boolean      result = TRUE;
+  a_targ_size_t  k;
+
+  for (k = 0; k < tag_len && result; ++k) {
+    result = isalnum((unsigned char)tag[k]) != 0 || tag[k] == '_';
+  }  /* for */
+  return result;
+}  /* constexpr_diag_tag_is_valid */
+
+
 #if BUILTIN_FUNCTIONS_ENABLED
 
 /*
@@ -11014,25 +11034,6 @@ done:
   release_local_constant(&cp);
   return result;
 }  /* get_constexpr_diag_string */
-
-
-a_boolean constexpr_diag_tag_is_valid(a_const_char   *tag,
-                                      a_targ_size_t  tag_len)
-/*
-Return TRUE if the tag_len characters at tag are acceptable as the tag naming
-a diagnostic requested by a call of __builtin_constexpr_diag, which is to say
-that each of them is a letter, a digit, or an underscore.  The empty tag,
-which asks that no tag be shown, is acceptable.
-*/
-{
-  a_boolean      result = TRUE;
-  a_targ_size_t  k;
-
-  for (k = 0; k < tag_len && result; ++k) {
-    result = isalnum((unsigned char)tag[k]) != 0 || tag[k] == '_';
-  }  /* for */
-  return result;
-}  /* constexpr_diag_tag_is_valid */
 
 
 static void do_constexpr_builtin_diag(an_interpreter_state  *ips,
