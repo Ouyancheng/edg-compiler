@@ -1,5 +1,15 @@
 Version 6.10
 
+9/3/26   [EDGcpfe/29038]
+Local variables of type a_constant in expr.c
+
+Version 6.9 of the front end introduced local variables of type a_constant in
+the expr.c source code.  Such local variables lack an IL entry prefix, which
+can result in memory corruption when pointers to the variables are passed to
+various functions.  This has now been fixed (by using local_constant() instead;
+see the entry for EDGcpfe/16056).
+
+
 9/3/26   [EDGcpfe/29037]
 C++-generating back end: Dropped reference in a cast to a type operator
 

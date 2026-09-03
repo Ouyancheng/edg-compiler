@@ -43935,7 +43935,7 @@ can probe for a following "::" in nested-name-specifier contexts.
                           outer_pesep, pesep = NULL;
   a_pack_expansion_descr_ptr
                           pedep = NULL;
-  a_constant              index_constant;
+  a_constant_ptr          index_constant = local_constant();
   a_host_large_unsigned   index_value;
   a_token_sequence_number first_token;
   a_symbol_ptr            sym = NULL;
@@ -44017,15 +44017,15 @@ can probe for a following "::" in nested-name-specifier contexts.
   skip_to_pack_index_lbracket();
   (void)required_token(tok_lbracket, ec_exp_lbracket);
   add_stop_token(tok_rbracket);
-  scan_integral_constant_expression(&index_constant);
+  scan_integral_constant_expression(index_constant);
   (void)required_token_no_advance(tok_rbracket, ec_exp_rbracket);
   remove_stop_token(tok_rbracket);
   if (curr_token == tok_rbracket && !might_be_id_start) (void)get_token();
   /* Decide whether the index forces us to preserve a dependent trk_pack_index
      (either the index itself is dependent, or the pack came from an enclosing
      real instantiation). */
-  if (!is_error_constant(&index_constant)) {
-    index_is_dependent = constant_is_instantiation_dependent(&index_constant);
+  if (!is_error_constant(index_constant)) {
+    index_is_dependent = constant_is_instantiation_dependent(index_constant);
   }  /* if */
   if (!err && !is_prototype &&
       (index_is_dependent || pack_from_enclosing_inst)) {
@@ -44044,7 +44044,7 @@ can probe for a following "::" in nested-name-specifier contexts.
          dependent. */
       expr_pos_error(ec_pack_index_out_of_bounds, &start_position);
       result = error_type();
-    } else if (is_error_constant(&index_constant)) {
+    } else if (is_error_constant(index_constant)) {
       result = error_type();
     } else {
       /* Create a dependent trk_pack_index typeref for prototype
@@ -44057,7 +44057,7 @@ can probe for a following "::" in nested-name-specifier contexts.
       result->variant.typeref.type = type_of_unknown_templ_param_nontype;
       result->variant.typeref.is_dependent_type_operator = TRUE;
       result->variant.typeref.extra_info->operator_type_arg = first_pack_type;
-      make_constant_operand(&index_constant, &index_operand);
+      make_constant_operand(index_constant, &index_operand);
       index_expr = make_node_from_operand(&index_operand);
       if (in_file_scope(index_expr)) {
         result->variant.typeref.extra_info->expr = index_expr;
@@ -44074,9 +44074,9 @@ can probe for a following "::" in nested-name-specifier contexts.
     /* Real instantiation: advance through expansion elements until the indexed
        one is found. */
     a_boolean  found;
-    if (!is_error_constant(&index_constant)) {
+    if (!is_error_constant(index_constant)) {
       a_boolean  ovflo;
-      index_value = unsigned_value_of_integer_constant(&index_constant,
+      index_value = unsigned_value_of_integer_constant(index_constant,
                                                        &ovflo);
       if (ovflo) err = TRUE;
     } else {
@@ -44125,6 +44125,7 @@ can probe for a following "::" in nested-name-specifier contexts.
       abandon_potential_pack_expansion_context(pesep);
     }  /* if */
   }  /* if */
+  release_local_constant(&index_constant);
   db_exit();
   return result;
 }  /* scan_pack_index_type_specifier */
@@ -44157,7 +44158,7 @@ replayed identifier to build the result operand.
                           outer_pesep, pesep = NULL, suppression_pesep = NULL;
   a_pack_expansion_descr_ptr
                           pedep = NULL;
-  a_constant              index_constant;
+  a_constant_ptr          index_constant = local_constant();
   a_host_large_unsigned   index_value;
   a_token_sequence_number first_token;
   a_symbol_ptr            sym = NULL;
@@ -44241,7 +44242,7 @@ replayed identifier to build the result operand.
   skip_to_pack_index_lbracket();
   (void)required_token(tok_lbracket, ec_exp_lbracket);
   add_matching_stop_token(tok_rbracket);
-  scan_integral_constant_expression(&index_constant);
+  scan_integral_constant_expression(index_constant);
   (void)required_token_no_advance(tok_rbracket, ec_exp_rbracket);
   remove_matching_stop_token(tok_rbracket);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -44252,8 +44253,8 @@ replayed identifier to build the result operand.
   /* Decide whether the index forces us to preserve a dependent enk_pack_index
      (either the index itself is dependent, or the pack came from an enclosing
      real instantiation). */
-  if (!is_error_constant(&index_constant)) {
-    index_is_dependent = constant_is_instantiation_dependent(&index_constant);
+  if (!is_error_constant(index_constant)) {
+    index_is_dependent = constant_is_instantiation_dependent(index_constant);
   }  /* if */
   if (!err && !is_prototype &&
       (index_is_dependent || pack_from_enclosing_inst)) {
@@ -44272,7 +44273,7 @@ replayed identifier to build the result operand.
          dependent. */
       expr_pos_error(ec_pack_index_out_of_bounds, &start_position);
       make_error_operand(result);
-    } else if (is_error_constant(&index_constant)) {
+    } else if (is_error_constant(index_constant)) {
       make_error_operand(result);
     } else {
       /* Create a dependent enk_pack_index node for prototype
@@ -44283,7 +44284,7 @@ replayed identifier to build the result operand.
       expr = alloc_expr_node(enk_pack_index);
       expr->type = type_of_unknown_templ_param_nontype;
       expr->variant.pack_index.expr = make_node_from_operand(&id_operand);
-      make_constant_operand(&index_constant, &index_operand);
+      make_constant_operand(index_constant, &index_operand);
       index_expr = make_node_from_operand(&index_operand);
       expr->variant.pack_index.index_expr = index_expr;
       make_expression_operand(expr, result);
@@ -44299,9 +44300,9 @@ replayed identifier to build the result operand.
     /* Real instantiation: advance through expansion elements until the indexed
        one is found. */
     a_boolean  found;
-    if (!is_error_constant(&index_constant)) {
+    if (!is_error_constant(index_constant)) {
       a_boolean  ovflo;
-      index_value = unsigned_value_of_integer_constant(&index_constant,
+      index_value = unsigned_value_of_integer_constant(index_constant,
                                                        &ovflo);
       if (ovflo) err = TRUE;
     } else {
@@ -44346,6 +44347,7 @@ replayed identifier to build the result operand.
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  release_local_constant(&index_constant);
   db_exit();
 }  /* scan_pack_index_expr */
 
