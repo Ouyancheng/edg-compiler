@@ -2367,6 +2367,19 @@ Return TRUE if the given type is trivially copyable.
             a_type_qualifier_set  tqs;
             a_symbol_ptr          fund_sym = fundamental_symbol_of(sym);
             if (symbol_is(fund_sym, sk_function_template)) continue;
+            if (symbol_is(sym, sk_projection) &&
+                sym->variant.projection.fund_sym_is_nonreal_member) {
+              /* A using-declaration that names an assignment operator
+                 through a dependent qualified name, as in
+                     template<class T> struct D : B<T> {
+                       using B<T>::type::operator=;
+                     };
+                 contributes a projection whose fundamental symbol stands for
+                 a member of a nonreal class rather than a member function.
+                 Nothing is known about such an operator, so it can neither
+                 establish nor rule out trivial copyability. */
+              continue;
+            }  /* if */
             check_assertion(symbol_is(fund_sym, sk_member_function)); 
             rp = fund_sym->variant.routine.ptr;
             if (rp->is_trivial_copy_function) {

@@ -3976,8 +3976,10 @@ typedef struct a_symbol {
 			   list is an sk_member_function or
 			   sk_function_template symbol or an sk_projection
 			   symbol that points to an sk_member_function or
-			   sk_function_template fundamental symbol.  When the
-			   current symbol is not a class member and
+			   sk_function_template fundamental symbol, or, when
+			   fund_sym_is_nonreal_member is set on it, to a
+			   symbol standing for a member of a nonreal class.
+			   When the current symbol is not a class member and
 			   synthesized_namespace_projection is FALSE, each
 			   symbol is an sk_routine or sk_function_template
 			   symbol or an sk_namespace_projection symbol that

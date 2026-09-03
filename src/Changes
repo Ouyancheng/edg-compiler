@@ -1,5 +1,33 @@
 Version 6.10
 
+9/3/26   [EDGcpfe/29025]
+Abort in is_trivially_copyable_type for a using-declared operator= from a
+dependent base
+
+Consider:
+
+  template<class T> struct B;
+  template<class T> struct D : B<T> {
+    D &operator=(const D &);
+    using B<T>::type::operator=;
+  };
+
+A using-declaration that names an assignment operator through a dependent
+qualified name contributes a projection symbol to the overload set recorded
+in the class symbol supplement.  The fundamental symbol of such a projection
+stands for a member of a nonreal class rather than a member function, and
+is_trivially_copyable_type asserted that every candidate in that overload set
+is a member function.  With checking disabled, it instead read the routine
+pointer of a symbol that is not a routine, which could produce an arbitrary
+answer.  Such candidates are now skipped: Nothing is known about the operator
+they name, so it can neither establish nor rule out trivial copyability.
+
+Note that the front end itself never asks whether the class in the example is
+trivially copyable, because that query requires a complete, instantiated type;
+the problem was observed through a back end that records a POD attribute for
+every class type it emits.
+
+
 9/3/26   [EDGcpfe/29038]
 Local variables of type a_constant in expr.c
 
