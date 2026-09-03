@@ -22038,12 +22038,17 @@ static a_boolean check_for_move_optimization(
 /*
 source_operand is being converted to the given destination type.  The remaining
 parameters are described in conversion_to_class_possible.  Check whether the
-source operand is an lvalue subject to the move optimization (see 
-[class.copy.elision]/3 in N4762), and if so return TRUE, turn the source
-operand into an xvalue (by casting it to an rvalue reference), and record the
-conversion in *conversion and *ctor_arg_conversion.  In some error cases, the
-source operand is cast to the rvalue reference, but FALSE is returned.  In all
-other cases, FALSE is returned and the source operand is left unchanged. 
+source operand is an lvalue subject to implicit move (see N5046
+[class.copy.elision]): If it is an id-expression naming an implicitly movable
+entity, overload resolution is first performed as if the entity were an rvalue.
+If that selects a moving constructor, or a conversion function in C++11 and
+later, return TRUE, turn the source operand into an xvalue (by casting it to an
+rvalue reference), and record the conversion in *conversion and
+*ctor_arg_conversion.  If the first overload resolution is ambiguous, the
+source operand is cast to the rvalue reference but FALSE is returned so the
+caller will re-diagnose the error.  Otherwise FALSE is returned and the source
+operand is left unchanged, so the caller can retry considering the entity as an
+lvalue.
 */
 {
   a_variable_ptr  var;
@@ -22057,9 +22062,8 @@ other cases, FALSE is returned and the source operand is left unchanged.
        (operand_is_lvalue_for_rref_variable(source_operand, &var) &&
         (!(gpp_mode || ms_version_is(<1924) || clang_version_is(<130000)) ||
          cpp20_mode)))) {
-    /* The move constructor optimization might apply here.  Check further.
-       (Note that we exclude cases that involve captured variables, since
-       those will be rewritten.) */
+    /* Implicit move might apply here: Check further.  (We exclude cases that
+       involve captured variables, since those will be rewritten.) */
     a_boolean initializing_return_value =
                            (conv_context & CCO_INITIALIZING_RETURN_VALUE) != 0;
     if (variable_eligible_for_copy_optimization(var,
@@ -22102,20 +22106,21 @@ other cases, FALSE is returned and the source operand is left unchanged.
                                        conversion, p_arg_conversion,
                                        &ambiguous,
                                        (a_candidate_function_ptr *)NULL)) {
-        /* The conversion is possible.  Additionally, the selected function
-           has to be a constructor whose first parameter is an rvalue
-           reference.  For something like:
+        /* Use the rvalue conversion if it selected a moving constructor
+           or, in C++11 and later, a conversion function such as
+           operator T() &&.  A copy constructor such as X(const T&) does not
+           count: Overload resolution is done again below with the entity
+           treated as an lvalue.  The function selected for the constructor
+           argument is the one that matters, as in
                struct U { U(int*); U(U&&); ~U(); };
                struct S { S(U); };
-               S g() {
-                 U u{new int(42)};
-                 return u;
-               }
-           the selected function is the move constructor of U. */
+               S g() { U u{new int(42)}; return u; }
+           where it is the move constructor of U. */
         a_routine_ptr  conv_rp = p_arg_conversion->routine;
         if (conv_rp == NULL) conv_rp = conversion->routine;
-        if (selected_function_is_moving_constructor(conv_rp)) {
-          /* The move optimization applies. */
+        if (selected_function_is_moving_constructor(conv_rp) ||
+            (cpp11_mode && conv_rp != NULL &&
+             special_kind_is(conv_rp, sfk_conversion))) {
           *source_operand = rvalue_operand;
           conversion_done = TRUE;
         }  /* if */

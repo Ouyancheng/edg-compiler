@@ -19,6 +19,28 @@ significantly reduced.
 The builtin signatures for Clang 22 have also been updated to the final 22.1.0
 release; previously, the signatures were based on RC1 (see the changes for
 EDGcpfe/28648 in version 6.9).
+9/2/26   [EDGcpfe/29031]
+Implicit move ignored &&-qualified conversion functions
+
+A return or throw of an implicitly movable entity first performs overload
+resolution as if the entity were an rvalue.  In C++11 and later, if that
+selects a conversion function (e.g., operator T() &&), that conversion is
+used.  If it selects only a copy constructor such as X(X const&), overload
+resolution is retried treating the entity as an lvalue, matching GCC and
+Clang.  The front end previously kept the rvalue conversion only for a
+constructor whose first parameter is an rvalue reference.  For example:
+
+  struct S { int i; };
+  struct X {
+    operator S() & = delete;
+    operator S() && { return {42}; }
+  };
+  S f(X x) {
+    return x;  // Previously an error.  Now okay.
+  }
+
+Previously this  called operator S() & instead of operator S() &&.  That is
+now fixed.
 
 
 9/1/26   [EDGcpfe/28964]
