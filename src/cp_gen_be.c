@@ -15547,8 +15547,14 @@ is_reinterpret_cast indicate it.
        op == (an_expr_operator_kind)eok_ref_cast ||
        op == (an_expr_operator_kind)eok_ref_dynamic_cast) &&
       !(dest_type->kind == (a_type_kind)tk_typeref &&
-        typeref_is_type_operator(dest_type, /*include_intrinsics=*/TRUE))) {
-    /* A cast to a reference type that is not implicit in a type operator. */
+        typeref_is_type_operator(dest_type, /*include_intrinsics=*/TRUE) &&
+        is_any_reference_type(dest_type))) {
+    /* A cast to a reference type that is not implicit in a type operator.
+       The reference is implicit only when the type operator itself denotes
+       a reference type, because that is the case in which the reference is
+       kept in the node type rather than being stripped.  When the type
+       operator denotes a non-reference type, as in "(decltype(s) &&)s" for
+       a variable "s" of a class type, the reference must be restored. */
     destination_type_for_reference_cast(expr, &ref_type);
     dest_type = &ref_type;
   } else if (is_cast_of_UDC_to_different_pointer_type(dest_type, operand_1)) {

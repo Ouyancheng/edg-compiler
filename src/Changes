@@ -1,5 +1,31 @@
 Version 6.10
 
+9/3/26   [EDGcpfe/29037]
+C++-generating back end: Dropped reference in a cast to a type operator
+
+Consider:
+
+  template<class T, const T &x> constexpr T id() { return x; }
+  struct S { };
+  template<class T> struct A {
+    static S s;
+    S f() { return id<decltype(s), (decltype(s) &&)s>(); }
+  };
+  template<class T> S A<T>::s = S();
+  S g() { A<int> a; return a.f(); }
+
+A cast to a reference type is recorded with the referenced type as the type
+of the operation node, and the back end restored the reference when
+generating the cast.  It skipped that step whenever the node type was a type
+operator, on the assumption that the reference was part of the type operator
+itself; but that is so only when the type operator denotes a reference type.
+As a result, the cast above was generated as "(decltype(s))s", which yields
+a temporary rather than an lvalue referring to "A<int>::s", and recompiling
+the generated code produced errors about a reference or pointer to a
+temporary with limited lifetime.  The reference is now restored unless the
+type operator denotes a reference type.
+
+
 9/3/26   [EDGcpfe/29033]
 Clang compatibility: "#pragma clang riscv intrinsic"
 
