@@ -3096,7 +3096,7 @@ temporary null character -- for use by quadmath_snprintf).
   check_assertion(chars_written > 0);
   /* Remove any extra characters (including the terminating null character
      added by quadmath_snprintf). */
-  underlying_array.resize(orig_size + chars_written, '\0');
+  underlying_array.resize(orig_size + (size_t)chars_written, '\0');
 }  /* append_using_quadmath_formatting */
 
 #endif /* USE_QUADMATH_LIBRARY */
