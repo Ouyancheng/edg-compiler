@@ -1220,6 +1220,7 @@ Return TRUE if the two given overload set member lists are equal.
 }  /* operator== */
 
 
+#if EXPENSIVE_CHECKING
 static inline a_boolean operator!=(a_builtin_overload_set_member_list  list_1,
                                    a_builtin_overload_set_member_list  list_2)
 /*
@@ -1228,6 +1229,7 @@ Return TRUE if the two given overload set member lists are not equal.
 {
   return !(list_1 == list_2);
 }  /* operator!= */
+#endif /* EXPENSIVE_CHECKING */
 
 STATIC_THREAD Dyn_array<a_builtin_overload_set_member>
                 *builtin_overload_set_members;
