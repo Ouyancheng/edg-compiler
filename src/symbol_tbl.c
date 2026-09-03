@@ -2035,6 +2035,8 @@ Allocate a new symbol header, and return a pointer to it.
 #if BUILTIN_FUNCTIONS_ENABLED
   ptr->is_builtin_function = FALSE;
   ptr->is_builtin_overloadable = FALSE;
+  ptr->is_builtin_overload_set = FALSE;
+  ptr->is_builtin_deferred = FALSE;
   ptr->builtin_has_been_loaded = FALSE;
   ptr->builtin_function_category = bfc_none;
   ptr->builtin_function_index = 0;

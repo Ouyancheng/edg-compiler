@@ -1,5 +1,26 @@
 Version 6.10
 
+9/3/26   [EDGcpfe/29033]
+Clang compatibility: "#pragma clang riscv intrinsic"
+
+The front end now supports the "#pragma clang riscv intrinsic" construct used
+by the Clang RISC-V vector headers (<riscv_vector.h>, <andes_vector.h>, and
+<sifive_vector.h>).  It also predeclares the RISC-V OFP8 vector types used by
+Clang 23 and later (for example, __rvv_float8e4m3m1_t and
+__rvv_float8e5m2m1_t).  This is a small IL CHANGE.
+
+In addition, loading the builtin functions associated with headers such as
+<riscv_vector.h>, <arm_neon.h>, and <arm_sve.h> previously eagerly created a
+function declaration for every applicable builtin function.  Now, function
+declarations are created lazily when a builtin function is first referenced.
+Compilation times for translation units that load those builtins are
+significantly reduced.
+
+The builtin signatures for Clang 22 have also been updated to the final 22.1.0
+release; previously, the signatures were based on RC1 (see the changes for
+EDGcpfe/28648 in version 6.9).
+
+
 9/1/26   [EDGcpfe/28964]
 Subnormal hex floating-point literals that cannot be represented exactly
 

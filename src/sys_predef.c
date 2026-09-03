@@ -1043,14 +1043,350 @@ Parse the specified type if it has not been parsed yet.
 }  /* builtin_function_type_for_index */
 
 
+static void get_builtin_table_entry_name(const a_builtin_descr  *bdp,
+                                         Small_string<64>       *name,
+                                         a_const_char           **ovl_info)
+/*
+Set *name to the name of the given builtin function table entry.  A name
+starting with a '#' character, followed by a digit, indicates that the name is
+formed from the name of the previous table entry (which must then be in *name
+on entry) by stripping off the specified number of '_'-separated components and
+then appending the new suffix; otherwise, the entry is stored with its full
+name.  If the entry name contains an '@' character (overload information),
+*ovl_info is set to point at the character following the '@'; otherwise, it is
+set to NULL.
+*/
+{
+  a_const_char  *p = bdp->name;
+
+  if (*p != '#') {
+    while (*p != '\0' && *p != '@') {
+      ++p;
+    }  /* while */
+    *name = a_string_view(bdp->name, (size_t)(p - bdp->name));
+  } else {
+    /* The new name shares a common prefix with the previous one. */
+    unsigned  nr_to_remove;
+    size_t    len = name->length();
+    ++p;
+    check_assertion(*p >= '0' && *p <= '9');
+    nr_to_remove = (unsigned)((*p) - '0');
+    ++p;
+    /* Skip over the specified number of '_'-separated components from the
+       end. */
+    while (nr_to_remove != 0) {
+      while ((*name)[len - 1] != '_') --len;
+      --len;
+      --nr_to_remove;
+    }  /* while */
+    name->truncate_to(len);
+    /* Append the new suffix. */
+    for (len = 0; *p && *p != '@'; ++p) ++len;
+    name->append(a_string_view(bdp->name + 2, len));
+  }  /* if */
+  *ovl_info = *p == '@' ? p + 1 : NULL;
+}  /* get_builtin_table_entry_name */
+
+
+static void builtin_overload_base_name(const Small_string<64>  *name,
+                                       a_const_char            *ovl_info,
+                                       Small_string<64>        *ovl_name)
+/*
+Set *ovl_name to the name of the additional overload described by the '@'
+overload information of a builtin function table entry whose name is given by
+name, where ovl_info points at the digits following the '@' (any
+compiler-restricting letter must have been skipped by the caller): for the form
+"n", the trailing n '_'-separated components of the name are removed, and for
+the form "nm", only the m components starting at the nth component from the end
+are removed.
+*/
+{
+  size_t        pos = name->length();
+  unsigned      nr_to_skip;
+  a_const_char  *p = ovl_info;
+
+  check_assertion(*p >= '0' && *p <= '9');
+  nr_to_skip = (unsigned)(*p - '0');
+  ++p;
+  /* Skip over the specified number of '_'-separated components from the
+     end. */
+  while (nr_to_skip != 0) {
+    --pos;
+    while ((*name)[pos - 1] != '_') --pos;
+    --nr_to_skip;
+  }  /* while */
+  *ovl_name = a_string_view(name->as_temp_characters(), pos - 1);
+  if (*p != '\0') {
+    check_assertion(*p >= '0' && *p <= '9');
+    /* Skip over the specified number of '_'-separated components towards the
+       end. */
+    nr_to_skip = (unsigned)(*p - '0');
+    while (nr_to_skip != 0) {
+      while ((*name)[pos] != '_') ++pos;
+      ++pos;
+      --nr_to_skip;
+    }  /* while */
+    --pos;
+    /* Append the suffix to the overload name. */
+    ovl_name->append(a_string_view(name->as_temp_characters() + pos,
+                                   name->length() - pos));
+  }  /* if */
+}  /* builtin_overload_base_name */
+
+
+static a_const_char *builtin_overload_info_for_current_mode(
+                                                       a_const_char  *ovl_info)
+/*
+The given '@' overload information of a builtin function table entry (ovl_info
+points at the character following the '@', or is NULL if the entry has no such
+information) may be restricted to one compiler by a leading letter: 'L' for
+Clang and 'g' for GCC.  Return NULL if the overload is not declared in the
+current emulation mode; otherwise, return ovl_info advanced past any compiler
+letter.
+*/
+{
+  if (ovl_info != NULL && (*ovl_info == 'L' || *ovl_info == 'g')) {
+    if ((*ovl_info == 'L' && clang_mode) ||
+        (*ovl_info == 'g' && gnu_mode && !clang_mode)) {
+      ++ovl_info;
+    } else {
+      ovl_info = NULL;
+    }  /* if */
+  }  /* if */
+  return ovl_info;
+}  /* builtin_overload_info_for_current_mode */
+
+
+/* Type used for an index into builtin_overload_set_members.  Values are
+   stored as one plus the index, so that zero denotes "no member". */
+typedef unsigned int a_builtin_overload_set_member_index;
+
+typedef struct a_builtin_overload_set_member {
+  a_builtin_function_index
+                table_index;
+                        /* The index of the entry in the builtin table. */
+  a_builtin_function_category
+                category;
+                        /* The builtin function category selecting the
+                           builtin table. */
+  a_builtin_overload_set_member_index
+                next;   /* One plus the index, in builtin_overload_set_members,
+                           of the node for the next member of the overload set,
+                           or zero if this is the last recorded member. */
+} a_builtin_overload_set_member;
+
+typedef struct a_builtin_overload_set_member_list {
+  a_builtin_overload_set_member_index
+                head;   /* One plus the index, in builtin_overload_set_members,
+                           of the node for the first member of the overload
+                           set. */
+  a_builtin_overload_set_member_index
+                tail;   /* One plus the index, in builtin_overload_set_members,
+                           of the node for the last member of the overload
+                           set. */
+} a_builtin_overload_set_member_list;
+
+namespace detail {
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_builtin_overload_set_member> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_builtin_overload_set_member> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_builtin_overload_set_member_list> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_builtin_overload_set_member_list> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* namespace detail */
+
+static inline a_boolean operator==(a_builtin_overload_set_member_list  list_1,
+                                   a_builtin_overload_set_member_list  list_2)
+/*
+Return TRUE if the two given overload set member lists are equal.
+*/
+{
+  return list_1.head == list_2.head && list_1.tail == list_2.tail;
+}  /* operator== */
+
+
+static inline a_boolean operator!=(a_builtin_overload_set_member_list  list_1,
+                                   a_builtin_overload_set_member_list  list_2)
+/*
+Return TRUE if the two given overload set member lists are not equal.
+*/
+{
+  return !(list_1 == list_2);
+}  /* operator!= */
+
+STATIC_THREAD Dyn_array<a_builtin_overload_set_member>
+                *builtin_overload_set_members;
+                        /* The nodes of the overload set member lists of the
+                           current translation unit. */
+
+using a_builtin_overload_set_map = Ptr_map<a_symbol_header*,
+                                           a_builtin_overload_set_member_list>;
+                        /* The type of a map that associates the symbol header
+                           of a builtin function overload set name with the
+                           member list of the set. */
+
+STATIC_THREAD a_builtin_overload_set_map
+                *builtin_overload_set_map;
+                        /* Maps the symbol header of a builtin function
+                           overload set name to the member list of the set. */
+
+STATIC_THREAD unsigned int
+                builtin_overload_set_categories;
+                        /* A bit mask of the builtin function categories whose
+                           tables have been loaded by
+                           load_overloadable_builtin_symbols (in any
+                           translation unit of the compilation) and may contain
+                           entries of builtin function overload sets.  The mask
+                           is reset when a primary translation unit starts and
+                           is saved and restored with precompiled headers;
+                           otherwise it is shared by all translation units of a
+                           compilation. */
+
+STATIC_THREAD unsigned int
+                mapped_overload_set_categories;
+                        /* A bit mask of the builtin function categories whose
+                           tables have been scanned for overload set members in
+                           the current translation unit. */
+
+/* builtin_overload_set_categories and mapped_overload_set_categories have
+   one bit per builtin function category. */
+static_assert(bfc_last <= 8*sizeof(unsigned int),
+              "too many builtin function categories for the category bit "
+              "masks");
+
+static void add_builtin_overload_set_member(
+                                      a_symbol_header              *sym_hdr,
+                                      a_builtin_function_category  bfc,
+                                      a_builtin_function_index     table_index)
+/*
+Record the builtin function table entry given by bfc and table_index as a
+member of the overload set named by sym_hdr.
+*/
+{
+  a_builtin_overload_set_member        member = { table_index, bfc, 0 };
+  a_builtin_overload_set_member_list   list;
+  a_builtin_overload_set_member_index  node_index;
+
+  node_index = (a_builtin_overload_set_member_index)
+                                        builtin_overload_set_members->length();
+  builtin_overload_set_members->push_back(member);
+  list = builtin_overload_set_map->get(sym_hdr);
+  if (list.head == 0) {
+    /* This is the first recorded member of the set. */
+    list.head = node_index + 1;
+    list.tail = node_index + 1;
+    builtin_overload_set_map->map(sym_hdr, list);
+  } else {
+    /* Append the new member at the end of the list. */
+    (*builtin_overload_set_members)[list.tail - 1].next = node_index + 1;
+    list.tail = node_index + 1;
+    builtin_overload_set_map->replace(sym_hdr, list);
+  }  /* if */
+}  /* add_builtin_overload_set_member */
+
+
+static a_symbol_ptr enter_builtin_overload_set_members(
+                                                     a_symbol_header  *sym_hdr)
+/*
+Enter a routine for every recorded member entry of the overload set named by
+sym_hdr.  Return the symbol for the last routine entered, or NULL if no
+routines were entered.
+*/
+{
+  a_symbol_ptr  result = NULL;
+  a_builtin_overload_set_member_index
+                node_index = builtin_overload_set_map->get(sym_hdr).head;
+
+  if (node_index != 0) {
+    while (node_index != 0) {
+      a_builtin_overload_set_member
+                  *member = &(*builtin_overload_set_members)[node_index - 1];
+      const a_builtin_descr
+                  *bdp = builtin_tables[member->category]+member->table_index;
+      a_type_ptr  builtin_type =
+                              builtin_function_type_for_index(bdp->type_index);
+      result = enter_builtin_function(sym_hdr->identifier, builtin_type,
+                                      bdp->kind, (a_symbol_locator *)NULL);
+      node_index = member->next;
+    }  /* while */
+  }  /* if */
+  return result;
+}  /* enter_builtin_overload_set_members */
+
+
+static void map_builtin_overload_sets(a_builtin_function_category  bfc)
+/*
+Scan the builtin table for the given builtin function category and record the
+overload set memberships of its entries.  This is used when the overload set
+members of the table were not recorded in the current translation unit when the
+table was loaded.  Only entries that are enabled in the current emulation mode
+and whose name (or abbreviated overload name) denotes a symbol header that is
+already marked as an overload set are recorded.
+*/
+{
+  const a_builtin_descr *bdp;
+  Small_string<64>      name;
+
+  for (bdp = builtin_tables[bfc]; bdp->name != NULL; bdp++) {
+    a_const_char  *ovl_info;
+    get_builtin_table_entry_name(bdp, &name, &ovl_info);
+    ovl_info = builtin_overload_info_for_current_mode(ovl_info);
+    if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
+      a_const_char  *restrictions =
+                         builtin_condition_table[bdp->cond_index].restrictions;
+      if (check_restrictions_met(restrictions, /*issue_error=*/FALSE)) {
+        a_symbol_locator          loc;
+        a_builtin_function_index  table_index =
+                         (a_builtin_function_index)(bdp - builtin_tables[bfc]);
+        clear_locator(&loc, &null_source_position);
+        (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
+        if (loc.symbol_header->is_builtin_overload_set) {
+          add_builtin_overload_set_member(loc.symbol_header, bfc,
+                                          table_index);
+        }  /* if */
+        if (ovl_info != NULL) {
+          Small_string<64>  ovl_name;
+          builtin_overload_base_name(&name, ovl_info, &ovl_name);
+          clear_locator(&loc, &null_source_position);
+          (void)find_symbol(ovl_name.as_temp_characters(), ovl_name.length(),
+                            &loc);
+          if (loc.symbol_header->is_builtin_overload_set) {
+            add_builtin_overload_set_member(loc.symbol_header, bfc,
+                                            table_index);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* map_builtin_overload_sets */
+
+
 a_symbol_ptr load_matching_builtin_function(a_symbol_header *sym_hdr)
 /*
 The builtin function referred to by sym_hdr has not yet been loaded and a
-reference has been made to it, so create the routine entry now.  Note that this
-may be called at various points during the translation, so care must be taken
-to save and restore the state of the compilation while a file-scope routine is
-created (and potentially a routine type is parsed).  Return the newly-created
-symbol for the builtin function.
+reference has been made to it, so create the routine entry now.  If the name
+denotes an overload set, the routines for the member entries of the overload
+set with that name are created; otherwise, the single routine recorded in the
+symbol header is created.  Note that this may be called at various points
+during the translation, so care must be taken to save and restore the state of
+the compilation while a file-scope routine is created (and potentially a
+routine type is parsed).  Return the newly-created symbol for the builtin
+function.
 */
 {
   a_symbol_ptr     result = NULL;
@@ -1061,8 +1397,9 @@ symbol for the builtin function.
 
   check_assertion(sym_hdr->is_builtin_function);
   mark_builtin_loaded(sym_hdr);
-  if (sym_hdr->builtin_function_category != bfc_keyword &&
-      builtin_restrictions_met(sym_hdr, /*issue_error=*/TRUE)) {
+  if (sym_hdr->is_builtin_overload_set ||
+      (sym_hdr->builtin_function_category != bfc_keyword &&
+       builtin_restrictions_met(sym_hdr, /*issue_error=*/TRUE))) {
     /* Push a scope suitable for a new top-level declaration. */
     push_new_top_level_declaration();
     decl_scope_level = DEPTH_OF_FILE_SCOPE;
@@ -1072,20 +1409,37 @@ symbol for the builtin function.
       push_name_linkage((a_name_linkage_kind)nlk_external);
       name_linkage_pushed = TRUE;
     }  /* if */
-    if (sym_hdr->builtin_function_category == bfc_user) {
-      a_builtin_user_descr_ptr budp =
-                          &builtin_user_table[sym_hdr->builtin_function_index];
-      builtin_type = builtin_function_type(budp->type_string, &pos_curr_token);
-      builtin_kind = budp->kind;
+    if (sym_hdr->is_builtin_overload_set) {
+      /* Enter the routines of the overload set with this name.  The member
+         entries of the set are recorded when the builtin tables are loaded; if
+         that recording is not available in this translation unit for a loaded
+         category, scan the table now. */
+      unsigned int  unmapped = builtin_overload_set_categories &
+                                               ~mapped_overload_set_categories;
+      for (unsigned  bfc = 0; bfc < (unsigned)bfc_last; ++bfc) {
+        if ((unmapped & (1U << bfc)) != 0) {
+          map_builtin_overload_sets((a_builtin_function_category)bfc);
+          mapped_overload_set_categories |= (1U << bfc);
+        }  /* if */
+      }  /* for */
+      result = enter_builtin_overload_set_members(sym_hdr);
     } else {
-      const a_builtin_descr *bdp;
-      bdp = builtin_tables[sym_hdr->builtin_function_category] +
+      if (sym_hdr->builtin_function_category == bfc_user) {
+        a_builtin_user_descr_ptr budp =
+                          &builtin_user_table[sym_hdr->builtin_function_index];
+        builtin_type = builtin_function_type(budp->type_string,
+                                             &pos_curr_token);
+        builtin_kind = budp->kind;
+      } else {
+        const a_builtin_descr *bdp;
+        bdp = builtin_tables[sym_hdr->builtin_function_category] +
                                                sym_hdr->builtin_function_index;
-      builtin_type = builtin_function_type_for_index(bdp->type_index);
-      builtin_kind = bdp->kind;
+        builtin_type = builtin_function_type_for_index(bdp->type_index);
+        builtin_kind = bdp->kind;
+      }  /* if */
+      result = enter_builtin_function(sym_hdr->identifier, builtin_type,
+                                      builtin_kind, (a_symbol_locator *)NULL);
     }  /* if */
-    result = enter_builtin_function(sym_hdr->identifier, builtin_type,
-                                    builtin_kind, (a_symbol_locator *)NULL);
     /* Restore name linkage and scope. */
     if (name_linkage_pushed) {
       pop_name_linkage();
@@ -1299,98 +1653,145 @@ An '@' character indicates that, in addition to the name specified, another
 overload is declared with a number of '_'-separated components removed from the
 name as follows: for the form "@n", the trailing n components are removed, and
 for the form "@nm", only the m components starting from the nth component from
-the end are removed.
+the end are removed.  An optional compiler-restricting letter may appear
+between the '@' and the digits: 'L' indicates that the overload is only
+declared in Clang emulation mode and 'g' only in GCC emulation mode; without a
+letter, the overload is valid for every compiler in the entry's condition.
+
+To avoid the considerable expense of entering a routine for each of the
+(potentially many thousands of) entries in these tables, routine entries are
+created lazily.
 */
 {
   const a_builtin_descr *bdp;
   Small_string<64>      name;
+  a_boolean             lazy_sets = !preload_builtin_functions;
+  a_boolean             already_loaded = lazy_sets &&
+                                         (builtin_overload_set_categories &
+                                                ((unsigned int)1 << bfc)) != 0;
 
-  for (bdp = builtin_tables[bfc]; bdp->name != NULL; bdp++) {
-    a_const_char  *p, *ovl_info = NULL;
-    p = bdp->name;
-    if (*p != '#') {
-      name = bdp->name;
-      while (*p != '\0' && *p != '@') {
-        ++p;
-      }  /* while */
-      name = a_string_view(bdp->name, (size_t)(p - bdp->name));
-    } else {
-      /* The new name shares a common prefix with the previous one. */
-      unsigned  nr_to_remove;
-      size_t    len = name.length();
-      ++p;
-      check_assertion(*p >= '0' && *p <= '9');
-      nr_to_remove = (unsigned)((*p) - '0');
-      ++p;
-      /* Skip over the specified number of '_'-separated components from the
-         end. */
-      while (nr_to_remove != 0) {
-        while (name[len - 1] != '_') --len;
-        --len;
-        --nr_to_remove;
-      }  /* while */
-      name.truncate_to(len);
-      /* Append the new suffix. */
-      for (len = 0; *p && *p != '@'; ++p) ++len;
-      name.append(a_string_view(bdp->name + 2, len));
-    }  /* if */
-    if (*p == '@') ovl_info = p + 1;
-    if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
-      a_symbol_locator  loc;
-      a_const_char      *restrictions;
-      clear_locator(&loc, &null_source_position);
-      (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
-      loc.symbol_header->is_builtin_function = TRUE;
-      loc.symbol_header->is_builtin_overloadable = TRUE;
-      restrictions = builtin_condition_table[bdp->cond_index].restrictions;
-      if (check_restrictions_met(restrictions, /*issue_error=*/FALSE)) {
-        a_type_ptr  builtin_type =
-                              builtin_function_type_for_index(bdp->type_index);
-        (void)enter_builtin_function(name.as_temp_characters(), builtin_type,
-                                     bdp->kind, &loc);
-        if (ovl_info != NULL) {
-          /* This builtin should also be added as an overload. */
-          Small_string<64>  ovl_name;
-          size_t            beg = 0, pos = name.length();
-          unsigned          nr_to_skip;
-          p = ovl_info;
-          check_assertion(*p >= '0' && *p <= '9');
-          nr_to_skip = (unsigned)(*p - '0');
-          ++p;
-          /* Skip over the specified number of '_'-separated components from
-             the end. */
-          while (nr_to_skip != 0) {
-            --pos;
-            while (name[pos - 1] != '_') --pos;
-            --nr_to_skip;
-          }  /* while */
-          ovl_name = a_string_view(name.as_temp_characters() + beg, pos - 1);
-          if (*p != '\0') {
-            check_assertion(*p >= '0' && *p <= '9');
-            /* Skip over the specified number of '_'-separated components
-               towards the end. */
-            nr_to_skip = (unsigned)(*p - '0');
-            while (nr_to_skip != 0) {
-              while (name[pos] != '_') ++pos;
-              ++pos;
-              --nr_to_skip;
-            }  /* while */
-            --pos;
-            /* Append the suffix to the overload name. */
-            ovl_name.append(a_string_view(name.as_temp_characters() + pos,
-                                          name.length() - pos));
+  if (!already_loaded) {
+    for (bdp = builtin_tables[bfc]; bdp->name != NULL; bdp++) {
+      a_const_char  *ovl_info;
+      get_builtin_table_entry_name(bdp, &name, &ovl_info);
+      ovl_info = builtin_overload_info_for_current_mode(ovl_info);
+      if (builtin_enabled(bdp->cond_index, NULL, /*is_secondary=*/FALSE)) {
+        a_symbol_locator  loc;
+        a_const_char      *restrictions;
+        a_boolean         new_builtin;
+        clear_locator(&loc, &null_source_position);
+        (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
+        new_builtin = !loc.symbol_header->is_builtin_function;
+        loc.symbol_header->is_builtin_function = TRUE;
+        loc.symbol_header->is_builtin_overloadable = TRUE;
+        restrictions = builtin_condition_table[bdp->cond_index].restrictions;
+        if (check_restrictions_met(restrictions, /*issue_error=*/FALSE)) {
+          a_type_ptr                builtin_type = NULL;
+          a_builtin_function_index  table_index =
+                         (a_builtin_function_index)(bdp - builtin_tables[bfc]);
+          if (lazy_sets && loc.symbol_header->is_builtin_overload_set) {
+            /* The name denotes an overload set: record the entry as a member
+               of the set so that its routine is entered lazily when the name
+               is referenced. */
+            add_builtin_overload_set_member(loc.symbol_header, bfc,
+                                            table_index);
+            if (!builtin_needs_to_be_loaded(loc.symbol_header)) {
+              builtin_type = builtin_function_type_for_index(bdp->type_index);
+              (void)enter_builtin_function(name.as_temp_characters(),
+                                           builtin_type, bdp->kind, &loc);
+            }  /* if */
+          } else if (lazy_sets && loc.symbol_header->is_builtin_deferred) {
+            /* The creation of a routine for an earlier entry with this name
+               was deferred, but the name denotes an overload set after all:
+               mark the header accordingly and record both entries as members
+               of the set. */
+            loc.symbol_header->is_builtin_overload_set = TRUE;
+            add_builtin_overload_set_member(
+                                  loc.symbol_header,
+                                  loc.symbol_header->builtin_function_category,
+                                  loc.symbol_header->builtin_function_index);
+            add_builtin_overload_set_member(loc.symbol_header, bfc,
+                                            table_index);
+            loc.symbol_header->is_builtin_deferred = FALSE;
+            if (!builtin_needs_to_be_loaded(loc.symbol_header)) {
+              builtin_type = builtin_function_type_for_index(bdp->type_index);
+              (void)enter_builtin_function(name.as_temp_characters(),
+                                           builtin_type, bdp->kind, &loc);
+            }  /* if */
+          } else if (new_builtin && !preload_builtin_functions) {
+            /* This builtin function is the only one with this name, so don't
+               create a routine entry for it now; instead, record where its
+               description can be found so that the routine can be created
+               lazily if the name is referenced.  If another entry for the same
+               name is encountered later, the name is converted to an overload
+               set at that point. */
+            loc.symbol_header->builtin_function_index = table_index;
+            loc.symbol_header->builtin_function_category = bfc;
+            loc.symbol_header->is_builtin_deferred = TRUE;
+          } else {
+            /* This name is already associated with a builtin function or lazy
+               loading is disabled: enter the routine for this entry
+               eagerly. */
+            builtin_type = builtin_function_type_for_index(bdp->type_index);
+            (void)enter_builtin_function(name.as_temp_characters(),
+                                         builtin_type, bdp->kind, &loc);
           }  /* if */
-          clear_locator(&loc, &null_source_position);
-          (void)find_symbol(ovl_name.as_temp_characters(), ovl_name.length(),
-                            &loc);
-          loc.symbol_header->is_builtin_function = TRUE;
-          loc.symbol_header->is_builtin_overloadable = TRUE;
-          (void)enter_builtin_function(ovl_name.as_temp_characters(),
-                                       builtin_type, bdp->kind, &loc);
+          if (ovl_info != NULL) {
+            /* This builtin should also be added as an overload. */
+            Small_string<64>  ovl_name;
+            builtin_overload_base_name(&name, ovl_info, &ovl_name);
+            clear_locator(&loc, &null_source_position);
+            (void)find_symbol(ovl_name.as_temp_characters(),
+                              ovl_name.length(), &loc);
+            loc.symbol_header->is_builtin_function = TRUE;
+            loc.symbol_header->is_builtin_overloadable = TRUE;
+            if (lazy_sets) {
+              /* Record the entry as a member of the overload set denoted by
+                 the abbreviated name; the routine is entered lazily when the
+                 name is referenced. */
+              if (!loc.symbol_header->is_builtin_overload_set) {
+                loc.symbol_header->is_builtin_overload_set = TRUE;
+                if (loc.symbol_header->is_builtin_deferred) {
+                  /* The creation of a routine for an entry with the
+                     abbreviated name was deferred; make that entry a member
+                     of the set as well. */
+                  add_builtin_overload_set_member(loc.symbol_header,
+                              loc.symbol_header->builtin_function_category,
+                              loc.symbol_header->builtin_function_index);
+                  loc.symbol_header->is_builtin_deferred = FALSE;
+                }  /* if */
+              }  /* if */
+              add_builtin_overload_set_member(loc.symbol_header, bfc,
+                                              table_index);
+              if (!builtin_needs_to_be_loaded(loc.symbol_header)) {
+                /* The routines of the set were already entered, so enter the
+                   routine for this entry now. */
+                if (builtin_type == NULL) {
+                  /* The type of this entry has not been retrieved yet (e.g.,
+                     because the routine for the full name was deferred). */
+                  builtin_type =
+                              builtin_function_type_for_index(bdp->type_index);
+                }  /* if */
+                (void)enter_builtin_function(ovl_name.as_temp_characters(),
+                                             builtin_type, bdp->kind, &loc);
+              }  /* if */
+            } else {
+              /* Lazy loading is disabled, so the routine for the full name
+                 was entered above and its type is in builtin_type. */
+              (void)enter_builtin_function(ovl_name.as_temp_characters(),
+                                           builtin_type, bdp->kind, &loc);
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
+    }  /* for */
+    if (lazy_sets) {
+      /* Record that the entries of this table have been scanned for overload
+         set members. */
+      builtin_overload_set_categories |= ((unsigned int)1 << bfc);
+      mapped_overload_set_categories |= ((unsigned int)1 << bfc);
     }  /* if */
-  }  /* for */
+  }  /* if */
 }  /* load_overloadable_builtin_symbols */
 
 
@@ -2106,12 +2507,15 @@ multiple tuple elements.
 static void enter_all_riscv_vector_types(
                                      a_const_char  *name_prefix,
                                      a_boolean     enter_bfloat16_vector_types,
+                                     a_boolean     enter_ofp8_vector_types,
                                      a_boolean     enter_tuple_types)
 /*
 Enter predefined typedefs for all RISC-V vector types.  If
 enter_bfloat16_vector_types is TRUE, include vector types for the bfloat16
-floating-point type.  If enter_tuple_types is TRUE, additionally create vector
-types for multiple tuple elements.
+floating-point type.  If enter_ofp8_vector_types is TRUE, include vector
+types for the OFP8 E4M3 and E5M2 8-bit floating-point types.  If
+enter_tuple_types is TRUE, additionally create vector types for multiple
+tuple elements.
 */
 {
   a_type_ptr          element_type;
@@ -2154,6 +2558,12 @@ types for multiple tuple elements.
     enter_riscv_vector_types_for_element_type(name_prefix,
                                               float_type(fk_std_bfloat16),
                                               enter_tuple_types);
+  }  /* if */
+  if (enter_ofp8_vector_types) {
+    enter_riscv_vector_types_for_element_type(name_prefix, float8e4m3_type(),
+                                              /*enter_tuple_types=*/FALSE);
+    enter_riscv_vector_types_for_element_type(name_prefix, float8e5m2_type(),
+                                              /*enter_tuple_types=*/FALSE);
   }  /* if */
 }  /* enter_all_riscv_vector_types */
 
@@ -2607,6 +3017,7 @@ is the declaration position to be used for the declarations.
   enter_unscoped_enumerators(riscv_vxrm_type, riscv_vxrm_enumerators,
                              decl_pos);
   enter_all_riscv_vector_types("v", bfloat16_supported,
+                               /*enter_ofp8_vector_types=*/FALSE,
                                tuple_types_supported);
 }  /* enter_riscv_vector_predeclared_types */
 
@@ -2773,9 +3184,10 @@ Enter predeclared symbols as required by the implementation.
                                          gnu_version_is(>=140000);
       a_boolean  bfloat16_supported = clang_version_is(>=190000) ||
                                       gnu_version_is(>=150000);
+      a_boolean  ofp8_supported = clang_version_is(>=230000);
 
       enter_all_riscv_vector_types("__rvv_", bfloat16_supported,
-                                   tuple_types_supported);
+                                   ofp8_supported, tuple_types_supported);
     }  /* if */
     if (gnu_version_is(>=40800)) {
       /* GCC also predefines additional types for NEON builtins, starting with
@@ -3594,6 +4006,14 @@ Do initialization for each source file.
 #if BUILTIN_FUNCTIONS_ENABLED
   builtin_type_table = new_fe<a_builtin_type_map>(/*mask_width=*/10u);
   loaded_builtin_set = new_fe<a_builtin_func_load_set>(/*mask_width=*/10u);
+  builtin_overload_set_map =
+                  new_fe<a_builtin_overload_set_map>(/*mask_width=*/10u);
+  builtin_overload_set_members =
+                            new_fe<Dyn_array<a_builtin_overload_set_member>>();
+  if (is_primary_translation_unit) {
+    builtin_overload_set_categories = 0;
+  }  /* if */
+  mapped_overload_set_categories = 0;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* sys_predef_trans_unit_init */
 
@@ -3608,6 +4028,7 @@ Do one-time initialization for data structures used in this file.
     STATIC_THREAD a_pch_saved_variable saved_vars[] = {
 #if BUILTIN_FUNCTIONS_ENABLED
       pch_saved_var_array_elem(builtin_type_table),
+      pch_saved_var_array_elem(builtin_overload_set_categories),
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
       pch_saved_var_array_terminating_elem()
     };
@@ -3618,6 +4039,9 @@ Do one-time initialization for data structures used in this file.
 #if BUILTIN_FUNCTIONS_ENABLED
   register_trans_unit_variable(builtin_type_table);
   register_trans_unit_variable(loaded_builtin_set);
+  register_trans_unit_variable(builtin_overload_set_map);
+  register_trans_unit_variable(builtin_overload_set_members);
+  register_trans_unit_variable(mapped_overload_set_categories);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if CHECKING && USE_X86_FUNCTION_MULTIVERSIONING
   /* Perform some configuration checks. */
@@ -3636,6 +4060,10 @@ Do one-time initialization for data structures used in this file.
 #if BUILTIN_FUNCTIONS_ENABLED
   builtin_type_table = NULL;
   loaded_builtin_set = NULL;
+  builtin_overload_set_map = NULL;
+  builtin_overload_set_members = NULL;
+  builtin_overload_set_categories = 0;
+  mapped_overload_set_categories = 0;
   builtin_condition_table = (a_builtin_function_condition*)alloc_general(
          num_builtin_condition_entries * sizeof(a_builtin_function_condition));
   memzero((char *)builtin_condition_table,

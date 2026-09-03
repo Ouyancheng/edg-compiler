@@ -357,6 +357,7 @@ Construct a pending pragma with the given pragma kind description.
       break;
 #if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
     case pk_gnu_riscv:
+    case pk_clang_riscv:
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1906,7 +1907,22 @@ Initialize the pragma description table.
                  /*il_info_is_complete=*/TRUE,
                  /*read_string_as_header_name=*/FALSE,
                  es_error);
-  }
+  }  /* if */
+  if (clang_version_is(any_version)) {
+    (void)add_immediate_pragma_kind_description
+                 (pk_clang_riscv,
+                 fn_for_function(clang_riscv_pragma),
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/TRUE,
+                 /*record_pragma_text=*/TRUE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/TRUE,
+                 /*fetch_pp_tokens=*/FALSE,
+                 /*ignore_in_back_end=*/FALSE,
+                 /*il_info_is_complete=*/TRUE,
+                 /*read_string_as_header_name=*/FALSE,
+                 es_error);
+  }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   (void)add_immediate_pragma_kind_description

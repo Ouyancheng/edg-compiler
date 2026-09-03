@@ -4594,6 +4594,18 @@ typedef struct a_symbol_header {
                            function (which may or may not have been loaded). */
   a_bit_field	is_builtin_overloadable:1;
                         /* TRUE if this is a builtin that may be overloaded. */
+  a_bit_field	is_builtin_overload_set:1;
+                        /* TRUE if this is a builtin whose name denotes a set
+                           of overloaded builtin functions; the routines of the
+                           set are entered lazily when the name is first
+                           referenced. */
+  a_bit_field	is_builtin_deferred:1;
+                        /* TRUE if this is an overloadable builtin whose
+                           routine has not yet been entered and whose builtin
+                           table entry is recorded in the
+                           builtin_function_category and builtin_function_index
+                           fields, so that the routine can be entered lazily
+                           when the name is first referenced. */
   a_bit_field	builtin_has_been_loaded:1;
                         /* TRUE if this is a builtin (i.e., is_builtin_function
                            is TRUE) and the builtin has been loaded.  Relevant
@@ -4607,10 +4619,12 @@ typedef struct a_symbol_header {
                            tables). */
   a_builtin_function_index
                 builtin_function_index;
-                        /* When is_builtin_function is TRUE, the value is an
+                        /* When is_builtin_function is TRUE and
+                           is_builtin_overload_set is FALSE, the value is an
                            index into either a system builtin table or the
                            builtin_user_table depending on the value of
-                           builtin_function_category. */
+                           builtin_function_category (the members of an
+                           overload set are recorded separately). */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 } a_symbol_header;
 

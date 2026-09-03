@@ -121,6 +121,10 @@ STATIC_THREAD a_type_ptr
                 il_scalable_vector_count_type;
 STATIC_THREAD a_type_ptr
                 il_modal_8bit_floating_point_type;
+STATIC_THREAD a_type_ptr
+                il_float8e4m3_type;
+STATIC_THREAD a_type_ptr
+                il_float8e5m2_type;
 
 /*
 Forward declare in_gnu_stmt_expression so that statements.h does not need to be
@@ -1935,6 +1939,12 @@ Dump the contents of the indicated type entry, for debug purposes.
         break;
       case tk_mfp8:
         fputs("modal 8-bit floating-point type", f_debug);
+        break;
+      case tk_float8e4m3:
+        fputs("OFP8 E4M3 8-bit floating-point type", f_debug);
+        break;
+      case tk_float8e5m2:
+        fputs("OFP8 E5M2 8-bit floating-point type", f_debug);
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
@@ -11095,6 +11105,46 @@ pointer to it.
   }  /* if */
   return tp;
 }  /* modal_8bit_floating_point_type */
+
+
+a_type_ptr float8e4m3_type(void)
+/*
+Make or find a type entry for the RISC-V OFP8 E4M3 8-bit floating-point type
+and return a pointer to it.
+*/
+{
+  a_type_ptr tp;
+
+  if (il_float8e4m3_type != NULL) {
+    /* The type has previously been created, and can be reused. */
+    tp = il_float8e4m3_type;
+  } else {
+    /* The type must be created. */
+    il_float8e4m3_type = tp = alloc_type(tk_float8e4m3);
+    set_type_size(tp);
+  }  /* if */
+  return tp;
+}  /* float8e4m3_type */
+
+
+a_type_ptr float8e5m2_type(void)
+/*
+Make or find a type entry for the RISC-V OFP8 E5M2 8-bit floating-point type
+and return a pointer to it.
+*/
+{
+  a_type_ptr tp;
+
+  if (il_float8e5m2_type != NULL) {
+    /* The type has previously been created, and can be reused. */
+    tp = il_float8e5m2_type;
+  } else {
+    /* The type must be created. */
+    il_float8e5m2_type = tp = alloc_type(tk_float8e5m2);
+    set_type_size(tp);
+  }  /* if */
+  return tp;
+}  /* float8e5m2_type */
 
 
 void eliminate_boolean_vector(a_type_ptr  *p_type)
@@ -34182,6 +34232,8 @@ in il_init.)
       pch_saved_var_array_elem(il_bool_type),
       pch_saved_var_array_elem(il_scalable_vector_count_type),
       pch_saved_var_array_elem(il_modal_8bit_floating_point_type),
+      pch_saved_var_array_elem(il_float8e4m3_type),
+      pch_saved_var_array_elem(il_float8e5m2_type),
       pch_saved_var_array_elem(il_standard_nullptr_type),
       pch_saved_var_array_elem(il_managed_nullptr_type),
       pch_saved_var_array_elem(il_strong_ordering_type),
@@ -34295,6 +34347,8 @@ in il_init.)
   register_trans_unit_variable(il_bool_type);
   register_trans_unit_variable(il_scalable_vector_count_type);
   register_trans_unit_variable(il_modal_8bit_floating_point_type);
+  register_trans_unit_variable(il_float8e4m3_type);
+  register_trans_unit_variable(il_float8e5m2_type);
   register_trans_unit_variable(il_standard_nullptr_type);
   register_trans_unit_variable(il_managed_nullptr_type);
   register_trans_unit_variable(il_strong_ordering_type),
@@ -34444,6 +34498,8 @@ need initialization for every (primary and secondary) translation unit.
   il_std_string_view = NULL;
   il_scalable_vector_count_type = NULL;
   il_modal_8bit_floating_point_type = NULL;
+  il_float8e4m3_type = NULL;
+  il_float8e5m2_type = NULL;
   il_source_location_impl_type = NULL;
   il_source_location_fields = {};
 #if MICROSOFT_EXTENSIONS_ALLOWED

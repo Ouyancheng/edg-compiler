@@ -2228,6 +2228,8 @@ to default values.
       break;
     case tk_scalable_vector_count:
     case tk_mfp8:
+    case tk_float8e4m3:
+    case tk_float8e5m2:
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:
@@ -4474,6 +4476,7 @@ pointer to it.
       break;
 #if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
     case pk_gnu_riscv:
+    case pk_clang_riscv:
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #endif /* GNU_EXTENSIONS_ALLOWED */

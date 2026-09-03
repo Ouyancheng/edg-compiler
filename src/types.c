@@ -1010,12 +1010,14 @@ scalable vector count type (tk_scalable_vector_count), or a RISC-V vector type
 
 a_boolean is_opaque_type(a_type_ptr  tp)
 /*
-Return TRUE if the given type is either a scalable type or a modal 8-bit
-floating-point type (tk_mfp8).  For typerefs, consider the underlying type.
+Return TRUE if the given type is a scalable type, a modal 8-bit
+floating-point type (tk_mfp8), or a RISC-V OFP8 8-bit floating-point type.
+For typerefs, consider the underlying type.
 */
 {
   tp = skip_typerefs(tp);
-  return is_scalable_type(tp) || type_is(tp, tk_mfp8);
+  return is_scalable_type(tp) || type_is(tp, tk_mfp8) ||
+         type_is(tp, tk_float8e4m3) || type_is(tp, tk_float8e5m2);
 }  /* is_opaque_type */
 
 
@@ -5947,6 +5949,8 @@ set, leave it alone.  Also compute and set the alignment requirement.
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_mfp8:
+      case tk_float8e4m3:
+      case tk_float8e5m2:
         size = 1;
         alignment = 1;
         break;
@@ -8028,6 +8032,12 @@ check_typerefs:
       case tk_unknown:
       case tk_void:
       case tk_reflection:
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_mfp8:
+      case tk_scalable_vector_count:
+      case tk_float8e4m3:
+      case tk_float8e5m2:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* No further check needed.  The types are identical. */
         identical = TRUE;
         break;
@@ -9035,6 +9045,12 @@ check_typerefs:
         case tk_void:
         case tk_reflection:
         case tk_nullptr:
+#if GNU_VECTOR_TYPES_ALLOWED
+        case tk_mfp8:
+        case tk_scalable_vector_count:
+        case tk_float8e4m3:
+        case tk_float8e5m2:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           /* No further check needed.  The types are compatible. */
           compat = TRUE;
           break;
@@ -9686,6 +9702,12 @@ that are not present in standalone back ends and utilities.
     case tk_unknown:
     case tk_void:
     case tk_nullptr:
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_mfp8:
+    case tk_scalable_vector_count:
+    case tk_float8e4m3:
+    case tk_float8e5m2:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       identical = TRUE;
       break;
     case tk_integer:
@@ -15001,6 +15023,8 @@ calling disentangle_default_args).
         case tk_scalable_vector_count:
         case tk_riscv_vector:
         case tk_mfp8:
+        case tk_float8e4m3:
+        case tk_float8e5m2:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         case tk_nullptr:
           /* Simple types.  The composite type is either of the types. */
@@ -16616,6 +16640,8 @@ return type be examined? what about its parameters?).
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_scalable_vector_count:
       case tk_mfp8:
+      case tk_float8e4m3:
+      case tk_float8e5m2:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
       case tk_unknown:
@@ -18277,6 +18303,12 @@ calling back to the non-"tmtt_" routine that started the walk).
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_nullptr:
     case tk_unknown:
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_mfp8:
+    case tk_float8e4m3:
+    case tk_float8e5m2:
+    case tk_scalable_vector_count:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       /* Leaf nodes -- no further traversal required. */
       break;
     case tk_pointer:

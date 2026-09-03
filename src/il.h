@@ -1572,6 +1572,8 @@ extern a_type_ptr make_riscv_vector_type(a_type_ptr  element_type,
                                          int8_t      length_multiplier,
                                          uint8_t     tuple_elements);
 extern a_type_ptr modal_8bit_floating_point_type(void);
+extern a_type_ptr float8e4m3_type(void);
+extern a_type_ptr float8e5m2_type(void);
 
 extern void eliminate_boolean_vector(a_type_ptr  *p_type);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

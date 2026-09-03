@@ -113,6 +113,8 @@ BEGIN_EDG_NAMESPACE
 #define MANGLING_STRING_FOR_VECTOR "U8__vector"
 #define MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT "u11__SVCount_t"
 #define MANGLING_STRING_FOR_MFP8 "u6__mfp8"
+#define MANGLING_STRING_FOR_FLOAT8E4M3 "u12__float8e4m3"
+#define MANGLING_STRING_FOR_FLOAT8E5M2 "u12__float8e5m2"
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #define MANGLING_STRING_FOR_META_INFO "U10__metainfo"
 #define MANGLING_STRING_FOR_OPERATOR_NEW "nw"
@@ -390,6 +392,8 @@ type in the std namespace.
 #define MANGLING_STRING_FOR_VECTOR "a"
 #define MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT "11__SVCount_t"
 #define MANGLING_STRING_FOR_MFP8 "6__mfp8"
+#define MANGLING_STRING_FOR_FLOAT8E4M3 "12__float8e4m3"
+#define MANGLING_STRING_FOR_FLOAT8E5M2 "12__float8e5m2"
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #define MANGLING_STRING_FOR_META_INFO "mxi"
 #define MANGLING_STRING_FOR_OPERATOR_NEW "nw"
@@ -10269,6 +10273,8 @@ specified type.  Substitutions are not allocated for <builtin-type>s
       result = TRUE;
       break;
     case tk_mfp8:
+    case tk_float8e4m3:
+    case tk_float8e5m2:
       result = TRUE;
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -11140,6 +11146,12 @@ top_of_loop:
         break;
       case tk_mfp8:
         s = MANGLING_STRING_FOR_MFP8;
+        break;
+      case tk_float8e4m3:
+        s = MANGLING_STRING_FOR_FLOAT8E4M3;
+        break;
+      case tk_float8e5m2:
+        s = MANGLING_STRING_FOR_FLOAT8E5M2;
         break;
       case tk_scalable_vector_count:
         s = MANGLING_STRING_FOR_SCALABLE_VECTOR_COUNT;

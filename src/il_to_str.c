@@ -2335,6 +2335,10 @@ Return the name of the given RISC-V vector type with the specified name prefix.
       } else {
         name.append("float", 8*element_type->size);
       }  /* if */
+    } else if (type_is(element_type, tk_float8e4m3)) {
+      name.append("float8e4m3");
+    } else if (type_is(element_type, tk_float8e5m2)) {
+      name.append("float8e5m2");
     } else {
       unexpected_condition_str("unexpected element type kind");
     }  /* if */
@@ -2803,6 +2807,12 @@ by octl.
       break;
     case tk_mfp8:
       octl->output_str("__mfp8", octl);
+      break;
+    case tk_float8e4m3:
+      octl->output_str("__float8e4m3", octl);
+      break;
+    case tk_float8e5m2:
+      octl->output_str("__float8e5m2", octl);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED

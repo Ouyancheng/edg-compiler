@@ -1188,6 +1188,8 @@ handle_next_entry:
 #if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
           case tk_scalable_vector_count:
           case tk_mfp8:
+          case tk_float8e4m3:
+          case tk_float8e5m2:
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
           case tk_nullptr:
           case tk_reflection:

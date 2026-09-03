@@ -3314,6 +3314,16 @@ The position of the pragma ID is returned in id_position;
             pkdp = pkdp->next;
             check_assertion(pkdp->kind == (a_pragma_kind)pk_gcc_next_token);
           }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
+        } else if (pkdp->kind == pk_clang_riscv) {
+          a_const_char *save_start_of_curr_token = start_of_curr_token;
+          skip_white_space();
+          start_of_curr_token = save_start_of_curr_token;
+          if (strncmp(curr_char_loc, "riscv", 5U) != 0) {
+            pkdp = pkdp->next;
+            continue;
+          }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         break;
@@ -3887,16 +3897,36 @@ Handle
 }  /* process_gnu_arm_pragma */
 
 
+static void load_riscv_vector_builtins(a_builtin_function_category  common_bfc,
+                                       a_builtin_function_category  bfc_32,
+                                       a_builtin_function_category  bfc_64)
+/*
+Load the RISC-V vector builtins identified by common_bfc, plus the 32-bit or
+64-bit table according to the target.
+*/
+{
+  load_overloadable_builtin_symbols(common_bfc);
+  if (target_is_64_bits()) {
+    load_overloadable_builtin_symbols(bfc_64);
+  } else {
+    load_overloadable_builtin_symbols(bfc_32);
+  }  /* if */
+}  /* load_riscv_vector_builtins */
+
+
 void gnu_riscv_pragma(a_pending_pragma_ptr  ppp)
 /*
 Handle
    #pragma riscv intrinsic "hdr"
 */
 {
+  a_boolean  recognized = FALSE;
+
   begin_rescan_of_pragma_tokens(ppp);
-  if (strcmp(locator_for_curr_id.symbol_header->identifier, "intrinsic")) {
-    pos_warning(ec_unrecognized_pragma, &error_position);
-  } else {
+  if (target_is_riscv_based() &&
+      curr_token == tok_identifier &&
+      strcmp(locator_for_curr_id.symbol_header->identifier,
+             "intrinsic") == 0) {
     (void)get_token();
     if (curr_token == tok_string_literal &&
         is_normal_character_kind(const_for_curr_token.character_kind)) {
@@ -3905,25 +3935,77 @@ Handle
       if (strcmp(header_name, "vector") == 0 ||
           strcmp(header_name, "xtheadvector") == 0) {
         enter_riscv_vector_predeclared_types(&ppp->pragma_position);
-        load_overloadable_builtin_symbols(bfc_riscv_vector);
-        if (target_is_64_bits()) {
-          load_overloadable_builtin_symbols(bfc_riscv_64_vector);
-        } else {
-          load_overloadable_builtin_symbols(bfc_riscv_32_vector);
-        }  /* if */
-      } else {
-        pos_warning(ec_unrecognized_pragma, &error_position);
+        load_riscv_vector_builtins(bfc_riscv_vector, bfc_riscv_32_vector,
+                                   bfc_riscv_64_vector);
+        recognized = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
-  (void)get_token();
-  if (curr_token != tok_end_of_source) {
-    pos_warning(ec_extra_text_in_pp_directive, &error_position);
+  if (!recognized) {
+    pos_warning(ec_unrecognized_pragma, &error_position);
+  } else {
+    (void)get_token();
+    if (curr_token != tok_end_of_source) {
+      pos_warning(ec_extra_text_in_pp_directive, &error_position);
+    }  /* if */
   }  /* if */
   /* Pass error_in_pragma as TRUE to avoid diagnostics; any needed diagnostic
      will already have been issued. */
   wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
 }  /* gnu_riscv_pragma */
+
+
+void clang_riscv_pragma(a_pending_pragma_ptr  ppp)
+/*
+Handle
+   #pragma clang riscv intrinsic name
+where name is vector, andes_vector, or sifive_vector.
+*/
+{
+  a_boolean  recognized = FALSE;
+
+  begin_rescan_of_pragma_tokens(ppp);
+  if (target_is_riscv_based() &&
+      curr_token == tok_identifier &&
+      strcmp(locator_for_curr_id.symbol_header->identifier, "riscv") == 0) {
+    (void)get_token();
+    if (curr_token == tok_identifier &&
+        strcmp(locator_for_curr_id.symbol_header->identifier,
+               "intrinsic") == 0) {
+      (void)get_token();
+      if (curr_token == tok_identifier) {
+        a_const_char  *header_name =
+                                 locator_for_curr_id.symbol_header->identifier;
+        if (strcmp(header_name, "vector") == 0) {
+          load_riscv_vector_builtins(bfc_riscv_vector, bfc_riscv_32_vector,
+                                     bfc_riscv_64_vector);
+          recognized = TRUE;
+        } else if (strcmp(header_name, "andes_vector") == 0) {
+          load_riscv_vector_builtins(bfc_riscv_andes_vector,
+                                     bfc_riscv_32_andes_vector,
+                                     bfc_riscv_64_andes_vector);
+          recognized = TRUE;
+        } else if (strcmp(header_name, "sifive_vector") == 0) {
+          load_riscv_vector_builtins(bfc_riscv_sifive_vector,
+                                     bfc_riscv_32_sifive_vector,
+                                     bfc_riscv_64_sifive_vector);
+          recognized = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!recognized) {
+    pos_warning(ec_unrecognized_pragma, &error_position);
+  } else {
+    (void)get_token();
+    if (curr_token != tok_end_of_source) {
+      pos_warning(ec_extra_text_in_pp_directive, &error_position);
+    }  /* if */
+  }  /* if */
+  /* Pass error_in_pragma as TRUE to avoid diagnostics; any needed diagnostic
+     will already have been issued. */
+  wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
+}  /* clang_riscv_pragma */
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 

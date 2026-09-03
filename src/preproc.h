@@ -334,6 +334,7 @@ extern void gcc_pragma(a_pending_pragma_ptr  ppp);
 
 #if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
 extern void gnu_riscv_pragma(a_pending_pragma_ptr  ppp);
+extern void clang_riscv_pragma(a_pending_pragma_ptr  ppp);
 #endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 
 extern void attach_target_pragma_attribute(an_attribute_ptr *list);

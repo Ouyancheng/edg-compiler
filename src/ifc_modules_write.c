@@ -1733,6 +1733,8 @@ index for the type file.
     case tk_scalable_vector_count:
     case tk_riscv_vector:
     case tk_mfp8:
+    case tk_float8e4m3:
+    case tk_float8e5m2:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_reflection:
     case tk_unknown:

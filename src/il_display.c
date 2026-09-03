@@ -2182,6 +2182,12 @@ Return a string corresponding to the indicated type kind.
     case tk_mfp8:
       str = "tk_mfp8";
       break;
+    case tk_float8e4m3:
+      str = "tk_float8e4m3";
+      break;
+    case tk_float8e5m2:
+      str = "tk_float8e5m2";
+      break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_nullptr:
       str = "tk_nullptr";

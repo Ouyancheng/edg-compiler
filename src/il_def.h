@@ -5619,6 +5619,12 @@ enum a_type_kind : a_byte {
   tk_mfp8,		/* Modal 8-bit floating-point type used by ARM vector
 			   extensions.  This is a storage-only type with no
 			   built-in arithmetic operations defined. */
+  tk_float8e4m3,	/* RISC-V OFP8 E4M3 8-bit floating-point type.  This is
+			   a storage-only type with no built-in arithmetic
+			   operations defined. */
+  tk_float8e5m2,	/* RISC-V OFP8 E5M2 8-bit floating-point type.  This is
+			   a storage-only type with no built-in arithmetic
+			   operations defined. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   tk_nullptr,		/* Type of the C++ or C++/CLI nullptr and __nullptr
 			   keywords.  There are two nullptr types that have
@@ -6719,6 +6725,7 @@ enum a_pragma_kind : a_byte {
   pk_gcc_next_token,    /* GCC pragmas (handled as next token). */
 #if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
   pk_gnu_riscv,         /* GCC RISC-V intrinsics. */
+  pk_clang_riscv,       /* Clang RISC-V intrinsics. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   pk_diag_suppress,
@@ -6829,6 +6836,7 @@ EXTERN_CONSTINIT_ARRAY(a_const_char*, pragma_ids, pk_last + 1)
 /* pk_gcc_next_token */		"GCC",
 #if GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED
 /* pk_gnu_riscv */		"riscv",
+/* pk_clang_riscv */		"clang",
 #endif /* GNU_VECTOR_TYPES_ALLOWED && BUILTIN_FUNCTIONS_ENABLED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 /* pk_diag_suppress */		"diag_suppress",
@@ -12097,12 +12105,30 @@ enum a_builtin_function_category : a_byte {
   bfc_riscv,		/* RISC-V specific builtin function. */
   bfc_riscv_vector,	/* RISC-V specific builtin function
 			   (riscv_vector.h). */
+  bfc_riscv_andes_vector,
+			/* RISC-V Andes vector builtin function
+			   (andes_vector.h). */
+  bfc_riscv_sifive_vector,
+			/* RISC-V SiFive vector builtin function
+			   (sifive_vector.h). */
   bfc_riscv_32,		/* 32-bit RISC-V specific builtin function. */
   bfc_riscv_32_vector,	/* 32-bit RISC-V specific builtin function
 			   (riscv_vector.h). */
+  bfc_riscv_32_andes_vector,
+			/* 32-bit RISC-V Andes vector builtin function
+			   (andes_vector.h). */
+  bfc_riscv_32_sifive_vector,
+			/* 32-bit RISC-V SiFive vector builtin function
+			   (sifive_vector.h). */
   bfc_riscv_64,		/* 64-bit RISC-V specific builtin function. */
   bfc_riscv_64_vector,	/* 64-bit RISC-V specific builtin function
 			   (riscv_vector.h). */
+  bfc_riscv_64_andes_vector,
+			/* 64-bit RISC-V Andes vector builtin function
+			   (andes_vector.h). */
+  bfc_riscv_64_sifive_vector,
+			/* 64-bit RISC-V SiFive vector builtin function
+			   (sifive_vector.h). */
   bfc_x86,		/* x86 specific builtin function. */
   bfc_x86_32,		/* 32-bit x86 specific builtin function. */
   bfc_x86_64,		/* 64-bit x86 specific builtin function. */
@@ -12116,9 +12142,10 @@ enum a_builtin_function_category : a_byte {
    a_builtin_function_kind_tag and a_builtin_user_function_kind.  */
 typedef unsigned short a_builtin_function_kind;
 
-/* Type used for an index into builtin_table.  Defined as "unsigned short"
-   (a_byte has insufficient range). */
-typedef unsigned short a_builtin_function_index;
+/* Type used for an index into a builtin function table.  Defined as
+   "unsigned int" (due to the size of some of the vector builtin function
+   tables). */
+typedef unsigned int a_builtin_function_index;
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 

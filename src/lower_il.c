@@ -9630,6 +9630,8 @@ Do IL lowering of the indicated type and everything under it.
         break;
       case tk_scalable_vector_count:
       case tk_mfp8:
+      case tk_float8e4m3:
+      case tk_float8e5m2:
         /* No processing required. */
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

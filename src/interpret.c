@@ -3320,6 +3320,8 @@ redo:
     case tk_scalable_vector_count:
     case tk_riscv_vector:
     case tk_mfp8:
+    case tk_float8e4m3:
+    case tk_float8e5m2:
       result = value_bytes_for_type_failure(ec_constexpr_type_invalid,
                                             ips, tp, p_result);
       break;
