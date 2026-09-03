@@ -1,3 +1,4 @@
+#define USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE 1
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
@@ -2283,7 +2284,7 @@ large, set *err to TRUE.
            represent the value exactly.  Round the value. */
         round_hex_fp_value(mp, exponent,
                            (a_targ_size_t)(mant_dig - implicit_bits),
-                           /*is_fixed_point=*/FALSE, /*is_signed=*/TRUE,
+                           /*is_fixed_point=*/FALSE, /*is_signed=*/FALSE,
                            inexact);
         /* Warn about the loss of precision. */
         *inexact = TRUE;
