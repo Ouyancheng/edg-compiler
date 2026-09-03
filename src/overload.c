@@ -22039,14 +22039,14 @@ static a_boolean check_for_move_optimization(
 source_operand is being converted to the given destination type.  The remaining
 parameters are described in conversion_to_class_possible.  Check whether the
 source operand is an lvalue subject to implicit move (see N5046
-[class.copy.elision]): If it is an id-expression naming an implicitly movable
+[class.copy.elision]): If it is an id-expression naming an implicitly-movable
 entity, overload resolution is first performed as if the entity were an rvalue.
 If that selects a moving constructor, or a conversion function in C++11 and
 later, return TRUE, turn the source operand into an xvalue (by casting it to an
 rvalue reference), and record the conversion in *conversion and
 *ctor_arg_conversion.  If the first overload resolution is ambiguous, the
 source operand is cast to the rvalue reference but FALSE is returned so the
-caller will re-diagnose the error.  Otherwise FALSE is returned and the source
+caller will re-diagnose the error.  Otherwise, FALSE is returned and the source
 operand is left unchanged, so the caller can retry considering the entity as an
 lvalue.
 */

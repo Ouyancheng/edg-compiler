@@ -45,10 +45,12 @@ significantly reduced.
 The builtin signatures for Clang 22 have also been updated to the final 22.1.0
 release; previously, the signatures were based on RC1 (see the changes for
 EDGcpfe/28648 in version 6.9).
+
+
 9/2/26   [EDGcpfe/29031]
 Implicit move ignored &&-qualified conversion functions
 
-A return or throw of an implicitly movable entity first performs overload
+A return or throw of an implicitly-movable entity first performs overload
 resolution as if the entity were an rvalue.  In C++11 and later, if that
 selects a conversion function (e.g., operator T() &&), that conversion is
 used.  If it selects only a copy constructor such as X(X const&), overload
