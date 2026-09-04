@@ -1,26 +1,5 @@
 Version 6.10
 
-9/3/26   [EDGcpfe/29027]
-GNU compatibility: out-of-class member with unused-parameter alias type
-
-Consider:
-
-  class S;
-  template<class> using A = S;
-  template<class T> class D {
-    A<T> f() const;
-  };
-  template<class T> A<T> D<T>::f() const {}
-
-In GNU C++ modes, an alias template that does not use its parameters and
-that refers to a class type is treated as opaque.  That replacement was
-done for in-class members (parsed during prototype instantiation) but not
-for the corresponding out-of-class declaration (parsed in a template
-declaration context).  The two types then failed to match, producing a
-spurious "declaration is incompatible" error.  The opaque treatment is now
-applied in template declaration contexts as well.
-
-
 9/3/26   [EDGcpfe/29025]
 Abort in is_trivially_copyable_type for a using-declared operator= from a
 dependent base
