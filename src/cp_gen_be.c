@@ -20766,7 +20766,8 @@ prototype instantiations in such configurations (when the prototype
 instantiation is available; see gen_template_from_prototype_instantiation).
 */
 {
-  a_boolean  result = il_header.il_has_all_prototype_instantiations;
+  a_boolean  result = il_header.il_has_all_prototype_instantiations ||
+                      tp->kind == templk_concept;;
 
   if (!result && tp->text == NULL) {
     /* If the text of the template is not available, see if a prototype
@@ -20788,28 +20789,27 @@ instantiation is available; see gen_template_from_prototype_instantiation).
       default:
         break;
     }  /* switch */
+    check_assertion_str(result,
+                  "template_should_be_generated_from_prototype_instantiation: "
+                        "both string and prototype instantiation are missing");
   }  /* if */
-  if (!result) {
-    if (tp->kind == templk_concept) {
-      result = TRUE;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    } else if (all_template_info_in_il &&
-               tp->source_corresp.is_class_member) {
-      /* Check if this is a member template of a real instantiation. */
-      a_type_ptr  parent_class = parent_class_of(tp);
-      do {
-        if (parent_class->variant.class_struct_union.is_template_class &&
-            !parent_class->variant.class_struct_union.is_nonreal_class &&
-            !parent_class->variant.class_struct_union.is_specialized) {
-          result = TRUE;
-          break;
-        }  /* if */
-        parent_class = parent_class->source_corresp.is_class_member ?
-                             parent_class_of(parent_class) : (a_type_ptr)NULL;
-      } while (parent_class != NULL);
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-    }  /* if */
+  if (!result && all_template_info_in_il &&
+      tp->source_corresp.is_class_member) {
+    /* Check if this is a member template of a real instantiation. */
+    a_type_ptr  parent_class = parent_class_of(tp);
+    do {
+      if (parent_class->variant.class_struct_union.is_template_class &&
+          !parent_class->variant.class_struct_union.is_nonreal_class &&
+          !parent_class->variant.class_struct_union.is_specialized) {
+        result = TRUE;
+        break;
+      }  /* if */
+      parent_class = parent_class->source_corresp.is_class_member ?
+        parent_class_of(parent_class) : (a_type_ptr)NULL;
+    } while (parent_class != NULL);
   }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (result && is_definition &&
       (tp->kind == (a_template_kind)templk_function ||
        tp->kind == (a_template_kind)templk_member_function)) {
@@ -20822,6 +20822,9 @@ instantiation is available; see gen_template_from_prototype_instantiation).
          performed, so the definition must be generated from the string form
          of the template. */
       result = FALSE;
+      check_assertion_str(tp->text != NULL,
+                  "template_should_be_generated_from_prototype_instantiation: "
+                  "string not available for deferred prototype instantiation");
     }  /* if */
   }  /* if */
   return result;
