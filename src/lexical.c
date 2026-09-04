@@ -22876,23 +22876,25 @@ a routine to lookup the appropriate instance (or generate one if needed).
          GID_USE_PROTOTYPE_NOT_NONREAL flag. */
       a_type_ptr  new_tp = type_symbol_type(new_sym);
       if (gpp_version_is(any_version) && type_is(new_tp, tk_typeref) &&
-          is_nonspecialized_prototype_instantiation_context() &&
+          (is_nonspecialized_prototype_instantiation_context() ||
+           depth_template_declaration_scope != NO_SCOPE_DEPTH) &&
           new_tp->variant.typeref.kind == trk_is_template_alias &&
           new_tp->variant.typeref.is_dependent &&
           !is_template_dependent_type(new_tp) &&
           (scope_stack_top().in_template_arg_list ||
            is_class_struct_union_type(new_tp))) {
         /* GCC does not look through alias templates while parsing templates.
-           We cannot easily emulate that in contexts that might be redeclared
-           later on (most deduction contexts and class member declarations),
-           but in other prototype instantiation contexts we can replace a
-           dependent alias template instance by a proxy class so that the
-           front end will not try to verify the underlying type.  For example:
+           Replace a dependent alias template instance by a proxy class so
+           that the front end will not try to verify the underlying type.  For
+           example:
                struct S {};
                template<typename> using A = S;
-               template<typename T> struct D: A<T>::B {}; 
-           This example is an error because A<T> is known not to have a member
-           B, but GCC ignores that. */
+               template<typename T> struct D: A<T>::B {};
+           This is an error because A<T> is known not to have a member B, but
+           GCC ignores that.  The same replacement is done in template
+           declaration contexts so that an out-of-class member whose type is
+           written with such an alias matches the in-class declaration (which
+           is scanned during prototype instantiation). */
         new_tp = proxy_class_for_template_param(new_tp);
         new_sym = symbol_for(new_tp);
       }  /* if */
