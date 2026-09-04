@@ -86565,7 +86565,9 @@ assuming the --unicode_source_kind=UTF-8 command-line option, the following
 invalid UTF-8 character sequence resulted in an abort in
 conv_string_literal:
 
-  char str[] = "€€€€€€€€";
+  char str[] = "Â«8080808080808080Â»";
+
+Note: The above example must be decoded using the edg-changes-example tool.
 
 
 3/19/14  [EDGcpfe/14933]
@@ -86656,7 +86658,9 @@ disabled that processing.  This is now fixed.  For example:
   // The following is a valid identifier in EUC-JP locale with multibyte
   // characters but is now diagnosed as "unrecognized token" with
   // --no_multibyte_chars:
-  int ¤¢ = 1;
+  int Â«a4a2Â» = 1;
+
+Note: The above example must be decoded using the edg-changes-example tool.
 
 
 3/12/14  [EDGcpfe/14904]
@@ -104758,8 +104762,10 @@ will have the same output representation.  For example, in the following
 Latin-1 encoded source file compiled in a non-GNU mode, strlen(str) will be
 2 and both characters will be the same:
 
-  char str[] = "¶\u00b6";  // The pilcrow (paragraph mark) in Latin-1
+  char str[] = "Â«b6Â»\u00b6";  // The pilcrow (paragraph mark) in Latin-1
                               // and as a universal-character-name
+
+Note: The above example must be decoded using the edg-changes-example tool.
 
 
 12/15/11 [EDGcpfe/11682]
@@ -107397,8 +107403,10 @@ characters.  A reference to that name, however, looked up the identifier
 using its canonical form and thus failed to find it in the symbol table.
 This has now been fixed.  For example:
 
-  #define fé 2  // second character is Latin-1 e with acute accent
-  int i = fé;   // Previously "undefined identifier" error
+  #define fÂ«e9Â» 2  // second character is Latin-1 e with acute accent
+  int i = fÂ«e9Â»;   // Previously "undefined identifier" error
+
+Note: The above example must be decoded using the edg-changes-example tool.
 
 
 7/29/11  [EDGcpfe/11953]
@@ -107863,9 +107871,11 @@ table differs slightly from the one in Annex D in the C99 Standard, ISO/IEC
 Standard is expected to include the same settings as the C++ Standard.)
 For example:
 
-  int risqué;   // Last character is e with acute accent, previously
+  int risquÂ«e9Â»;   // Last character is e with acute accent, previously
                    // treated as a non-identifier character in some
                    // unusual configurations.
+
+Note: The above example must be decoded using the edg-changes-example tool.
 
 
 7/7/11   [EDGcpfe/11888]
@@ -113286,8 +113296,10 @@ white space for the following when compiled in --microsoft mode:
   #pragma setlocale(".932")
   void f() {
     // The characters after the // below are 0x8b 0x40 0x94 0x5c 0x20
-    //‹@”\ 
+    //Â«8bÂ»@Â«94Â»\ 
   }
+
+Note: The above example must be decoded using the edg-changes-example tool.
 
 
 7/18/10  [EDGcpfe/9244]
@@ -113483,8 +113495,10 @@ array").  This is now fixed.  For example:
 
   #define M(x) x;
   void f() {
-    M("¡Ö¤¤¤¤"); // Assertion failure with --multibyte_chars
+    M("Â«a1d6a4a4a4a4Â»"); // Assertion failure with --multibyte_chars
   }
+
+Note: The above example must be decoded using the edg-changes-example tool.
 
 
 7/7/10   [EDGcpfe/10780]
@@ -119461,10 +119475,12 @@ undefined in the printf call in the example below.
   extern "C" int printf(const char *, ...);
   int main(void) {
     // The characters after the // below are 0x8b 0x40 0x94 0x5c
-    //‹@”\
+    //Â«8bÂ»@Â«94Â»\
     int i=10;
     printf("%d\n", i);
   }
+
+Note: The above example must be decoded using the edg-changes-example tool.
 
 
 7/7/09   [EDGcpfe/9956]
