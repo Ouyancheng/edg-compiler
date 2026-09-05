@@ -20761,9 +20761,10 @@ generated from text:
     template<> struct S<int> {
       template<typename U> T f();
     };
-To avoid that problem, members of real class templates are generated from
-prototype instantiations in such configurations (when the prototype
-instantiation is available; see gen_template_from_prototype_instantiation).
+To avoid that problem, members of real class template instantiations are
+generated from prototype instantiations in such configurations (when the
+prototype instantiation is available; see
+gen_template_from_prototype_instantiation).
 */
 {
   a_boolean  result = il_header.il_has_all_prototype_instantiations ||
@@ -20805,8 +20806,7 @@ instantiation is available; see gen_template_from_prototype_instantiation).
         result = TRUE;
         break;
       }  /* if */
-      parent_class = parent_class->source_corresp.is_class_member ?
-        parent_class_of(parent_class) : (a_type_ptr)NULL;
+      parent_class = parent_class_or_null(parent_class);
     } while (parent_class != NULL);
   }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
