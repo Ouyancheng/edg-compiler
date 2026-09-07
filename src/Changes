@@ -1,5 +1,24 @@
 Version 6.10
 
+9/7/26   [EDGcpfe/29044]
+C++-generating back end, GNU compatibility: __typeof__ in template definition
+
+In configurations with ALL_TEMPLATE_INFO_IN_IL set to FALSE or with the
+--no_parse_templates command-line option, the C++-generating back end put
+out the GNU/clang __typeof__ operator appearing in a template definition as
+"typeof", without the leading and trailing underscores.  Those compilers
+only accept the shorter form when GNU extensions are explicitly enabled,
+i.e., with a -std=gnu++XX command-line option.  The front end has now been
+changed to put out the longer form whenever gcc or clang is the target
+compiler.  This failure was a consequence of the changes for
+EDGcpfe/25938,EDGcpfe/26054 in version 6.5.  For example, with
+--gnu_version=120100 --no_parse_templates:
+
+  template<typename> struct S {
+    typedef __typeof__ ( 1 ) type;   // Previously generated as "typeof"
+  };
+
+
 9/7/26   [EDGcpfe/29028]
 Calls of type-generic builtins with dependent arguments
 

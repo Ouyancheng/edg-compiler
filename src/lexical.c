@@ -28722,6 +28722,10 @@ pos_in_temp_text_buffer by the number of characters added.
        -std=c++0x, but they accept __decltype in both modes.  Use the safer
        form. */
     put_str_to_temp_text_buffer("__decltype");
+  } else if (gcc_or_clang_is_generated_code_target && token == tok_typeof) {
+    /* Current versions of g++ only accept the "typeof" keyword with
+       -std=gnu++XX, so use the extension spelling. */
+    put_str_to_temp_text_buffer("__typeof__");
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcx_enabled && token == tok_gcnew) {
