@@ -1,5 +1,29 @@
 Version 6.10
 
+9/7/26   [EDGcpfe/29028]
+Calls of type-generic builtins with dependent arguments
+
+A call of a type-generic builtin (e.g., __builtin_clzg or a __sync_* or
+__atomic_* builtin) with a dependent argument is now kept as an unknown
+dependent function call.  Previously, such a call was processed using the
+dependent argument types, which could create a routine entry whose type
+contains a template parameter; IL consumers could mistake it for a real
+routine.  For example, with --gnu_version=150200:
+
+  template<typename T>
+  void f(T t) {
+    __builtin_clzg(t);  // Previously recorded a call of an "int(T)" routine.
+  }
+
+Additionally, a call of a generic __atomic_* builtin in a substitution context
+previously resulted in a substitution failure.  For example, with
+--gnu_version=150200:
+
+  template<typename T>
+  auto g(T t) -> decltype(__atomic_load(&t, &t, 0)) *;
+  auto p = g(1);  // Previously a spurious error, now okay.
+
+
 9/3/26   [EDGcpfe/29025]
 Abort in is_trivially_copyable_type for a using-declared operator= from a
 dependent base

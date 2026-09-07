@@ -6478,7 +6478,7 @@ indicated type.
   a_builtin_function_kind  bfk;
   a_source_position        first_arg_pos;
   a_type_ptr               dispatch_type, orig_dispatch_type, ptr_type;
-  a_boolean                err = FALSE, template_case = FALSE;
+  a_boolean                err = FALSE;
   a_boolean                is_sync_or_atomic =
                                               bcap->is_sync || bcap->is_atomic;
   a_boolean                skip_arg_prep = FALSE;
@@ -6530,14 +6530,11 @@ indicated type.
     /* Do array-to-pointer decay if needed. */
     dispatch_type = do_implicit_type_transformations(dispatch_type,
                                                     (an_operand*)NULL);
-    /* Check that the dispatch type is a pointer (or a template parameter,
-       which could be a pointer). */
+    /* Check that the dispatch type is a pointer. */
     if (is_pointer_type(dispatch_type)) {
       dispatch_type = type_pointed_to(dispatch_type);
       orig_dispatch_type = dispatch_type;
       dispatch_type = skip_typerefs(dispatch_type);
-    } else if (is_template_param_type(dispatch_type)) {
-      template_case = TRUE;
     } else {
       if (!is_error_type(dispatch_type)) {
         expr_pos_error(bcap->is_generic ? ec_expr_not_object_pointer
@@ -6550,14 +6547,7 @@ indicated type.
     }  /* if */
     /* Check that the type under the pointer is appropriate. */
     a_boolean float_allowed = FALSE;
-    if (template_case) {
-      /* The top type is a template parameter type, not a pointer, so we
-         can't check the type under the pointer. */
-    } else if (is_template_param_type(dispatch_type)) {
-      /* The underlying type is a template parameter, i.e., the original
-         dispatch type was pointer to T. */
-      template_case = TRUE;
-    } else if (is_error_type(dispatch_type)) {
+    if (is_error_type(dispatch_type)) {
       /* An error has already been issued. */
       expr_expect_error();
       err = TRUE;
@@ -6582,11 +6572,6 @@ indicated type.
                                      ec_bad_type_for_gnu_sync_function,
                      &first_arg_pos);
       err = TRUE;
-    } else if (is_template_dependent_type(dispatch_type)) {
-      /* This catches cases like "pointer to pointer to T".  Note that the
-         test is after the integer/enum/pointer test above so that we don't
-         let class types get by as dispatch_type. */
-      template_case = TRUE;
     } else if (bcap->is_generic) {
       /* The generic __atomic_... functions take a pointer to a complete
          object type. */
@@ -6775,19 +6760,16 @@ indicated type.
       }  /* if */
       /* Convert the prescanned arguments to the type expected by the
          function (if needed) and build the argument list in expression
-         form.  In the template-dependent case, build the argument list
-         but don't convert the arguments. */
-      if (!template_case) {
-        ptp = skip_typerefs(rout->type)->variant.routine.extra_info
-                                       ->param_type_list;
-        if (bcap->is_generic) {
-          /* In the case of an atomic generic function, the first parameter
-             is size_t and is unused, so skip it. */
-          check_assertion(f_identical_types(ptp->type,
-                                            integer_type(targ_size_t_int_kind),
-                                            ITF_NO_FLAGS));
-          ptp = ptp->next;
-        }  /* if */
+         form. */
+      ptp = skip_typerefs(rout->type)->variant.routine.extra_info
+                                     ->param_type_list;
+      if (bcap->is_generic) {
+        /* In the case of an atomic generic function, the first parameter is
+           size_t and is unused, so skip it. */
+        check_assertion(f_identical_types(ptp->type,
+                                          integer_type(targ_size_t_int_kind),
+                                          ITF_NO_FLAGS));
+        ptp = ptp->next;
       }  /* if */
       for (ap = args; ap != NULL; ap = next_elem(ap)) {
         an_expr_node_ptr expr_arg;
@@ -6795,52 +6777,46 @@ indicated type.
         check_arg_list_elem_is_expression(ap);
         operand = operand_of_arg_list_elem(ap);
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
-        if (!template_case) {
-          check_assertion(ptp != NULL);
-          if ((is_pointer_type(operand->type) ||
-                is_nullptr_type(operand->type)) &&
-              is_integral_type(ptp->type) &&
-              (bcap->is_sync ||
-               (bcap->is_atomic && !bcap->is_generic &&
-                ((bcap->n_args == 6 && ptp->param_num == 3) ||
-                 (bcap->n_args == 3 && ptp->param_num == 2))))) {
-            /* Pointer operands for the "value" parameters of __sync_... and
-               __atomic_... functions must be converted to an integer value. */
-            cast_operand(ptp->type, operand, /*is_implicit_cast=*/TRUE);
-          } else if (bcap->is_generic && ptp->param_num > 1 && 
-                     is_pointer_type(ptp->type)) {
-            /* For generic __atomic_... functions, check that the types
-               pointed to by subsequent pointer operands match the type
-               pointed to by the first argument. */
-            /* A pointer to a complete object type is required. */
-            a_type_ptr arg_type = skip_typerefs(operand->type);
-            if (is_template_dependent_type(arg_type)) {
-              /* Don't attempt to check a template-dependent pointer type. */
-              skip_arg_prep = TRUE;
-            } else if (!is_pointer_to_object_type(arg_type)) {
+        check_assertion(ptp != NULL);
+        if ((is_pointer_type(operand->type) ||
+             is_nullptr_type(operand->type)) &&
+            is_integral_type(ptp->type) &&
+            (bcap->is_sync ||
+             (bcap->is_atomic && !bcap->is_generic &&
+              ((bcap->n_args == 6 && ptp->param_num == 3) ||
+               (bcap->n_args == 3 && ptp->param_num == 2))))) {
+          /* Pointer operands for the "value" parameters of __sync_... and
+             __atomic_... functions must be converted to an integer value. */
+          cast_operand(ptp->type, operand, /*is_implicit_cast=*/TRUE);
+        } else if (bcap->is_generic && ptp->param_num > 1 &&
+                   is_pointer_type(ptp->type)) {
+          /* For generic __atomic_... functions, check that the types pointed
+             to by subsequent pointer operands match the type pointed to by the
+             first argument. */
+          /* A pointer to a complete object type is required. */
+          a_type_ptr arg_type = skip_typerefs(operand->type);
+          if (!is_pointer_to_object_type(arg_type)) {
+            expr_pos_error(ec_expr_not_object_pointer, &operand->position);
+            goto done;
+          } else {
+            arg_type = type_pointed_to(arg_type);
+            if (is_incomplete_type(arg_type)) {
               expr_pos_error(ec_expr_not_object_pointer, &operand->position);
               goto done;
-            } else {
-              arg_type = type_pointed_to(arg_type);
-              if (is_incomplete_type(arg_type)) {
-                expr_pos_error(ec_expr_not_object_pointer, &operand->position);
-                goto done;
-              } else if (skip_typerefs(arg_type)->size !=
-                                                        dispatch_type->size) {
-                /* The type pointed to by this argument has a different size
-                   than the type pointed to by the first argument. */
-                if (expr_error_should_be_issued()) {
-                  pos_opt_ty2_error(ec_incompatible_param, &operand->position,
-                                    ptr_type, operand->type);
-                }  /* if */
-                goto done;
+            } else if (skip_typerefs(arg_type)->size != dispatch_type->size) {
+              /* The type pointed to by this argument has a different size
+                 than the type pointed to by the first argument. */
+              if (expr_error_should_be_issued()) {
+                pos_opt_ty2_error(ec_incompatible_param, &operand->position,
+                                  ptr_type, operand->type);
               }  /* if */
+              goto done;
             }  /* if */
           }  /* if */
-          if (!skip_arg_prep) {
-            prep_argument_operand(operand, ptp, (a_conv_descr *)NULL,
-                                  ec_incompatible_param);
-          }  /* if */
+        }  /* if */
+        if (!skip_arg_prep) {
+          prep_argument_operand(operand, ptp, (a_conv_descr *)NULL,
+                                ec_incompatible_param);
         }  /* if */
         expr_arg = make_node_from_operand_for_expr_list(operand);
         if (*arg_list == NULL) {
@@ -6849,7 +6825,7 @@ indicated type.
           end_arg_list->next = expr_arg;
         }  /* if */
         end_arg_list = expr_arg;
-        if (!template_case) ptp = ptp->next;
+        ptp = ptp->next;
       }  /* for */
       /* Return the type that should result from the call. */
       if (bcap->result_type == NULL) {
@@ -6894,24 +6870,22 @@ be a pointer to a complete type and may not be const-qualified.
       conv_glvalue_to_prvalue(operand);
     }  /* if */
     a_type_ptr arg_type = operand->type;
-    if (!is_template_dependent_type(arg_type)) {
-      if (!is_pointer_type(arg_type)) {
-        /* Must be pointer type. */
+    if (!is_pointer_type(arg_type)) {
+      /* Must be pointer type. */
+      expr_pos_error(ec_expr_not_object_pointer, init_component_pos(args));
+      err = TRUE;
+    } else {
+      a_type_ptr type = type_pointed_to(arg_type);
+      if (is_void_type(type)) {
+        /* Can't be pointer to void. */
         expr_pos_error(ec_expr_not_object_pointer, init_component_pos(args));
         err = TRUE;
-      } else {
-        a_type_ptr type = type_pointed_to(arg_type);
-        if (is_void_type(type)) {
-          /* Can't be pointer to void. */
-          expr_pos_error(ec_expr_not_object_pointer, init_component_pos(args));
-          err = TRUE;
-        } else if (is_const_qualified_type(arg_type) ||
-                   is_const_qualified_type(type)) {
-          /* Can't be const-qualified. */
-          expr_pos_error(ec_cannot_be_const_qualified,
-                         init_component_pos(args));
-          err = TRUE;
-        }  /* if */
+      } else if (is_const_qualified_type(arg_type) ||
+                 is_const_qualified_type(type)) {
+        /* Can't be const-qualified. */
+        expr_pos_error(ec_cannot_be_const_qualified,
+                       init_component_pos(args));
+        err = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6927,7 +6901,7 @@ static a_boolean convert_to_prvalue_and_check_for_identical_types(
                                                      an_arg_list_elem_ptr  arg)
 /*
 Convert the argument to a prvalue (if needed).  Return TRUE if the argument
-type is identical to tp, or if either type is dependent or an error type.
+type is identical to tp, or if either type is an error type.
 */
 {
   a_boolean       okay = TRUE;
@@ -6937,11 +6911,8 @@ type is identical to tp, or if either type is dependent or an error type.
     /* A prvalue is needed. */
     conv_glvalue_to_prvalue(op);
   }  /* if */
-  if (is_error_type(tp) || is_error_type(arg_type) ||
-      (is_template_dependent_context() &&
-       (is_template_dependent_type(tp) ||
-        is_template_dependent_type(arg_type)))) {
-    /* An error or template dependent argument. */
+  if (is_error_type(tp) || is_error_type(arg_type)) {
+    /* An error argument. */
   } else if (!identical_types(tp, arg_type)) {
     /* Both arguments must be the same type. */
     okay = FALSE;
@@ -7021,9 +6992,7 @@ resulting return type is determined for the routine.
           check_assertion(n_args == 2);
           a_type_ptr arg2_type =
                      skip_typerefs(operand_of_arg_list_elem(args->next)->type);
-          if (is_error_type(arg2_type) || is_error_type(arg2_type) ||
-              (is_template_dependent_context() &&
-               is_template_dependent_type(arg2_type))) {
+          if (is_error_type(arg2_type)) {
             /* Don't bother checking. */
 #if GNU_VECTOR_TYPES_ALLOWED
           } else if (!is_vector_type(arg_type) ||
@@ -7070,9 +7039,7 @@ resulting return type is determined for the routine.
 #if GNU_VECTOR_TYPES_ALLOWED
         return_type = skip_typerefs(arg_type)->variant.vector.element_type;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-      } else if (is_error_type(arg_type) ||
-                 (is_template_dependent_context() &&
-                  is_template_dependent_type(arg_type))) {
+      } else if (is_error_type(arg_type)) {
         return_type = arg_type;
       } else {
         /* Invalid type. */
@@ -7083,7 +7050,7 @@ resulting return type is determined for the routine.
     }  /* if */
     if (!err) {
       a_type_ptr type = arg_type;
-      if (is_error_type(type) || is_template_dependent_type(type)) {
+      if (is_error_type(type)) {
         /* No need to check. */
       } else {
         /* Check that the type of the first operand is acceptable.  If there's
@@ -7248,7 +7215,7 @@ builtins.  Some checking of arguments is performed.
       }  /* if */
       arg2_type = skip_typerefs(op->type);
     }  /* if */
-    if (!is_error_type(arg1_type) && !is_template_dependent_type(arg1_type)) {
+    if (!is_error_type(arg1_type)) {
       switch (rout->variant.builtin_function_kind) {
         case bfk_ffsg:
           err = !is_integral_type(arg1_type) ||
@@ -7285,7 +7252,6 @@ builtins.  Some checking of arguments is performed.
     }  /* if */
     /* The optional second argument must have type int. */
     if (!err && arg2_type != NULL && !is_error_type(arg2_type) &&
-        !is_template_dependent_type(arg2_type) &&
         (!is_integral_type(arg2_type) ||
          arg2_type->variant.integer.int_kind != ik_int)) {
       expr_pos_ty_error(ec_invalid_type_for_builtin,
@@ -7442,7 +7408,7 @@ argument list in expression form.
       conv_glvalue_to_prvalue(op1);
     }  /* if */
     arg1_type = skip_typerefs(op1->type);
-    if (is_error_type(arg1_type) || is_template_dependent_type(arg1_type)) {
+    if (is_error_type(arg1_type)) {
       goto done;
     }  /* if */
     if (!is_vector_type(arg1_type) ||
@@ -7457,7 +7423,7 @@ argument list in expression form.
       conv_glvalue_to_prvalue(op2);
     }  /* if */
     arg2_type = skip_typerefs(op2->type);
-    if (is_error_type(arg2_type) || is_template_dependent_type(arg2_type)) {
+    if (is_error_type(arg2_type)) {
       goto done;
     }  /* if */
     if (rout->variant.builtin_function_kind == bfk_masked_gather) {
@@ -7491,7 +7457,7 @@ argument list in expression form.
         conv_glvalue_to_prvalue(op3);
       }  /* if */
       arg3_type = skip_typerefs(op3->type);
-      if (is_error_type(arg3_type) || is_template_dependent_type(arg3_type)) {
+      if (is_error_type(arg3_type)) {
         goto done;
       }  /* if */
       if (rout->variant.builtin_function_kind == bfk_masked_gather) {
@@ -7794,7 +7760,14 @@ forming the call as usual.
                                               *p_has_overloaded_call_operator;
   an_arg_list_elem_ptr  delay_free_arg_list_elem = *p_delay_free_arg_list_elem;
 
-  if (bcap->is_invoke) {
+  if (arg_list_is_type_dependent(arg_list)) {
+    /* Defer handling of dependent calls. */
+    overloaded_function_case = TRUE;
+    overloaded_function_symbol = symbol_for(operand_routine);
+    routine = NULL;
+    routine_type = NULL;
+    unknown_dependent_function = TRUE;
+  } else if (bcap->is_invoke) {
     /* Special handling for __builtin_invoke. */
     an_operand_ptr  first_operand;
     if (arg_list == NULL) {
@@ -7812,15 +7785,6 @@ forming the call as usual.
       make_error_operand(result);
       done = TRUE;
       goto write_back;
-    } else if (is_template_dependent_type(first_operand->type)) {
-      /* Keep the call as an unknown dependent function call for a
-         type-dependent first operand. */
-      overloaded_function_case = FALSE;
-      unknown_dependent_function = TRUE;
-      routine_type = NULL;
-      prep_generic_operand(operand);
-      operand_routine->type->variant.routine.return_type =
-                                          type_of_unknown_templ_param_nontype;
     } else {
       an_arg_list_elem_ptr  first_arg = arg_list;
       routine_type = NULL;
@@ -7891,16 +7855,7 @@ forming the call as usual.
                 goto write_back;
               }  /* if */
               object_operand = operand_of_arg_list_elem(arg_list);
-              if (is_template_dependent_type(object_operand->type)) {
-                /* A type-dependent object operand: Keep the construct as an
-                   unknown dependent function call. */
-                overloaded_function_case = FALSE;
-                unknown_dependent_function = TRUE;
-                routine_type = NULL;
-                prep_generic_operand(operand);
-                operand_routine->type->variant.routine.return_type =
-                                          type_of_unknown_templ_param_nontype;
-              } else if (arg_list->next != NULL) {
+              if (arg_list->next != NULL) {
                 free_arg_list_elem(first_arg);
                 if (expr_error_should_be_issued()) {
                   expr_pos_error(ec_too_many_arguments,
@@ -7941,6 +7896,8 @@ forming the call as usual.
             /* For a pointer to member, the second operand should be of class
                type (or pointer to class type). */
             an_operand_ptr  second_operand;
+            a_type_ptr      cls_type;
+            a_boolean       selector_is_object_pointer;
             if (arg_list == NULL) {
               free_arg_list_elem(first_arg);
               if (expr_error_should_be_issued()) {
@@ -7952,56 +7909,42 @@ forming the call as usual.
               goto write_back;
             }  /* if */
             second_operand = operand_of_arg_list_elem(arg_list);
-            if (!is_template_dependent_type(second_operand->type)) {
-              a_boolean   selector_is_object_pointer;
-              a_type_ptr  cls_type;
-              /* Adjust the object operand before freeing the
-                 pointer-to-member argument: a user-defined "*" operator
-                 applied while adjusting the object would otherwise reuse the
-                 just-freed argument slot still referenced by
-                 first_operand. */
-              adjust_invoke_pointer_to_member_object(
-                                           second_operand,
-                                           pm_class_type(first_operand->type),
-                                           &selector_is_object_pointer);
-              free_arg_list_elem(first_arg);
-              first_arg = arg_list;
-              cls_type = selector_is_object_pointer ?
-                                       type_pointed_to(second_operand->type) :
-                                       second_operand->type;
-              if (is_error_operand(second_operand)) {
-                make_error_operand(result);
-                done = TRUE;
-                goto write_back;
-              }  /* if */
-              if (!is_class_struct_union_type(cls_type)) {
-                if (expr_error_should_be_issued()) {
-                  expr_pos_ty_error(ec_expr_not_class,
-                                    &second_operand->position,
-                                    cls_type);
-                }  /* if */
-                make_error_operand(result);
-                done = TRUE;
-                goto write_back;
-              }  /* if */
-              copy_operand(second_operand, bound_function_selector);
-              bind_member_function_operand_to_selector(
-                                                   bound_function_selector,
-                                                   selector_is_object_pointer,
-                                                   first_operand);
-              arg_list = arg_list->next;
-              operand = first_operand;
-            } else {
-              overloaded_function_case = FALSE;
-              unknown_dependent_function = TRUE;
-              routine_type = NULL;
-              prep_generic_operand(operand);
-              operand_routine->type->variant.routine.return_type =
-                                          type_of_unknown_templ_param_nontype;
+            /* Adjust the object operand before freeing the
+               pointer-to-member argument: a user-defined "*" operator
+               applied while adjusting the object would otherwise reuse the
+               just-freed argument slot still referenced by
+               first_operand. */
+            adjust_invoke_pointer_to_member_object(
+                                            second_operand,
+                                            pm_class_type(first_operand->type),
+                                            &selector_is_object_pointer);
+            free_arg_list_elem(first_arg);
+            first_arg = arg_list;
+            cls_type = selector_is_object_pointer ?
+                                        type_pointed_to(second_operand->type) :
+                                        second_operand->type;
+            if (is_error_operand(second_operand)) {
+              make_error_operand(result);
+              done = TRUE;
+              goto write_back;
             }  /* if */
-          } else {
-            operand = first_operand;
+            if (!is_class_struct_union_type(cls_type)) {
+              if (expr_error_should_be_issued()) {
+                expr_pos_ty_error(ec_expr_not_class, &second_operand->position,
+                                  cls_type);
+              }  /* if */
+              make_error_operand(result);
+              done = TRUE;
+              goto write_back;
+            }  /* if */
+            copy_operand(second_operand, bound_function_selector);
+            bind_member_function_operand_to_selector(
+                                                    bound_function_selector,
+                                                    selector_is_object_pointer,
+                                                    first_operand);
+            arg_list = arg_list->next;
           }  /* if */
+          operand = first_operand;
         } else {
           free_arg_list_elem(first_arg);
           if (expr_error_should_be_issued()) {
@@ -8012,11 +7955,7 @@ forming the call as usual.
           goto write_back;
         }  /* if */
       }  /* if */
-      if (!unknown_dependent_function) {
-        delay_free_arg_list_elem = first_arg;
-      } else {
-        arg_list = first_arg;
-      }  /* if */
+      delay_free_arg_list_elem = first_arg;
     }  /* if */
     if (!overloaded_function_case) {
       /* In the non-overloaded case, check and transform the call arguments
