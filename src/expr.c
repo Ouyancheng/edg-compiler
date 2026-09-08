@@ -6516,7 +6516,6 @@ indicated type.
       err = TRUE;
       goto done;
     }  /* if */
-    check_arg_list_elem_is_expression(args);
     if (bcap->dispatch_arg == 1) {
       /* In most cases, the "dispatch" type is the first argument. */
       ptr_type = operand_of_arg_list_elem(args)->type;
@@ -6774,7 +6773,6 @@ indicated type.
       for (ap = args; ap != NULL; ap = next_elem(ap)) {
         an_expr_node_ptr expr_arg;
         an_operand       *operand;
-        check_arg_list_elem_is_expression(ap);
         operand = operand_of_arg_list_elem(ap);
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
         check_assertion(ptp != NULL);
@@ -6863,7 +6861,6 @@ be a pointer to a complete type and may not be const-qualified.
     expr_pos_error(ec_too_many_arguments, init_component_pos(args->next));
     err = TRUE;
   } else {
-    check_arg_list_elem_is_expression(args);
     operand = operand_of_arg_list_elem(args);
     if (is_a_glvalue(operand)) {
       /* A prvalue is needed. */
@@ -6935,7 +6932,7 @@ resulting return type is determined for the routine.
 {
   a_boolean     err = FALSE;
   a_type_ptr    return_type = error_type();
-  a_type_ptr    arg_type = NULL;
+  a_type_ptr    arg_type = NULL, arg2_type = NULL;
   a_routine_ptr rout = routine_from_function_operand(target);
   an_operand    *op1 = NULL;
   int           n_args = bcap->n_args;
@@ -6976,7 +6973,6 @@ resulting return type is determined for the routine.
     err = TRUE;
   }  /* if */
   if (!err) {
-    check_arg_list_elem_is_expression(args);
     op1 = operand_of_arg_list_elem(args);
     if (is_a_glvalue(op1) && !is_array_type(op1->type)) {
       /* A prvalue is needed. */
@@ -6989,24 +6985,40 @@ resulting return type is determined for the routine.
       return_type = arg_type;
       if (n_args >= 2) {
         if (rout->variant.builtin_function_kind == bfk_elementwise_ldexp) {
+          an_operand  *op2 = operand_of_arg_list_elem(args->next);
           check_assertion(n_args == 2);
-          a_type_ptr arg2_type =
-                     skip_typerefs(operand_of_arg_list_elem(args->next)->type);
-          if (is_error_type(arg2_type)) {
-            /* Don't bother checking. */
+          if (is_a_glvalue(op2) && !is_array_type(op2->type)) {
+            /* A prvalue is needed. */
+            conv_glvalue_to_prvalue(op2);
+          }  /* if */
+          arg2_type = skip_typerefs(op2->type);
+          if (is_error_type(arg_type) || is_error_type(arg2_type)) {
+            /* Don't bother checking; also don't use the type of an erroneous
+               argument in the generated routine type. */
+            arg2_type = NULL;
+          } else {
+            /* The second argument must be an integer type with the same
+               "shape" as the first argument: both vectors with the same
+               number of elements, or both scalars. */
+            a_boolean  shape_is_okay;
 #if GNU_VECTOR_TYPES_ALLOWED
-          } else if (!is_vector_type(arg_type) ||
-                     !is_vector_type(arg2_type) ||
-                     !is_integral_type(
-                                     arg2_type->variant.vector.element_type) ||
-                     num_vector_elements(arg_type) !=
-                                              num_vector_elements(arg2_type)) {
-            /* The type of the second argument must be an integer type with the
-               same "shape" as the first argument. */
-            expr_pos_error(ec_second_argument_wrong_shape,
-                           init_component_pos(args->next));
-            err = TRUE;
+            if (is_vector_type(arg_type) || is_vector_type(arg2_type)) {
+              shape_is_okay = is_vector_type(arg_type) &&
+                              is_vector_type(arg2_type) &&
+                              is_integral_type(
+                                     arg2_type->variant.vector.element_type) &&
+                              num_vector_elements(arg_type) ==
+                                                num_vector_elements(arg2_type);
+            } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+            {
+              shape_is_okay = is_integral_type(arg2_type);
+            }  /* if */
+            if (!shape_is_okay) {
+              expr_pos_error(ec_second_argument_wrong_shape,
+                             init_component_pos(args->next));
+              err = TRUE;
+            }  /* if */
           }  /* if */
         } else {
           an_arg_list_elem_ptr  arg = args->next;
@@ -7020,6 +7032,10 @@ resulting return type is determined for the routine.
                              init_component_pos(arg));
             }  /* if */
             err = TRUE;
+          } else if (is_error_type(operand_of_arg_list_elem(arg)->type)) {
+            /* An erroneous second argument was accepted; avoid further
+               processing by setting the error type. */
+            arg_type = return_type = error_type();
           }  /* if */
         }  /* if */
       }  /* if */
@@ -7029,6 +7045,10 @@ resulting return type is determined for the routine.
           expr_pos_error(ec_all_arguments_must_have_same_type,
                          init_component_pos(arg));
           err = TRUE;
+        } else if (is_error_type(operand_of_arg_list_elem(arg)->type)) {
+          /* An erroneous third argument was accepted; avoid further processing
+             by setting the error type. */
+          arg_type = return_type = error_type();
         }  /* if */
       }  /* if */
     } else {
@@ -7054,9 +7074,9 @@ resulting return type is determined for the routine.
         /* No need to check. */
       } else {
         /* Check that the type of the first operand is acceptable.  If there's
-           a second operand, we already know that it's the same as the first so
-           no need to check it here.  Some of these builtins can operate on
-           vectors or scalars of the specified type. */
+           a second operand, we already know that it's acceptable.  Some of
+           these builtins can operate on vectors or scalars of the specified
+           type. */
 #if GNU_VECTOR_TYPES_ALLOWED
         if (is_vector_type(type)) {
           type = skip_typerefs(type)->variant.vector.element_type;
@@ -7064,7 +7084,8 @@ resulting return type is determined for the routine.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         switch (rout->variant.builtin_function_kind) {
           case bfk_elementwise_abs:
-            err = !(is_signed_integral_type(type) || is_floating_type(type));
+            err = !(is_signed_integral_type(type) ||
+                    is_real_floating_type(type));
             break;
           case bfk_elementwise_acos:
           case bfk_elementwise_asin:
@@ -7099,13 +7120,13 @@ resulting return type is determined for the routine.
           case bfk_elementwise_trunc:
           case bfk_reduce_maximum:
           case bfk_reduce_minimum:
-            err = !is_floating_type(type);
+            err = !is_real_floating_type(type);
             break;
           case bfk_elementwise_max:
           case bfk_elementwise_min:
           case bfk_reduce_max:
           case bfk_reduce_min:
-            err = !(is_integral_type(type) || is_floating_type(type));
+            err = !(is_integral_type(type) || is_real_floating_type(type));
             break;
           case bfk_reduce_and:
           case bfk_reduce_or:
@@ -7120,7 +7141,9 @@ resulting return type is determined for the routine.
           case bfk_elementwise_fshr:
           case bfk_elementwise_clzg:
           case bfk_elementwise_ctzg:
-            err = !is_integral_type(type);
+            /* Clang also allows enumeration types. */
+            err = !is_integral_type(type) &&
+                  (!clang_mode || !is_enum_type(type));
             break;
           default:
             unexpected_condition();
@@ -7135,10 +7158,11 @@ resulting return type is determined for the routine.
   }  /* if */
   if (err && !expr_stack->suppress_diagnostics) {
     arg_type = return_type = error_type();
+    arg2_type = NULL;
   }  /* if */
   if (!err || !expr_stack->suppress_diagnostics) {
-    a_type_ptr rout_type = make_routine_type(return_type, arg_type,
-                                             (n_args >= 2) ? arg_type : NULL,
+    if (n_args >= 2 && arg2_type == NULL) arg2_type = arg_type;
+    a_type_ptr rout_type = make_routine_type(return_type, arg_type, arg2_type,
                                              (n_args >= 3) ? arg_type : NULL);
     /* Create a routine with the desired type. */
     a_symbol_ptr sym = builtin_with_particular_type(rout, rout_type);
@@ -7199,7 +7223,6 @@ builtins.  Some checking of arguments is performed.
     expr_pos_error(ec_too_many_arguments,init_component_pos(args->next->next));
     err = TRUE;
   } else {
-    check_arg_list_elem_is_expression(args);
     op = operand_of_arg_list_elem(args);
     if (is_a_glvalue(op)) {
       /* A prvalue is needed. */
@@ -7207,7 +7230,6 @@ builtins.  Some checking of arguments is performed.
     }  /* if */
     arg1_type = skip_typerefs(op->type);
     if (args->next != NULL) {
-      check_arg_list_elem_is_expression(args->next);
       op = operand_of_arg_list_elem(args->next);
       if (is_a_glvalue(op)) {
         /* A prvalue is needed. */
@@ -7230,16 +7252,22 @@ builtins.  Some checking of arguments is performed.
         case bfk_popcountg:
           err = !is_integral_type(arg1_type) ||
                 is_signed_integral_type(arg1_type);
+          if (err && clang_mode) {
+            a_type_ptr  tp = arg1_type;
 #if GNU_VECTOR_TYPES_ALLOWED
-          if (err && clang_mode &&
-              (is_bool_type(arg1_type) ||
-               (is_vector_type(arg1_type) &&
-                is_bool_type(skip_typerefs(arg1_type)->
-                                              variant.vector.element_type)))) {
-            /* Clang allows bool (or vectors of bool) type for the argument. */
-            err = FALSE;
-          }  /* if */
+            if (is_vector_type(tp)) tp = tp->variant.vector.element_type;
+            if (is_bool_type(tp)) {
+              /* Clang allows bool (or vectors of bool) type for the
+                 argument. */
+              err = FALSE;
+            }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+            if (is_enum_type(tp) && !is_signed_integral_type(tp)) {
+              /* Clang also allows enumeration types with an unsigned
+                 underlying type. */
+              err = FALSE;
+            }  /* if */
+          }  /* if */
           break;
         default:
           unexpected_condition_str(
@@ -7312,7 +7340,6 @@ whose return type is the same as the type of the first argument.
     /* Must have exactly one argument. */
     expr_pos_error(ec_too_many_arguments, init_component_pos(args->next));
   } else {
-    check_arg_list_elem_is_expression(args);
     op1 = operand_of_arg_list_elem(args);
     if (is_a_glvalue(op1)) {
       /* A prvalue is needed. */
@@ -7401,7 +7428,6 @@ argument list in expression form.
   }  /* if */
   {
     a_type_ptr    arg1_type, arg2_type, arg3_type = NULL;
-    check_arg_list_elem_is_expression(args);
     op1 = operand_of_arg_list_elem(args);
     if (is_a_glvalue(op1)) {
       /* A prvalue is needed. */
@@ -7854,6 +7880,7 @@ forming the call as usual.
                 done = TRUE;
                 goto write_back;
               }  /* if */
+              check_arg_list_elem_is_expression(arg_list);
               object_operand = operand_of_arg_list_elem(arg_list);
               if (arg_list->next != NULL) {
                 free_arg_list_elem(first_arg);
@@ -7908,6 +7935,7 @@ forming the call as usual.
               done = TRUE;
               goto write_back;
             }  /* if */
+            check_arg_list_elem_is_expression(arg_list);
             second_operand = operand_of_arg_list_elem(arg_list);
             /* Adjust the object operand before freeing the
                pointer-to-member argument: a user-defined "*" operator
@@ -7969,9 +7997,16 @@ forming the call as usual.
       arg_list = NULL;
     }  /* if */
   } else if (bcap->callback != nullptr) {
-    /* Check and adjust the arguments for a call of a builtin function.  Also
-       determine the concrete routine being called, based on the argument
-       types. */
+    /* Check and adjust the arguments for a call of a builtin function.  An
+       argument can still be a brace-enclosed list here, and no callback
+       accepts that, so diagnose such arguments and replace them with error
+       expressions; the callbacks can then assume that every argument is an
+       expression.  Also determine the concrete routine being called, based
+       on the argument types. */
+    an_arg_list_elem_ptr  ap;
+    for (ap = arg_list; ap != NULL; ap = next_elem(ap)) {
+      check_arg_list_elem_is_expression(ap);
+    }  /* for */
     routine = bcap->callback(operand, arg_list, closing_paren_position, bcap,
                              &argument_list);
     if (routine == NULL) {

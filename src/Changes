@@ -1,5 +1,34 @@
 Version 6.10
 
+9/8/26   [EDGcpfe/29040]
+Clang compatibility: builtin argument checking
+
+The __builtin_elementwise_ldexp builtin now accepts scalar arguments.  The
+second argument must still be an integer type with the same "shape" as the
+first argument: a scalar for a scalar first argument, or a vector of integer
+type with the same number of elements for a vector first argument.  The second
+argument is now also converted to a prvalue, and the routine generated for such
+a call now has the integer type as the second parameter.
+
+Additionally, the __builtin_elementwise_... and __builtin_reduce_... builtins
+that require integer arguments (e.g., __builtin_elementwise_popcount) now
+accept enumeration types (for __builtin_reduce_..., as the element type of
+the argument vector).  An enumeration type whose underlying type is unsigned
+is also now accepted as the argument of __builtin_clzg, __builtin_ctzg, and
+__builtin_popcountg.
+
+A complex floating-point type is no longer accepted for the
+__builtin_elementwise_... and __builtin_reduce_... builtins that accept
+floating-point arguments.
+
+A brace-enclosed list as an argument of an __builtin_elementwise_... call or of
+__builtin_invoke could previously lead to a front end crash; it is now
+diagnosed.  Likewise, an already-diagnosed erroneous argument to an
+__builtin_elementwise_... call no longer leads to an internal error due to a
+failed assertion in do_constexpr_builtin_elementwise_binary_op during constant
+evaluation of such a call.
+
+
 9/7/26   [EDGcpfe/29044]
 C++-generating back end, GNU compatibility: __typeof__ in template definition
 
