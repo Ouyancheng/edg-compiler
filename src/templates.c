@@ -841,9 +841,9 @@ may be a friend template.
   tp->export_position = decl_state->export_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if MAINTAIN_CLASS_MEMBER_LIST
-  /* Record the declaration if it appears in the body of a class.  The entity
-     that the template parameterizes is not recorded separately: This entry
-     represents the member template declaration as a whole. */
+  /* Record the declaration if it appears in the body of a class.  The
+     prototype instantiation of the templated entity is not recorded
+     separately: This entry represents the declaration as a whole. */
   record_class_member_declaration((char*)tp, iek_template);
 #endif /* MAINTAIN_CLASS_MEMBER_LIST */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

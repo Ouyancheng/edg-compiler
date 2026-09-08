@@ -9074,13 +9074,13 @@ typedef struct a_class_type_supplement {
 			   routine, a variable (i.e., a static data member), a
 			   type, a template, a using-declaration, or a static
 			   assertion.  A friend declaration appearing in the
-                           body is included even though the entity it declares
-                           is not a member of the class.  Compiler-generated
-                           members (e.g., an implicitly declared constructor)
-                           are not included.  An entity declared more than
-                           once in the body (e.g., a nested class that is
-                           declared and later defined) is represented by one
-                           entry in the list. */
+			   body is included even though the entity it declares
+			   is not a member of the class.  Compiler-generated
+			   members (e.g., an implicitly-declared constructor)
+			   are not included.  An entity declared more than
+			   once in the body (e.g., a nested class that is
+			   declared and later defined) is represented by one
+			   entry in the list. */
 #endif /* MAINTAIN_CLASS_MEMBER_LIST */
   a_scope_ptr	assoc_scope;
 			/* The scope for the class type.  In the scope entry,
