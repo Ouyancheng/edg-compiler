@@ -2053,6 +2053,15 @@ created for this entity; otherwise, it is NULL.
        declaration. */
     write_xref_entry(srk_flags, sym_ptr, source_position);
   }  /* if */
+#if MAINTAIN_CLASS_MEMBER_LIST
+  if ((srk_flags & SRK_TEMPLATE_INSTANTIATION) == 0) {
+    /* Record the declaration if it appears in the body of a class.  A
+       template instantiation is not recorded even though it can be generated
+       while the body of the class that encloses it is being processed:  It
+       does not correspond to a declaration written in that body. */
+    record_class_member_symbol_declaration(sym_ptr, source_position);
+  }  /* if */
+#endif /* MAINTAIN_CLASS_MEMBER_LIST */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Issue a source sequence entry -- unless this is a label definition.  (A
      label is always defined by an stmk_label statement, for which a source
@@ -2857,6 +2866,15 @@ set.  *pos is the source position of the identifier in the using-declaration.
        declaration. */
     write_xref_entry(SRK_DECLARATION, sym, pos);
   }  /* if */
+#if MAINTAIN_CLASS_MEMBER_LIST
+  if (prev_udp == NULL) {
+    /* Record the declaration if it appears in the body of a class.  A
+       using-declaration that names an overload set (or, for "using enum", an
+       enumeration) produces several using-decl entries, but they represent a
+       single declaration, so only the first one is recorded. */
+    record_class_member_declaration((char*)udp, iek_using_decl);
+  }  /* if */
+#endif /* MAINTAIN_CLASS_MEMBER_LIST */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!source_sequence_entries_disallowed) {
     if (prev_udp == NULL) {

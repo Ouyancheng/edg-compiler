@@ -3443,6 +3443,11 @@ handle_class_type_supplement_for_class:
 #endif /* DO_IL_LOWERING && IA64_ABI */
           walk_list_not_needed(ctsp->friends, an_il_entity_list_entry_ptr,
                                iek_il_entity_list_entry);
+#if MAINTAIN_CLASS_MEMBER_LIST
+          walk_list_not_needed(ctsp->member_declarations,
+                               an_il_entity_list_entry_ptr,
+                               iek_il_entity_list_entry);
+#endif /* MAINTAIN_CLASS_MEMBER_LIST */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           conditionally_clear_fe_pointer(ctsp->partial_class_bodies);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

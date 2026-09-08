@@ -8620,6 +8620,11 @@ file.
 #else /* !defined(MAINTAIN_ALLOCATION_SEQUENCE_NUMBER) */
   comment_undefined_macro_name(MAINTAIN_ALLOCATION_SEQUENCE_NUMBER);
 #endif /* defined(MAINTAIN_ALLOCATION_SEQUENCE_NUMBER) */
+#if defined(MAINTAIN_CLASS_MEMBER_LIST)
+  define_numeric_valued_macro(MAINTAIN_CLASS_MEMBER_LIST);
+#else /* !defined(MAINTAIN_CLASS_MEMBER_LIST) */
+  comment_undefined_macro_name(MAINTAIN_CLASS_MEMBER_LIST);
+#endif /* defined(MAINTAIN_CLASS_MEMBER_LIST) */
 #if defined(MAINTAIN_NEEDED_FLAGS)
   define_numeric_valued_macro(MAINTAIN_NEEDED_FLAGS);
 #else /* !defined(MAINTAIN_NEEDED_FLAGS) */

@@ -36,6 +36,18 @@ BEGIN_EDG_NAMESPACE
 
 extern a_boolean in_injected_member();
 
+#if MAINTAIN_CLASS_MEMBER_LIST
+extern a_boolean recording_class_member_declarations(void);
+
+extern void record_class_member_declaration(char              *entity,
+                                            an_il_entry_kind  kind);
+
+extern void record_class_member_symbol_declaration(a_symbol_ptr       sym,
+                                                   a_source_position  *pos);
+#else /* !MAINTAIN_CLASS_MEMBER_LIST */
+#define recording_class_member_declarations() FALSE
+#endif /* MAINTAIN_CLASS_MEMBER_LIST */
+
 extern a_type_ptr class_from_routine_fixup(struct a_routine_fixup  *fixup);
 
 extern a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym);

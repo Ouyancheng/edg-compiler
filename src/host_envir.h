@@ -1709,6 +1709,16 @@ has no effect in other configurations.
 #endif /* REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS */
 
 /*
+Flag that is TRUE to cause a list of the declarations that appear in the body
+of a class to be maintained in the order in which they appeared.  The list is
+attached to the class type supplement (via field member_declarations) of each
+defined class.
+*/
+#ifndef MAINTAIN_CLASS_MEMBER_LIST
+#define MAINTAIN_CLASS_MEMBER_LIST FALSE
+#endif /* ifndef MAINTAIN_CLASS_MEMBER_LIST */
+
+/*
 Flag that indicates whether linkage specification blocks like
 	extern "C" { ... }
 should be represented explicitly in the source sequence entries list.

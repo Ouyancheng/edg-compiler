@@ -1772,6 +1772,9 @@ class is available.
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->friends                           = NULL;
+#if MAINTAIN_CLASS_MEMBER_LIST
+  ctsp->member_declarations               = NULL;
+#endif /* MAINTAIN_CLASS_MEMBER_LIST */
   ctsp->assoc_scope                       = NULL;
   ctsp->partial_spec_template_arg_list    = NULL;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR

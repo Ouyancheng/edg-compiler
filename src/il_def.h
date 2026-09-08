@@ -9063,6 +9063,25 @@ typedef struct a_class_type_supplement {
 			   were explicitly declared as friends of the current
 			   class (i.e., routines, classes, and templates that
 			   the current class has befriended). */
+#if MAINTAIN_CLASS_MEMBER_LIST
+  an_il_entity_list_entry_ptr
+		member_declarations;
+			/* A linked list of entries identifying the
+			   declarations that appeared in the body of the
+			   current class, in the order in which they appeared.
+			   NULL if the class has not been defined (or if its
+			   body is empty).  An entry can refer to a field, a
+			   routine, a variable (i.e., a static data member), a
+			   type, a template, a using-declaration, or a static
+			   assertion.  A friend declaration appearing in the
+                           body is included even though the entity it declares
+                           is not a member of the class.  Compiler-generated
+                           members (e.g., an implicitly declared constructor)
+                           are not included.  An entity declared more than
+                           once in the body (e.g., a nested class that is
+                           declared and later defined) is represented by one
+                           entry in the list. */
+#endif /* MAINTAIN_CLASS_MEMBER_LIST */
   a_scope_ptr	assoc_scope;
 			/* The scope for the class type.  In the scope entry,
 			   "routines" gives a linked list of routine entries

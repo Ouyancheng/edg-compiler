@@ -1992,6 +1992,11 @@ an appropriate diagnostic.
   /* This entry has no text representation because its tokens were not
      cached. */
 #endif /* RECORD_TEMPLATE_STRINGS */
+#if MAINTAIN_CLASS_MEMBER_LIST
+  /* The friend declaration is recorded as a template declaration in the body
+     of the class that contains it. */
+  record_class_member_declaration((char*)tp, iek_template);
+#endif /* MAINTAIN_CLASS_MEMBER_LIST */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!source_sequence_entries_disallowed) {
     a_src_seq_secondary_decl_ptr  sssdp;
@@ -6927,18 +6932,17 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
                                            is_definition,
                                            /*marked_as_gnu_extension=*/FALSE);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    } else {
+    } else if (is_definition) {
+      /* An unnamed enum type.  mark_defined can't be called to record the
+         declaration, so the subroutines that do so are called directly. */
+#if MAINTAIN_CLASS_MEMBER_LIST
+      record_class_member_declaration((char*)enum_type, iek_type);
+#endif /* MAINTAIN_CLASS_MEMBER_LIST */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (is_definition) {
-        /* An unnamed enum type.  mark_defined can't be called to put out a
-           source sequence entry for it, but we need one anyway, so call
-           the subroutine directly. */
-        record_entity_in_decl_stmt_if_needed(tag_sym);
-        if (!source_sequence_entries_disallowed) {
-          f_update_source_sequence_list((char *)enum_type,
-                                        (an_il_entry_kind)iek_type,
-                                        (a_source_sequence_entry_ptr)NULL);
-        }  /* if */
+      record_entity_in_decl_stmt_if_needed(tag_sym);
+      if (!source_sequence_entries_disallowed) {
+        f_update_source_sequence_list((char*)enum_type, iek_type,
+                                      (a_source_sequence_entry_ptr)NULL);
       }  /* if */
 #endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */

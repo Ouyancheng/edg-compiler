@@ -15464,7 +15464,8 @@ final token.
   a_constant_ptr     error_string = NULL;
   a_boolean          err = FALSE;
   a_boolean          gen_sse = (a_boolean)GENERATE_SOURCE_SEQUENCE_LISTS,
-                     gen_stmt = is_local_scope_kind(scope_stack_top().kind);
+                     gen_stmt = is_local_scope_kind(scope_stack_top().kind),
+                     gen_member_decl = recording_class_member_declarations();
   a_static_assertion_ptr
                      entry = NULL;
   a_diag_list        diag_list = { NULL, NULL };
@@ -15474,7 +15475,7 @@ final token.
   pos = pos_curr_token;
   check_assertion(curr_token == tok_static_assert);
   check_for_c23_deprecation("_Static_assert", ec_c23_static_assert_deprecated);
-  if (gen_stmt || gen_sse) {
+  if (gen_stmt || gen_sse || gen_member_decl) {
     /* Record the assertion in the IL.  This must be done before parsing the
        condition, because that condition could conceivably contain GNU
        statement expressions that could generate additional entries. */
@@ -15488,6 +15489,9 @@ final token.
       ielep->next = *sssep->p_declared_entities;
       *sssep->p_declared_entities = ielep;
     }  /* if */
+#if MAINTAIN_CLASS_MEMBER_LIST
+    record_class_member_declaration((char*)entry, iek_static_assertion);
+#endif /* MAINTAIN_CLASS_MEMBER_LIST */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     add_to_source_sequence_list((char*)entry,
                                 (an_il_entry_kind)iek_static_assertion);  

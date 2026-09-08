@@ -1,5 +1,19 @@
 Version 6.10
 
+9/8/26   [EDGcpfe/28266]
+Declarations in a class body
+
+A new configuration macro, MAINTAIN_CLASS_MEMBER_LIST, causes the front end to
+record for each class that is defined the declarations that appear in the body
+of that class (in the order in which they appeared).  The list is pointed to
+by the new field member_declarations of the class type supplement and has one
+an_il_entity_list_entry per declaration.  An entry can identify a field, a
+routine, a variable, a type, a template, a using-declaration, or a static
+assertion.  A friend declaration written in the body is included even though
+the entity it declares is not a member of the class, but declarations that the
+front end generates itself (e.g., an implicitly-declared constructor) are not.
+
+
 9/8/26   [EDGcpfe/29040]
 Clang compatibility: builtin argument checking
 

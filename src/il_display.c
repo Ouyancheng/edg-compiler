@@ -7832,6 +7832,11 @@ Display the indicated class type supplement entry.
   if (ptr->friends != NULL) {
     disp_entity_list("friends", ptr->friends);
   }  /* if */
+#if MAINTAIN_CLASS_MEMBER_LIST
+  if (ptr->member_declarations != NULL) {
+    disp_entity_list("member_declarations", ptr->member_declarations);
+  }  /* if */
+#endif /* MAINTAIN_CLASS_MEMBER_LIST */
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
