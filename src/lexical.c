@@ -10347,7 +10347,7 @@ The current token immediately follows the backslash that introduces an
 interpolator in a token sequence.  Return the kind of interpolator that the
 current token introduces, or ipk_none if it cannot introduce one.  When an
 interpolator is recognized, *closing_token is set to the kind of the token that
-terminates its operand list (e.g., tok_rbracket for "\[...]"); otherwise
+terminates its operand list (e.g., tok_rbracket for "\[...]"); otherwise,
 *closing_token is not modified.
 */
 {

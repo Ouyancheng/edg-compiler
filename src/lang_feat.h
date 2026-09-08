@@ -320,12 +320,15 @@ flag has no effect if REFLECTION_ENABLING_POSSIBLE is FALSE.)
 /*
 Flag that is TRUE if token injection features should be enabled by default.
 Token injection builds on reflection, so this flag has no effect unless
-reflection is enabled as well (and none at all if
-REFLECTION_ENABLING_POSSIBLE is FALSE).
+reflection is enabled as well.
 */
 #ifndef DEFAULT_INJECTION_ENABLED
 #define DEFAULT_INJECTION_ENABLED FALSE
 #endif /* ifndef DEFAULT_INJECTION_ENABLED */
+
+#if DEFAULT_INJECTION_ENABLED && !REFLECTION_ENABLING_POSSIBLE
+ #error -- Token injection requires reflection facilities
+#endif /* DEFAULT_INJECTION_ENABLED && !REFLECTION_ENABLING_POSSIBLE */
 
 
 /*

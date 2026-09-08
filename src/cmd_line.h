@@ -2921,7 +2921,7 @@ EXTERN_THREAD a_boolean
 			   token sequences and the interpolators that may
 			   appear in them, is enabled.  Token injection
 			   builds on reflection and is therefore of no use
-			   unless reflection_enabled is TRUE too. */
+			   unless reflection_enabled is also TRUE. */
 
 EXTERN_THREAD a_boolean
 		gnu_imaginary_literals_allowed;
