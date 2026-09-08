@@ -2916,6 +2916,14 @@ EXTERN_THREAD a_boolean
 			/* TRUE if support for reflection is enabled. */
 
 EXTERN_THREAD a_boolean
+		injection_enabled;
+			/* TRUE if support for token injection, i.e., for
+			   token sequences and the interpolators that may
+			   appear in them, is enabled.  Token injection
+			   builds on reflection and is therefore of no use
+			   unless reflection_enabled is TRUE too. */
+
+EXTERN_THREAD a_boolean
 		gnu_imaginary_literals_allowed;
 			/* TRUE if imaginary literals (e.g., "1.0i") are
 			   allowed in the current mode. */

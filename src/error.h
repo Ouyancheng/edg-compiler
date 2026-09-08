@@ -897,6 +897,11 @@ extern void more_info_num2_diagnostic(an_error_code     error_code,
                                       int32_t           num2,
                                       a_diag_list_ptr   diag_list);
 
+extern void more_info_st_diagnostic(an_error_code     error_code,
+                                    a_source_position *error_pos,
+                                    a_const_char      *fill_in_str,
+                                    a_diag_list_ptr   diag_list);
+
 extern void more_info_st3_diagnostic(an_error_code     error_code,
                                      a_source_position *error_pos,
                                      a_const_char      *str1,

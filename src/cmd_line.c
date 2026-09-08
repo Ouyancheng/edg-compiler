@@ -2531,6 +2531,7 @@ STATIC_THREAD a_flag_name
   { "gen_edg_special_types", &gen_edg_special_types },
 #if REFLECTION_ENABLING_POSSIBLE
   { "reflection", &reflection_enabled },
+  { "injection", &injection_enabled },
 #endif /* REFLECTION_ENABLING_POSSIBLE */
   { "alias_templ_intrinsics", &alias_templ_intrinsics_enabled },
   { "var_templ_intrinsics", &var_templ_intrinsics_enabled },
@@ -7344,6 +7345,11 @@ file.
 #else /* !defined(DEFAULT_INCOGNITO) */
   comment_undefined_macro_name(DEFAULT_INCOGNITO);
 #endif /* defined(DEFAULT_INCOGNITO) */
+#if defined(DEFAULT_INJECTION_ENABLED)
+  define_numeric_valued_macro(DEFAULT_INJECTION_ENABLED);
+#else /* !defined(DEFAULT_INJECTION_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_INJECTION_ENABLED);
+#endif /* defined(DEFAULT_INJECTION_ENABLED) */
 #if defined(DEFAULT_INLINE_STATEMENT_LIMIT)
   define_numeric_valued_macro(DEFAULT_INLINE_STATEMENT_LIMIT);
 #else /* !defined(DEFAULT_INLINE_STATEMENT_LIMIT) */
@@ -13814,6 +13820,7 @@ variables declared in cmd_line.h.
   fold_expressions_enabled = FALSE;
 #if REFLECTION_ENABLING_POSSIBLE
   reflection_enabled = DEFAULT_REFLECTION_ENABLED;
+  injection_enabled = DEFAULT_INJECTION_ENABLED;
 #endif /* REFLECTION_ENABLING_POSSIBLE */
   variadic_using_decls_enabled = FALSE;
   class_template_arg_deduction_enabled = FALSE;

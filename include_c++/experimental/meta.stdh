@@ -427,12 +427,14 @@ namespace std {
 
     consteval void __report_tokens(info  tokens);
 
+#ifdef __EDG_INJECTION_ENABLED__
     /* Accumulates a token sequence in which the pieces added with += are
        separated by the given separator, a comma by default.  The default is
        supplied by a second constructor rather than by a default argument
        because a token-sequence default argument is not yet parsed correctly
        (its deferred parse disturbs the token sequences in the member function
-       bodies that follow). */
+       bodies that follow).  Writing the token sequences below requires token
+       injection to be enabled. */
     struct list_builder {
       consteval list_builder() {}
       consteval list_builder(info separator): separator(separator) {}
@@ -444,15 +446,16 @@ namespace std {
           this->tokens = next_tokens;
           first = false;
         } else {
-          this->tokens = ^^{ \tokens(this->tokens)
-                             \tokens(separator)
-                             \tokens(next_tokens) };
+          this->tokens = ^^{ \{this->tokens}
+                             \{separator}
+                             \{next_tokens} };
         }  /* if */
       }
     private:
       bool first = true;
       info tokens = ^^{}, separator = ^^{,};
     };
+#endif /* __EDG_INJECTION_ENABLED__ */
 
     consteval void queue_injection(info, info);
 

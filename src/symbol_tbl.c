@@ -18942,8 +18942,8 @@ static constexpr a_const_char* intrinsic_names[] = {
   "allocator",
   "allocate",
   "deallocate",
-  "id",
-  "tokens",
+  "val",
+  "str",
   "nullptr"
 };
 

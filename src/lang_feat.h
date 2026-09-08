@@ -317,6 +317,16 @@ flag has no effect if REFLECTION_ENABLING_POSSIBLE is FALSE.)
 #define DEFAULT_REFLECTION_ENABLED FALSE
 #endif /* ifndef DEFAULT_REFLECTION_ENABLED */
 
+/*
+Flag that is TRUE if token injection features should be enabled by default.
+Token injection builds on reflection, so this flag has no effect unless
+reflection is enabled as well (and none at all if
+REFLECTION_ENABLING_POSSIBLE is FALSE).
+*/
+#ifndef DEFAULT_INJECTION_ENABLED
+#define DEFAULT_INJECTION_ENABLED FALSE
+#endif /* ifndef DEFAULT_INJECTION_ENABLED */
+
 
 /*
 Flag that is TRUE if, in C++, an "inline" function is allowed to have

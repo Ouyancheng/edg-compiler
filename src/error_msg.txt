@@ -3678,6 +3678,11 @@ ec_constexpr_diag_bad_level;;"the first argument in a call to \"__builtin_conste
 ec_constexpr_diag_bad_string;;"a string literal or an object with the representation of std::string_view is required for the tag and the message in a call to \"__builtin_constexpr_diag\""
 ec_constexpr_diag_bad_tag;;"the tag in a call to \"__builtin_constexpr_diag\" may contain only letters, digits, and underscores"
 ec_cl_invalid_constexpr_diag_tag;;"invalid tag in constexpr diagnostic control option: %s"
+ec_token_sequence_needs_double_caret;;"a token sequence must be introduced by \"^^\""
+ec_exp_interpolator;;"expected an interpolator (\"\\[\", \"\\[:\", \"\\{\", \"\\val\", or \"\\str\")"
+ec_interpolated_id_is_not_identifier;;"%sq does not spell an identifier"
+ec_interpolated_operand_is_not_token_sequence;;"the operand of a \"\\{...}\" interpolator is not a token sequence"
+ ###############################################################################
 
 ###############################################################################
 #                                                             \  ___  /       #

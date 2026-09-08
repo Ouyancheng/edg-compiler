@@ -18462,9 +18462,24 @@ Render the given requires-expression.
 }  /* gen_requires_expr */
 
 
+static void gen_recorded_token(a_token_sequence_entry  *tok)
+/*
+Render the recorded token tok of a token sequence at the position it had in the
+source, followed by a space so that it cannot merge with whatever is rendered
+next.
+*/
+{
+  set_output_position(&tok->position);
+  write_tok_str(tok->spelling);
+  write_space();
+}  /* gen_recorded_token */
+
+
 static void gen_token_sequence(an_expr_node  *expr)
 /*
-Render the given enk_token_sequence node.
+Render the given enk_token_sequence node.  The recorded tokens include the
+delimiters of the interpolators appearing in the sequence, but not their
+operands, which are taken in lexical order from the node's interpolation list.
 */
 {
   a_token_sequence        *tok_seq = expr->variant.token_sequence.tokens;
@@ -18472,29 +18487,28 @@ Render the given enk_token_sequence node.
   an_expr_node            *interpolation =
                                   expr->variant.token_sequence.interpolations;
 
-  write_tok_str("^^ {");
+  write_tok_str("^^ { ");
   for (; tok != NULL; tok = tok->next) {
-    set_output_position(&tok->position);
-    write_tok_str(tok->spelling);
-    if (tok->token_kind == tok_backslash && interpolation != NULL) {
+    gen_recorded_token(tok);
+    if (tok->token_kind != tok_backslash || interpolation == NULL) continue;
+    /* Write the rest of the tokens introducing the interpolator, i.e., the
+       "val" or "str" naming it, if any, and its opening delimiter.  A closing
+       delimiter always follows those, so the list cannot run out here. */
+    if (tok->next->token_kind == tok_identifier) {
       tok = tok->next;
-      if (tok == NULL) break;
-      if (tok->token_kind == tok_identifier) {
-        set_output_position(&tok->position);
-        write_tok_str(tok->spelling);
-        tok = tok->next;
-        if (tok == NULL) break;
-      }  /* if */
-      if (tok->token_kind == tok_lparen) {
-        set_output_position(&tok->position);
-        write_tok_str(tok->spelling);
-        gen_expression(interpolation);
-        interpolation = interpolation->next;
-      } else {
-        /* Unexpected token sequence. */
-        continue;
-      }  /* if */
+      gen_recorded_token(tok);
     }  /* if */
+    tok = tok->next;
+    gen_recorded_token(tok);
+    /* Write the operands, separated by the recorded commas.  The closing
+       delimiter is written by the outer loop. */
+    for (;;) {
+      gen_expression(interpolation);
+      interpolation = interpolation->next;
+      if (tok->next->token_kind != tok_comma) break;
+      tok = tok->next;
+      gen_recorded_token(tok);
+    }  /* for */
   }  /* for */
   write_tok_str("}");
 }  /* gen_token_sequence */

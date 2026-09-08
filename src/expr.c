@@ -21085,10 +21085,61 @@ that token.
   result->position = pos_curr_token;
   /* FIXME: il_string_for_curr_token() is inefficient.  This may therefore
      need a new routine optimized for single plain tokens. */
-  result->spelling = il_string_for_curr_token();
+  /* The spelling must be a string of its own: for an identifier
+     il_string_for_curr_token returns the one held by the symbol table, and
+     writing the IL to a file requires each string it records to be reached
+     from a single kind of IL entry. */
+  result->spelling = copy_string_to_region(file_scope_region_number,
+                                           il_string_for_curr_token());
   cache_curr_token(cache);
   return result;
 }  /* cache_curr_token_sequence_entry */
+
+
+static a_boolean scan_interpolator_operand(
+                                    an_interpolator_kind  kind,
+                                    a_boolean             is_first_opnd,
+                                    an_expr_node          ***p_end_interps)
+/*
+Scan one operand of an interpolator of the given kind, appearing in a token
+sequence, and append the resulting expression node to the interpolation list
+whose end is designated by *p_end_interps (which is advanced past the new
+node).  is_first_opnd indicates whether this is the operand introduced by the
+opening delimiter rather than by a comma; only identifier interpolators have
+more than one operand.  Return FALSE if the operand has a type that the
+interpolator cannot use.
+*/
+{
+  a_boolean   result = TRUE;
+  an_operand  opnd;
+
+  scan_expr(&opnd, PREC_COMMA, EOPT_DISALLOW_COMMA_OPERATOR);
+  if (kind == ipk_tokens && is_class_struct_union_type(opnd.type)) {
+    /* Contextually convert the operand to std::meta::info. */
+    a_boolean  converted = FALSE;
+    (void)try_to_convert_class_operand_to_builtin_type(
+                                     &opnd, reflection_type(), BTK_NONE,
+                                     CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS,
+                                     &converted);
+  }  /* if */
+  do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
+  **p_end_interps = make_node_from_operand(&opnd);
+  *p_end_interps = &(**p_end_interps)->next;
+  /* Interpolators that contribute characters require std::string_view
+     operands, except that the operands of an identifier interpolator after
+     the first may also be integers (which contribute their decimal
+     representation). */
+  if ((kind == ipk_identifier || kind == ipk_string) &&
+      !is_template_dependent_type(opnd.type) &&
+      !is_error_type(opnd.type) &&
+      (is_first_opnd || !is_integral_type(opnd.type)) &&
+      !check_consistent_string_view_type(opnd.type)) {
+    // FIXME: Distinguish diagnostic for first and subsequent operand.
+    pos_ty_error(ec_expected_string_view_value, &opnd.position, opnd.type);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* scan_interpolator_operand */
 
 
 static void scan_token_sequence(an_operand         *result,
@@ -21097,6 +21148,13 @@ static void scan_token_sequence(an_operand         *result,
 The current token is "{".  Scan all tokens following it up to but not including
 a matching "}" into an enk_token_sequence expression.  Then skip the "}".  The
 type of the expression is std::meta::info.
+
+The tokens are recorded verbatim except for the operands of the interpolators
+that appear among them: those are scanned as expressions and recorded
+separately, in lexical order, on the interpolation list of the resulting node.
+The delimiters of each interpolator are retained in the recorded tokens, which
+is what allows the interpolators to be paired up with their operands again when
+the sequence is evaluated.
 */
 {
   an_expr_stack_entry expr_stack_entry, *saved_expr_stack = NULL;
@@ -21119,7 +21177,61 @@ type of the expression is std::meta::info.
   check_assertion(curr_token == tok_lbrace);
   (void)get_token();
   for (;;) {
-    if (curr_token == tok_rbrace) {
+    if (prev_token_is_backslash) {
+      /* An interpolator must follow.  Its delimiters deliberately bypass the
+         brace counting below, so that the braces of a "\{...}" interpolator
+         do not disturb the search for the brace ending the sequence. */
+      an_interpolator_kind  kind;
+      a_token_kind          closing_token = tok_error;
+      an_error_code         closing_err;
+      a_boolean             is_first_opnd = TRUE;
+
+      prev_token_is_backslash = FALSE;
+      kind = interpolator_kind_of_curr_token(&closing_token);
+      if (kind == ipk_none) {
+        /* Recover by treating the offending token as an ordinary one. */
+        pos_error(ec_exp_interpolator, &pos_curr_token);
+        err = TRUE;
+        continue;
+      }  /* if */
+      if (kind == ipk_value || kind == ipk_string) {
+        /* Record the "val" or "str" that names the interpolator and move on
+           to the parenthesis introducing its operand. */
+        *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
+        p_end_il_tokens = &(*p_end_il_tokens)->next;
+        (void)get_token();
+        if (curr_token != tok_lparen) {
+          pos_error(ec_exp_lparen, &pos_curr_token);
+          err = TRUE;
+          continue;
+        }  /* if */
+      }  /* if */
+      /* Record the opening delimiter and scan the operands. */
+      *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
+      p_end_il_tokens = &(*p_end_il_tokens)->next;
+      (void)get_token();
+      add_matching_stop_token(closing_token);
+      for (;;) {
+        if (!scan_interpolator_operand(kind, is_first_opnd,
+                                       &end_interpolations)) {
+          err = TRUE;
+        }  /* if */
+        if (kind != ipk_identifier || curr_token != tok_comma) break;
+        /* Another piece of the identifier follows. */
+        *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
+        p_end_il_tokens = &(*p_end_il_tokens)->next;
+        (void)get_token();
+        is_first_opnd = FALSE;
+      }  /* for */
+      switch (closing_token) {
+        case tok_rbracket: closing_err = ec_exp_rbracket; break;
+        case tok_rsplice:  closing_err = ec_exp_rsplice;  break;
+        case tok_rbrace:   closing_err = ec_exp_rbrace;   break;
+        default:           closing_err = ec_exp_rparen;   break;
+      }  /* switch */
+      if (!required_token_no_advance(closing_token, closing_err)) err = TRUE;
+      remove_matching_stop_token(closing_token);
+    } else if (curr_token == tok_rbrace) {
       if (num_lbraces == 0) {
         break;
       } else {
@@ -21131,75 +21243,6 @@ type of the expression is std::meta::info.
       pos_error(ec_exp_rbrace, &pos_curr_token);
       err = TRUE;
       break;
-    }  /* if */
-    if (prev_token_is_backslash) {
-      /* An interpolator should follow. */
-      a_boolean   is_id = FALSE, is_tokens = FALSE, is_first_opnd = TRUE;
-      an_operand  opnd;
-      prev_token_is_backslash = FALSE;
-      if (curr_token == tok_identifier &&
-          locator_for_curr_id.symbol_header->has_intrinsic_name) {
-        /* Check whether this is an identifier introducing a special
-           interpolator; i.e., "\id" or "\tokens". */
-        a_const_char  *id = locator_for_curr_id.symbol_header->identifier;
-        if (strcmp(id, "id") == 0) {
-          is_id = TRUE;
-          *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
-          p_end_il_tokens = &(*p_end_il_tokens)->next;
-          (void)get_token();
-        } else if (strcmp(id, "tokens") == 0) {
-          is_tokens = TRUE;
-          *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
-          p_end_il_tokens = &(*p_end_il_tokens)->next;
-          (void)get_token();
-        }  /* if */
-      }  /* if */
-      if (curr_token != tok_lparen) {
-        pos_error(ec_exp_lparen, &pos_curr_token);
-        continue;
-      }  /* if */
-      *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
-      p_end_il_tokens = &(*p_end_il_tokens)->next;
-      (void)get_token();
-      /* Scan the interpolated expression. */
-      add_matching_stop_token(tok_rparen);
-another_opnd:
-      scan_expr(&opnd, PREC_COMMA, EOPT_DISALLOW_COMMA_OPERATOR);
-      if (is_tokens) {
-        if (is_class_struct_union_type(opnd.type)) {
-          /* Contextually convert the operand to std::meta::info. */
-          a_boolean  converted = FALSE;
-          (void)try_to_convert_class_operand_to_builtin_type(
-                                           &opnd, reflection_type(), BTK_NONE,
-                                           CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS,
-                                           &converted);
-        }  /* if */
-      }  /* if */
-      do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
-      *end_interpolations = make_node_from_operand(&opnd);
-      end_interpolations = &(*end_interpolations)->next;
-      /* For \id(...), check that the expression type is std::string_view. */
-      if (is_id) {
-        if (!is_template_dependent_type(opnd.type) &&
-            !is_error_type(opnd.type) &&
-            (is_first_opnd || !is_integral_type(opnd.type)) &&
-            !check_consistent_string_view_type(opnd.type)) {
-          // FIXME: Distinguish diagnostic for first and subsequent operand.
-          pos_ty_error(ec_expected_string_view_value, &opnd.position,
-                       opnd.type);
-          err = TRUE;
-        }  /* if */
-        if (curr_token == tok_comma) {
-          *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
-          p_end_il_tokens = &(*p_end_il_tokens)->next;
-          (void)get_token();
-          is_first_opnd = FALSE;
-          goto another_opnd;
-        }  /* if */
-      }  /* if */
-      /* Check for the right parenthesis. */
-      (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-      remove_matching_stop_token(tok_rparen);
     }  /* if */
     prev_token_is_backslash = curr_token == tok_backslash;
     *p_end_il_tokens = cache_curr_token_sequence_entry(cache);
@@ -21245,7 +21288,8 @@ where <construct> is one of:
   - a template name
   - a type-id
   - an expression
-  - a token sequence delimited by braces
+  - a token sequence delimited by braces (which requires the "^^" spelling of
+    the operator)
 
 The result (stored in *result) is a compile-time constant value (of kind
 ck_reflection) of a special built-in type (of kind tk_reflection).
@@ -21285,14 +21329,21 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
     a_constant_ptr             refl_cp = local_constant();
     an_identifier_options_set  gid_flags = GID_IS_EXPR_CONTEXT |
                                            GID_TEMPLATE_ARGS_OPTIONAL;
-    a_boolean                  handled = FALSE, err = FALSE;
+    a_boolean                  handled = FALSE, err = FALSE,
+                               is_double_caret = curr_token == tok_caret_caret;
     a_token_kind               next_tok;
     a_source_position          caret_pos = pos_curr_token;
     clear_constant(refl_cp, ck_reflection);
     /* Consume the "^^" (or "^") token. */
     (void)get_token();
     arg_pos = pos_curr_token;
-    if (curr_token == tok_lbrace) {
+    if (curr_token == tok_lbrace && injection_enabled) {
+      /* Only the "^^" spelling introduces a token sequence; the tokens are
+         scanned even for "^" so that the rest of the enclosing construct can
+         still be parsed. */
+      if (!is_double_caret) {
+        pos_error(ec_token_sequence_needs_double_caret, &caret_pos);
+      }  /* if */
       release_local_constant(&refl_cp);
       scan_token_sequence(result, &caret_pos);
       handled = TRUE;

@@ -10315,6 +10315,77 @@ end:
 }  /* f_is_identifier_char */
   
 
+a_boolean is_identifier_spelling(a_const_char  *str,
+                                 sizeof_t      len)
+/*
+Return TRUE if the len characters starting at str spell an identifier, i.e., if
+there is at least one character and each of them is valid at its position in an
+identifier.  Note that keywords and other reserved spellings are identifiers by
+this definition.
+*/
+{
+  a_boolean  is_id = len >= 1;
+
+  for (sizeof_t i = 0; is_id && i < len; /* Advanced below. */) {
+    int  numch;
+
+    is_id = is_identifier_char(str + i, &numch,
+                               /*is_identifier_start=*/(i == 0));
+    if (is_id) {
+      check_assertion(numch > 0);
+      i += (sizeof_t)numch;
+    }  /* if */
+  }  /* for */
+  return is_id;
+}  /* is_identifier_spelling */
+
+
+an_interpolator_kind interpolator_kind_of_curr_token(
+                                                 a_token_kind  *closing_token)
+/*
+The current token immediately follows the backslash that introduces an
+interpolator in a token sequence.  Return the kind of interpolator that the
+current token introduces, or ipk_none if it cannot introduce one.  When an
+interpolator is recognized, *closing_token is set to the kind of the token that
+terminates its operand list (e.g., tok_rbracket for "\[...]"); otherwise
+*closing_token is not modified.
+*/
+{
+  an_interpolator_kind  kind = ipk_none;
+
+  switch (curr_token) {
+    case tok_lbracket:
+      kind = ipk_identifier;
+      *closing_token = tok_rbracket;
+      break;
+    case tok_lsplice:
+      kind = ipk_splice;
+      *closing_token = tok_rsplice;
+      break;
+    case tok_lbrace:
+      kind = ipk_tokens;
+      *closing_token = tok_rbrace;
+      break;
+    case tok_identifier:
+      if (locator_for_curr_id.symbol_header->has_intrinsic_name) {
+        a_const_char  *id = locator_for_curr_id.symbol_header->identifier;
+
+        if (strcmp(id, "val") == 0) {
+          kind = ipk_value;
+          *closing_token = tok_rparen;
+        } else if (strcmp(id, "str") == 0) {
+          kind = ipk_string;
+          *closing_token = tok_rparen;
+        }  /* if */
+      }  /* if */
+      break;
+    default:
+      break;
+  }  /* switch */
+  return kind;
+}  /* interpolator_kind_of_curr_token */
+
+
 a_boolean is_nonstandard_character(char ch)
 /*
 Return TRUE if the indicated character is one not required by 5.2.1 of the
@@ -18029,7 +18100,7 @@ return_end_of_source_token:
           (ch == 'N' && curr_char_loc[2] == '{' &&
            named_unicode_chars_allowed)) {
         goto id_scan;
-      } else if (reflection_enabled) {
+      } else if (injection_enabled) {
         /* The backslash token is the interpolator token in token sequences. */
         ctoken = tok_backslash;
         break;
@@ -29156,6 +29227,23 @@ in Microsoft mode.
   suppress_identifier_wrapping_in_token_string = suppress_identifier_wrapping;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* init_token_string */
+
+
+a_const_char *token_string(void)
+/*
+Return the string generated from token caches since the last call to
+init_token_string.  The result points into the temporary buffer that
+accumulates that string and is therefore invalidated by the next call to
+init_token_string.
+*/
+{
+  /* The accumulated characters are delimited by their recorded length, and
+     characters written for an earlier token string may still follow them, so
+     a null character must be supplied before the string can be read as one. */
+  ensure_temp_text_buffer_space(pos_in_temp_text_buffer + 1);
+  temp_text_buffer[pos_in_temp_text_buffer] = '\0';
+  return temp_text_buffer;
+}  /* token_string */
 
 
 char *make_copy_of_token_string(void)

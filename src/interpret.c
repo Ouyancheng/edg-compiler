@@ -2521,6 +2521,23 @@ stack.  Use the given reflection to replace fill-ins.
 }  /* info_with_pos_refl */
 
 
+static void info_with_pos_str(an_error_code         err_code,
+                              a_source_position     *pos,
+                              a_const_char          *str,
+                              an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Also record annotations describing the call
+stack.  Use the given string to replace fill-ins.
+*/
+{
+  if (!ips->suspend_diag_list) {
+    more_info_st_diagnostic(err_code, pos, str, &ips->diag_list);
+    info_call_stack(ips->curr_call_frame, &ips->diag_list);
+  }  /* if */
+}  /* info_with_pos_str */
+
+
 static void info_with_pos_type(an_error_code         err_code,
                                a_source_position     *pos,
                                a_type_ptr            tp,
@@ -17806,7 +17823,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                     /*keep_spacing=*/TRUE,
                     /*suppress_identifier_wrapping=*/FALSE);
   add_token_cache_to_string(tokens);
-  fprintf(f_error, "%s ", temp_text_buffer);
+  fprintf(f_error, "%s ", token_string());
   fprintf(f_error, "\n%s\n", error_text(ec_constexpr_end_report_tokens));
 done:
   return result;
@@ -20553,6 +20570,158 @@ done:
 }  /* get_string_from_string_view */
 
 
+static a_boolean interpolate_identifier(an_interpreter_state    *ips,
+                                        Dyn_array<a_constant*>  &values,
+                                        size_t                  *p_num,
+                                        a_token_cache           *new_cache)
+/*
+Expand an identifier interpolator ("\[...]") encountered while evaluating a
+token sequence.  values holds the values of the interpolated expressions of
+that sequence, in lexical order, and *p_num is the index in it of the first
+operand of this interpolator; the current token is the one following the
+interpolator's "[", i.e., a comma if further operands were written.  Append to
+new_cache an identifier token spelled by the concatenation of the operand
+values, where a string view contributes its characters and an integer its
+decimal representation, and advance *p_num past the operands consumed.  ips
+tracks the state of the current interpreter invocation.  Return FALSE if an
+operand does not yield a usable value or if the concatenation does not spell an
+identifier.
+*/
+{
+  a_boolean      result = TRUE;
+  a_string       spelling;
+  a_const_char   *str;
+  a_targ_size_t  len;
+
+  if (!get_string_from_string_view(ips, values[*p_num], &str, &len)) {
+    do_constexpr_fail(result);
+  } else {
+    spelling.append(a_string_view(str, size_t_arg(len)));
+  }  /* if */
+  while (result && curr_token == tok_comma) {
+    a_constant  *cp = values[++*p_num];
+
+    (void)get_token();
+    if (is_integral_type(cp->type)) {
+      a_boolean             ovflo = FALSE;
+      a_host_large_integer  val = value_of_integer_constant(cp, &ovflo);
+
+      spelling.append(val);
+    } else if (get_string_from_string_view(ips, cp, &str, &len)) {
+      spelling.append(a_string_view(str, size_t_arg(len)));
+    } else {
+      do_constexpr_fail(result);
+    }  /* if */
+  }  /* while */
+  if (result) {
+    a_const_char  *chars = spelling.as_temp_characters();
+    sizeof_t      num_chars = (sizeof_t)spelling.length();
+
+    if (!is_identifier_spelling(chars, num_chars)) {
+      /* The diagnostic is rendered after this routine returns, so the
+         spelling must outlive the string that accumulated it. */
+      info_with_pos_str(ec_interpolated_id_is_not_identifier, &ips->position,
+                        copy_string_of_length_to_region(
+                                        FRONT_END_REGION_NUMBER, chars,
+                                        num_chars),
+                        ips);
+      do_constexpr_fail(result);
+    } else {
+      a_shared_token  new_tok = build_tok_identifier(
+                                              chars, (a_targ_size_t)num_chars,
+                                              &pos_curr_token);
+      new_cache->append_token(move_from(&new_tok));
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* interpolate_identifier */
+
+
+static a_boolean interpolate_string_literal(an_interpreter_state  *ips,
+                                            a_constant            *cp,
+                                            a_token_cache         *new_cache)
+/*
+Expand a string interpolator ("\str(...)") encountered while evaluating a token
+sequence.  cp is the value of the interpolated expression, which is a
+std::string_view, and ips tracks the state of the current interpreter
+invocation.  Append to new_cache a string literal token whose characters are
+those of the view.  Return FALSE if the operand does not yield a usable value.
+*/
+{
+  a_boolean      result = TRUE;
+  a_const_char   *str;
+  a_targ_size_t  len;
+
+  if (!get_string_from_string_view(ips, cp, &str, &len)) {
+    do_constexpr_fail(result);
+  } else {
+    /* Reproduce the view as a null-terminated string so that it can be turned
+       into a string constant like one written in the source. */
+    a_string        contents;
+    a_constant_ptr  lit_cp;
+
+    contents.append(a_string_view(str, size_t_arg(len)));
+    lit_cp = shareable_fs_string_constant(contents.as_temp_characters());
+
+    a_shared_token  new_tok = build_tok_constant(lit_cp, &pos_curr_token,
+                                                 tok_string_literal);
+    new_cache->append_token(move_from(&new_tok));
+  }  /* if */
+  return result;
+}  /* interpolate_string_literal */
+
+
+static void interpolate_value(a_constant     *cp,
+                              a_boolean      as_splice,
+                              a_token_cache  *new_cache)
+/*
+Expand a value interpolator ("\val(...)") encountered while evaluating a token
+sequence by appending to new_cache a pseudo-token that represents the value cp
+of the interpolated expression.  When as_splice is TRUE, that pseudo-token is
+surrounded by splice delimiters, which is what a splice interpolator
+("\[: ... :]") contributes.
+*/
+{
+  a_shared_token  new_tok = build_tok_constant(cp, &pos_curr_token);
+
+  if (as_splice) cache_token(new_cache, tok_lsplice, &pos_curr_token);
+  new_cache->append_token(move_from(&new_tok));
+  if (as_splice) cache_token(new_cache, tok_rsplice, &pos_curr_token);
+}  /* interpolate_value */
+
+
+static a_boolean interpolate_token_sequence(an_interpreter_state  *ips,
+                                            a_constant            *cp,
+                                            a_token_cache         *new_cache)
+/*
+Expand a token interpolator ("\{...}") encountered while evaluating a token
+sequence.  cp is the value of the interpolated expression, which must be a
+reflection of an evaluated token sequence, and ips tracks the state of the
+current interpreter invocation.  Append the tokens of that sequence to
+new_cache.  Return FALSE if the operand is not such a reflection.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (!constant_is(cp, ck_reflection) ||
+      cp->variant.reflection.entity.kind != iek_token_sequence) {
+    info_with_pos(ec_interpolated_operand_is_not_token_sequence,
+                  &ips->position, ips);
+    do_constexpr_fail(result);
+  } else {
+    a_token_sequence  *in_seq = (a_token_sequence*)cp->variant.reflection.
+                                                              entity.ptr;
+
+    rescan_persistent_reusable_cache((a_token_cache*)in_seq->token_cache);
+    for (; curr_token != tok_end_of_source; (void)get_token()) {
+      cache_curr_token_fresh(new_cache);
+    }  /* for */
+    flush_past_token_cache_terminator();
+  }  /* if */
+  return result;
+}  /* interpolate_token_sequence */
+
+
 static a_boolean do_constexpr_eval_token_sequence(
                                       an_interpreter_state       *ips,
                                       an_expr_node_ptr           tok_seq_node,
@@ -20600,7 +20769,11 @@ the corresponding reflection value at the location denoted by result_cap.
       new_cache = new_fe<a_token_cache>(/*reusable=*/TRUE);
       rescan_persistent_reusable_cache(
                                   ((a_token_cache*)orig_tok_seq->token_cache));
-      for (; curr_token != tok_end_of_source; (void)get_token()) {
+      for (; result && curr_token != tok_end_of_source; (void)get_token()) {
+        an_interpolator_kind  kind;
+        a_token_kind          closing_token = tok_error;
+        a_constant            *cp;
+
         if (curr_token != tok_backslash) {
           cache_curr_token_fresh(new_cache);
           continue;
@@ -20608,88 +20781,47 @@ the corresponding reflection value at the location denoted by result_cap.
         /* Skip the backslash. */
         (void)get_token();
         check_assertion(interpolator_num < values.length());
-        if (curr_token == tok_identifier) {
-          a_const_char  *id = locator_for_curr_id.symbol_header->identifier;
-          /* Skip the identifier. */
+        cp = values[interpolator_num];
+        kind = interpolator_kind_of_curr_token(&closing_token);
+        check_assertion(kind != ipk_none);
+        if (kind == ipk_value || kind == ipk_string) {
+          /* Skip the identifier naming the interpolator. */
           (void)get_token();
-          /* Skip the left parenthesis (the right one is skipped by the
-             general loop mechanism). */
-          (void)get_token();
-          if (strcmp(id, "id") == 0) {
-            a_string       full_id;
-            a_const_char   *str = NULL;
-            a_targ_size_t  len = 0;
-            if (!get_string_from_string_view(
-                                 ips, values[interpolator_num], &str, &len)) {
-              do_constexpr_fail(result);
-              goto done;
-            }  /* if */
-            /* FIXME: Check that the string is a valid identifier. */
-            full_id.append(a_string_view(str, size_t_arg(len)));
-            while (curr_token == tok_comma) {
-              a_constant  *cp = values[++interpolator_num];
-              (void)get_token();
-              if (is_integral_type(cp->type)) {
-                a_boolean             ovflo = FALSE;
-                a_host_large_integer  val =
-                                        value_of_integer_constant(cp, &ovflo);
-                full_id.append(val);
-              } else if (get_string_from_string_view(ips, cp, &str, &len)) {
-                full_id.append(a_string_view(str, size_t_arg(len)));
-              } else {
-                do_constexpr_fail(result);
-                goto done;
-              }  /* if */
-            }  /* while */
-            len = full_id.length();
-            str = full_id.as_temp_characters();
-
-            a_shared_token new_tok = build_tok_identifier(str, len,
-                                                          &pos_curr_token);
-            new_cache->append_token(move_from(&new_tok));
-          } else if (strcmp(id, "tokens") == 0) {
-            a_constant  *cp = values[interpolator_num];
-            if (constant_is(cp, ck_reflection) &&
-                cp->variant.reflection.entity.kind == iek_token_sequence) {
-              a_token_sequence  *in_seq = (a_token_sequence*)
-                                            cp->variant.reflection.entity.ptr;
-
-              rescan_persistent_reusable_cache(
-                                        ((a_token_cache*)in_seq->token_cache));
-              for (; curr_token != tok_end_of_source; (void)get_token()) {
-                cache_curr_token_fresh(new_cache);
-              }  /* for */
-              flush_past_token_cache_terminator();
-            } else {
-              /* FIXME: The operand of a \tokens interpolator is not a token
-                 sequence; a diagnostic should be issued here. */
-              do_constexpr_fail(result);
-              goto done;
-            }  /* if */
-          } else {
-            do_constexpr_fail(result);
-            goto done;
-          }  /* if */
-        } else if (curr_token == tok_lparen) {
-          /* An interpolator of the form \(...).  Pass the value of the
-             interpolated expression (converted to a prvalue) as a
-             pseudo-token representing that constant. */
-          a_shared_token new_tok = build_tok_constant(values[interpolator_num],
-                                                      &pos_curr_token);
-
-          new_cache->append_token(move_from(&new_tok));
-          /* Skip the left parenthesis (the right one is skipped by the
-             general loop mechanism). */
-          (void)get_token();
-        } else {
-          do_constexpr_fail(result);
-          goto done;
         }  /* if */
-        check_assertion(curr_token == tok_rparen);
+        /* Skip the opening delimiter (the closing one is skipped by the
+           general loop mechanism). */
+        (void)get_token();
+        switch (kind) {
+          case ipk_identifier:
+            if (!interpolate_identifier(ips, values, &interpolator_num,
+                                        new_cache)) {
+              do_constexpr_fail(result);
+            }  /* if */
+            break;
+          case ipk_splice:
+          case ipk_value:
+            interpolate_value(cp, /*as_splice=*/kind == ipk_splice,
+                              new_cache);
+            break;
+          case ipk_tokens:
+            if (!interpolate_token_sequence(ips, cp, new_cache)) {
+              do_constexpr_fail(result);
+            }  /* if */
+            break;
+          default:
+            check_assertion(kind == ipk_string);
+            if (!interpolate_string_literal(ips, cp, new_cache)) {
+              do_constexpr_fail(result);
+            }  /* if */
+            break;
+        }  /* switch */
+        check_assertion(!result || curr_token == closing_token);
         ++interpolator_num;
       }  /* for */
+      /* Leave the rescan of the sequence's tokens even when the expansion was
+         abandoned, so that the enclosing token stream is restored. */
       flush_past_token_cache_terminator();
-      terminate_token_cache(new_cache);
+      if (result) terminate_token_cache(new_cache);
     }  /* if */
   } else {
     new_cache = (a_token_cache*)orig_tok_seq->token_cache;

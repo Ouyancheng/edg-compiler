@@ -15696,7 +15696,7 @@ typedef struct an_expr_node {
       a_token_sequence
 		*tokens;
 			/* A token sequence resulting from a reflection
-			   operation like "^{ int \id(str+n); }", excluding
+			   operation like "^^{ int \[str, n]; }", excluding
 			   the interpolated expressions. */
     } token_sequence;
     /* When kind == enk_requires: */

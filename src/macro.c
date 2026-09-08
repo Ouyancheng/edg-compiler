@@ -10859,23 +10859,11 @@ a symbol locator in *locator.
   /* Identifier "position" is in the command line. */
   set_position_to(position, 0, SP_COL_CMD_LINE);
   clear_locator(locator, &position);
-  if (id_len < 1) {
-    /* Zero-length identifier is invalid. */
-  } else {
-    int numch;
-    for (size_t i = 0; i < id_len; i += (size_t)numch) {
-      /* Check each character to see if it is valid. */
-      if (!is_identifier_char(id_start+i, &numch,
-                              /*is_identifier_start=*/(i == 0))) {
-        goto return_point;
-      }  /* if */
-      check_assertion(numch >= 0);
-    }  /* for */
+  if (is_identifier_spelling(id_start, id_len)) {
     /* The identifier is syntactically valid.  Look it up. */
     *assoc_symbol = find_macro_symbol_by_name(id_start, id_len, locator);
     return_value = TRUE;
   }  /* if */
-return_point:
   return(return_value);
 }  /* is_valid_identifier */
 
@@ -12474,6 +12462,13 @@ command line -D options.
          EDG-provided <initializer_list> header) indicating whether support for
          constexpr is enabled. */
       (void)enter_predef_macro("1", "__EDG_CONSTEXPR_ENABLED__",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+    if (injection_enabled) {
+      /* Likewise for token injection, which the EDG-provided
+         <experimental/meta.stdh> header uses to write token sequences. */
+      (void)enter_predef_macro("1", "__EDG_INJECTION_ENABLED__",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */

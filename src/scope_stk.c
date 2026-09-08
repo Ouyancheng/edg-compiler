@@ -11802,7 +11802,7 @@ Display the tokens that make up a pack expansion, for debugging purposes.
                         /*suppress_identifier_wrapping=*/FALSE);
       add_token_cache_segment_to_string(result_cache, pedp->first_token,
                                         pedp->last_token);
-      fprintf(f_debug, "%s\n", temp_text_buffer);
+      fprintf(f_debug, "%s\n", token_string());
     }  /* if */
   }  /* if */
 }  /* db_pack_tokens */

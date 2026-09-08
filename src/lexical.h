@@ -4341,6 +4341,10 @@ extern a_boolean f_is_identifier_char(a_const_char *ptr,
 #define is_identifier_char(ptr, len, is_start)                               \
   (!char_ends_id[*(ptr)-CHAR_MIN] && f_is_identifier_char(ptr, len, is_start))
 
+/* Check a character sequence as the spelling of an identifier. */
+extern a_boolean is_identifier_spelling(a_const_char  *str,
+                                        sizeof_t      len);
+
 #if CPPCLI_ENABLING_POSSIBLE && EDG_WIN32
 extern an_error_code is_valid_UCN_identifier_char(
                                            unsigned long uchar,
@@ -4366,6 +4370,27 @@ extern char orig_char_from_embed_directive(a_const_char lex_escape);
 extern a_token_kind get_token(void);
 /* Return whether a token is a keyword token. */
 extern a_boolean is_keyword_token(a_token_kind	token);
+
+/*
+The kinds of interpolator that may appear in a token sequence, i.e., in the
+operand of a "^^{ ... }" reflection operator.  Each interpolator is introduced
+by a backslash and has a parenthesized, bracketed, or braced operand list.
+*/
+enum an_interpolator_kind : a_byte {
+  ipk_none,		/* Not an interpolator introducer. */
+  ipk_identifier,	/* "\[...]": an identifier formed from the operands. */
+  ipk_splice,		/* "\[: ... :]": a splice of the operand value, i.e.,
+			   the equivalent of "[: \val(...) :]". */
+  ipk_tokens,		/* "\{...}": the tokens of the operand sequence. */
+  ipk_value,		/* "\val(...)": a pseudo-token for the operand
+			   value. */
+  ipk_string		/* "\str(...)": a string literal whose contents are
+			   those of the operand string view. */
+};
+
+/* Classify the interpolator, if any, introduced by the current token. */
+extern an_interpolator_kind interpolator_kind_of_curr_token(
+                                                a_token_kind  *closing_token);
 /* Transform a tok_colon followed by a ':' into a tok_colon_colon. */
 extern void add_colon_to_tok_colon_if_present(void);
 /* Generate a line-identifying directive in preprocessing output. */
@@ -5058,6 +5083,8 @@ extern void init_token_string(
                          const a_source_position *pos,
                          a_boolean               keep_spacing,
                          a_boolean               suppress_identifier_wrapping);
+
+extern a_const_char *token_string(void);
 
 extern char *make_copy_of_token_string(void);
 

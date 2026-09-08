@@ -4221,6 +4221,8 @@ handle_class_type_supplement_for_class:
       break;
     case iek_token_sequence_entry:
 #define eptr ((a_token_sequence_entry*)entry_ptr)
+      remap_next_ptr(eptr->next, a_token_sequence_entry_ptr,
+                     iek_token_sequence_entry);
       walk_string_ptr(eptr->spelling, iek_other_text, 0);
 #undef eptr
       break;
