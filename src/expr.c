@@ -9032,7 +9032,7 @@ and bound_function_selector are expected to be NULL in that case.
           unexpected_condition_str("scan_function_call: bad operand kind");
       }  /* switch */
     }  /* if */
-    if (bcap->result_type != NULL) {
+    if (!unknown_dependent_function && bcap->result_type != NULL) {
       /* Cast the call result to the right type for certain builtin function
          calls. */
       cast_operand(bcap->result_type, result, /*is_implicit_cast=*/TRUE);
