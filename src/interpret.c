@@ -20682,9 +20682,13 @@ surrounded by splice delimiters, which is what a splice interpolator
 ("\[: ... :]") contributes.
 */
 {
-  a_shared_token  new_tok = build_tok_constant(cp, &pos_curr_token);
+  a_shared_token  new_tok;
 
+  /* The tokens must be given their sequence numbers in the order in which
+     they are appended, because a cache is searched for a range of tokens by
+     binary search on those numbers. */
   if (as_splice) cache_token(new_cache, tok_lsplice, &pos_curr_token);
+  new_tok = build_tok_constant(cp, &pos_curr_token);
   new_cache->append_token(move_from(&new_tok));
   if (as_splice) cache_token(new_cache, tok_rsplice, &pos_curr_token);
 }  /* interpolate_value */
