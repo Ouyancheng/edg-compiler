@@ -840,12 +840,6 @@ may be a friend template.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tp->export_position = decl_state->export_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if MAINTAIN_CLASS_MEMBER_LIST
-  /* Record the declaration if it appears in the body of a class.  The
-     prototype instantiation of the templated entity is not recorded
-     separately: This entry represents the declaration as a whole. */
-  record_class_member_declaration((char*)tp, iek_template);
-#endif /* MAINTAIN_CLASS_MEMBER_LIST */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (depth_scope_stack == depth_innermost_namespace_scope) {
@@ -37222,6 +37216,19 @@ of the "auto" parameters.
     /* No IL template entry required. */
     decl_state->il_template_entry = NULL;
   }  /* if */
+#if MAINTAIN_CLASS_MEMBER_LIST
+  if (decl_state->il_template_entry != NULL) {
+    /* Record the declaration if it appears in the body of a class.  This is
+       done once it is known that the declaration is that of a template,
+       because the IL template entry created for a full specialization is
+       abandoned: The entity that such a declaration declares is recorded
+       when its declarator is processed.  The prototype instantiation of the
+       templated entity is not recorded separately, because the template
+       entry represents the declaration as a whole. */
+    record_class_member_declaration((char*)decl_state->il_template_entry,
+                                    iek_template);
+  }  /* if */
+#endif /* MAINTAIN_CLASS_MEMBER_LIST */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state->is_generic && decl_state->decl_info != NULL) {
     /* Create the constraint types based on the C++/CLI constraints. */
