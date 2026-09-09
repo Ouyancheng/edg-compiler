@@ -1559,6 +1559,13 @@ body, and those that the list represents by another entry, are ignored.
     /* An enumerator (the only kind of constant that can be declared in the
        body of a class): The declaration of its enumeration type is recorded
        instead. */
+#if RECORD_MACROS_IN_IL
+  } else if (kind == iek_macro) {
+    /* A macro definition, which is not a member declaration even when the
+       "#define" directive appears in the body of a class.  Macros are
+       entered before the file scope of a translation unit is pushed, so the
+       scope stack must not be examined for them. */
+#endif /* RECORD_MACROS_IN_IL */
   } else if (scope_is(&scope_stack_top(), sck_template_declaration)) {
     /* A member template declaration, which is represented by the entry
        created for its template (see make_il_template_entry). */
