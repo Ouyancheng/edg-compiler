@@ -9080,7 +9080,7 @@ typedef struct a_class_type_supplement {
 			   are not included.  An entity declared more than
 			   once in the body (e.g., a nested class that is
 			   declared and later defined) appears multiple times
-                           in the list. */
+			   in the list. */
 #endif /* MAINTAIN_CLASS_MEMBER_LIST */
   a_scope_ptr	assoc_scope;
 			/* The scope for the class type.  In the scope entry,
