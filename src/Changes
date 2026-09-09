@@ -1,5 +1,13 @@
 Version 6.10
 
+9/9/26   [EDGcpfe/29047]
+Clang compatibility: arguments dropped from __builtin_masked_... calls
+
+Previously, calls of __builtin_masked_load, __builtin_masked_expand_load, and
+__builtin_masked_gather (see the changes for EDGcpfe/28718 in version 6.9) only
+had their first argument recorded in the IL for the call.  That is now fixed.
+
+
 9/8/26   [EDGcpfe/28266]
 Declarations in a class body
 

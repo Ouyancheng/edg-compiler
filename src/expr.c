@@ -7529,8 +7529,9 @@ argument list in expression form.
                                                   /*allow_ctor=*/FALSE,
                                                   /*will_call=*/TRUE);
     }  /* if */
-    /* Convert the argument. */
-    *arg_list = make_node_from_operand_for_expr_list(op1);
+    /* Convert the arguments. */
+    *arg_list = make_expr_list_from_argument_list(
+                                         args, /*dependent_expression=*/FALSE);
   }
 done:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
