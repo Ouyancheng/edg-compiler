@@ -1,5 +1,13 @@
 Version 6.10
 
+9/9/26   [EDGcpfe/29014]
+Avoiding excessive recursion in the interpreter
+
+The interpreter no longer uses recursive calls to walk the IL.  Instead an
+ordinary loop managing "work items" drives the process.  This avoids situations
+where the front end aborted due to overflowing the call stack.
+
+
 9/9/26   [EDGcpfe/29047]
 Clang compatibility: arguments dropped from __builtin_masked_... calls
 

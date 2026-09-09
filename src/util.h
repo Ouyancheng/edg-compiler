@@ -1615,6 +1615,11 @@ type (which defaults to the front end memory allocator).
 The most common std::vector operators are also applicable to Dyn_array.  Things
 like operator[], push_back, begin(), end(), etc., work as expected (which,
 e.g., means that the C++11 range-based for-statement works for Dyn_array also).
+
+Because every element access goes through the subscript operators, they check
+the index against the length only when EXPENSIVE_CHECKING is enabled.  The
+operations that shift elements around check their index unconditionally: There
+the check costs little compared to the work the operation itself does.
 */
 
 /*lint -esym(1510,*Dyn_array)*/
@@ -1867,7 +1872,9 @@ Subscript operator to access the element at the given index.
 */
 {
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+#if EXPENSIVE_CHECKING
   check_assertion(i < this->n_elems);
+#endif /* EXPENSIVE_CHECKING */
   return this->elems[i];
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* Dyn_array::operator[] */
@@ -1881,7 +1888,9 @@ Subscript operator to access a const version of the element at the given index.
 */
 {
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+#if EXPENSIVE_CHECKING
   check_assertion(i < this->n_elems);
+#endif /* EXPENSIVE_CHECKING */
   return this->elems[i];
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* Dyn_array::operator[] */

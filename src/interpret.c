@@ -57,12 +57,15 @@ allowed in a constant expression in C++14.
 
 The Interpreter
 ---------------
-The interpreter itself traverses the IL in typical "recursive descent" fashion.
-The principal entry points are interpret_expr, interpret_constexpr_call,
-interpret_dynamic_init_full, and interpret_constexpr_ctor.  These set up an
-"interpreter state" that is carried through the interpretation process (this
-state includes local allocations and mappings, the call stack, diagnostic
-records, etc.).
+The interpreter traverses the IL with an explicit work stack (a chain of
+tagged items, each recording what it interprets and how far along it is) and a
+single driver loop, rather than explicitly recursive calls.  That keeps
+call-stack use bounded while still allowing deep expression trees and nested
+constexpr calls.  The principal entry points are interpret_expr,
+interpret_constexpr_call, interpret_dynamic_init_full, and
+interpret_constexpr_ctor.  These set up an "interpreter state" that is carried
+through the interpretation process (this state includes local allocations and
+mappings, the call stack, the work stack, diagnostic records, etc.).
 
 An interpreter invocation can end for one of three reasons:
   (1) the call is completed with a valid result (normal case),
@@ -1145,6 +1148,335 @@ typedef struct a_call_frame {
 } a_call_frame;
 
 
+/*
+Kinds of work items on the interpreter's explicit control stack.
+*/
+enum an_interpreter_work_kind {
+  iwk_expr,		/* Interpret an expression node. */
+  iwk_dyn_init,		/* Interpret a dynamic initialization. */
+  iwk_call,		/* Interpret a call expression. */
+  iwk_ctor,		/* Interpret a constructor dynamic-init. */
+  iwk_dtor,		/* Interpret a destructor call. */
+  iwk_stmt,		/* Interpret a statement. */
+  iwk_block		/* Interpret a block statement and its scope. */
+};
+
+
+/*
+The visits made to a work item.  iwp_start is the first visit, which sets up
+the item and usually pushes child items; the remaining values identify the
+continuations that run when a pushed child has completed.
+*/
+enum an_interpreter_work_phase {
+  iwp_start,		/* First visit: Set up and/or push children. */
+  iwp_1st_resume,	/* First continuation. */
+  iwp_2nd_resume	/* Second continuation. */
+};
+
+
+/*
+The value category that an expression node had before it was interpreted as a
+prvalue.  See clear_value_category.
+*/
+typedef struct a_saved_value_category {
+  an_expr_node_ptr
+		node;	/* The node whose value category was cleared, or NULL
+			   if no category was cleared. */
+  a_boolean	was_lvalue;
+  a_boolean	was_xvalue;
+			/* The category to put back. */
+} a_saved_value_category;
+
+
+static void clear_value_category(an_expr_node_ptr        node,
+                                 a_boolean               as_prvalue,
+                                 a_saved_value_category  *saved)
+/*
+If as_prvalue is TRUE, clear the value category of node so that it is
+interpreted as a prvalue, and record in *saved the category that
+restore_value_category has to put back afterwards.  Nothing is changed, and
+nothing will be restored, when as_prvalue is FALSE.  This is needed wherever a
+node keeps the value category it has as a subexpression although it is
+interpreted in a context that calls for a prvalue: An argument passed by value
+through a copy constructor call is left an lvalue, for instance, and the
+context of an operation may have "rvalued" the operation without that
+propagating to the operand that produces its result.
+*/
+{
+  saved->node = as_prvalue ? node : NULL;
+  saved->was_lvalue = node->is_lvalue;
+  saved->was_xvalue = node->is_xvalue;
+  if (as_prvalue) {
+    node->is_lvalue = FALSE;
+    node->is_xvalue = FALSE;
+  }  /* if */
+}  /* clear_value_category */
+
+
+static void restore_value_category(a_saved_value_category const  *saved)
+/*
+Put back the value category that clear_value_category cleared, if it cleared
+one.
+*/
+{
+  if (saved->node != NULL) {
+    saved->node->is_lvalue = saved->was_lvalue;
+    saved->node->is_xvalue = saved->was_xvalue;
+  }  /* if */
+}  /* restore_value_category */
+
+
+/*
+The state that the handler for an iwk_expr work item carries from one visit to
+the next.
+*/
+typedef struct an_expr_work {
+  a_byte	*opnd1_value;
+  a_byte	*opnd2_value;
+			/* Storage holding the evaluated operands of an
+			   operation node.  opnd2_value is equal to
+			   opnd1_value when there is no second operand to
+			   evaluate separately. */
+  a_byte	*temp_storage;
+  a_byte	*temp_complete_object;
+			/* Storage allocated for the temporary object of a
+			   temporary-initialization node. */
+  a_dynamic_init_ptr
+		temp_init;
+			/* The dynamic initialization of that temporary. */
+  a_boolean	temp_lifetime;
+			/* TRUE if that temporary's lifetime is being tracked
+			   for a later destruction. */
+  a_saved_value_category
+		saved_result_opnd;
+			/* The operand that produces the result of the
+			   operation and is therefore interpreted into the
+			   result storage directly -- the arm that the
+			   condition of a conditional operator selected, or
+			   the second operand of a comma-like operator --
+			   along with the value category to restore once it
+			   has been interpreted. */
+} an_expr_work;
+
+
+/*
+The state that the handler for an iwk_call work item carries from one visit to
+the next.
+*/
+typedef struct a_call_work {
+  a_routine_ptr	callee;
+			/* The routine being called. */
+  a_byte	*arg_ptrs;
+			/* Vector of pointers to the argument storage. */
+  a_byte	*arg_sizes;
+			/* Vector of the corresponding argument sizes. */
+  a_byte	*closure_ptr;
+			/* The "this" storage mapped for a lambda closure
+			   entry point, or NULL. */
+  unsigned long	up_front_cost;
+			/* The cost charged before the call, which is reduced
+			   to the actual cost when the call completes. */
+  a_byte_count	retval_offset;
+			/* Adjustment to apply to an address result returned
+			   by an override with a covariant return type. */
+  a_boolean	has_this_param;
+			/* TRUE if the callee has a "this" parameter. */
+} a_call_work;
+
+
+/*
+The state that the handlers for iwk_dyn_init and iwk_ctor work items carry
+from one visit to the next.  The two kinds share this payload because a
+dynamic initialization that turns out to describe a constructor call is handed
+over to iwk_ctor in place, keeping pos, dest, and implied_src.
+*/
+typedef struct an_init_work {
+  a_source_position
+		*pos;
+			/* The position to use in diagnostics. */
+  a_constexpr_address
+		dest;
+			/* The destination, including any variant path. */
+  a_constexpr_address
+		implied_src;
+			/* The source of a copy or move constructor call that
+			   has no explicit source expression. */
+  a_boolean	has_implied_src;
+			/* TRUE if implied_src holds such a source. */
+  a_byte	*arg_ptrs;
+			/* Vector of pointers to the argument storage. */
+  a_byte	*arg_sizes;
+			/* Vector of the corresponding argument sizes. */
+  a_byte	*this_bytes;
+			/* Storage holding the "this" pointer value. */
+  a_byte	*prev_this_bytes;
+			/* The "this" storage that was mapped before a
+			   mem-initializer mapped this_bytes, or NULL. */
+  a_boolean	this_is_mapped;
+			/* TRUE if that mapping must still be undone. */
+  a_constructor_init_ptr
+		next_ctor_init;
+			/* The mem-initializer to interpret next. */
+  a_byte	*subobject;
+			/* The subobject to mark as initialized once the
+			   pending mem-initializer completes, or NULL. */
+  unsigned long	up_front_cost;
+			/* The cost charged before the call. */
+  an_alloc_seq_number
+		alloc_seq_number;
+			/* Allocation sequence number of the argument
+			   storage. */
+} an_init_work;
+
+
+/*
+The state that the handler for an iwk_dtor work item carries from one visit to
+the next.
+*/
+typedef struct a_dtor_work {
+  a_source_position
+		*pos;
+			/* The position to use in diagnostics. */
+  a_byte	*this_bytes;
+			/* Storage holding the "this" pointer value. */
+  a_variable_ptr
+		this_var;
+			/* The "this" parameter of the destructor. */
+  unsigned long	up_front_cost;
+			/* The cost charged before the call. */
+  an_alloc_seq_number
+		alloc_seq_number;
+			/* Allocation sequence number of that storage. */
+  a_boolean	nonvirtual;
+			/* TRUE if no virtual dispatch is to be performed. */
+} a_dtor_work;
+
+
+/*
+The state that the handler for an iwk_stmt work item carries from one visit to
+the next.
+*/
+typedef struct a_stmt_work {
+  a_storage_stack_state
+		saved_stack;
+			/* The storage stack as it was before the statement
+			   allocated its temporaries. */
+  a_byte	*expr_value;
+			/* Storage for the value of the statement's
+			   expression or loop test. */
+  a_boolean	has_cond_var;
+			/* TRUE if a condition variable was allocated. */
+  a_boolean	restore_consteval;
+			/* TRUE if allow_consteval_routine_node must be
+			   restored when the statement completes. */
+  a_boolean	saved_consteval;
+			/* The value to restore in that case. */
+} a_stmt_work;
+
+
+/*
+The state that the handler for an iwk_block work item carries from one visit
+to the next.
+*/
+typedef struct a_block_work {
+  a_scope_ptr	scope;
+			/* The scope associated with the block, or NULL. */
+  a_storage_stack_state
+		saved_stack;
+			/* The storage stack as it was before the block
+			   allocated its local variables. */
+  a_statement_ptr
+		next_stmt;
+			/* The statement of the block to interpret next. */
+  a_boolean	has_local_storage;
+			/* TRUE if the block allocated local storage that
+			   saved_stack must reclaim. */
+} a_block_work;
+
+
+/*
+One frame of the interpreter's explicit control stack.  A work item is created
+by the push_..._work routine of its kind and then visited by the matching
+process_..._work routine, once in phase iwp_start and once more in a later
+phase for each child item it pushed.  State that outlives a single visit is
+kept in the payload of the item's kind rather than in local variables.
+
+Items are owned by the work stack and are reused after being popped, so a
+handler must set every payload field that it reads later; the iwp_start visit
+of each handler initializes the fields its own continuations consult.  Some
+kinds hand an item over to another kind by changing "kind" and resetting
+"phase" to iwp_start -- a statement item that turns out to be a block, for
+instance -- and the new kind's iwp_start visit then initializes its payload.
+*/
+struct an_interpreter_work_item {
+  an_interpreter_work_item
+		*below, *above;
+			/* The items in the adjacent slots of the work stack
+			   this item belongs to.  These links are set when the
+			   item is created and never change. */
+  an_interpreter_work_kind
+		kind;
+			/* What this item interprets. */
+  an_interpreter_work_phase
+		phase;
+			/* Which visit comes next. */
+  void		*il_entry;
+			/* The IL entry being interpreted: an expression node,
+			   a statement, a dynamic initialization, or (for
+			   iwk_dtor) the destructor being called. */
+  a_byte	*result_storage;
+			/* Interpreter storage that receives the result, or
+			   for iwk_dtor the object being destroyed.  Not used
+			   by iwk_dyn_init, iwk_ctor, iwk_stmt, or iwk_block,
+			   which record their destination elsewhere. */
+  a_byte	*complete_object;
+			/* Complete object containing result_storage. */
+  an_alloc_seq_number
+		result_alloc_seq;
+			/* Allocation sequence number of result_storage. */
+  a_boolean	needs_cleanup;
+			/* TRUE if this item must still be visited after
+			   interpretation has failed, because it has to
+			   restore a saved storage stack, pop a call frame,
+			   or unmap parameters. */
+  union {
+    an_expr_work
+		expr;
+    a_call_work
+		call;
+    an_init_work
+		init;
+    a_dtor_work
+		dtor;
+    a_stmt_work
+		stmt;
+    a_block_work
+		block;
+  } variant;
+			/* The payload of the item's kind. */
+};
+
+
+/*
+The interpreter's explicit control stack.  The stack owns its items, which are
+linked together in slot order: An item that is popped keeps its slot and is
+reused by the next push, so interpreting a large IL tree allocates only as
+many items as the deepest nesting it reaches.
+*/
+typedef struct a_work_stack {
+  an_interpreter_work_item
+		*top;
+			/* The topmost item on the stack, or the floor item if
+			   the stack is empty.  The items above it, if any,
+			   are the slots that a push can reuse. */
+  an_interpreter_work_item
+		*floor;
+			/* An item that is never interpreted, occupying the
+			   slot below the first one.  Having it lets a push or
+			   a pop treat an empty stack like any other. */
+  a_work_stack();
+} a_work_stack;
+
 
 /*
 Type to use to index into a live set.
@@ -1491,6 +1823,10 @@ typedef struct an_interpreter_state {
 			/* The currently active call.  The address of this
 			   field is also used as a key to find the "*this"
 			   storage for certain enk_param_ref entries. */
+  a_work_stack	*work_stack;
+			/* Explicit control stack for IL traversal.  Points
+			   into a thread-local pool reused across invocations.
+			   */
   a_storage_stack_state
 		*extension_state;
 			/* Pointer to the storage stack state from which a
@@ -1602,6 +1938,10 @@ typedef struct an_interpreter_state {
 			/* TRUE if a call to std::__report_constexpr_value was
 			   already evaluated in this invocation of the
 			   interpreter. */
+  a_bit_field
+		failed:1;
+			/* TRUE if the current work-stack interpretation has
+			   failed. */
   a_const_eval_reattempt_state
 		reattempt_state;
 			/* The associated reattempt information. */
@@ -1622,10 +1962,196 @@ STATIC_THREAD unsigned long
 			/* The number of interpreter states that have been
 			   initialized but not released. */
 
+STATIC_THREAD Dyn_array<a_work_stack*>
+		*work_stack_pool;
+			/* Pooled work stacks, indexed by nesting depth.
+			   Slot N is used by the Nth concurrently active
+			   interpreter.  Backing storage is never released.
+			   */
+
+STATIC_THREAD a_call_frame_ptr
+		free_call_frames;
+			/* Recycled call frames. */
+
+
+static inline void work_item_result_cap(
+                                     an_interpreter_work_item const  *item,
+                                     a_constexpr_address             *cap)
+/*
+Build in *cap the plain destination address recorded in the given work item.
+*/
+{
+  cap->address = item->result_storage;
+  cap->flags = 0;
+  cap->length = 0;
+  cap->alloc_seq_number = item->result_alloc_seq;
+  cap->complete_object = item->complete_object;
+}  /* work_item_result_cap */
+
+
+static inline an_interpreter_work_item *push_work(
+                                        an_interpreter_state      *ips,
+                                        an_interpreter_work_kind  kind,
+                                        void                      *il_entry)
+/*
+Push a work item of the given kind for the given IL entry onto the work stack
+of *ips, and return it so that the caller can fill in the remaining fields
+that the handler for that kind needs.  The item starts in phase iwp_start and
+does not have to be visited after a failure.
+*/
+{
+  a_work_stack              *stack = ips->work_stack;
+  an_interpreter_work_item  *item = stack->top->above;
+
+  if (item == NULL) {
+    item = alloc_fe_of_type(an_interpreter_work_item);
+    item->below = stack->top;
+    item->above = NULL;
+    stack->top->above = item;
+  }  /* if */
+  stack->top = item;
+  item->kind = kind;
+  item->phase = iwp_start;
+  item->il_entry = il_entry;
+  item->needs_cleanup = FALSE;
+  return item;
+}  /* push_work */
+
+
+static inline void pop_work(an_interpreter_state  *ips)
+/*
+Pop the top work item, releasing the variant paths it copied.  The item itself
+stays in its slot for a later push to reuse.
+*/
+{
+  a_work_stack              *stack = ips->work_stack;
+  an_interpreter_work_item  *item = stack->top;
+
+  stack->top = item->below;
+  if (item->kind == iwk_dyn_init || item->kind == iwk_ctor) {
+    release_variant_path_if_needed(&item->variant.init.dest);
+    if (item->variant.init.has_implied_src) {
+      release_variant_path_if_needed(&item->variant.init.implied_src);
+    }  /* if */
+  }  /* if */
+}  /* pop_work */
+
+
+static inline void end_work_visit(an_interpreter_state  *ips,
+                                  a_boolean             result,
+                                  a_boolean             pop_when_done)
+/*
+End a visit to the top work item of the work stack of *ips.  The item is
+popped, and a result of FALSE then means that the interpretation has failed,
+unless pop_when_done is FALSE: The item stays on the stack in that case, to be
+visited again once the items it pushed have been interpreted, and result says
+nothing about it yet.
+*/
+{
+  if (pop_when_done) {
+    if (!result) ips->failed = TRUE;
+    pop_work(ips);
+  }  /* if */
+}  /* end_work_visit */
+
+
+a_work_stack::a_work_stack()
+/*
+Create an empty work stack, i.e. one that holds just its floor item.
+*/
+{
+  this->floor = alloc_fe_of_type(an_interpreter_work_item);
+  this->floor->below = NULL;
+  this->floor->above = NULL;
+  this->top = this->floor;
+}  /* a_work_stack::a_work_stack */
+
+
+static a_work_stack *get_work_stack(void)
+/*
+Return a reusable work stack for the interpreter that is about to become
+active (n_active_interpreter_states concurrent states already exist).
+*/
+{
+  size_t  pool_index = n_active_interpreter_states;
+
+  if (work_stack_pool == NULL) {
+    work_stack_pool = new_fe<Dyn_array<a_work_stack*>>(/*capacity=*/0u);
+  }  /* if */
+  while (work_stack_pool->length() <= pool_index) {
+    work_stack_pool->push_back(new_fe<a_work_stack>());
+  }  /* while */
+  return (*work_stack_pool)[pool_index];
+}  /* get_work_stack */
+
+
+static a_call_frame_ptr alloc_call_frame(void)
+/*
+Allocate a call frame, reusing a previously released frame if possible.
+*/
+{
+  a_call_frame_ptr  frame;
+
+  if (free_call_frames != NULL) {
+    frame = free_call_frames;
+    free_call_frames = frame->parent;
+  } else {
+    frame = alloc_fe_of_type(a_call_frame);
+  }  /* if */
+  return frame;
+}  /* alloc_call_frame */
+
+
+static void release_call_frame(a_call_frame_ptr  frame)
+/*
+Return frame to the free list.
+*/
+{
+  frame->parent = free_call_frames;
+  free_call_frames = frame;
+}  /* release_call_frame */
+
+
 #define active_alloc_seq(ips)  ((ips)->storage_stack.alloc_seq())
 
 #define cost_exceeded(ips)                                                   \
   (++(ips)->cost > max_cost_constexpr_call)
+
+
+static void report_excessive_cost(an_interpreter_state  *ips)
+/*
+Report that the interpretation has become too expensive to be continued.
+*/
+{
+  more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
+                       &ips->diag_list);
+}  /* report_excessive_cost */
+
+
+static unsigned long charge_call_cost(an_interpreter_state  *ips)
+/*
+Account a relatively high cost for a call that is about to be interpreted, so
+as to limit the overall call depth, and return the amount charged for
+refund_call_cost to reduce once the call has been interpreted.
+*/
+{
+  unsigned long  up_front_cost = max_cost_constexpr_call/
+                                                 max_depth_constexpr_call+1;
+
+  ips->cost += up_front_cost;
+  return up_front_cost;
+}  /* charge_call_cost */
+
+
+static void refund_call_cost(an_interpreter_state  *ips,
+                             unsigned long         up_front_cost)
+/*
+A call that was charged up_front_cost by charge_call_cost has been
+interpreted: Reduce its cost to the actual cost of a call.
+*/
+{
+  ips->cost -= up_front_cost-2;
+}  /* refund_call_cost */
 
 
 STATIC_THREAD a_byte
@@ -1795,7 +2321,41 @@ Macros to push and pop call frames.
   }
 
 #define pop_call_frame(ips)                                                  \
-  ((ips)->curr_call_frame = (ips)->curr_call_frame->parent)
+  {                                                                          \
+    a_call_frame_ptr  cfp = (ips)->curr_call_frame;                          \
+    (ips)->curr_call_frame = cfp->parent;                                    \
+    release_call_frame(cfp);                                                 \
+  }
+
+static a_statement_ptr function_body_block(a_scope_ptr  routine_scope)
+/*
+Return the compound statement that makes up the body of the routine whose
+scope is routine_scope.  For a function-try-block, that is the compound
+statement of the try-block: The interpreter does not handle the handlers.
+*/
+{
+  a_statement_ptr  block_stmt = routine_scope->assoc_block;
+
+  if (block_stmt->kind == stmk_try_block) {
+    block_stmt = block_stmt->variant.try_block->statement;
+  }  /* if */
+  return block_stmt;
+}  /* function_body_block */
+
+
+static void push_new_call_frame(an_interpreter_state       *ips,
+                                a_routine_ptr              rp,
+                                a_source_position          *pos,
+                                a_constexpr_address const  &result_cap)
+/*
+Push a freshly allocated frame for a call to rp made at the position pos, whose
+result belongs at the location described by result_cap.
+*/
+{
+  a_call_frame_ptr  frame = alloc_call_frame();
+
+  push_call_frame(ips, frame, rp, pos, result_cap);
+}  /* push_new_call_frame */
 
 /*
 Macro to push a GNU statement expressions frame (which is a special kind of
@@ -2383,6 +2943,7 @@ result of calls to std::is_constant_evaluated().
   init_live_set(&ips->live_set);
   add_to_live_set(&ips->live_set, 1);
   ips->curr_call_frame = NULL;
+  ips->work_stack = get_work_stack();
   ips->extension_state = NULL;
   ips->constants = NULL;
   clear_diag_list(&ips->diag_list);
@@ -2408,6 +2969,7 @@ result of calls to std::is_constant_evaluated().
   ips->report_started = FALSE;
   ips->disallow_mutable_field_load = FALSE;
   ips->allow_consteval_routine_node = FALSE;
+  ips->failed = FALSE;
   ips->reattempt_state = {};
   ips->dyn_allocations = NULL;
   n_active_interpreter_states += 1;
@@ -2420,6 +2982,13 @@ Release the storage allocated for the given interpreter state.
 */
 {
   n_active_interpreter_states -= 1;
+  if (ips->work_stack != NULL) {
+    /* Interpretation may have been abandoned with items still pending. */
+    while (ips->work_stack->top != ips->work_stack->floor) {
+      pop_work(ips);
+    }  /* while */
+    ips->work_stack = NULL;
+  }  /* if */
   release_constexpr_stack(&ips->storage_stack);
   release_data_map_table(&ips->map);
   ips->map.table = NULL;
@@ -5455,6 +6024,267 @@ Macros to interpret a full-expression.
 }
 
 
+static inline void set_work_result(an_interpreter_work_item   *item,
+                                   a_constexpr_address const  &result_cap)
+/*
+Record the plain destination described by result_cap in the given work item.
+Any variant path in result_cap is dropped: The kinds that use this destination
+write their result through result_storage only.
+*/
+{
+  item->result_storage = result_cap.address;
+  item->complete_object = result_cap.complete_object;
+  item->result_alloc_seq = result_cap.alloc_seq_number;
+}  /* set_work_result */
+
+
+static void set_init_work_dest(an_interpreter_work_item   *item,
+                               a_constexpr_address const  &dest,
+                               a_constexpr_address const  *implied_src)
+/*
+Record dest as the destination of the given dynamic-initialization or
+constructor work item, along with the implied copy or move source *implied_src
+if implied_src is not NULL.  Both addresses are copied in full, so a variant
+path either of them names is duplicated and is released when the item is
+popped.
+*/
+{
+  (void)memcpy((a_byte*)&item->variant.init.dest, (a_byte*)&dest,
+               sizeof(dest));
+  copy_address_structures(&item->variant.init.dest);
+  if (implied_src == NULL) {
+    item->variant.init.has_implied_src = FALSE;
+  } else {
+    (void)memcpy((a_byte*)&item->variant.init.implied_src,
+                 (a_byte*)implied_src, sizeof(*implied_src));
+    copy_address_structures(&item->variant.init.implied_src);
+    item->variant.init.has_implied_src = TRUE;
+  }  /* if */
+}  /* set_init_work_dest */
+
+
+static inline void push_expr_work(an_interpreter_state       *ips,
+                                  an_expr_node_ptr           expr,
+                                  a_constexpr_address const  &result_cap)
+/*
+Push an expression-evaluation work item for expr, storing the result at the
+location described by result_cap.
+*/
+{
+  set_work_result(push_work(ips, iwk_expr, expr), result_cap);
+}  /* push_expr_work */
+
+
+static inline void push_expr_work_to(an_interpreter_state  *ips,
+                                     an_expr_node_ptr      expr,
+                                     a_byte                *result_storage,
+                                     a_byte                *complete_object)
+/*
+Push an expression-evaluation work item that writes its result into
+result_storage within complete_object, which are part of the storage that is
+currently being allocated.
+*/
+{
+  an_interpreter_work_item  *item = push_work(ips, iwk_expr, expr);
+
+  item->result_storage = result_storage;
+  item->complete_object = complete_object;
+  item->result_alloc_seq = active_alloc_seq(ips);
+}  /* push_expr_work_to */
+
+
+static inline void push_stmt_work(an_interpreter_state  *ips,
+                                  a_statement_ptr       stmt)
+/*
+Push a statement-interpretation work item for stmt.
+*/
+{
+  (void)push_work(ips, iwk_stmt, stmt);
+}  /* push_stmt_work */
+
+
+static void push_block_work(an_interpreter_state  *ips,
+                            a_statement_ptr       block_stmt,
+                            a_scope_ptr           scope)
+/*
+Push a block-interpretation work item for block_stmt and the associated
+scope (which may be NULL).
+*/
+{
+  push_work(ips, iwk_block, block_stmt)->variant.block.scope = scope;
+}  /* push_block_work */
+
+
+static void push_call_work(an_interpreter_state       *ips,
+                           an_expr_node_ptr           expr,
+                           a_constexpr_address const  &result_cap)
+/*
+Push a call-interpretation work item for the call expression expr, storing the
+result at the location described by result_cap.
+*/
+{
+  set_work_result(push_work(ips, iwk_call, expr), result_cap);
+}  /* push_call_work */
+
+
+static void push_ctor_work(an_interpreter_state       *ips,
+                           a_dynamic_init_ptr         dip,
+                           a_source_position          *pos,
+                           a_constexpr_address const  &cap,
+                           a_constexpr_address const  *implied_src)
+/*
+Push a constructor-interpretation work item for dip, constructing the object
+at cap and reporting diagnostics at pos.  implied_src is the source of a copy
+or move constructor call that has no explicit source expression, or NULL.
+*/
+{
+  an_interpreter_work_item  *item = push_work(ips, iwk_ctor, dip);
+
+  item->variant.init.pos = pos;
+  set_init_work_dest(item, cap, implied_src);
+}  /* push_ctor_work */
+
+
+static void push_dtor_work(an_interpreter_state  *ips,
+                           a_routine_ptr         callee,
+                           a_source_position     *pos,
+                           a_byte                *object,
+                           a_byte                *complete_object,
+                           a_boolean             nonvirtual)
+/*
+Push a work item for a call to the destructor callee that destroys the object
+at the given address within complete_object, reporting diagnostics at pos.  If
+nonvirtual is TRUE, no virtual dispatch is performed.
+*/
+{
+  an_interpreter_work_item  *item = push_work(ips, iwk_dtor, callee);
+
+  item->result_storage = object;
+  item->complete_object = complete_object;
+  item->variant.dtor.pos = pos;
+  item->variant.dtor.nonvirtual = nonvirtual;
+}  /* push_dtor_work */
+
+
+static void push_dyn_init_work(an_interpreter_state       *ips,
+                               a_dynamic_init_ptr         dip,
+                               a_source_position          *pos,
+                               a_constexpr_address const  &dst_addr,
+                               a_constexpr_address const  *implied_src)
+/*
+Push a work item for the dynamic initialization dip of the object at dst_addr,
+reporting diagnostics at pos.  implied_src is the source of an implied copy or
+move, or NULL.
+*/
+{
+  an_interpreter_work_item  *item = push_work(ips, iwk_dyn_init, dip);
+
+  item->variant.init.pos = pos;
+  set_init_work_dest(item, dst_addr, implied_src);
+}  /* push_dyn_init_work */
+
+
+static inline a_boolean control_transfer_active(an_interpreter_state  *ips)
+/*
+Return TRUE if the current call frame has an unresolved return, break, or
+continue.
+*/
+{
+  a_call_frame_ptr  frame = ips->curr_call_frame;
+  a_boolean         active = FALSE;
+
+  if (frame != NULL) {
+    active = frame->return_active || frame->loop_break_active ||
+             frame->continue_active || frame->switch_break_active;
+  }  /* if */
+  return active;
+}  /* control_transfer_active */
+
+
+static void process_expr_work(an_interpreter_state      *ips,
+                              an_interpreter_work_item  *item);
+static void process_dyn_init_work(an_interpreter_state      *ips,
+                                  an_interpreter_work_item  *item);
+static void process_call_work(an_interpreter_state      *ips,
+                              an_interpreter_work_item  *item);
+static void process_ctor_work(an_interpreter_state      *ips,
+                              an_interpreter_work_item  *item);
+static void process_dtor_work(an_interpreter_state      *ips,
+                              an_interpreter_work_item  *item);
+static void process_stmt_work(an_interpreter_state      *ips,
+                              an_interpreter_work_item  *item);
+static void process_block_work(an_interpreter_state      *ips,
+                               an_interpreter_work_item  *item);
+
+
+static void process_work_item(an_interpreter_state      *ips,
+                              an_interpreter_work_item  *item)
+/*
+Perform the next visit to the given work item, which is the top of the work
+stack of *ips.  The handler either pops the item or leaves it on the stack in
+a later phase, usually after pushing the child items it has to wait for.  The
+item itself stays valid across such pushes.
+*/
+{
+  switch (item->kind) {
+    case iwk_expr:
+      process_expr_work(ips, item);
+      break;
+    case iwk_dyn_init:
+      process_dyn_init_work(ips, item);
+      break;
+    case iwk_call:
+      process_call_work(ips, item);
+      break;
+    case iwk_ctor:
+      process_ctor_work(ips, item);
+      break;
+    case iwk_dtor:
+      process_dtor_work(ips, item);
+      break;
+    case iwk_stmt:
+      process_stmt_work(ips, item);
+      break;
+    case iwk_block:
+      process_block_work(ips, item);
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+}  /* process_work_item */
+
+
+static a_boolean run_pushed_work(an_interpreter_state      *ips,
+                                 an_interpreter_work_item  *base)
+/*
+Interpret the work items that were pushed on top of base, which is the item
+that was topmost before, and return TRUE if they all succeeded.  Once
+interpretation has failed, the remaining items are discarded without being
+interpreted, except for those that still have cleanup to perform.  ips->failed
+describes the interpretation that base belongs to and is left unchanged, so
+that a caller which recovers from a failure of the pushed work can continue.
+*/
+{
+  a_work_stack  *stack = ips->work_stack;
+  a_boolean     saved_failed = ips->failed;
+  a_boolean     result;
+
+  ips->failed = FALSE;
+  while (stack->top != base) {
+    an_interpreter_work_item  *item = stack->top;
+    if (ips->failed && !item->needs_cleanup) {
+      pop_work(ips);
+    } else {
+      process_work_item(ips, item);
+    }  /* if */
+  }  /* while */
+  result = !ips->failed;
+  ips->failed = saved_failed;
+  return result;
+}  /* run_pushed_work */
+
+
 static a_boolean translate_il_address_offset(an_interpreter_state  *ips,
                                              a_constant_ptr        con,
                                              a_constexpr_address   *cap,
@@ -7145,64 +7975,10 @@ or move constructor and the source object is stored at the location indicated
 by implied_src.
 */
 {
-  a_boolean  result = FALSE;
+  an_interpreter_work_item  *base = ips->work_stack->top;
 
-  switch (dip->kind) {
-    case dik_constant:
-    case dik_nonconstant_aggregate:
-      result = extract_value_from_constant(ips, dip->variant.constant.ptr,
-                                           dst_addr, implied_src);
-      break;
-    case dik_lambda:
-      if (constexpr_lambdas_enabled) {
-        result = do_constexpr_lambda(ips, dip, pos, dst_addr);
-      } else {
-        info_with_pos(ec_lambda_not_constant_expr, pos, ips);
-        do_constexpr_fail(result);
-      }  /* if */
-      break;
-    case dik_expression:
-    case dik_class_result_via_ctor:
-      result = do_constexpr_expr(ips, dip->variant.expression, dst_addr);
-      break;
-    case dik_constructor:
-      if (dip->variant.constructor.is_array_copy) {
-        result = do_array_constructor_copy(ips, dip, pos, dst_addr);
-      } else {
-        result = do_constexpr_ctor(ips, dip, pos, dst_addr, implied_src);
-      }  /* if */
-      break;
-    case dik_bitwise_copy:
-      { an_expr_node_ptr  source_expr = dip->variant.bitwise_copy.source;
-        if (source_expr != NULL) {
-          a_type_ptr  tp = skip_typerefs(source_expr->type);
-          a_boolean   restore_lvalue = FALSE;
-          if (type_is(tp, tk_array) && source_expr->is_lvalue) {
-            restore_lvalue = TRUE;
-            source_expr->is_lvalue = FALSE;
-          }  /* if */
-          result = do_constexpr_expression(ips, source_expr, dst_addr.address,
-                                           dst_addr.complete_object);
-          if (restore_lvalue) source_expr->is_lvalue = TRUE;
-        } else {
-          /* An implicit source: The caller should catch those cases. */
-          unexpected_condition();
-        }  /* if */
-      }
-      break;
-    case dik_zero:
-    case dik_none:
-      /* Nothing to do. */
-      result = TRUE;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  if (dip->is_reused_value && result) {
-    /* Record the location of a value to reuse. */
-    map_or_replace_ptr_discarding_old(&ips->map, dip, dst_addr.address);
-  }  /* if */
-  return result;
+  push_dyn_init_work(ips, dip, pos, dst_addr, implied_src);
+  return run_pushed_work(ips, base);
 }  /* do_constexpr_dynamic_init */
 
 
@@ -7618,62 +8394,71 @@ be called for the local static variables associated with constructs like
 }  /* init_static_variables */
 
 
-static a_boolean do_constexpr_block_statement(an_interpreter_state  *ips,
-                                              a_statement_ptr       block_stmt,
-                                              a_scope_ptr           scope)
+static void process_block_work(an_interpreter_state      *ips,
+                               an_interpreter_work_item  *item)
 /*
-Interpret the given block statement and its associated scope (if any).
+Perform the next visit to the given iwk_block work item, interpreting the
+statements of its block one per visit.
 */
 {
-  a_boolean              result = TRUE, local_storage = FALSE;
-  a_storage_stack_state  saved_stack;
-  a_statement_ptr        stmt = block_stmt->variant.block.statements;
+  a_statement_ptr  block_stmt = (a_statement_ptr)item->il_entry;
+  a_scope_ptr      scope = item->variant.block.scope;
+  a_boolean        result = !ips->failed;
+  a_boolean        pop_when_done = TRUE;
+  a_boolean        local_storage;
+  a_statement_ptr  stmt;
 
-  init_storage_stack_state_to_silence_GCC(saved_stack);
-  if (scope != NULL) {
-    /* If local variables are going to be allocated (which will be done when
-       their corresponding stmk_init statement is interpreted), save the
-       current allocation state so we can efficiently deallocate those
-       variables below.  Also do this for the top-level block of a statement
-       because any parameters have already been associated with the allocation
-       sequence number about to be recorded. */
-    a_variable_ptr  vp = scope->nonstatic_variables;
-    if (vp != NULL || scope_is(scope, sck_function)) {
-      save_storage_stack(ips, saved_stack);
-      local_storage = TRUE;
-      for (; vp != NULL && result; vp = vp->next) {
-        /* Skip dummy structured binding pack variables. */
-        if (vp->is_pack && vp->compiler_generated) continue;
-        /* Ordinarily, local variables are allocated and initialized when
-           interpreting their associated stmk_init entry.  In C++20, however,
-           uninitialized variables are permitted in constexpr expressions
-           (via changes introduced by P1331R2). */
-        if (vp->init_kind == initk_none) {
-          (void)do_constexpr_alloc_variable(ips, vp, &result);
+  if (item->phase == iwp_start) {
+    local_storage = FALSE;
+    stmt = block_stmt->variant.block.statements;
+    init_storage_stack_state_to_silence_GCC(item->variant.block.saved_stack);
+    if (scope != NULL) {
+      /* If local variables are going to be allocated (which will be done when
+         their corresponding stmk_init statement is interpreted), save the
+         current allocation state so we can efficiently deallocate those
+         variables below.  Also do this for the top-level block of a statement
+         because any parameters have already been associated with the
+         allocation sequence number about to be recorded. */
+      a_variable_ptr  vp = scope->nonstatic_variables;
+      if (vp != NULL || scope_is(scope, sck_function)) {
+        save_storage_stack(ips, item->variant.block.saved_stack);
+        local_storage = TRUE;
+        item->needs_cleanup = TRUE;
+        for (; vp != NULL && result; vp = vp->next) {
+          /* Skip dummy structured binding pack variables. */
+          if (vp->is_pack && vp->compiler_generated) continue;
+          /* Ordinarily, local variables are allocated and initialized when
+             interpreting their associated stmk_init entry.  In C++20,
+             however, uninitialized variables are permitted in constexpr
+             expressions (via changes introduced by P1331R2). */
+          if (vp->init_kind == initk_none) {
+            (void)do_constexpr_alloc_variable(ips, vp, &result);
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      if (result && scope->variables != NULL) {
+        /* There are local static variables.  That is normally not possible
+           in constexpr functions, but the implied static variables for
+           __func__ and similar constructs are permitted. */
+        if (!init_static_variables(ips, scope)) {
+          result = FALSE;
         }  /* if */
-      }  /* for */
-    }  /* if */
-    if (scope->variables != NULL) {
-      /* There are local static variables.  That is normally not possible in
-         constexpr functions, but the implied static variables for __func__
-         and similar constructs are permitted. */
-      if (!init_static_variables(ips, scope)) {
-        result = FALSE;
       }  /* if */
     }  /* if */
+    item->variant.block.has_local_storage = local_storage;
+    item->variant.block.next_stmt = stmt;
+    item->phase = iwp_1st_resume;
+  } else {
+    local_storage = item->variant.block.has_local_storage;
   }  /* if */
   if (result) {
-    /* Interpret the statements in the block. */
-    for (; result && stmt != NULL; stmt = stmt->next) {
-      result = do_constexpr_statement(ips, stmt);
-      if (ips->curr_call_frame->return_active ||
-          ips->curr_call_frame->loop_break_active ||
-          ips->curr_call_frame->continue_active ||
-          ips->curr_call_frame->switch_break_active) {
-        /* A branching statement ends execution for this block. */
-        break;
-      }  /* if */
-    }  /* for */
+    stmt = item->variant.block.next_stmt;
+    if (stmt != NULL && !control_transfer_active(ips)) {
+      item->variant.block.next_stmt = stmt->next;
+      push_stmt_work(ips, stmt);
+      pop_when_done = FALSE;
+      goto done;
+    }  /* if */
   }  /* if */
   /* Release and unmap the local storage if necessary. */
   if (local_storage) {
@@ -7691,9 +8476,24 @@ Interpret the given block statement and its associated scope (if any).
       }  /* if */
       do_constexpr_unmap_variable(ips, vp);
     }  /* for */
-    restore_storage_stack(ips, saved_stack, result);
+    restore_storage_stack(ips, item->variant.block.saved_stack, result);
   }  /* if */
-  return result;
+done:
+  end_work_visit(ips, result, pop_when_done);
+}  /* process_block_work */
+
+
+static a_boolean do_constexpr_block_statement(an_interpreter_state  *ips,
+                                              a_statement_ptr       block_stmt,
+                                              a_scope_ptr           scope)
+/*
+Interpret the given block statement and its associated scope (if any).
+*/
+{
+  an_interpreter_work_item  *base = ips->work_stack->top;
+
+  push_block_work(ips, block_stmt, scope);
+  return run_pushed_work(ips, base);
 }  /* do_constexpr_block_statement */
 
 
@@ -7776,8 +8576,7 @@ initialization and execute the increment before the main iteration.
     do {
       /* Evaluate the test expression. */
       if (cost_exceeded(ips)) {
-        more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
-                             &ips->diag_list);
+        report_excessive_cost(ips);
         do_constexpr_fail(result);
       } else if (expr != NULL) {
         result = do_constexpr_condition(has_cond_var, ips, expr, tp,
@@ -7932,8 +8731,7 @@ Interpret the given range-based for-statement.
     do {
       /* Evaluate the test expression. */
       if (cost_exceeded(ips)) {
-        more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
-                             &ips->diag_list);
+        report_excessive_cost(ips);
         do_constexpr_fail(result);
       } else {
         do_constexpr_full_expression(
@@ -8374,38 +9172,46 @@ with the given stmk_decl statement is usable as a constant expression.
 }  /* decl_stmt_only_has_known_constant_variables */
 
 
-static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
-                                        a_statement_ptr       stmt)
+static void process_stmt_work(an_interpreter_state      *ips,
+                              an_interpreter_work_item  *item)
 /*
-Interpret the given statement.  Return TRUE if the statement was
-successfully interpreted, FALSE otherwise.
+Perform the next visit to the given iwk_stmt work item.  Statements whose
+interpretation involves interpreting an expression, a nested statement, or a
+loop body push a work item for it and continue in a later phase.
 */
 {
-  a_boolean             result = TRUE;
-  an_expr_node_ptr      expr;
-  a_byte                *expr_value;
-  a_storage_stack_state saved_stack;
-  a_type_ptr            tp;
-  a_boolean             ovfl;
-  a_byte_count          n_bytes;
+  a_stmt_work       *sw = &item->variant.stmt;
+  a_statement_ptr   stmt = (a_statement_ptr)item->il_entry;
+  a_boolean         result = !ips->failed;
+  a_boolean         pop_when_done = TRUE;
+  an_expr_node_ptr  expr;
+  a_byte            *expr_value;
+  a_type_ptr        tp;
+  a_boolean         ovfl;
+  a_byte_count      n_bytes;
 
+  if (item->phase != iwp_start) goto resume;
+  if (!result) goto done;
   switch (stmt->kind) {
     case stmk_expr:
       {
         expr = stmt->expr;
         tp = skip_typerefs(expr->type);
         n_bytes = expr_result_size(ips, expr, tp, &result);
-        if (!result) {
-          /* Stop interpretation. */
-        } else {
-          save_storage_stack(ips, saved_stack);
-          if (!alloc_complete_object(ips, n_bytes, tp, expr_value) ||
-              !do_constexpr_expression(ips, expr, expr_value, expr_value)) {
+        if (result) {
+          save_storage_stack(ips, sw->saved_stack);
+          item->needs_cleanup = TRUE;
+          if (!alloc_complete_object(ips, n_bytes, tp, expr_value)) {
             result = FALSE;
+            restore_storage_stack(ips, sw->saved_stack, result);
+            item->needs_cleanup = FALSE;
           } else {
-            release_address_structures(expr, tp, expr_value);
+            sw->expr_value = expr_value;
+            push_expr_work_to(ips, expr, expr_value, expr_value);
+            item->phase = iwp_1st_resume;
+            pop_when_done = FALSE;
+            goto done;
           }  /* if */
-          restore_storage_stack(ips, saved_stack, result);
         }  /* if */
       }
       break;
@@ -8414,10 +9220,11 @@ successfully interpreted, FALSE otherwise.
     case stmk_if_consteval:
     case stmk_if_not_consteval:
       {
-        a_boolean             has_cond_var,
-                              saved_allow_consteval_routine_node = FALSE;
-        a_host_large_integer  bool_val;
+        a_boolean             has_cond_var;
+        a_host_large_integer  bool_val = 0;
         a_statement_ptr       then_statement, else_statement;
+        a_statement_ptr       chosen;
+        sw->restore_consteval = FALSE;
         if (stmt->kind == (a_statement_kind)stmk_constexpr_if) {
           then_statement = stmt->variant.constexpr_if->then_statement;
           else_statement = stmt->variant.constexpr_if->else_statement;
@@ -8433,8 +9240,8 @@ successfully interpreted, FALSE otherwise.
           } else {
             if (stmt->kind == (a_statement_kind)stmk_if_consteval) {
               bool_val = 1;
-              saved_allow_consteval_routine_node =
-                                            ips->allow_consteval_routine_node;
+              sw->saved_consteval = ips->allow_consteval_routine_node;
+              sw->restore_consteval = TRUE;
               ips->allow_consteval_routine_node = TRUE;
             } else {
               bool_val = 0;
@@ -8445,10 +9252,11 @@ successfully interpreted, FALSE otherwise.
           /* Check if we have to allocate a condition variable. */
           has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
           if (has_cond_var &&
-              !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
+              !do_constexpr_condition_alloc(ips, expr, &sw->saved_stack)) {
             do_constexpr_fail(result);
             break;
           }  /* if */
+          if (has_cond_var) item->needs_cleanup = TRUE;
           /* The type of the test expression is known to be bool. */
           tp = skip_typerefs(expr->type);
           n_bytes = value_bytes_for_type(ips, tp, &result);
@@ -8465,88 +9273,45 @@ successfully interpreted, FALSE otherwise.
             }  /* if */
           }  /* if */
         }  /* if */
+        sw->has_cond_var = has_cond_var;
         if (result) {
           if (bool_val) {
-            /* Execute the "then" statement. */
-            result = do_constexpr_statement(ips, then_statement);
-          } else if (else_statement != NULL) {
-            result = do_constexpr_statement(ips, else_statement);
+            chosen = then_statement;
+          } else {
+            chosen = else_statement;
+          }  /* if */
+          if (chosen != NULL) {
+            push_stmt_work(ips, chosen);
+            item->phase = iwp_1st_resume;
+            pop_when_done = FALSE;
+            goto done;
           }  /* if */
         }  /* if */
-        if (has_cond_var) {
-          do_constexpr_condition_cleanup(ips, expr);
-          do_constexpr_condition_dealloc(ips, expr, &saved_stack, &result);
-        } else if (expr == NULL) {
-          ips->allow_consteval_routine_node =
-                                           saved_allow_consteval_routine_node;
-        }  /* if */
+        item->phase = iwp_1st_resume;
+        goto resume;
       }
-      break;
     case stmk_while:
       {
-        a_boolean             has_cond_var;
-        a_host_large_integer  bool_val = FALSE;
+        a_boolean  has_cond_var;
         expr = stmt->expr;
         /* Check if we have to allocate a condition variable. */
         has_cond_var = node_is(expr, enk_condition);
         if (has_cond_var &&
-            !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
+            !do_constexpr_condition_alloc(ips, expr, &sw->saved_stack)) {
           do_constexpr_fail(result);
           break;
         }  /* if */
+        if (has_cond_var) item->needs_cleanup = TRUE;
+        sw->has_cond_var = has_cond_var;
         /* The type of the test expression is known to be bool. */
         tp = skip_typerefs(expr->type);
         n_bytes = value_bytes_for_type(ips, tp, &result);
-        if (!result) break;
+        item->phase = iwp_1st_resume;
+        if (!result) goto resume;
         (void)alloc_complete_object(ips, n_bytes, tp, expr_value);
-        do {
-          /* Evaluate the test expression. */
-          if (cost_exceeded(ips)) {
-            more_info_diagnostic(ec_excessive_constexpr_complexity,
-                                 &ips->position, &ips->diag_list);
-            do_constexpr_fail(result);
-          } else {
-            result = do_constexpr_condition(has_cond_var, ips, expr, tp,
-                                            expr_value);
-            ips->cost += 1;
-          }  /* if */
-          if (result) {
-            /* Evaluation of the test expression succeeded.  Get its value
-               to see if the dependent statement should be executed. */
-            get_int_val_from(expr_value, tp, bool_val, ovfl);
-            if (!ovfl && bool_val) {
-              /* Execute the dependent statement. */
-              result = do_constexpr_statement(ips,
-                                              stmt->variant.loop_statement);
-              if (result) {
-                /* Execution of the dependent statement succeeded.  Check for
-                   a pending branching statement. */
-                if (ips->curr_call_frame->return_active) {
-                  /* Stop the loop (leave the flag active since we may have to
-                     break out of other constructs). */
-                  bool_val = FALSE;
-                } else if (ips->curr_call_frame->loop_break_active) {
-                  /* Stop the loop (which completes the execution of the break
-                     statement). */
-                  ips->curr_call_frame->loop_break_active = FALSE;
-                  bool_val = FALSE;
-                } else if (ips->curr_call_frame->continue_active) {
-                  /* Continue, but clear the continue_active flag since we've
-                     reached the point of continuation. */
-                  ips->curr_call_frame->continue_active = FALSE;
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }   /* if */
-          if (has_cond_var) {
-            do_constexpr_condition_cleanup(ips, expr);
-          }  /* if */
-        } while (result && bool_val);
-        if (has_cond_var) {
-          do_constexpr_condition_dealloc(ips, expr, &saved_stack, &result);
-        }  /* if */
+        sw->expr_value = expr_value;
+        goto resume;
       }
-      break;
     case stmk_goto:
       /* An actual "goto" statement is not valid.  However, stmk_goto
          statements generated for other branch statements ("break" and
@@ -8576,11 +9341,17 @@ successfully interpreted, FALSE otherwise.
           if (frame == NULL) {
             info_with_pos(ec_branch_out_of_constant, &stmt->position, ips);
             do_constexpr_fail(result);
-            goto done_with_return_statement;
+            break;
           }  /* if */
         }  /* while */
+        if (!result) break;
         if (stmt->expr != NULL) {
-          do_constexpr_full_expr(ips, stmt->expr, frame->result_loc, result);
+          save_storage_stack(ips, sw->saved_stack);
+          item->needs_cleanup = TRUE;
+          push_expr_work(ips, stmt->expr, frame->result_loc);
+          item->phase = iwp_1st_resume;
+          pop_when_done = FALSE;
+          goto done;
         } else if (stmt->variant.return_dynamic_init != NULL) {
           /* Handle return_dynamic_init case. */
           a_dynamic_init_ptr  dip = stmt->variant.return_dynamic_init;
@@ -8590,14 +9361,18 @@ successfully interpreted, FALSE otherwise.
             tp = skip_typerefs(fn_type->variant.routine.return_type);
             init_subobject_to_zero(ips, frame->result_loc.address, tp,
                                    frame->result_loc.complete_object);
+            frame->return_active = TRUE;
           } else {
             if (dip->is_result_for_class_rvalue_question_mark &&
                 microsoft_mode) {
               dip = unoptimize_conditional_return(dip, frame->routine,
                                                   &stmt->position);
             }  /* if */
-            result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
-                                               frame->result_loc);
+            push_dyn_init_work(ips, dip, &stmt->position, frame->result_loc,
+                               /*implied_src=*/NULL);
+            item->phase = iwp_1st_resume;
+            pop_when_done = FALSE;
+            goto done;
           }  /* if */
         } else {
           /* Return without a value. */
@@ -8625,15 +9400,19 @@ successfully interpreted, FALSE otherwise.
             info_with_pos(ec_constexpr_missing_return_value, pos, ips);
             do_constexpr_fail(result);
           }  /* if */
+          frame->return_active = TRUE;
         }  /* if */
-        frame->return_active = TRUE;
       }
-done_with_return_statement:
       break;
     case stmk_stmt_expr_result:
       { a_call_frame_ptr  frame = ips->curr_call_frame;
         if (stmt->expr != NULL) {
-          do_constexpr_full_expr(ips, stmt->expr, frame->result_loc, result);
+          save_storage_stack(ips, sw->saved_stack);
+          item->needs_cleanup = TRUE;
+          push_expr_work(ips, stmt->expr, frame->result_loc);
+          item->phase = iwp_1st_resume;
+          pop_when_done = FALSE;
+          goto done;
         } else if (stmt->variant.stmt_expr_result.dynamic_init != NULL) {
           /* Handle return_dynamic_init case. */
           a_dynamic_init_ptr  dip;
@@ -8643,72 +9422,48 @@ done_with_return_statement:
             init_subobject_to_zero(ips, frame->result_loc.address, tp,
                                    frame->result_loc.complete_object);
           } else {
-            result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
-                                               frame->result_loc);
+            push_dyn_init_work(ips, dip, &stmt->position, frame->result_loc,
+                               /*implied_src=*/NULL);
+            item->phase = iwp_1st_resume;
+            pop_when_done = FALSE;
+            goto done;
           }  /* if */
         }  /* if */
       }
       break;
     case stmk_block:
       { a_block_ptr  block = stmt->variant.block.extra_info;
-        result = do_constexpr_block_statement(ips, stmt, block->assoc_scope);
+        item->kind = iwk_block;
+        item->phase = iwp_start;
+        item->variant.block.scope = block->assoc_scope;
+        pop_when_done = FALSE;
+        goto done;
       }
-      break;
     case stmk_try_block:
       { a_block_ptr  block;
-        stmt = stmt->variant.try_block->statement;
-        block = stmt->variant.block.extra_info;
-        result = do_constexpr_block_statement(ips, stmt, block->assoc_scope);
+        a_statement_ptr  try_stmt = stmt->variant.try_block->statement;
+        block = try_stmt->variant.block.extra_info;
+        item->kind = iwk_block;
+        item->phase = iwp_start;
+        item->il_entry = try_stmt;
+        item->variant.block.scope = block->assoc_scope;
+        pop_when_done = FALSE;
+        goto done;
       }
-      break;
     case stmk_end_test_while:
       {
-        a_host_large_integer  bool_val;
         expr = stmt->expr;
         /* The type of the test expression is known to be bool. */
         tp = skip_typerefs(expr->type);
         n_bytes = value_bytes_for_type(ips, tp, &result);
         if (!result) break;
         (void)alloc_complete_object(ips, n_bytes, tp, expr_value);
-        do {
-          /* Execute the dependent statement. */
-          result = do_constexpr_statement(ips, stmt->variant.loop_statement);
-          if (!result) break;
-          /* Execution of the dependent statement succeeded.  Check for a
-             pending branching statement. */
-          if (ips->curr_call_frame->return_active) {
-            /* Break out of the loop (leave the flag active since we may
-               have to break out of other constructs). */
-            break;
-          } else if (ips->curr_call_frame->loop_break_active) {
-            /* Break out of the loop (which completes the execution of the
-               break statement). */
-            ips->curr_call_frame->loop_break_active = FALSE;
-            break;
-          } else if (ips->curr_call_frame->continue_active) {
-            /* Continue, but clear the continue_active flag since we've
-               reached the point of continuation. */
-            ips->curr_call_frame->continue_active = FALSE;
-          }  /* if */
-          /* Evaluate the test expression. */
-          if (cost_exceeded(ips)) {
-            more_info_diagnostic(ec_excessive_constexpr_complexity,
-                                 &ips->position, &ips->diag_list);
-            do_constexpr_fail(result);
-          } else {
-            do_constexpr_full_expression(
-                                   ips, expr, expr_value, expr_value, result);
-            release_address_structures(expr, tp, expr_value);
-            ips->cost += 1;
-          }  /* if */
-          if (result) {
-            /* Evaluation of the test expression succeeded.  Get its value
-               to see if the dependent statement should be repeated. */
-            get_int_val_from(expr_value, tp, bool_val, ovfl);
-          }   /* if */
-        } while (result && bool_val);
+        sw->expr_value = expr_value;
+        push_stmt_work(ips, stmt->variant.loop_statement);
+        item->phase = iwp_1st_resume;
+        pop_when_done = FALSE;
+        goto done;
       }
-      break;
     case stmk_for:
       result = do_constexpr_for_statement(ips, stmt, /*do_continue=*/FALSE);
       break;
@@ -8771,9 +9526,156 @@ done_with_return_statement:
                     &stmt->position, ips);
       do_constexpr_fail(result);
   }  /* switch */
-  return result;
-}  /* do_constexpr_statement */
+  goto done;
+resume:
+  expr = stmt->expr;
+  switch (stmt->kind) {
+    case stmk_expr:
+      if (result) {
+        expr_value = sw->expr_value;
+        tp = skip_typerefs(expr->type);
+        release_address_structures(expr, tp, expr_value);
+      }  /* if */
+      restore_storage_stack(ips, sw->saved_stack, result);
+      break;
+    case stmk_if:
+    case stmk_constexpr_if:
+    case stmk_if_consteval:
+    case stmk_if_not_consteval:
+      if (sw->has_cond_var) {
+        do_constexpr_condition_cleanup(ips, expr);
+        do_constexpr_condition_dealloc(ips, expr, &sw->saved_stack, &result);
+      } else if (sw->restore_consteval) {
+        ips->allow_consteval_routine_node = sw->saved_consteval;
+      }  /* if */
+      break;
+    case stmk_while:
+      if (item->phase == iwp_2nd_resume) {
+        /* The body has completed. */
+        if (result) {
+          if (ips->curr_call_frame->return_active) {
+            /* Stop the loop (leave the flag active since we may have to
+               break out of other constructs). */
+            result = TRUE;
+            goto while_cleanup;
+          } else if (ips->curr_call_frame->loop_break_active) {
+            /* Stop the loop (which completes the execution of the break
+               statement). */
+            ips->curr_call_frame->loop_break_active = FALSE;
+            goto while_cleanup;
+          } else if (ips->curr_call_frame->continue_active) {
+            /* Continue, but clear the continue_active flag since we've
+               reached the point of continuation. */
+            ips->curr_call_frame->continue_active = FALSE;
+          }  /* if */
+        }  /* if */
+        if (sw->has_cond_var) {
+          do_constexpr_condition_cleanup(ips, expr);
+        }  /* if */
+        if (!result) goto while_cleanup;
+        item->phase = iwp_1st_resume;
+      }  /* if */
+      if (result) {
+        a_host_large_integer  bool_val = FALSE;
+        expr_value = sw->expr_value;
+        tp = skip_typerefs(expr->type);
+        if (cost_exceeded(ips)) {
+          report_excessive_cost(ips);
+          do_constexpr_fail(result);
+        } else {
+          result = do_constexpr_condition(sw->has_cond_var, ips, expr, tp,
+                                          expr_value);
+          ips->cost += 1;
+        }  /* if */
+        if (result) {
+          get_int_val_from(expr_value, tp, bool_val, ovfl);
+          if (!ovfl && bool_val) {
+            push_stmt_work(ips, stmt->variant.loop_statement);
+            item->phase = iwp_2nd_resume;
+            pop_when_done = FALSE;
+            goto done;
+          }  /* if */
+        }  /* if */
+        if (sw->has_cond_var) {
+          do_constexpr_condition_cleanup(ips, expr);
+        }  /* if */
+      }  /* if */
+while_cleanup:
+      if (sw->has_cond_var) {
+        do_constexpr_condition_dealloc(ips, expr, &sw->saved_stack, &result);
+      }  /* if */
+      break;
+    case stmk_return:
+      { a_call_frame_ptr  frame = ips->curr_call_frame;
+        if (item->needs_cleanup) {
+          restore_storage_stack(ips, sw->saved_stack, result);
+        }  /* if */
+        while (frame != NULL && frame->routine == NULL) {
+          frame = frame->parent;
+        }  /* while */
+        if (frame != NULL) frame->return_active = TRUE;
+      }
+      break;
+    case stmk_stmt_expr_result:
+      if (item->needs_cleanup) {
+        restore_storage_stack(ips, sw->saved_stack, result);
+      }  /* if */
+      break;
+    case stmk_end_test_while:
+      {
+        a_host_large_integer  bool_val = FALSE;
+        if (result) {
+          if (ips->curr_call_frame->return_active) {
+            break;
+          } else if (ips->curr_call_frame->loop_break_active) {
+            ips->curr_call_frame->loop_break_active = FALSE;
+            break;
+          } else if (ips->curr_call_frame->continue_active) {
+            ips->curr_call_frame->continue_active = FALSE;
+          }  /* if */
+          expr_value = sw->expr_value;
+          tp = skip_typerefs(expr->type);
+          if (cost_exceeded(ips)) {
+            report_excessive_cost(ips);
+            do_constexpr_fail(result);
+          } else {
+            do_constexpr_full_expression(
+                                   ips, expr, expr_value, expr_value, result);
+            release_address_structures(expr, tp, expr_value);
+            ips->cost += 1;
+          }  /* if */
+          if (result) {
+            get_int_val_from(expr_value, tp, bool_val, ovfl);
+            if (bool_val) {
+              push_stmt_work(ips, stmt->variant.loop_statement);
+              pop_when_done = FALSE;
+              goto done;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+done:
+  end_work_visit(ips, result, pop_when_done);
+}  /* process_stmt_work */
 
+
+static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
+                                        a_statement_ptr       stmt)
+/*
+Interpret the given statement.  Return TRUE if the statement was
+successfully interpreted, FALSE otherwise.
+*/
+{
+  an_interpreter_work_item  *base = ips->work_stack->top;
+
+  push_stmt_work(ips, stmt);
+  return run_pushed_work(ips, base);
+}  /* do_constexpr_statement */
 
 static void warn_about_is_constant_evaluated(a_routine_ptr         callee,
                                              an_expr_node_ptr      call_node)
@@ -11972,12 +12874,8 @@ The given scope is a function scope.  Execute its associated compound
 statement.
 */
 {
-  a_statement_ptr  block_stmt = callee_scope->assoc_block;
-
-  if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
-    block_stmt = block_stmt->variant.try_block->statement;
-  }  /* if */
-  return do_constexpr_block_statement(ips, block_stmt, callee_scope);
+  return do_constexpr_block_statement(ips, function_body_block(callee_scope),
+                                      callee_scope);
 }  /* run_function_body */
 
 
@@ -12142,8 +13040,7 @@ diagnostic has been recorded and FALSE is returned.
     do {
       /* Evaluate the "__begin != __end" test. */
       if (cost_exceeded(ips)) {
-        more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
-                             &ips->diag_list);
+        report_excessive_cost(ips);
         do_constexpr_fail(result);
       } else {
         do_constexpr_full_expression(ips, ne, ne_value, ne_value, result);
@@ -21765,24 +22662,158 @@ the arguments.
 }  /* release_address_structures_for_args */
 
 
-static a_boolean do_constexpr_call(an_interpreter_state       *ips,
-                                   an_expr_node_ptr           call_node,
-                                   a_constexpr_address const  &result_cap)
+static void map_param_to_arg(an_interpreter_state  *ips,
+                             a_variable_ptr        param,
+                             a_byte                *arg_bytes,
+                             a_byte_count          arg_size,
+                             an_alloc_seq_number   alloc_seq_number)
 /*
-Interpret the given call node and place the result in the storage pointed to
-by *result_cap.  Return TRUE if no error occurred; otherwise, return FALSE and
-update *ips accordingly.
+Map the parameter variable param onto the argument storage at arg_bytes, whose
+value occupies arg_size bytes and is followed by a variable postfix.  The
+postfix records the given allocation sequence number and the storage param was
+mapped to before, if any.
 */
 {
-  an_expr_node_ptr  callee_node, arg;
-  a_routine_ptr     callee = NULL;
-  a_boolean         result = TRUE, lambda_entry_case;
-  a_byte            *result_storage = result_cap.address,
-                    *complete_object = result_cap.complete_object,
-                    *pre_evaluated_this_bytes = NULL;
-  a_constexpr_ptr_to_mem
-                    *pm_target = NULL;
-  a_boolean          is_member_call = !node_operator_is(call_node, eok_call);
+  a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+arg_size);
+
+  postfix->alloc_seq_number = alloc_seq_number;
+  map_or_replace_ptr(&ips->map, param, arg_bytes, postfix->prev_storage);
+}  /* map_param_to_arg */
+
+
+static void unmap_or_restore_param(an_interpreter_state  *ips,
+                                   a_variable_ptr        param,
+                                   a_byte                *arg_bytes,
+                                   a_byte_count          arg_size)
+/*
+Undo a mapping made by map_param_to_arg for the parameter variable param and
+the argument storage at arg_bytes with a value of arg_size bytes, restoring
+the storage param was mapped to before, if any.
+*/
+{
+  a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+arg_size);
+
+  if (postfix->prev_storage == NULL) {
+    unmap_ptr(&ips->map, param);
+  } else {
+    replace_mapped_ptr(&ips->map, param, postfix->prev_storage);
+  }  /* if */
+}  /* unmap_or_restore_param */
+
+
+static void unmap_param_list(an_interpreter_state  *ips,
+                             a_variable_ptr        params,
+                             a_byte                **p_arg_ptr,
+                             a_byte_count          *arg_size)
+/*
+Undo the mappings of the parameters of the list params, whose arguments are
+described by the entries of the p_arg_ptr and arg_size vectors that were
+recorded for them when the call was set up.
+*/
+{
+  a_variable_ptr  param;
+
+  for (param = params; param != NULL; param = param->next) {
+    unmap_or_restore_param(ips, param, *p_arg_ptr, *arg_size);
+    p_arg_ptr += 1;
+    arg_size += 1;
+  }  /* for */
+}  /* unmap_param_list */
+
+
+/*
+Macro recording that the given routine was successfully interpreted, for the
+benefit of a back end that needs to know which routines it still has to see.
+*/
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
+    BACK_END_IS_CP_GEN_BE
+#define note_routine_interpreted(rp)  ((rp)->evaluated_in_interpreter = TRUE)
+#else /* !(NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
+           BACK_END_IS_CP_GEN_BE) */
+#define note_routine_interpreted(rp)  ((void)0)
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
+          BACK_END_IS_CP_GEN_BE */
+
+
+static void finish_call_work(an_interpreter_state      *ips,
+                             an_interpreter_work_item  *item,
+                             a_boolean                 result)
+/*
+Complete the interpretation of the call described by the iwk_call work item
+*item, whose body or intrinsic handling has just finished with the given
+result.  This adjusts an address result for a covariant return type, releases
+the address structures of the arguments, undoes the mappings of the closure
+object and of the parameters, pops the call frame, and reduces the cost that
+was charged up front to the actual cost of the call.
+*/
+{
+  a_call_work       *cw = &item->variant.call;
+  an_expr_node_ptr  call_node = (an_expr_node_ptr)item->il_entry;
+  an_expr_node_ptr  callee_node = call_node->variant.operation.operands;
+  a_scope_ptr       callee_scope = scope_for_routine(cw->callee);
+  a_variable_ptr    params = callee_scope->variant.routine.parameters;
+  a_variable_ptr    this_var;
+  a_byte            **p_arg_ptr = (a_byte**)cw->arg_ptrs;
+  a_byte_count      *arg_size = (a_byte_count*)cw->arg_sizes;
+
+  if (result) {
+    if (cw->retval_offset != 0) {
+      /* A virtual call dispatching to an overriding function with a covariant
+         return type.  The return value is an address that must be updated to
+         match the static type of the expression. */
+      ((a_constexpr_address*)item->result_storage)->address +=
+                                                            cw->retval_offset;
+    }  /* if */
+    note_routine_interpreted(cw->callee);
+  }  /* if */
+  if (cw->closure_ptr != NULL) {
+    unmap_param_ref_for_this_ptr(ips, cw->closure_ptr);
+  }  /* if */
+  release_address_structures_for_args(callee_node->next, p_arg_ptr);
+  pop_call_frame(ips);
+  /* Release the mappings of the parameters, starting with "this". */
+  if (cw->has_this_param) {
+    this_var = callee_scope->variant.routine.this_param_variable;
+  } else {
+    this_var = NULL;
+  }  /* if */
+  if (this_var != NULL) {
+    unmap_or_restore_param(ips, this_var, *p_arg_ptr, *arg_size);
+    p_arg_ptr += 1;
+    arg_size += 1;
+  }  /* if */
+  unmap_param_list(ips, params, p_arg_ptr, arg_size);
+  refund_call_cost(ips, cw->up_front_cost);
+}  /* finish_call_work */
+
+
+static void process_call_work(an_interpreter_state      *ips,
+                              an_interpreter_work_item  *item)
+/*
+Perform the next visit to the given iwk_call work item.  The iwp_start visit
+determines the callee, evaluates the arguments, maps the parameters, and
+either interprets an intrinsic directly or pushes the top-level block of the
+callee; the iwp_1st_resume visit completes the call in the latter case.
+*/
+{
+  a_call_work             *cw = &item->variant.call;
+  an_expr_node_ptr        call_node = (an_expr_node_ptr)item->il_entry;
+  an_expr_node_ptr        callee_node, arg;
+  a_routine_ptr           callee = NULL;
+  a_boolean               result = TRUE, lambda_entry_case;
+  a_boolean               pop_when_done = TRUE;
+  a_byte                  *result_storage = item->result_storage;
+  a_byte                  *complete_object = item->complete_object;
+  a_byte                  *pre_evaluated_this_bytes = NULL;
+  a_constexpr_ptr_to_mem  *pm_target = NULL;
+  a_boolean               is_member_call;
+
+  if (item->phase != iwp_start) {
+    result = !ips->failed;
+    finish_call_work(ips, item, result);
+    goto done;
+  }  /* if */
+  is_member_call = !node_operator_is(call_node, eok_call);
 
   /* First determine the actual callee. */
   callee = eval_constexpr_callee(ips, call_node, &pm_target,
@@ -21866,13 +22897,15 @@ update *ips accordingly.
     info_with_pos_sym(ec_constexpr_call_not_interpretable,
                       &call_node->position, symbol_for(callee), ips);
     do_constexpr_fail(result);
+    goto done;
   } else if (cost_exceeded(ips)) {
-    more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
-                         &ips->diag_list);
+    report_excessive_cost(ips);
     do_constexpr_fail(result);
+    goto done;
   } else {
+    a_constexpr_address
+                     result_cap;
     a_scope_ptr      callee_scope;
-    a_call_frame     frame;
     a_variable_ptr   params, param, this_var;
     a_byte_count     n_args = 0, n_params, retval_offset = 0;
     a_byte_count     *arg_size;
@@ -21882,11 +22915,8 @@ update *ips accordingly.
     unsigned long    up_front_cost;
     a_boolean        eval_right_to_left =
                               call_node->variant.operation.eval_right_to_left;
-    /* Account a relatively high cost for the call up-front, to limit the
-       overall call depth.  When the call returns, that cost will be
-       reduced. */
-    up_front_cost = max_cost_constexpr_call/max_depth_constexpr_call+1;
-    ips->cost += up_front_cost;
+    work_item_result_cap(item, &result_cap);
+    up_front_cost = charge_call_cost(ips);
     /* Set up arguments, starting with "this" if applicable. */
     /* This process must happen in two phases.  First, the arguments must be
        allocated and evaluated.  Only then can we map parameter variables onto
@@ -21958,20 +22988,9 @@ update *ips accordingly.
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes;
       a_byte        *arg_bytes;
-      a_boolean     restore_lvalue = FALSE, restore_xvalue = FALSE;
-      if (!(tp->kind == (a_type_kind)tk_pointer &&
-            tp->variant.pointer.is_reference)) {
-        /* When a class-type argument is passed by-value via a copy
-           constructor call, the argument is left as an lvalue.  Temporarily
-           set it back to an rvalue. */
-        if (arg->is_lvalue) {
-          restore_lvalue = TRUE;
-          arg->is_lvalue = FALSE;
-        } else if (arg->is_xvalue) {
-          restore_xvalue = TRUE;
-          arg->is_xvalue = FALSE;
-        }  /* if */
-      }  /* if */
+      a_saved_value_category
+                    saved_category;
+      clear_value_category(arg, !is_any_reference_type(tp), &saved_category);
       n_bytes = expr_result_size(ips, arg, tp, &result);
       if (!result) {
         goto done;
@@ -21996,11 +23015,7 @@ update *ips accordingly.
         }  /* if */
         mark_complete_object_initialized(arg_bytes);
       }  /* if */
-      if (restore_lvalue) {
-        arg->is_lvalue = TRUE;
-      } else if (restore_xvalue) {
-        arg->is_xvalue = TRUE;
-      }  /* if */
+      restore_value_category(&saved_category);
       if (!result) {
         goto done;
       }  /* if */
@@ -22021,30 +23036,15 @@ update *ips accordingly.
           goto done;
         }  /* if */
       } else {
-        a_boolean  restore_lvalue = FALSE, restore_xvalue = FALSE;
-        if (!(tp->kind == (a_type_kind)tk_pointer &&
-              tp->variant.pointer.is_reference)) {
-          /* When a class-type argument is passed by-value via a copy
-             constructor call, the argument is left as an lvalue.  Temporarily
-             set it back to an rvalue. */
-          if (first_arg->is_lvalue) {
-            restore_lvalue = TRUE;
-            first_arg->is_lvalue = FALSE;
-          } else if (first_arg->is_xvalue) {
-            restore_xvalue = TRUE;
-            first_arg->is_xvalue = FALSE;
-          }  /* if */
-        }  /* if */
+        a_saved_value_category  saved_category;
+        clear_value_category(first_arg, !is_any_reference_type(tp),
+                             &saved_category);
         if (!do_constexpr_expression(ips, first_arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         } else {
           mark_complete_object_initialized(arg_bytes);
         }  /* if */
-        if (restore_lvalue) {
-          first_arg->is_lvalue = TRUE;
-        } else if (restore_xvalue) {
-          first_arg->is_xvalue = TRUE;
-        }  /* if */
+        restore_value_category(&saved_category);
         if (!result) {
           goto done;
         }  /* if */
@@ -22129,15 +23129,14 @@ update *ips accordingly.
            should perform some more work (like mapping parameters) in case the
            intrinsic handling falls back to the provided definition (as, e.g.,
            std::construct_at does). */
-        push_call_frame(ips, &frame, callee, &call_node->position, result_cap);
+        push_new_call_frame(ips, callee, &call_node->position, result_cap);
         result = do_constexpr_intrinsic_call(
                                    ips, callee, call_node, (a_byte**)arg_ptrs,
                                    result_storage, complete_object);
         release_address_structures_for_args(callee_node->next,
                                             (a_byte**)arg_ptrs);
         pop_call_frame(ips);
-        /* Reduce the cost of the call to just 2. */
-        ips->cost -= up_front_cost-2;
+        refund_call_cost(ips, up_front_cost);
       } else {
         info_with_pos_sym(ec_constexpr_function_undefined,
                           &callee_node->position, symbol_for(callee), ips);
@@ -22197,11 +23196,9 @@ update *ips accordingly.
     p_arg_ptr = (a_byte**)arg_ptrs;
     arg_size = (a_byte_count*)arg_sizes;
     if (this_var != NULL) {
-      a_byte         *arg_bytes = *p_arg_ptr;
-      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
-      postfix->alloc_seq_number = alloc_seq_number;
-      map_or_replace_ptr(&ips->map, this_var, arg_bytes,
-                         postfix->prev_storage);
+      a_byte  *arg_bytes = *p_arg_ptr;
+      map_param_to_arg(ips, this_var, arg_bytes, *arg_size,
+                       alloc_seq_number);
       if (callee->is_lambda_body) {
         /* If this lambda contains a nested lambda that captures a capture
            of this lambda, it will search ips->map for &ips->curr_call_frame
@@ -22217,15 +23214,20 @@ update *ips accordingly.
       arg_size += 1;
     }  /* if */
     for (param = params; param != NULL; param = param->next) {
-      a_byte         *arg_bytes = *p_arg_ptr;
-      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
-      postfix->alloc_seq_number = alloc_seq_number;
-      map_or_replace_ptr(&ips->map, param, arg_bytes, postfix->prev_storage);
+      map_param_to_arg(ips, param, *p_arg_ptr, *arg_size, alloc_seq_number);
       p_arg_ptr += 1;
       arg_size += 1;
     }  /* for */
     /* Set up the call frame. */
-    push_call_frame(ips, &frame, callee, &call_node->position, result_cap);
+    push_new_call_frame(ips, callee, &call_node->position, result_cap);
+    /* Record what finish_call_work needs to undo all of the above. */
+    cw->callee = callee;
+    cw->arg_ptrs = arg_ptrs;
+    cw->arg_sizes = arg_sizes;
+    cw->closure_ptr = closure_ptr;
+    cw->up_front_cost = up_front_cost;
+    cw->retval_offset = retval_offset;
+    cw->has_this_param = (this_var != NULL);
     if (callee->is_constexpr_intrinsic) {
       /* A standard library function or member function that the front end has
          marked as "constexpr-intrinsic", which means we should implement its
@@ -22236,58 +23238,33 @@ update *ips accordingly.
       result = do_constexpr_intrinsic_call(
                                    ips, callee, call_node, (a_byte**)arg_ptrs,
                                    result_storage, complete_object);
+      finish_call_work(ips, item, result);
     } else {
-      /* Run the function's top-level block statement. */
-      result = run_function_body(ips, callee_scope);
+      item->needs_cleanup = TRUE;
+      item->phase = iwp_1st_resume;
+      push_block_work(ips, function_body_block(callee_scope), callee_scope);
+      pop_when_done = FALSE;
     }  /* if */
-    if (result) {
-      if (retval_offset != 0) {
-        /* A virtual call dispatching to an overriding function with a
-           covariant return type.  The return value is an address that must
-           be updated to match the static type of the expression. */
-        ((a_constexpr_address*)result_storage)->address += retval_offset;
-      }  /* if */
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-#if BACK_END_IS_CP_GEN_BE
-      callee->evaluated_in_interpreter = TRUE;
-#endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-    }  /* if */
-    if (closure_ptr != NULL) {
-      unmap_param_ref_for_this_ptr(ips, closure_ptr);
-    }  /* if */
-    release_address_structures_for_args(callee_node->next, (a_byte**)arg_ptrs);
-    pop_call_frame(ips);
-    /* Release mappings of the parameters. */
-    p_arg_ptr = (a_byte**)arg_ptrs;
-    arg_size = (a_byte_count*)arg_sizes;
-    if (this_var != NULL) {
-      a_byte         *arg_bytes = *p_arg_ptr;
-      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
-      if (postfix->prev_storage == NULL) {
-        unmap_ptr(&ips->map, this_var);
-      } else {
-        replace_mapped_ptr(&ips->map, this_var, postfix->prev_storage);
-      }  /* if */
-      p_arg_ptr += 1;
-      arg_size += 1;
-    }  /* if */
-    for (param = params; param != NULL; param = param->next) {
-      a_byte         *arg_bytes = *p_arg_ptr;
-      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
-      if (postfix->prev_storage == NULL) {
-        unmap_ptr(&ips->map, param);
-      } else {
-        replace_mapped_ptr(&ips->map, param, postfix->prev_storage);
-      }  /* if */
-      p_arg_ptr += 1;
-      arg_size += 1;
-    }  /* for */
-    /* Reduce the cost of the call to just 2. */
-    ips->cost -= up_front_cost-2;
+    goto done;
   }  /* if */
 done:
-  return result;
+  end_work_visit(ips, result, pop_when_done);
+}  /* process_call_work */
+
+
+static a_boolean do_constexpr_call(an_interpreter_state       *ips,
+                                   an_expr_node_ptr           call_node,
+                                   a_constexpr_address const  &result_cap)
+/*
+Interpret the given call node and place the result in the storage pointed to
+by *result_cap.  Return TRUE if no error occurred; otherwise, return FALSE and
+update *ips accordingly.
+*/
+{
+  an_interpreter_work_item  *base = ips->work_stack->top;
+
+  push_call_work(ips, call_node, result_cap);
+  return run_pushed_work(ips, base);
 }  /* do_constexpr_call */
 
 
@@ -22379,26 +23356,35 @@ to 10 nested anonymous unions.
 }  /* anon_union_field_is_active_field */
 
 
-static a_boolean do_constexpr_ctor(an_interpreter_state       *ips,
-                                   a_dynamic_init_ptr         dip,
-                                   a_source_position          *pos,
-                                   a_constexpr_address const  &cap,
-                                   a_constexpr_address const  *implied_src)
+static void process_ctor_work(an_interpreter_state      *ips,
+                              an_interpreter_work_item  *item)
 /*
-Interpret the constructor call represented by the given dynamic initialization
-entry.  Return TRUE if no error occurred; otherwise, return FALSE and update
-*ips accordingly.  pos is the position of the call.  The object is constructed
-at the location indicated by cap.  If implied_src is non-NULL, this is a
-copy/move constructor invocation and the source object is stored at the
-location indicated by implied_src.
-
-This is similar to do_constexpr_call, but the call has a different
-representation, and mem-initializers must be interpreted prior to interpreting
-the body of the (constructor) function proper.
+Perform the next visit to the given iwk_ctor work item.  The iwp_start visit
+evaluates the arguments and maps the parameters, the iwp_1st_resume visits
+interpret the mem-initializers one at a time, and the iwp_2nd_resume visit runs
+after the constructor body has been interpreted.
 */
 {
-  a_routine_ptr     callee = dip->variant.constructor.ptr;
-  a_boolean         result = TRUE;
+  an_init_work              *iw = &item->variant.init;
+  a_dynamic_init_ptr        dip = (a_dynamic_init_ptr)item->il_entry;
+  a_source_position         *pos = iw->pos;
+  a_constexpr_address       &cap = iw->dest;
+  a_constexpr_address const *implied_src;
+  a_routine_ptr             callee;
+  a_boolean                 result = TRUE;
+  a_boolean                 pop_when_done = TRUE;
+
+  if (iw->has_implied_src) {
+    implied_src = &iw->implied_src;
+  } else {
+    implied_src = NULL;
+  }  /* if */
+  callee = dip->variant.constructor.ptr;
+  if (item->phase == iwp_2nd_resume) goto apply_cleanup;
+  if (item->phase == iwp_1st_resume) {
+    result = !ips->failed;
+    goto continue_mem_inits;
+  }  /* if */
 
   /* Retrieve the routine scope, or issue an error. */
   if (callee == NULL) {
@@ -22436,26 +23422,24 @@ the body of the (constructor) function proper.
       expect_error();
       ips->input_error = TRUE;
     }  /* if */
+    goto done;
   } else if (callee->is_prototype_instantiation) {
     info_with_pos_sym(ec_constexpr_call_not_interpretable, pos,
                       symbol_for(callee), ips);
     do_constexpr_fail(result);
+    goto done;
   } else if (cost_exceeded(ips)) {
-    more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
-                         &ips->diag_list);
+    report_excessive_cost(ips);
     do_constexpr_fail(result);
+    goto done;
   } else {
     a_byte               *result_storage = cap.address;
     a_byte               *complete_object = cap.complete_object;
     a_scope_ptr          callee_scope = scope_for_routine(callee);
-    a_statement_ptr      block_stmt = callee_scope->assoc_block;
-    a_call_frame         frame;
     an_expr_node_ptr     args = dip->variant.constructor.args, arg;
     a_variable_ptr       params = callee_scope->variant.routine.parameters,
                          param, this_var;
     a_base_class_ptr     bcp;
-    a_constructor_init_ptr
-                         ctor_init;
     a_byte_count         n_args = 1, n_params = 1;
     a_byte_count         *arg_size;
     a_byte               *arg_ptrs, **p_arg_ptr, *this_bytes, *arg_sizes;
@@ -22479,11 +23463,7 @@ the body of the (constructor) function proper.
                          class_type, ips);
       goto done;
     }  /* if */
-    /* Account a relatively high cost for the call up-front, to limit the
-       overall call depth.  When the call returns, that cost will be
-       reduced. */
-    up_front_cost = max_cost_constexpr_call/max_depth_constexpr_call+1;
-    ips->cost += up_front_cost;
+    up_front_cost = charge_call_cost(ips);
     /* Set up arguments, starting with "this" if applicable. */
     /* This process must happen in two phases.  First, the arguments must be
        allocated and evaluated.  Only then can we map parameter variables onto
@@ -22538,20 +23518,9 @@ the body of the (constructor) function proper.
       a_type_ptr    tp = skip_typerefs(arg->type);
       a_byte_count  n_bytes;
       a_byte        *arg_bytes;
-      a_boolean     restore_lvalue = FALSE, restore_xvalue = FALSE;
-      if (!(tp->kind == (a_type_kind)tk_pointer &&
-            tp->variant.pointer.is_reference)) {
-        /* When a class-type argument is passed by-value via a copy
-           constructor call, the argument is left as an lvalue.  Temporarily
-           set it back to an rvalue. */
-        if (arg->is_lvalue) {
-          restore_lvalue = TRUE;
-          arg->is_lvalue = FALSE;
-        } else if (arg->is_xvalue) {
-          restore_xvalue = TRUE;
-          arg->is_xvalue = FALSE;
-        }  /* if */
-      }  /* if */
+      a_saved_value_category
+                    saved_category;
+      clear_value_category(arg, !is_any_reference_type(tp), &saved_category);
       n_bytes = expr_result_size(ips, arg, tp, &result);
       if (!result) goto done;
       do_host_alignment(&n_bytes);
@@ -22595,11 +23564,7 @@ the body of the (constructor) function proper.
           mark_complete_object_initialized(arg_bytes);
         }  /* if */
       }  /* if */
-      if (restore_lvalue) {
-        arg->is_lvalue = TRUE;
-      } else if (restore_xvalue) {
-        arg->is_xvalue = TRUE;
-      }  /* if */
+      restore_value_category(&saved_category);
       if (!result) {
         goto done;
       }  /* if */
@@ -22640,10 +23605,7 @@ the body of the (constructor) function proper.
     p_arg_ptr = (a_byte**)arg_ptrs+1;
     arg_size = (a_byte_count*)arg_sizes;
     for (param = params; param != NULL; param = param->next) {
-      a_byte         *arg_bytes = *p_arg_ptr;
-      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
-      postfix->alloc_seq_number = alloc_seq_number;
-      map_or_replace_ptr(&ips->map, param, arg_bytes, postfix->prev_storage);
+      map_param_to_arg(ips, param, *p_arg_ptr, *arg_size, alloc_seq_number);
       p_arg_ptr += 1;
       arg_size += 1;
     }  /* for */
@@ -22659,7 +23621,7 @@ the body of the (constructor) function proper.
               size_t_arg(n_class_bytes-sizeof(void*)));
     }  /* if */
     /* Set up the call frame. */
-    push_call_frame(ips, &frame, callee, pos, cap);
+    push_new_call_frame(ips, callee, pos, cap);
     /* Mark all the empty base class subobjects as initialized. */
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       a_byte_count    offset;
@@ -22672,8 +23634,54 @@ the body of the (constructor) function proper.
                              complete_object);
       record_subobject_derivation(result_storage+offset, bcp);
     }  /* if */
-    /* Run the constructor initializers. */
-    ctor_init = callee_scope->variant.routine.constructor_inits;
+    /* Run the constructor initializers, then the constructor body. */
+    iw->arg_ptrs = arg_ptrs;
+    iw->this_bytes = this_bytes;
+    iw->arg_sizes = arg_sizes;
+    iw->prev_this_bytes = NULL;
+    iw->this_is_mapped = FALSE;
+    iw->next_ctor_init = callee_scope->variant.routine.constructor_inits;
+    iw->up_front_cost = up_front_cost;
+    iw->alloc_seq_number = alloc_seq_number;
+    iw->subobject = NULL;
+    item->needs_cleanup = TRUE;
+    item->phase = iwp_1st_resume;
+    goto continue_mem_inits;
+  }  /* if */
+continue_mem_inits:
+  {
+    a_byte               *result_storage = cap.address;
+    a_byte               *complete_object = cap.complete_object;
+    a_byte               *arg_ptrs = iw->arg_ptrs;
+    a_byte               *this_bytes = iw->this_bytes;
+    a_scope_ptr          callee_scope = scope_for_routine(callee);
+    a_type_ptr           class_type = parent_class_of(callee);
+    an_expr_node_ptr     args = dip->variant.constructor.args;
+    a_constructor_init_ptr
+                         ctor_init;
+    a_variable_ptr       params = callee_scope->variant.routine.parameters;
+    a_base_class_ptr     bcp;
+    a_boolean            one_param_besides_this = params != NULL &&
+                                                  params->next == NULL;
+
+    if (iw->this_is_mapped) {
+      if (iw->prev_this_bytes == NULL) {
+        unmap_ptr(&ips->map, &ips->curr_call_frame);
+      } else {
+        replace_mapped_ptr(&ips->map, &ips->curr_call_frame,
+                           iw->prev_this_bytes);
+      }  /* if */
+      iw->prev_this_bytes = NULL;
+      iw->this_is_mapped = FALSE;
+    }  /* if */
+    if (iw->subobject != NULL) {
+      if (result) {
+        mark_subobject_initialized(iw->subobject, complete_object);
+      }  /* if */
+      iw->subobject = NULL;
+    }  /* if */
+    if (!result) goto apply_cleanup;
+    ctor_init = iw->next_ctor_init;
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
       a_byte_count         offset;
       a_constexpr_address  dst_addr = cap;
@@ -22734,7 +23742,7 @@ the body of the (constructor) function proper.
           copied_variant_path = TRUE;
           if (!add_to_variant_path(&dst_addr, orig_fp, class_type,
                                    /*for_ctor_init=*/TRUE)) {
-            info_with_pos(ec_constexpr_too_many_nested_anonymous_types, pos, 
+            info_with_pos(ec_constexpr_too_many_nested_anonymous_types, pos,
                           ips);
             do_constexpr_fail(result);
             break;
@@ -22762,9 +23770,12 @@ the body of the (constructor) function proper.
         }  /* if */
         mark_complete_class_object_if_needed(tp, dst_addr.address);
       } else if (ctor_init->kind == cik_delegation) {
-        result = do_constexpr_dynamic_init(ips, ctor_init->initializer, pos,
-                                           cap);
-        break;
+        iw->next_ctor_init = NULL;
+        iw->subobject = NULL;
+        push_dyn_init_work(ips, ctor_init->initializer, pos, cap,
+                           /*implied_src=*/NULL);
+        pop_when_done = FALSE;
+        goto done;
       } else {
         bcp = ctor_init->variant.base_class;
         tp = bcp->type;
@@ -22820,14 +23831,13 @@ the body of the (constructor) function proper.
             a_constexpr_address  adjusted_src_addr;
             adjusted_src_addr = *src_addr;
             adjusted_src_addr.address += offset;
-            if (!do_constexpr_ctor(ips, sub_dip,
-                                   &callee->source_corresp.decl_position,
-                                   dst_addr, &adjusted_src_addr)) {
-              do_constexpr_fail(result);
-              break;
-            } else {
-              mark_subobject_initialized(dst_addr.address, complete_object);
-            }  /* if */
+            iw->next_ctor_init = ctor_init->next;
+            iw->subobject = dst_addr.address;
+            push_ctor_work(ips, sub_dip,
+                           &callee->source_corresp.decl_position,
+                           dst_addr, &adjusted_src_addr);
+            pop_when_done = FALSE;
+            goto done;
           }  /* if */
         } else if (dyn_init_is(sub_dip, dik_zero) ||
                    dyn_init_is(sub_dip, dik_none)) {
@@ -22839,7 +23849,7 @@ the body of the (constructor) function proper.
           a_byte               *prev_this_bytes = NULL;
           a_constexpr_address  *src_addr = NULL;
           if (dyn_init_is(sub_dip, dik_nonconstant_aggregate) &&
-              n_params == 2 && callee->compiler_generated) {
+              one_param_besides_this && callee->compiler_generated) {
             /* Implicit copies might rely on an "implied source"
                representation.  Pass the current source object address down
                in case it is needed. */
@@ -22851,97 +23861,96 @@ the body of the (constructor) function proper.
                &ips->curr_call_frame. */
             map_or_replace_ptr(&ips->map, &ips->curr_call_frame, this_bytes,
                                prev_this_bytes);
+            iw->prev_this_bytes = prev_this_bytes;
+            iw->this_is_mapped = TRUE;
           }  /* if */
-          if (!do_constexpr_dynamic_init(ips, sub_dip,
-                                         &callee->source_corresp.decl_position,
-                                         dst_addr, src_addr)) {
-            do_constexpr_fail(result);
-            break;
-          } else {
-            mark_subobject_initialized(dst_addr.address, complete_object);
-          }  /* if */
+          iw->next_ctor_init = ctor_init->next;
+          iw->subobject = dst_addr.address;
+          push_dyn_init_work(ips, sub_dip,
+                             &callee->source_corresp.decl_position,
+                             dst_addr, src_addr);
           if (src_addr != NULL) src_addr->address -= offset;
-          if (record_param_ref) {
-            if (prev_this_bytes == NULL) {
-              unmap_ptr(&ips->map, &ips->curr_call_frame);
-            } else {
-              replace_mapped_ptr(&ips->map, &ips->curr_call_frame,
-                                 prev_this_bytes);
-            }  /* if */
-          }  /* if */
+          pop_when_done = FALSE;
+          goto done;
         }  /* if */
       }  /* if */
       if (copied_variant_path) {
         release_variant_path_if_needed(&dst_addr);
       }  /* if */
     }  /* for */
+    if (!result) goto apply_cleanup;
     mark_subobject_initialized(result_storage, complete_object);
     /* Run the function's top-level block statement. */
-    if (!result) {
-      /* Something went wrong.  Don't perform additional interpretation. */
-    } else {
-      if (block_stmt->kind == (a_statement_kind)stmk_try_block) {
-        block_stmt = block_stmt->variant.try_block->statement;
-      }  /* if */
-      result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
-    }  /* if */
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-#if BACK_END_IS_CP_GEN_BE
-    if (result) callee->evaluated_in_interpreter = TRUE;
-#endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-    release_address_structures_for_args(args, (a_byte**)arg_ptrs+1);
+    item->phase = iwp_2nd_resume;
+    push_block_work(ips, function_body_block(callee_scope), callee_scope);
+    pop_when_done = FALSE;
+    goto done;
+  }
+apply_cleanup:
+  {
+    a_scope_ptr      callee_scope = scope_for_routine(callee);
+    a_variable_ptr   this_var;
+    a_byte           **p_arg_ptr = (a_byte**)iw->arg_ptrs+1;
+    a_byte_count     *arg_size = (a_byte_count*)iw->arg_sizes;
+    an_expr_node_ptr args = dip->variant.constructor.args;
+
+    /* A failure recorded in "result" above has not reached ips->failed yet,
+       so both have to be consulted here. */
+    if (ips->failed) result = FALSE;
+    this_var = callee_scope->variant.routine.this_param_variable;
+    if (result) note_routine_interpreted(callee);
+    release_address_structures_for_args(args, p_arg_ptr);
     pop_call_frame(ips);
-    /* Unmap the parameters. */
-    p_arg_ptr = (a_byte**)arg_ptrs+1;
-    arg_size = (a_byte_count*)arg_sizes;
-    for (param = params; param != NULL; param = param->next) {
-      a_byte         *arg_bytes = *p_arg_ptr;
-      a_var_postfix  *postfix = (a_var_postfix*)(arg_bytes+*arg_size);
-      if (postfix->prev_storage == NULL) {
-        unmap_ptr(&ips->map, param);
-      } else {
-        replace_mapped_ptr(&ips->map, param, postfix->prev_storage);
-      }  /* if */
-      p_arg_ptr += 1;
-      arg_size += 1;
-    }  /* for */
-    { /* Unmap the "this" parameter. */
-      a_var_postfix  *postfix;
-      postfix = (a_var_postfix*)(this_bytes+sizeof(a_constexpr_address));
-      if (postfix->prev_storage == NULL) {
-        unmap_ptr(&ips->map, this_var);
-      } else {
-        replace_mapped_ptr(&ips->map, this_var, postfix->prev_storage);
-      }  /* if */
-    }
-    remove_from_live_set(&ips->live_set, alloc_seq_number);
-    /* Reduce the cost of the call to just 2. */
-    ips->cost -= up_front_cost-2;
-  }  /* if */
+    unmap_param_list(ips, callee_scope->variant.routine.parameters, p_arg_ptr,
+                     arg_size);
+    unmap_or_restore_param(ips, this_var, iw->this_bytes,
+                           sizeof(a_constexpr_address));
+    remove_from_live_set(&ips->live_set, iw->alloc_seq_number);
+    refund_call_cost(ips, iw->up_front_cost);
+  }
 done:
-  return result;
+  end_work_visit(ips, result, pop_when_done);
+}  /* process_ctor_work */
+
+
+static a_boolean do_constexpr_ctor(an_interpreter_state       *ips,
+                                   a_dynamic_init_ptr         dip,
+                                   a_source_position          *pos,
+                                   a_constexpr_address const  &cap,
+                                   a_constexpr_address const  *implied_src)
+/*
+Interpret the constructor call represented by the given dynamic initialization
+entry.  Return TRUE if no error occurred; otherwise, return FALSE and update
+*ips accordingly.  pos is the position of the call.  The object is constructed
+at the location indicated by cap.  If implied_src is non-NULL, this is a
+copy/move constructor invocation and the source object is stored at the
+location indicated by implied_src.
+*/
+{
+  an_interpreter_work_item  *base = ips->work_stack->top;
+
+  push_ctor_work(ips, dip, pos, cap, implied_src);
+  return run_pushed_work(ips, base);
 }  /* do_constexpr_ctor */
 
 
-static a_boolean do_constexpr_dtor(an_interpreter_state  *ips,
-                                   a_routine_ptr         callee,
-                                   a_source_position     *pos,
-                                   a_byte                *result_storage,
-                                   a_byte                *complete_object,
-                                   a_boolean             nonvirtual)
+static void process_dtor_work(an_interpreter_state      *ips,
+                              an_interpreter_work_item  *item)
 /*
-Interpret a call to the given destructor (callee).  Return TRUE if no error
-occurred; otherwise, return FALSE and update *ips accordingly.  pos is the
-position of the call.  The object being destroyed is at the location indicated
-by result_storage, which is within the given complete object.  If nonvirtual
-(defaulted to FALSE) is TRUE, no virtual dispatch is performed for a virtual
-destructor.
-
-This is similar to do_constexpr_ctor.
+Perform the next visit to the given iwk_dtor work item.  The iwp_start visit
+maps the "this" parameter and pushes the top-level block of the destructor;
+the iwp_1st_resume visit destroys the subobjects and undoes that mapping.
 */
 {
-  a_boolean  result = TRUE;
+  a_dtor_work        *dw = &item->variant.dtor;
+  a_routine_ptr      callee = (a_routine_ptr)item->il_entry;
+  a_source_position  *pos = dw->pos;
+  a_byte             *result_storage = item->result_storage;
+  a_byte             *complete_object = item->complete_object;
+  a_boolean          result = TRUE;
+  a_boolean          pop_when_done = TRUE;
+
+  if (item->phase != iwp_start) goto apply_cleanup;
 
   /* Retrieve the routine scope, or issue an error. */
   if (callee == NULL) {
@@ -22966,23 +23975,21 @@ This is similar to do_constexpr_ctor.
       expect_error();
       ips->input_error = TRUE;
     }  /* if */
+    goto done;
   } else if (callee->is_prototype_instantiation) {
     info_with_pos_sym(ec_constexpr_call_not_interpretable, pos,
                       symbol_for(callee), ips);
     do_constexpr_fail(result);
+    goto done;
   } else if (cost_exceeded(ips)) {
-    more_info_diagnostic(ec_excessive_constexpr_complexity, &ips->position,
-                         &ips->diag_list);
+    report_excessive_cost(ips);
     do_constexpr_fail(result);
+    goto done;
   } else {
     a_scope_ptr             callee_scope;
-    a_statement_ptr         block_stmt;
-    a_call_frame            frame;
     a_variable_ptr          this_var;
-    a_constructor_init_ptr  dtor_init;
     a_byte                  *this_bytes;
     an_alloc_seq_number     alloc_seq_number;
-    a_type_ptr              class_type;
     unsigned long           up_front_cost;
     a_byte_count            retval_offset = 0;
     a_byte_count            this_n_bytes = sizeof(a_constexpr_address);
@@ -23000,19 +24007,21 @@ This is similar to do_constexpr_ctor.
     ((a_constexpr_address*)this_bytes)->complete_object = complete_object;
     ((a_constexpr_address*)this_bytes)->alloc_seq_number = alloc_seq_number;
     mark_complete_object_initialized(this_bytes);
-    /* If this is a virtual destructor call, adjust the callee. */
-    if (callee->is_virtual && !nonvirtual) {
+    /* If this is a virtual destructor call, adjust the callee.  Record the
+       adjustment in the work item so that the continuation below sees the
+       final callee and object. */
+    if (callee->is_virtual && !dw->nonvirtual) {
       if (!adjust_virtual_callee(&callee, &this_bytes, &retval_offset)) {
         info_with_pos(ec_constexpr_access_to_runtime_storage, pos, ips);
         do_constexpr_fail(result);
         goto done;
       } else {
         result_storage = ((a_constexpr_address*)this_bytes)->address;
+        item->il_entry = callee;
+        item->result_storage = result_storage;
       }  /* if */
     }  /* if */
     callee_scope = scope_for_routine(callee);
-    block_stmt = callee_scope->assoc_block;
-    class_type = parent_class_of(callee);
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -23024,11 +24033,7 @@ This is similar to do_constexpr_ctor.
                         symbol_for(callee), ips);
       goto done;
     }  /* if */
-    /* Account a relatively high cost for the call up-front, to limit the
-       overall call depth.  When the call returns, that cost will be
-       reduced. */
-    up_front_cost = max_cost_constexpr_call/max_depth_constexpr_call+1;
-    ips->cost += up_front_cost;
+    up_front_cost = charge_call_cost(ips);
     /* Phase 1: Allocate and evaluate the "this" argument. */
     /* Create the "this" argument and map it to the "this" parameter
        variable. */
@@ -23050,16 +24055,24 @@ This is similar to do_constexpr_ctor.
     /*lint -e{733}*/
     a_constexpr_address  ce_addr;
     set_active_address(ips, &ce_addr, result_storage, complete_object);
-    push_call_frame(ips, &frame, callee, pos, ce_addr);
-    /* Run the function's top-level block statement. */
-    if (!result) {
-      /* Something went wrong.  Don't perform additional interpretation. */
-    } else {
-      if (block_stmt->kind == stmk_try_block) {
-        block_stmt = block_stmt->variant.try_block->statement;
-      }  /* if */
-      result = do_constexpr_block_statement(ips, block_stmt, callee_scope);
-    }  /* if */
+    push_new_call_frame(ips, callee, pos, ce_addr);
+    dw->this_bytes = this_bytes;
+    dw->this_var = this_var;
+    dw->up_front_cost = up_front_cost;
+    dw->alloc_seq_number = alloc_seq_number;
+    item->needs_cleanup = TRUE;
+    item->phase = iwp_1st_resume;
+    push_block_work(ips, function_body_block(callee_scope), callee_scope);
+    pop_when_done = FALSE;
+    goto done;
+  }  /* if */
+apply_cleanup:
+  {
+    a_scope_ptr             callee_scope = scope_for_routine(callee);
+    a_type_ptr              class_type = parent_class_of(callee);
+    a_constructor_init_ptr  dtor_init;
+
+    result = !ips->failed;
     /* Run the "constructor initializers" that describe subobject
        destructions. */
     unmark_complete_object_initialized(complete_object);
@@ -23110,28 +24123,39 @@ This is similar to do_constexpr_ctor.
       result = FALSE;
       goto done;
     }  /* if */
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-#if BACK_END_IS_CP_GEN_BE
-    if (result) callee->evaluated_in_interpreter = TRUE;
-#endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    if (result) note_routine_interpreted(callee);
     pop_call_frame(ips);
-    { /* Unmap the "this" parameter. */
-      a_var_postfix  *postfix;
-      postfix = (a_var_postfix*)(this_bytes+sizeof(a_constexpr_address));
-      if (postfix->prev_storage == NULL) {
-        unmap_ptr(&ips->map, this_var);
-      } else {
-        replace_mapped_ptr(&ips->map, this_var, postfix->prev_storage);
-      }  /* if */
-      remove_from_live_set(&ips->live_set, alloc_seq_number);
-    }
-    /* Reduce the cost of the call to just 2. */
-    ips->cost -= up_front_cost-2;
+    unmap_or_restore_param(ips, dw->this_var, dw->this_bytes,
+                           sizeof(a_constexpr_address));
+    remove_from_live_set(&ips->live_set, dw->alloc_seq_number);
+    refund_call_cost(ips, dw->up_front_cost);
     ips->call_seen = TRUE;
-  }  /* if */
+  }
 done:
-  return result;
+  end_work_visit(ips, result, pop_when_done);
+}  /* process_dtor_work */
+
+
+static a_boolean do_constexpr_dtor(an_interpreter_state  *ips,
+                                   a_routine_ptr         callee,
+                                   a_source_position     *pos,
+                                   a_byte                *result_storage,
+                                   a_byte                *complete_object,
+                                   a_boolean             nonvirtual)
+/*
+Interpret a call to the given destructor (callee).  Return TRUE if no error
+occurred; otherwise, return FALSE and update *ips accordingly.  pos is the
+position of the call.  The object being destroyed is at the location indicated
+by result_storage, which is within the given complete object.  If nonvirtual
+(defaulted to FALSE) is TRUE, no virtual dispatch is performed for a virtual
+destructor.
+*/
+{
+  an_interpreter_work_item  *base = ips->work_stack->top;
+
+  push_dtor_work(ips, callee, pos, result_storage, complete_object,
+                 nonvirtual);
+  return run_pushed_work(ips, base);
 }  /* do_constexpr_dtor */
 
 
@@ -25890,36 +26914,182 @@ transformation of the type accordingly.
 }  /* reinterpret_runtime_address */
 
 
-/*lint -efunc(2704,*do_constexpr_expr)*/
-static a_boolean do_constexpr_expr(an_interpreter_state       *ips,
-                                   an_expr_node_ptr           orig_expr,
-                                   a_constexpr_address const  &result_cap)
+static void process_dyn_init_work(an_interpreter_state      *ips,
+                                  an_interpreter_work_item  *item)
 /*
-Interpret the given expression in the given interpreter context.  If
-successful return TRUE and store the result at the address indicated by
-result_cap (glvalue results are represented as a_constexpr_address values).
-Otherwise, return FALSE and update *ips accordingly.
+Perform the next visit to the given iwk_dyn_init work item.  Most kinds of
+dynamic initialization are performed in the iwp_start visit; one that is
+described by an expression pushes that expression and records the location of
+a reused value, if any, in the iwp_1st_resume visit.
 */
 {
-  a_boolean            result = TRUE;
-  an_expr_node_ptr     expr = skip_parens(orig_expr);
-  a_type_ptr           tp = skip_typerefs(expr->type);
-  a_byte_count         n_bytes;
-  an_integer_kind      int_kind;
-  a_boolean            is_signed;
-  a_host_large_integer host_int_val;
-  a_byte               *result_storage = result_cap.address,
-                       *complete_object = result_cap.complete_object;
+  an_init_work              *iw = &item->variant.init;
+  a_dynamic_init_ptr        dip = (a_dynamic_init_ptr)item->il_entry;
+  a_constexpr_address       &dst_addr = iw->dest;
+  a_constexpr_address const *implied_src;
+  a_source_position         *pos = iw->pos;
+  a_boolean                 result = FALSE;
+  a_boolean                 pop_when_done = TRUE;
 
-  if (type_is(tp, tk_template_param) || expr->do_not_interpret) {
-    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                  &expr->position, ips);
-    do_constexpr_fail(result);
-    goto done;
-  } else if (type_is(tp, tk_error)) {
-    expect_error();
-    ips->input_error = TRUE;
-    do_constexpr_fail(result);
+  if (iw->has_implied_src) {
+    implied_src = &iw->implied_src;
+  } else {
+    implied_src = NULL;
+  }  /* if */
+  if (item->phase == iwp_1st_resume) {
+    result = !ips->failed;
+    goto finish;
+  }  /* if */
+  switch (dip->kind) {
+    case dik_constant:
+    case dik_nonconstant_aggregate:
+      result = extract_value_from_constant(ips, dip->variant.constant.ptr,
+                                           dst_addr, implied_src);
+      break;
+    case dik_lambda:
+      if (constexpr_lambdas_enabled) {
+        result = do_constexpr_lambda(ips, dip, pos, dst_addr);
+      } else {
+        info_with_pos(ec_lambda_not_constant_expr, pos, ips);
+        do_constexpr_fail(result);
+      }  /* if */
+      break;
+    case dik_expression:
+    case dik_class_result_via_ctor:
+      push_expr_work(ips, dip->variant.expression, dst_addr);
+      item->phase = iwp_1st_resume;
+      pop_when_done = FALSE;
+      goto done;
+    case dik_constructor:
+      if (dip->variant.constructor.is_array_copy) {
+        result = do_array_constructor_copy(ips, dip, pos, dst_addr);
+      } else {
+        item->kind = iwk_ctor;
+        item->phase = iwp_start;
+        pop_when_done = FALSE;
+        goto done;
+      }  /* if */
+      break;
+    case dik_bitwise_copy:
+      { an_expr_node_ptr  source_expr = dip->variant.bitwise_copy.source;
+        if (source_expr != NULL) {
+          a_type_ptr  tp = skip_typerefs(source_expr->type);
+          a_saved_value_category
+                      saved_category;
+          clear_value_category(source_expr,
+                               type_is(tp, tk_array) &&
+                                                    source_expr->is_lvalue,
+                               &saved_category);
+          result = do_constexpr_expression(ips, source_expr, dst_addr.address,
+                                           dst_addr.complete_object);
+          restore_value_category(&saved_category);
+        } else {
+          /* An implicit source: The caller should catch those cases. */
+          unexpected_condition();
+        }  /* if */
+      }
+      break;
+    case dik_zero:
+    case dik_none:
+      /* Nothing to do. */
+      result = TRUE;
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+finish:
+  if (dip->is_reused_value && result) {
+    /* Record the location of a value to reuse. */
+    map_or_replace_ptr_discarding_old(&ips->map, dip, dst_addr.address);
+  }  /* if */
+done:
+  end_work_visit(ips, result, pop_when_done);
+}  /* process_dyn_init_work */
+
+
+static void push_result_operand(an_interpreter_state       *ips,
+                                an_interpreter_work_item   *item,
+                                an_expr_node_ptr           expr,
+                                an_expr_node_ptr           opnd,
+                                a_constexpr_address const  &result_cap)
+/*
+Arrange for opnd, the operand that produces the result of the operation node
+expr of the iwk_expr work item *item, to be interpreted directly into the
+result storage described by result_cap.  The item is left in phase
+iwp_2nd_resume, in which its handler restores the value category of opnd; since
+that has to happen even when the interpretation of opnd fails, the item is
+marked as needing cleanup.
+*/
+{
+  clear_value_category(opnd, !is_glvalue_node(expr),
+                       &item->variant.expr.saved_result_opnd);
+  item->needs_cleanup = TRUE;
+  item->phase = iwp_2nd_resume;
+  push_expr_work(ips, opnd, result_cap);
+}  /* push_result_operand */
+
+
+/*lint -efunc(2704,*process_expr_work)*/
+static void process_expr_work(an_interpreter_state      *ips,
+                              an_interpreter_work_item  *work_item)
+/*
+Perform the next visit to the given iwk_expr work item.  Expression forms
+whose interpretation requires interpreting an operand, a dynamic
+initialization, or a statement push a work item for it and complete their own
+interpretation in the iwp_1st_resume visit.  The operators that interpret an
+operand only after another one has been interpreted -- the conditional, comma
+and short-circuiting operators -- need one further visit, iwp_2nd_resume, which
+each of them recognizes in its own case below.
+*/
+{
+  a_boolean                 result = TRUE;
+  a_boolean                 pop_when_done = TRUE;
+  an_expr_work              *ew = &work_item->variant.expr;
+  an_expr_node_ptr          orig_expr =
+                                  (an_expr_node_ptr)work_item->il_entry;
+  a_constexpr_address       result_cap;
+  an_expr_node_ptr          expr;
+  a_type_ptr                tp;
+  a_byte_count              n_bytes;
+  an_integer_kind           int_kind;
+  a_boolean                 is_signed;
+  a_host_large_integer      host_int_val;
+  a_byte                    *result_storage, *complete_object;
+  an_interpreter_work_phase phase = work_item->phase;
+
+  work_item_result_cap(work_item, &result_cap);
+  expr = skip_parens(orig_expr);
+  tp = skip_typerefs(expr->type);
+  result_storage = result_cap.address;
+  complete_object = result_cap.complete_object;
+
+  if (phase == iwp_start) {
+    /* Check that this node can be interpreted at all.  The properties tested
+       here belong to the node, so a later visit need not test them again. */
+    if (type_is(tp, tk_template_param) || expr->do_not_interpret) {
+      info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                    &expr->position, ips);
+      do_constexpr_fail(result);
+      goto done;
+    } else if (type_is(tp, tk_error)) {
+      expect_error();
+      ips->input_error = TRUE;
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+  } else if (node_is(orig_expr, enk_statement)) {
+    a_call_frame_ptr  frame = ips->curr_call_frame;
+    result = !ips->failed;
+    if (frame->parent == NULL &&
+        (frame->return_active || frame->loop_break_active ||
+         frame->continue_active || frame->switch_break_active)) {
+      /* A branch is still active, but we're no longer in a statement
+         context.  That is not valid. */
+      info_with_pos(ec_branch_out_of_constant, &orig_expr->position, ips);
+      do_constexpr_fail(result);
+    }  /* if */
+    pop_call_frame(ips);
     goto done;
   }  /* if */
   switch (expr->kind) {
@@ -25935,20 +27105,38 @@ Otherwise, return FALSE and update *ips accordingly.
         a_type_ptr       opnd2_type = NULL;
         a_byte           *opnd2_value = NULL;
         a_boolean        ovfl, err, depends_on_fp_mode, unord;
-        a_byte_count     opnd_n_bytes;
+        a_byte_count     opnd_n_bytes = 0;
 
+        if (phase != iwp_start) {
+          opnd1 = expr->variant.operation.operands;
+          opnd2 = opnd1->next;
+          opnd1_type = skip_typerefs(opnd1->type);
+          opnd1_value = ew->opnd1_value;
+          opnd2_value = ew->opnd2_value;
+          if (opnd2 != NULL && opnd2_value != NULL) {
+            opnd2_type = skip_typerefs(opnd2->type);
+          } else {
+            opnd2_type = opnd1_type;
+            if (opnd2_value == NULL) opnd2_value = opnd1_value;
+          }  /* if */
+          opnd_n_bytes = expr_result_size(ips, opnd1, opnd1_type, &result);
+          goto apply_operation;
+        }  /* if */
         if (is_call_node(expr)) {
           /* Call nodes are handled separately because their operands are set
              up a little differently. */
-          result = do_constexpr_call(ips, expr, result_cap);
+          work_item->kind = iwk_call;
+          work_item->phase = iwp_start;
+          pop_when_done = FALSE;
           goto done;
         } else if (node_operator_is(expr, eok_class_rvalue_adjust)) {
           /* This is a pass-through operator for prvalues.  So we cannot just
              copy the operand, since it could invalidate internal addresses.
              Instead, the operand must be evaluated directly into the final
              result storage. */
-          result = do_constexpr_expr(ips, expr->variant.operation.operands,
-                                     result_cap);
+          work_item->il_entry = expr->variant.operation.operands;
+          work_item->phase = iwp_start;
+          pop_when_done = FALSE;
           goto done;
         }  /* if */
 /*
@@ -26032,10 +27220,6 @@ the value representation of the integer value.
           /* To avoid spurious warnings from certain tools. */
           opnd2_value = opnd1_value;
           opnd2_type = opnd1_type;
-        } else if (!expr->variant.operation.eval_right_to_left &&
-                   !do_constexpr_expression(ips, opnd1,
-                                            opnd1_value, opnd1_value)) {
-          do_constexpr_fail(result);
         } else if (opnd2 != NULL &&
                    !node_is(opnd2, enk_field) &&
                    !node_operator_is(expr, eok_land) &&
@@ -26060,13 +27244,9 @@ the value representation of the integer value.
           opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type, &result);
           if (!result) break;
           if (!alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
-                                     opnd2_value) ||
-              !do_constexpr_expression(ips, opnd2, opnd2_value, opnd2_value)) {
+                                     opnd2_value)) {
             do_constexpr_fail(result);
-          } else if (expr->variant.operation.eval_right_to_left &&
-                     !do_constexpr_expression(ips, opnd1,
-                                              opnd1_value, opnd1_value)) {
-            do_constexpr_fail(result);
+            break;
           }  /* if */
         } else {
           /* To avoid spurious warnings from certain tools. */
@@ -26074,8 +27254,34 @@ the value representation of the integer value.
           opnd2_type = opnd1_type;
         }  /* if */
         if (!result) break;
+        work_item->phase = iwp_1st_resume;
+        ew->opnd1_value = opnd1_value;
+        ew->opnd2_value = opnd2_value;
+        if (node_operator_is(expr, eok_comma) ||
+            node_operator_is(expr, eok_dot_static) ||
+            node_operator_is(expr, eok_points_to_static)) {
+          /* Operand evaluation is handled when applying the operator. */
+        } else if (expr->variant.operation.eval_right_to_left) {
+          if (opnd2_value != opnd1_value) {
+            push_expr_work_to(ips, opnd1, opnd1_value, opnd1_value);
+            push_expr_work_to(ips, opnd2, opnd2_value, opnd2_value);
+          } else {
+            push_expr_work_to(ips, opnd1, opnd1_value, opnd1_value);
+          }  /* if */
+          pop_when_done = FALSE;
+          goto done;
+        } else {
+          a_boolean  evaluate_second = (opnd2_value != opnd1_value);
+          if (evaluate_second) {
+            push_expr_work_to(ips, opnd2, opnd2_value, opnd2_value);
+          }  /* if */
+          push_expr_work_to(ips, opnd1, opnd1_value, opnd1_value);
+          pop_when_done = FALSE;
+          goto done;
+        }  /* if */
         /* The operand(s) were evaluated successfully.  Process the
            operation. */
+      apply_operation:
         switch (expr->variant.operation.kind) {
           case eok_address_of:
           case eok_reference_to:
@@ -30416,114 +31622,76 @@ the value representation of the integer value.
                                            *(a_constexpr_address*)opnd1_value;
             break;
           case eok_land:
-            { a_boolean  logical_and_result;
-              if (check_boolean_condition(ips, opnd1_value, opnd1, opnd1_type,
-                                          &logical_and_result)) {
-                if (!logical_and_result) {
-                  /* Short-circuit the second operand evaluation. */
-                } else {
-                  /* Evaluate the second operand. */
-                  opnd2_type = skip_typerefs(opnd2->type);
-                  opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type,
-                                                  &result);
-                  if (result) {
-                    if (!alloc_complete_object(
-                                ips, opnd_n_bytes, opnd2_type, opnd2_value) ||
-                        !do_constexpr_expression(
-                                      ips, opnd2, opnd2_value, opnd2_value)) {
-                      do_constexpr_fail(result);
-                      break;
-                    }  /* if */
-                    result = check_boolean_condition(
-                                          ips, opnd2_value, opnd2, opnd2_type,
-                                          &logical_and_result);
-                  }  /* if */
-                }  /* if */
-                if (result) {
-                  if (logical_and_result) {
-                    *(an_integer_value *)result_storage = one_int;
-                  } else {
-                    *(an_integer_value *)result_storage = zero_int;
-                  }  /* if */
-                }  /* if */
-              } else {
-                do_constexpr_fail(result);
-              }  /* if */
-            }
-            break;
           case eok_lor:
-            { a_boolean  logical_or_result;
-              if (check_boolean_condition(ips, opnd1_value, opnd1, opnd1_type,
-                                          &logical_or_result)) {
-                if (logical_or_result) {
-                  /* Short-circuit the second operand evaluation. */
-                } else {
-                  /* Evaluate the second operand. */
-                  opnd2_type = skip_typerefs(opnd2->type);
-                  opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type,
-                                                  &result);
-                  if (result) {
-                    if (!alloc_complete_object(
-                                ips, opnd_n_bytes, opnd2_type, opnd2_value) ||
-                        !do_constexpr_expression(
-                                      ips, opnd2, opnd2_value, opnd2_value)) {
-                      do_constexpr_fail(result);
-                      break;
-                    }  /* if */
-                    result = check_boolean_condition(
-                                          ips, opnd2_value, opnd2, opnd2_type,
-                                          &logical_or_result);
-                  }  /* if */
+            /* The second operand of these operators is interpreted only when
+               the first one does not already determine the result: For "&&"
+               that is when the first operand is true, for "||" when it is
+               false.  Its interpretation is therefore not scheduled with the
+               first one, but here, once the first one is known. */
+            { a_boolean  logical_result;
+              a_boolean  need_second = node_operator_is(expr, eok_land);
+              if (phase == iwp_2nd_resume) {
+                if (!check_boolean_condition(ips, opnd2_value, opnd2,
+                                             opnd2_type, &logical_result)) {
+                  do_constexpr_fail(result);
                 }  /* if */
-                if (result) {
-                  if (logical_or_result) {
-                    *(an_integer_value *)result_storage = one_int;
-                  } else {
-                    *(an_integer_value *)result_storage = zero_int;
-                  }  /* if */
-                }  /* if */
-              } else {
+              } else if (!check_boolean_condition(ips, opnd1_value, opnd1,
+                                                  opnd1_type,
+                                                  &logical_result)) {
                 do_constexpr_fail(result);
+              } else if (logical_result == need_second) {
+                opnd2_type = skip_typerefs(opnd2->type);
+                opnd_n_bytes = expr_result_size(ips, opnd2, opnd2_type,
+                                                &result);
+                if (result) {
+                  if (!alloc_complete_object(ips, opnd_n_bytes, opnd2_type,
+                                             opnd2_value)) {
+                    do_constexpr_fail(result);
+                  } else {
+                    ew->opnd2_value = opnd2_value;
+                    work_item->phase = iwp_2nd_resume;
+                    push_expr_work_to(ips, opnd2, opnd2_value, opnd2_value);
+                    pop_when_done = FALSE;
+                    goto done;
+                  }  /* if */
+                }  /* if */
+              }  /* if */
+              if (result) {
+                if (logical_result) {
+                  *(an_integer_value *)result_storage = one_int;
+                } else {
+                  *(an_integer_value *)result_storage = zero_int;
+                }  /* if */
               }  /* if */
             }
             break;
           case eok_comma:
           case eok_dot_static:
           case eok_points_to_static:
-            { a_boolean  restore_lvalue = FALSE, restore_xvalue = FALSE;
-              if (gpp_mode && !is_template_dependent_context() &&
-                  !node_has_side_effects(opnd1, (a_boolean*)NULL)) {
-                /* In some cases, GCC does not appear to evaluate the first
-                   operand for these operators.  It is not clear exactly when
-                   this happens, but "!node_has_side_effects" is a close
-                   approximation. */
-              } else {
-                /* Explicitly evaluate the first operand (since that was not
-                   done earlier for these operators. */
-                if (!do_constexpr_expression(ips, opnd1,
-                                             opnd1_value, opnd1_value)) {
-                  result = FALSE;
-                  break;
-                }  /* if */
+            /* Neither operand of these operators was scheduled with the
+               operation itself, because the second one produces the result
+               and must be interpreted into the result storage directly. */
+            { a_boolean  skip_first;
+              if (phase == iwp_2nd_resume) {
+                result = !ips->failed;
+                restore_value_category(&ew->saved_result_opnd);
+                break;
               }  /* if */
-              if (!expr->is_lvalue && !expr->is_xvalue) {
-                /* The caller might have "rvalued" expr, but that didn't
-                   propagate to the operands.  Temporarily enable that
-                   propagation. */
-                if (opnd2->is_lvalue) {
-                  opnd2->is_lvalue = FALSE;
-                  restore_lvalue = TRUE;
-                }  /* if */
-                if (opnd2->is_xvalue) {
-                  opnd2->is_xvalue = FALSE;
-                  restore_xvalue = TRUE;
-                }  /* if */
+              /* In some cases, GCC does not appear to evaluate the first
+                 operand for these operators.  It is not clear exactly when
+                 this happens, but "!node_has_side_effects" is a close
+                 approximation. */
+              skip_first = gpp_mode && !is_template_dependent_context() &&
+                           !node_has_side_effects(opnd1, (a_boolean*)NULL);
+              /* The second operand is pushed first, so that the first one is
+                 interpreted first. */
+              push_result_operand(ips, work_item, expr, opnd2, result_cap);
+              if (!skip_first) {
+                push_expr_work_to(ips, opnd1, opnd1_value, opnd1_value);
               }  /* if */
-              result = do_constexpr_expr(ips, opnd2, result_cap);
-              if (restore_xvalue) opnd2->is_xvalue = TRUE;
-              if (restore_lvalue) opnd2->is_lvalue = TRUE;
+              pop_when_done = FALSE;
+              goto done;
             }
-            break;
           case eok_subscript:
             /* Pointer + integer or integer + pointer. */
             { a_constexpr_address  result_addr;
@@ -30891,36 +32059,27 @@ the value representation of the integer value.
             }
             break;
           case eok_question:
-            { a_boolean  bool_val, restore_lvalue, restore_xvalue,
-                         expr_is_prvalue = !(expr->is_lvalue ||
-                                             expr->is_xvalue);
+            { a_boolean  bool_val;
+              if (phase == iwp_2nd_resume) {
+                /* The selected operand has been interpreted into the result
+                   storage. */
+                result = !ips->failed;
+                restore_value_category(&ew->saved_result_opnd);
+                break;
+              }  /* if */
               if (!check_boolean_condition(ips, opnd1_value, opnd1, opnd1_type,
                                            &bool_val)) {
                 do_constexpr_fail(result);
                 break;
               }  /* if */
               if (!bool_val) {
-                /* Evaluate the third operand. */
+                /* Select the third operand. */
                 opnd2 = opnd2->next;
               }  /* if */
-              /* The caller might have "rvalued" expr, but that didn't
-                 propagate to the operands.  Temporarily enable that
-                 propagation. */
-              restore_lvalue = FALSE;
-              restore_xvalue = FALSE;
-              if (opnd2->is_lvalue && expr_is_prvalue) {
-                opnd2->is_lvalue = FALSE;
-                restore_lvalue = TRUE;
-              }  /* if */
-              if (opnd2->is_xvalue && expr_is_prvalue) {
-                opnd2->is_xvalue = FALSE;
-                restore_xvalue = TRUE;
-              }  /* if */
-              result = do_constexpr_expr(ips, opnd2, result_cap);
-              if (restore_xvalue) opnd2->is_xvalue = TRUE;
-              if (restore_lvalue) opnd2->is_lvalue = TRUE;
+              push_result_operand(ips, work_item, expr, opnd2, result_cap);
+              pop_when_done = FALSE;
+              goto done;
             }
-            break;
           case eok_dynamic_cast:
           case eok_ref_dynamic_cast:
             result = do_constexpr_dynamic_cast(
@@ -31219,6 +32378,14 @@ the value representation of the integer value.
         an_alloc_seq_number  alloc_seq_number;
         a_byte_count         prefix_size;
         a_boolean            temp_lifetime;
+        if (phase != iwp_start) {
+          result = !ips->failed;
+          tmp_bytes = ew->temp_storage;
+          tmp_complete_obj = ew->temp_complete_object;
+          dip = ew->temp_init;
+          temp_lifetime = ew->temp_lifetime;
+          goto finish_temp_init;
+        }  /* if */
         if (C_mode()) {
           info_with_pos(ec_constexpr_access_to_runtime_storage,
                         &expr->position, ips);
@@ -31312,11 +32479,17 @@ the value representation of the integer value.
           clear_address(&dst_addr, tmp_bytes);
           dst_addr.alloc_seq_number = alloc_seq_number;
           dst_addr.complete_object = tmp_complete_obj;
-          if (!do_constexpr_dynamic_init(ips, dip, &expr->position,
-                                         dst_addr)) {
-            do_constexpr_fail(result);
-          }  /* if */
+          ew->temp_storage = tmp_bytes;
+          ew->temp_complete_object = tmp_complete_obj;
+          ew->temp_init = dip;
+          ew->temp_lifetime = temp_lifetime;
+          work_item->phase = iwp_1st_resume;
+          push_dyn_init_work(ips, dip, &expr->position, dst_addr,
+                             /*implied_src=*/NULL);
+          pop_when_done = FALSE;
+          goto done;
         }  /* if */
+finish_temp_init:
         if (expr->is_lvalue || expr->is_xvalue) {
           if (!is_immediate_class_type(tp) && !type_is(tp, tk_array)) {
             /* Make sure that scalar-like types are marked as initialized.
@@ -31341,8 +32514,9 @@ the value representation of the integer value.
       }  /* if */
       break;
     case enk_object_lifetime:
-      result = do_constexpr_expr(ips, expr->variant.object_lifetime.expr,
-                                 result_cap);
+      work_item->il_entry = expr->variant.object_lifetime.expr;
+      work_item->phase = iwp_start;
+      pop_when_done = FALSE;
       break;
     case enk_typeid:
       result = do_constexpr_typeid(ips, expr, result_storage, complete_object);
@@ -31443,31 +32617,26 @@ the value representation of the integer value.
                                               complete_object);
       break;
     case enk_statement:
-      { a_call_frame     frame;
+      { a_call_frame_ptr  frame;
         a_statement_ptr  stmt = expr->variant.statement;
         /*lint -e{733}*/
-        push_stmt_expr(ips, &frame, expr, result_cap);
-        result = do_constexpr_block_statement(
-                      ips, stmt, stmt->variant.block.extra_info->assoc_scope);
-        if (frame.parent == NULL &&
-            (frame.return_active || frame.loop_break_active ||
-             frame.continue_active || frame.switch_break_active)) {
-          /* A branch is still active, but we're no longer in a statement
-             context.  That is not valid. */
-          info_with_pos(ec_branch_out_of_constant, &expr->position, ips);
-          do_constexpr_fail(result);
-        }  /* if */
-        pop_call_frame(ips);
+        frame = alloc_call_frame();
+        push_stmt_expr(ips, frame, expr, result_cap);
+        work_item->needs_cleanup = TRUE;
+        work_item->phase = iwp_1st_resume;
+        push_block_work(ips, stmt,
+                        stmt->variant.block.extra_info->assoc_scope);
+        pop_when_done = FALSE;
+        goto done;
       }
-      break;
     case enk_initializer:
-      { a_constexpr_address  dst_addr;
-        set_active_address(ips, &dst_addr, result_storage, complete_object);
-        if (!do_constexpr_dynamic_init(ips, expr->variant.initializer.dyn_init,
-                                       &expr->position, dst_addr)) {
-          result = FALSE;
-        }  /* if */
-      }
+      /* Hand this item over to the dynamic-initialization handler. */
+      work_item->kind = iwk_dyn_init;
+      work_item->phase = iwp_start;
+      work_item->il_entry = expr->variant.initializer.dyn_init;
+      work_item->variant.init.pos = &expr->position;
+      set_init_work_dest(work_item, result_cap, /*implied_src=*/NULL);
+      pop_when_done = FALSE;
       break;
     case enk_concept_id:
       { a_boolean  fatal = FALSE;
@@ -31531,7 +32700,9 @@ the value representation of the integer value.
         if (!expr->variant.builtin_choose_expr.choose_first) {
           active_expr = active_expr->next;
         }  /* if */
-        result = do_constexpr_expr(ips, active_expr, result_cap);
+        work_item->il_entry = active_expr;
+        work_item->phase = iwp_start;
+        pop_when_done = FALSE;
       }
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
@@ -31544,9 +32715,26 @@ the value representation of the integer value.
                     &expr->position, ips);
   }  /* switch */
 done:
-  return result;
+  end_work_visit(ips, result, pop_when_done);
 #undef SET_result_val_from_operand_address
 #undef CHECK_int_range
+}  /* process_expr_work */
+
+
+static a_boolean do_constexpr_expr(an_interpreter_state       *ips,
+                                   an_expr_node_ptr           orig_expr,
+                                   a_constexpr_address const  &result_cap)
+/*
+Interpret the given expression in the given interpreter context.  If
+successful return TRUE and store the result at the address indicated by
+result_cap (glvalue results are represented as a_constexpr_address values).
+Otherwise, return FALSE and update *ips accordingly.
+*/
+{
+  an_interpreter_work_item  *base = ips->work_stack->top;
+
+  push_expr_work(ips, orig_expr, result_cap);
+  return run_pushed_work(ips, base);
 }  /* do_constexpr_expr */
 
 
@@ -33590,6 +34778,8 @@ One-time initialization for interpret.c static variables.
   useful_constants_initialized = FALSE;
   free_stack_blocks = NULL;
   free_variant_path_entries = NULL;
+  work_stack_pool = NULL;
+  free_call_frames = NULL;
 #if DEBUG && TRACK_INTERPRETER_ALLOCATIONS
   object_alloc_to_intercept = 0;
 #endif /* DEBUG && TRACK_INTERPRETER_ALLOCATIONS */
