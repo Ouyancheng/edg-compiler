@@ -3860,7 +3860,7 @@ a '<', scan the concept argument list.
       (void)get_token();
       tap = scan_concept_arg_list(sym, /*type_constraint=*/FALSE, &err);
       free_template_arg_list(tap);
-      required_token(tok_gt, ec_exp_gt);
+      (void)required_token(tok_gt, ec_exp_gt);
     }  /* if */
   }  /* if */
 }  /* coalesce_and_scan_concept_args */

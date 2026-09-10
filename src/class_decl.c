@@ -3231,7 +3231,8 @@ and for member functions of template classes.
       a_boolean is_friend;
       sym = rfp->symbol;
       is_friend = fixup_is_for_friend(rfp);
-      if (is_nonreal_template_instantiation && rfp->class_type != NULL &&
+      check_assertion(rfp->class_type != NULL);
+      if (is_nonreal_template_instantiation &&
           (rfp->class_type->variant.class_struct_union.is_specialized ||
            rfp->class_type
               ->variant.class_struct_union.is_in_class_specialization)) {
