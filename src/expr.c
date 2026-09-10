@@ -12122,19 +12122,26 @@ the selection, not an operator token for the call.
   } else if (!is_arrow_operator && is_template_dependent_context() &&
              (is_template_dependent_type(operand_1->type) ||
               is_template_dependent_type(operand_2.type))) {
+    /* A cast to a dependent reference type spelled with a type operator,
+       as in "static_cast<decltype(x)&&>(x)", leaves the reference type on
+       the operand so that the type operator is not lost.  Look through
+       references so that such operands are checked on their referenced
+       types. */
+    a_type_ptr  operand_1_type = skip_reference_type(operand_1->type);
+    a_type_ptr  operand_2_type = skip_reference_type(operand_2.type);
     /* If either operand has a template parameter type, we cannot
        check the operand types completely.  Just produce an expression with
        a generic operator.  This is for ".*" only; the "->*" case
        is handled by check_for_operator_overloading. */
-    if (!(is_class_struct_union_type(operand_1->type) ||
-          could_be_dependent_class_type(operand_1->type))) {
-      if (!is_error_type(operand_1->type)) {
+    if (!(is_class_struct_union_type(operand_1_type) ||
+          could_be_dependent_class_type(operand_1_type))) {
+      if (!is_error_type(operand_1_type)) {
         type_error_in_operand(ec_expr_not_class, operand_1, operand_1->type);
       }  /* if */
       make_error_operand(result);
-    } else if (!(is_template_param_type(operand_2.type) ||
-                 is_ptr_to_member_type(operand_2.type))) {
-      if (!is_error_type(operand_2.type)) {
+    } else if (!(is_template_param_type(operand_2_type) ||
+                 is_ptr_to_member_type(operand_2_type))) {
+      if (!is_error_type(operand_2_type)) {
         error_in_operand(ec_expr_not_ptr_to_member, &operand_2);
       }  /* if */
       make_error_operand(result);

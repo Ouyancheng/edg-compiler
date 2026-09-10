@@ -1,5 +1,28 @@
 Version 6.10
 
+9/10/26  [EDGcpfe/29034]
+".*" operand that is a cast to a dependent reference type
+
+A cast to a dependent reference type written with a type operator, as in
+"static_cast<decltype(x) &&>(x)", yields an IL entry whose type is the
+reference type itself, so that the type operator is not lost.  The handling of
+a ".*" operator ignored that possibility and the front end therefore rejected
+the left operand as not having class type (or the right operand as not having
+pointer-to-member type).  That is now fixed.  For example:
+
+  struct V { int i; };
+  template<typename F, typename T, typename U>
+    auto f(F T::*pm, U &&x)
+    -> decltype(static_cast<decltype(x) &&>(x).*pm) {  // Previously an error.
+                                                       //  Now okay.
+      return static_cast<decltype(x) &&>(x).*pm;
+    }
+  int main() {
+    V v{7};
+    return f(&V::i, v);
+  }
+
+
 9/9/26   [EDGcpfe/29014]
 Avoiding excessive recursion in the interpreter
 
