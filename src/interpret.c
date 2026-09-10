@@ -32393,12 +32393,12 @@ the value representation of the integer value.
         }  /* if */
         dip = expr->variant.init.dynamic_init;
         n_bytes = value_bytes_for_type(ips, tp, &result);
+        if (!result) break;
         if (expr->is_lvalue || expr->is_xvalue) {
           /* A glvalue temporary is expected.  I.e., the caller expects an
              interpreter address for the temporary object.  Allocate the
              storage for that object here. */
           a_constexpr_address  *cap;
-          if (!result) break;
           compute_prefix_size_for_type(tp, n_bytes, prefix_size);
           temp_lifetime = dip->has_temporary_lifetime;
           if (!temp_lifetime) {
