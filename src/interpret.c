@@ -27046,8 +27046,6 @@ each of them recognizes in its own case below.
   a_boolean                 result = TRUE;
   a_boolean                 pop_when_done = TRUE;
   an_expr_work              *ew = &work_item->variant.expr;
-  an_expr_node_ptr          orig_expr =
-                                  (an_expr_node_ptr)work_item->il_entry;
   a_constexpr_address       result_cap;
   an_expr_node_ptr          expr;
   a_type_ptr                tp;
@@ -27059,7 +27057,8 @@ each of them recognizes in its own case below.
   an_interpreter_work_phase phase = work_item->phase;
 
   work_item_result_cap(work_item, &result_cap);
-  expr = skip_parens(orig_expr);
+  expr = skip_parens((an_expr_node_ptr)work_item->il_entry);
+  work_item->il_entry = expr;
   tp = skip_typerefs(expr->type);
   result_storage = result_cap.address;
   complete_object = result_cap.complete_object;
@@ -27078,7 +27077,7 @@ each of them recognizes in its own case below.
       do_constexpr_fail(result);
       goto done;
     }  /* if */
-  } else if (node_is(orig_expr, enk_statement)) {
+  } else if (node_is(expr, enk_statement)) {
     a_call_frame_ptr  frame = ips->curr_call_frame;
     result = !ips->failed;
     if (frame->parent == NULL &&
@@ -27086,7 +27085,7 @@ each of them recognizes in its own case below.
          frame->continue_active || frame->switch_break_active)) {
       /* A branch is still active, but we're no longer in a statement
          context.  That is not valid. */
-      info_with_pos(ec_branch_out_of_constant, &orig_expr->position, ips);
+      info_with_pos(ec_branch_out_of_constant, &expr->position, ips);
       do_constexpr_fail(result);
     }  /* if */
     pop_call_frame(ips);
