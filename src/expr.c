@@ -52752,6 +52752,15 @@ make_coroutine_result_expression.)
     if (init_state.init_dip != NULL) {
       *dip = init_state.init_dip;
       wrap_up_dynamic_init_full_expression(*dip);
+      /* Record that the source was a braced-init-list.  The initialization
+         processing marks the entry that represents the initialization, but
+         not when the braces are dropped and the initialization is done one
+         level down, which is what happens when the list has a single element
+         whose type is dependent.  The entry reached by skipping constexpr
+         folding is marked as well because gen_dynamic_init reads the flag
+         from there. */
+      (*dip)->is_braced_initializer = TRUE;
+      skip_constexpr_init_folding(*dip)->is_braced_initializer = TRUE;
       expression = NULL;
     } else {
       if (init_state.init_error) {

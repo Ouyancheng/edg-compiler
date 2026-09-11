@@ -1,5 +1,23 @@
 Version 6.10
 
+9/11/26  [EDGcpfe/29035]
+Braces dropped when a dependent braced-init-list is returned
+
+When a return statement returns a braced-init-list whose single element has a
+dependent type, the choice between aggregate initialization and a copy cannot
+be made until the template is instantiated.  The front end deferred that
+choice without recording that the source had braces, so the C++-generating
+back end put out the element without them.  The regenerated template could
+then have a different meaning, or be ill-formed.  That is now fixed.  For
+example:
+
+  template<int> struct S { bool value; };
+  bool g(bool, void*);
+  template<typename T> S<42> f(T v, void *s) {
+    return { g(v, s) };      // Was put out as "return g(v, s);", which
+  }                          //   cannot initialize an S<42>.
+
+
 9/11/26  [EDGcpfe/29032]
 Lifetime extension through subscripting, ".*", and conditional expressions
 
