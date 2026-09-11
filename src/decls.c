@@ -198,6 +198,7 @@ be restored).
     dps->auto_type_allowed = FALSE;
     dps->has_deduced_type = FALSE;
     dps->auto_type_specifier_seen = FALSE;
+    dps->gnu_auto_type_specifier_seen = FALSE;
     dps->decltype_auto_specifier_seen = FALSE;
     dps->has_deducible_class_templ_args = FALSE;
     dps->has_deducible_return_type = FALSE;
@@ -450,6 +451,7 @@ suggesting deduction must occur.
   }  /* if */
   dps->auto_type = NULL;
   dps->auto_type_specifier_seen = FALSE;
+  dps->gnu_auto_type_specifier_seen = FALSE;
   dps->decltype_auto_specifier_seen = FALSE;
   dps->has_deducible_class_templ_args = FALSE;
   dps->has_deduced_type = FALSE;
@@ -22137,6 +22139,18 @@ declaration".
   }  /* if */
   return result;
 }  /* is_initializing_decl */
+
+
+a_const_char *c_auto_specifier_spelling(a_decl_parse_state  *dps)
+/*
+Return the spelling of the type specifier whose type is deduced from an
+initializer in the declaration described by dps.  It is used in the C mode
+diagnostics about such specifiers, which C23 spells "auto" and the GNU C
+extension that predates it spells "__auto_type".
+*/
+{
+  return dps->gnu_auto_type_specifier_seen ? "__auto_type" : "auto";
+}  /* c_auto_specifier_spelling */
 
 
 void check_use_of_placeholder_type(a_decl_parse_state  *dps)

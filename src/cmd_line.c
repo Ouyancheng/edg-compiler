@@ -3878,7 +3878,13 @@ process.
   rvalue_ctor_is_copy_ctor = FALSE;
   local_types_as_template_args_enabled = FALSE;
   decls_using_types_without_linkage_allowed = FALSE;
-  auto_type_specifier_enabled = FALSE;
+  if (!option_kind_used[(int)optk_auto_type]) {
+    /* In C23 "auto" can be a type specifier, in which case the type of the
+       object is deduced from its initializer.  Earlier C modes give "auto"
+       only its traditional storage class meaning, which C23 retains as well;
+       the two meanings are told apart by the presence of a type specifier. */
+    auto_type_specifier_enabled = c23_mode;
+  }  /* if */
   auto_storage_class_specifier_enabled = TRUE;
   trailing_return_types_enabled = FALSE;
   this_in_trailing_return_types_enabled = FALSE;

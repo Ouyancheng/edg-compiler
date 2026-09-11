@@ -1,5 +1,23 @@
 Version 6.10
 
+9/11/26  [EDGcpfe/29041]
+C23: auto-type variables
+
+The front end now accepts "auto" as a deduced type-specifier in C23 mode.
+"auto" retains its traditional storage class meaning as well: Which of the two
+meanings applies is determined by whether a type specifier is also present.
+For example:
+
+  void f(void) {
+    auto x = 42;            // Deduces "int".
+    auto ptr = &x;          // Deduced "int" rather than "int *", so the
+    *ptr = 0;               //   dereference was rejected.
+    auto int y = 7;         // "auto" is a storage class specifier here.
+  }
+
+This implements paper N3007 of the ISO C standardization committee (WG14).
+
+
 9/11/26  [EDGcpfe/29035]
 Braces dropped when a dependent braced-init-list is returned
 

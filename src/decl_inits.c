@@ -5697,11 +5697,14 @@ returned set to TRUE.
   }  /* if */
   if (dps->has_deduced_type && !is_error_type(vp_type)) {
     /* An initializer for a variable declared with a placeholder type
-       (including, in GNU C mode, the "__auto_type" specifier). */
+       (including, in C mode, the "auto" and "__auto_type" specifiers). */
     if (first_token == tok_lbrace && !list_init_enabled) {
-      pos_error(C_mode() ? ec_auto_type_brace_initialization_not_allowed
-                         : ec_auto_brace_initialization_not_allowed,
-                &error_position);
+      if (C_mode()) {
+        pos_st_error(ec_auto_type_brace_initialization_not_allowed,
+                     &error_position, c_auto_specifier_spelling(dps));
+      } else {
+        pos_error(ec_auto_brace_initialization_not_allowed, &error_position);
+      }  /* if */
       vp_type = error_type();
       if (vp != NULL) vp->type = vp_type;
       invalidate_type(dps);

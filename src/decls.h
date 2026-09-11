@@ -969,6 +969,11 @@ typedef struct a_decl_parse_state {
 		auto_type_specifier_seen:1;
 			/* TRUE if "auto" appeared as a type specifier. */
   a_bit_field
+		gnu_auto_type_specifier_seen:1;
+			/* TRUE if the type specifier whose type is deduced
+			   from an initializer was written using the GNU C
+			   spelling "__auto_type" rather than "auto". */
+  a_bit_field
 		decltype_auto_specifier_seen:1;
 			/* TRUE if "decltype(auto)" appeared as a specifier. */
   a_bit_field
@@ -1602,6 +1607,7 @@ a_boolean check_placeholder_type_constraint(a_type_ptr  placeholder_type,
 
 extern void check_deduced_auto_type(a_decl_parse_state  *dps);
 
+extern a_const_char *c_auto_specifier_spelling(a_decl_parse_state  *dps);
 extern void check_use_of_placeholder_type(a_decl_parse_state  *dps);
 
 /*

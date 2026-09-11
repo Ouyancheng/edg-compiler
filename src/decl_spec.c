@@ -9679,6 +9679,40 @@ done:;
 }  /* process_storage_class_specifier */
 
 
+static void check_c_auto_type(a_decl_parse_state  *dps)
+/*
+A type specifier whose type is deduced from an initializer -- "auto" in C23 or
+the GNU C "__auto_type" extension -- was used in C mode.  Make sure that a
+diagnostic is issued if it is not valid.
+*/
+{
+  if (dps->auto_type == NULL) {
+    expect_error();
+  } else {
+    a_type_ptr    utp = skip_typerefs(dps->auto_type);
+    a_const_char  *spelling = c_auto_specifier_spelling(dps);
+    /* Deduction replaces the placeholder type, which is a tk_unknown entry
+       for "__auto_type" and an "auto" type entry for the C23 specifier.  If
+       one of those is still in place, no deduction was done. */
+    if (utp->kind == (a_type_kind)tk_unknown || is_auto_type(utp)) {
+      /* The specifier did not appear in a valid context (it was not the type
+         specifier for a variable declaration with an initializer). */
+      if (dps->sym != NULL && symbol_is(dps->sym, sk_variable)) {
+        pos_st_error(ec_gnu_auto_type_without_initializer, &dps->auto_pos,
+                     spelling);
+      } else {
+        pos_st_error(ec_bad_gnu_auto_type, &dps->auto_pos, spelling);
+      }  /* if */
+      set_type_kind(utp, (a_type_kind)tk_error);
+    } else if (dps->secondary_declarator && !is_error_type(utp)) {
+      pos_st_error(ec_gnu_auto_type_with_secondary_declarator, &dps->auto_pos,
+                   spelling);
+      set_type_kind(utp, (a_type_kind)tk_error);
+    }  /* if */
+  }  /* if */
+}  /* check_c_auto_type */
+
+
 static void process_auto_specifier(
                                  a_boolean              auto_type_allowed,
                                  a_boolean              first_specifier,
@@ -9754,6 +9788,14 @@ if an error is issued.
       if (!auto_type_specifier_enabled) {
         pos_warning(ec_auto_type_nonstandard, &state->auto_pos);
       }  /* if */
+      if (C_mode()) {
+        /* In C the deduction is done as the initializer is scanned, so a
+           declaration that provides no initializer, or that is not a variable
+           declaration at all, has to be diagnosed once the declaration has
+           been parsed. */
+        add_end_of_parse_action(check_c_auto_type, state,
+                                /*secondary_decls=*/TRUE);
+      }  /* if */
     }  /* if */
     *decl_specifiers_seen |= DS_TYPE;
   } else {
@@ -9765,33 +9807,6 @@ if an error is issued.
                                first_specifier, decl_specifiers_seen, err);
   }  /* if */
 }  /* process_auto_specifier */
-
-
-static void check_gnu_c_auto_type(a_decl_parse_state  *dps)
-/*
-The GNU C "__auto_type" specifier was used.  Make sure that a diagnostic is
-issued if it is not valid.
-*/
-{
-  if (dps->auto_type == NULL) {
-    expect_error();
-  } else {
-    a_type_ptr  utp = skip_typerefs(dps->auto_type);
-    if (utp->kind == (a_type_kind)tk_unknown) {
-      /* __auto_type did not appear in a valid context (it was not the type
-         specifier for a variable declaration with an initializer). */
-      if (dps->sym != NULL && symbol_is(dps->sym, sk_variable)) {
-        pos_error(ec_gnu_auto_type_without_initializer, &dps->auto_pos);
-      } else {
-        pos_error(ec_bad_gnu_auto_type, &dps->auto_pos);
-      }  /* if */
-      set_type_kind(utp, (a_type_kind)tk_error);
-    } else if (dps->secondary_declarator && !is_error_type(utp)) {
-      pos_error(ec_gnu_auto_type_with_secondary_declarator, &dps->auto_pos);
-      set_type_kind(utp, (a_type_kind)tk_error);
-    }  /* if */
-  }  /* if */
-}  /* check_gnu_c_auto_type */
 
 
 void cache_attributes(a_token_cache  *cache)
@@ -10884,11 +10899,12 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
           state->auto_pos = pos_curr_token;
           state->has_deduced_type = TRUE;
           state->auto_type_specifier_seen = TRUE;
+          state->gnu_auto_type_specifier_seen = TRUE;
           /* Allocate a separate tk_unknown entry, so it can be changed to
              another type (e.g., an error type) later on. */
           state->auto_type = alloc_type((a_type_kind)tk_unknown);
           state->specifiers_type = state->auto_type;
-          add_end_of_parse_action(check_gnu_c_auto_type, state,
+          add_end_of_parse_action(check_c_auto_type, state,
                                   /*secondary_decls=*/TRUE);
         }  /* if */
         break;

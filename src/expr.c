@@ -1078,17 +1078,20 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   if (C_mode()) {
     /* GNU C has some simplified deduction rules. */
     a_type_ptr  deduced_type, auto_type = dps->auto_type;
-    check_assertion(gcc_mode && icp != NULL && is_expression_component(icp) &&
-                    !parenthesized_init);
+    check_assertion((gcc_mode || c23_mode) && icp != NULL &&
+                    is_expression_component(icp) && !parenthesized_init);
     if (skip_typerefs(dps->type) != dps->auto_type) {
-      pos_error(ec_modified_auto_type, &dps->auto_pos);
+      pos_st_error(ec_modified_auto_type, &dps->auto_pos,
+                   c_auto_specifier_spelling(dps));
       deduced_type = error_type();
     } else {
-      deduced_type = operand_of_arg_list_elem(icp)->type;
-      if (is_array_type(deduced_type)) {
-        deduced_type =
-                     type_after_array_to_pointer_transformation(deduced_type);
-      }  /* if */
+      an_operand  *init_operand = operand_of_arg_list_elem(icp);
+      /* The deduced type is the type of the initializer after the array and
+         function decays and the glvalue to prvalue conversion, so that
+         "auto p = f;" with f a function deduces a pointer to function and
+         "auto i = ci;" with ci a const int deduces a plain int. */
+      deduced_type = do_implicit_type_transformations(init_operand->type,
+                                                      init_operand);
       deduced_type = skip_typerefs(deduced_type);
 #if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
       if (is_vector_type(deduced_type)) {
