@@ -1,5 +1,32 @@
 Version 6.10
 
+9/11/26  [EDGcpfe/29032]
+Lifetime extension through subscripting, ".*", and conditional expressions
+
+When a reference is bound to a subobject of a temporary, the lifetime of that
+temporary is extended to match that of the reference.  The front end
+recognized only some of the operations through which such a binding can be
+made: The subscripting of an array, the selection of a member with the ".*"
+operator, and the selection of a branch of a conditional expression that is a
+glvalue were not among them, and a temporary reached through one of those was
+therefore destroyed at the end of the full-expression containing the
+initialization.  That is now fixed.  For example:
+
+  int d;
+  struct A { int a[2]; int b; ~A() { ++d; } };
+
+  int A::*pm = &A::b;
+  int c;
+
+  int f() {
+    const int &r = A().a[0];      // Each A() is now destroyed when r, s, or
+    const int &s = A().*pm;       //   t goes out of scope, rather than at
+    const int &t = c ? A().a[0]   //   the end of its own initialization.
+                     : A().a[1];
+    return d;                     // Now returns zero.
+  }
+
+
 9/11/26  [EDGcpfe/29048]
 Use of freed routine fixup entries during default argument fixup
 

@@ -24747,20 +24747,20 @@ must be considered.  Only used in C++.  This is copy-initialization.
 }  /* convert_operand_into_temp */
 
 
-a_dynamic_init_ptr find_top_temporary(an_expr_node_ptr node,
-                                      a_boolean        create_class_temp)
+static an_expr_node_ptr skip_to_top_temporary(an_expr_node_ptr node,
+                                              a_boolean create_class_temp)
 /*
-Return the dynamic init entry for the top temporary of the indicated
-expression, if there is one.  Return NULL if not.  The top temporary is
-the one whose lifetime is extended if the expression is bound to a
-reference (see [class.temporary]p5).  If create_class_temp is TRUE,
-create a temporary for a by-value class return so we can mark it
-(that option should be used only within the expression processing
-routines).
+Strip from node, which is a reference initializer, the operations through
+which the binding reaches the temporary whose lifetime is extended (see
+[class.temporary]p5), and return the expression that remains.  That expression
+is the temporary itself when the binding reaches one.  It can also be a
+glvalue conditional expression, which the caller must examine further because
+each of the two branches of such an expression can reach a temporary of its
+own.  If create_class_temp is TRUE, create a temporary for a by-value class
+return so we can mark it (that option should be used only within the
+expression processing routines).
 */
 {
-  a_dynamic_init_ptr  dip = NULL;
-
   node = skip_parens(node);
   /* Drop any adjustment of the type. */
   node = expr_before_type_adjustment(node);
@@ -24782,16 +24782,34 @@ routines).
   /* Drop any field and base selections on top of the expression.  (The C++
      standard says that if the object bound to is a subobject of a complete
      object that is a temporary, the complete object temporary has its lifetime
-     extended.)  The lifetime of a temporary is also extended when it is
-     the second operand of a comma operation (core issue 462). */
+     extended.)  A member can be selected with the ".*" operator as well as
+     with the "." operator.  The lifetime of a temporary is also extended when
+     it is the second operand of a comma operation (core issue 462), or when an
+     array subobject of the temporary is subscripted. */
   node = skip_parens(node);
   while (is_operation_node(node)) {
     if (node_operator_is(node, eok_dot_field) ||
+        node_operator_is(node, eok_pm_field) ||
         (node_operator_is(node, eok_base_class_cast) &&
          (node->is_lvalue || node->is_xvalue))) {
       node = node->variant.operation.operands;
     } else if (node_operator_is(node, eok_comma)) {
       node = node->variant.operation.operands->next;
+    } else if (node_operator_is(node, eok_subscript)) {
+      /* The lifetime is extended only when what is subscripted is an array,
+         as in "A().a[0]", and not when it is a pointer, as in "A().p[0]".
+         The array operand has been decayed to a pointer, so an
+         array-to-pointer operation identifies the array case. */
+      an_expr_node_ptr  array_node = node->variant.operation.operands;
+      if (node->variant.operation.pointer_operand_is_second) {
+        array_node = array_node->next;
+      }  /* if */
+      array_node = skip_parens(array_node);
+      if (!(is_operation_node(array_node) &&
+            node_operator_is(array_node, eok_array_to_pointer))) {
+        break;
+      }  /* if */
+      node = array_node->variant.operation.operands;
     } else {
       break;
     }  /* if */
@@ -24823,6 +24841,27 @@ routines).
       overwrite_node(node, new_node);
     }  /* if */
   }  /* if */
+  return node;
+}  /* skip_to_top_temporary */
+
+
+a_dynamic_init_ptr find_top_temporary(an_expr_node_ptr node,
+                                      a_boolean        create_class_temp)
+/*
+Return the dynamic init entry for the top temporary of the indicated
+expression, if there is one.  Return NULL if not.  The top temporary is
+the one whose lifetime is extended if the expression is bound to a
+reference (see [class.temporary]p5).  A glvalue conditional expression is not
+followed into its branches, each of which can reach a temporary of its own;
+extend_top_temporary_lifetimes does that.  If create_class_temp is TRUE,
+create a temporary for a by-value class return so we can mark it
+(that option should be used only within the expression processing
+routines).
+*/
+{
+  a_dynamic_init_ptr  dip = NULL;
+
+  node = skip_to_top_temporary(node, create_class_temp);
   if (is_temp_node(node)) {
     dip = node->variant.init.dynamic_init;
   }  /* if */
@@ -24889,6 +24928,45 @@ the lifetime of the temporary is extended to match that of the reference.
 }  /* extend_temporary_lifetime */
 
 
+static a_boolean extend_top_temporary_lifetimes(an_expr_node_ptr node,
+                                                a_boolean static_lifetime)
+/*
+node is a reference initializer.  Extend the lifetime of each temporary that
+the reference can end up bound into, either to block scope (static_lifetime ==
+FALSE) or to static lifetime (static_lifetime == TRUE), and return TRUE if
+there was at least one.  A glvalue conditional expression selects between two
+glvalues at run time, so both of its branches are followed and a temporary
+reached through either one is extended.
+*/
+{
+  a_boolean  any_extended = FALSE;
+  /* g++ before 4.0 produces a glvalue for a conditional expression whose
+     operands are a base class lvalue and a derived class rvalue, as in
+     "c ? b : D(16)" (see scan_conditional_operator), and binds a reference
+     directly to the temporary of the branch that is taken without extending
+     its lifetime.  Do not follow the branches of a conditional expression
+     when emulating those versions. */
+  a_boolean  follow_conditional_branches = !(gpp_mode && gnu_version < 40000);
+
+  node = skip_to_top_temporary(node, /*create_class_temp=*/TRUE);
+  if (is_temp_node(node)) {
+    extend_temporary_lifetime(node->variant.init.dynamic_init,
+                              static_lifetime);
+    any_extended = TRUE;
+  } else if (follow_conditional_branches &&
+             node_is_operator(node, eok_question) && is_glvalue_node(node)) {
+    an_expr_node_ptr  second_operand = node->variant.operation.operands->next;
+    a_boolean         second_extended, third_extended;
+    second_extended = extend_top_temporary_lifetimes(second_operand,
+                                                     static_lifetime);
+    third_extended = extend_top_temporary_lifetimes(second_operand->next,
+                                                    static_lifetime);
+    any_extended = second_extended || third_extended;
+  }  /* if */
+  return any_extended;
+}  /* extend_top_temporary_lifetimes */
+
+
 static void adjust_top_temporary_for_binding_to_reference(
                                                     an_operand *operand,
                                                     a_boolean  static_lifetime)
@@ -24910,11 +24988,8 @@ like
 */
 {
   if (is_expression_operand(operand)) {
-    a_dynamic_init_ptr dip = find_top_temporary(operand->variant.expression,
-                                                /*create_class_temp=*/TRUE);
-    if (dip != NULL) {
-      /* Extend the temporary lifetime appropriately. */
-      extend_temporary_lifetime(dip, static_lifetime);
+    if (extend_top_temporary_lifetimes(operand->variant.expression,
+                                       static_lifetime)) {
       if (static_lifetime) {
         (void)expr_interpret_expression_operand(
                                           operand, /*must_be_constant=*/FALSE,
