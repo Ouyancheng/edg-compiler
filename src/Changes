@@ -1,5 +1,20 @@
 Version 6.10
 
+9/11/26  [EDGcpfe/29048]
+Use of freed routine fixup entries during default argument fixup
+
+When an instance of a class template is required while the definition of that
+template is still being processed, the front end first completes the fixup of
+the default arguments of the member functions in that template.  Scanning such
+a default argument can itself require a class to be completed, and the
+instantiation that results could perform the fixup of the inline function
+bodies of the class whose default arguments were being scanned.  That fixup
+frees the routine fixup entries that were being walked, so the walk continued
+into the list of available entries, which could lead to unpredictable behavior,
+including an internal error.  The fixup of inline function bodies is now
+deferred until the default arguments have been scanned.
+
+
 9/10/26  [EDGcpfe/29034]
 ".*" operand that is a cast to a dependent reference type
 

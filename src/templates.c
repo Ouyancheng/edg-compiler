@@ -5378,13 +5378,24 @@ be completed here.
       if (prototype_cssp->routine_fixup_list != NULL) {
         /* If a nested class is instantiated before the enclosing class has
            been completed, it may not have been fixed up yet.  Do any
-           default argument fixup now. */
+           default argument fixup now.  Scanning a default argument can
+           trigger an instantiation, which in turn can complete the deferred
+           fixups; defer the fixup of inline function bodies while the
+           routine fixup entries of proto_type are being walked, since that
+           fixup frees those entries. */
+        a_class_fixup_header_ptr  cfhp =
+                          curr_class_fixup_header(/*for_instantiation=*/TRUE);
+        cfhp->defer_inline_function_fixups++;
         def_arg_and_eh_spec_fixup_for_class(proto_type,
                                             /*is_template_based=*/TRUE,
                                             /*template_second_pass=*/FALSE);
         def_arg_and_eh_spec_fixup_for_class(proto_type,
                                             /*is_template_based=*/TRUE,
                                             /*template_second_pass=*/TRUE);
+        /* cfhp points into the scope stack, which may have moved, so it
+           must be refreshed. */
+        cfhp = curr_class_fixup_header(/*for_instantiation=*/TRUE);
+        cfhp->defer_inline_function_fixups--;
       }  /* if */
       /* Save the position of the reference that caused the instantiation. */
       cssp->instantiation_position = pos_curr_token;
