@@ -23614,7 +23614,6 @@ old_list can match zero or more parameters from new_list.
            parameter as the error position. */
         error_code = ec_too_many_template_params;
         pos = &new_tpp->param_symbol->decl_position;
-        old_pos = &prev_old_tpp->param_symbol->decl_position;
       } else {
         /* Too few parameters.  Use the position of the last parameter present
            to report the error.  If there were no parameters specified,
@@ -23623,12 +23622,13 @@ old_list can match zero or more parameters from new_list.
         error_code = ec_too_few_template_params;
         pos = prev_new_tpp == NULL ? error_pos :
                                    &prev_new_tpp->param_symbol->decl_position;
-        /* Use the position of the previous parameter, if present.  Otherwise
-           use the position of the first old parameter. */
-        old_pos = prev_old_tpp == NULL
-                                  ? &old_list->param_symbol->decl_position
-                                  : &prev_old_tpp->param_symbol->decl_position;
       }  /* if */
+      /* Use the position of the previous old parameter, if present.
+         Otherwise use the position of the first old parameter (e.g., when
+         all old parameters were placeholders for empty pack expansions). */
+      old_pos = prev_old_tpp == NULL
+                              ? &old_list->param_symbol->decl_position
+                              : &prev_old_tpp->param_symbol->decl_position;
       pos2_diagnostic(error_severity, error_code, pos, old_pos);
     }  /* if */
   }  /* if */
@@ -24723,6 +24723,10 @@ create pack expansion entries for template parameters that are packs.
   if (tap == NULL) tap = ctsp->template_arg_list;
   begin_template_arg_list_traversal(templ_param_list, tap, &tpp, &tap);
   for (; tpp != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+    /* Skip placeholders for pack expansions of empty enclosing packs.  Such
+       packs have no prototype template arguments to rename. */
+    tpp = skip_empty_pack_params(tpp);
+    if (tpp == NULL) break;
     check_assertion(tap != NULL);
     param_sym = tpp->param_symbol;
     if (param_sym->kind == (a_symbol_kind)sk_type) {
