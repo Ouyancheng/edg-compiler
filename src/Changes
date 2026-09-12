@@ -19,7 +19,7 @@ This implements paper N3007 of the ISO C standardization committee (WG14).
 
 
 9/11/26  [EDGcpfe/29035]
-Braces dropped when a dependent braced-init-list is returned
+C++-generating back end: return with dependent braced-init-list
 
 When a return statement returns a braced-init-list whose single element has a
 dependent type, the choice between aggregate initialization and a copy cannot
