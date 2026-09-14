@@ -1272,12 +1272,9 @@ with fkind.  Extended floating-point kinds are mapped to the format used
 by the tables before the slot is selected.
 */
 {
-  a_routine_ptr *result;
-
   fkind = map_extended_float_kinds(fkind);
   check_assertion((int)fkind < NUM_COMPLEX_FLOAT_KINDS);
-  result = &table[(int)fkind];
-  return result;
+  return &table[(int)fkind];
 }  /* select_routine_from_float_kind */
 
 #endif /* LOWER_COMPLEX || LOWER_FIXED_POINT */
