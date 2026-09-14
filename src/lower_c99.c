@@ -4295,6 +4295,65 @@ is_full_expr is TRUE.
 }  /* lower_c99_boolean_controlling_expr */
 
 
+#if BACK_END_IS_C_GEN_BE
+
+static a_boolean constant_has_empty_initializer(a_constant_ptr con)
+/*
+Return TRUE if the constant con was written as an empty initializer ("{}") in
+the source, or if it contains one at any depth.  An empty initializer appears
+in the IL as a ck_aggregate constant that has no values on its list and that
+records explicit braces.
+*/
+{
+  a_boolean       result = FALSE;
+  a_constant_ptr  elem;
+
+  if (constant_is(con, ck_init_repeat)) {
+    result = constant_has_empty_initializer(con->variant.init_repeat.constant);
+  } else if (constant_is(con, ck_aggregate)) {
+    if (con->variant.aggregate.first_constant == NULL) {
+      result = con->explicit_braces_on_aggregate;
+    } else {
+      for (elem = con->variant.aggregate.first_constant;
+           elem != NULL;
+           elem = elem->next) {
+        if (constant_has_empty_initializer(elem)) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* constant_has_empty_initializer */
+
+
+static a_boolean init_must_zero_whole_variable(a_dynamic_init_ptr dip)
+/*
+Return TRUE if the initialization described by dip must be preceded by a call
+that sets the whole variable being initialized to zero.  That is the case when
+an empty initializer ("{}") is used somewhere in it: An empty initializer sets
+the padding of the object or subobject that it initializes to zero, and an
+initializer in the generated C cannot express that, so the values that are
+specified are instead assigned to a variable that has already been zeroed.  A
+variable that does not have automatic storage duration is zeroed before the
+program starts and needs no such treatment.
+*/
+{
+  a_boolean       result = FALSE;
+  a_variable_ptr  var = dip->variable;
+
+  if (var != NULL && !var_has_static_or_thread_storage_duration(var) &&
+      (dyn_init_is(dip, dik_constant) ||
+       dyn_init_is(dip, dik_nonconstant_aggregate))) {
+    result = constant_has_empty_initializer(dip->variant.constant.ptr);
+  }  /* if */
+  return result;
+}  /* init_must_zero_whole_variable */
+
+#endif /* BACK_END_IS_C_GEN_BE */
+
+
 static void lower_c99_stmk_init(a_statement_ptr statement)
 /*
 Do C99 lowering on the indicated stmk_init statement.
@@ -4302,12 +4361,28 @@ Do C99 lowering on the indicated stmk_init statement.
 {
   a_dynamic_init_ptr dip = statement->variant.dynamic_init;
   an_insert_location insert_location;
+#if BACK_END_IS_C_GEN_BE
+  a_boolean          zero_whole_variable = init_must_zero_whole_variable(dip);
+#endif /* BACK_END_IS_C_GEN_BE */
 
   set_insert_location(statement, &insert_location);
 #if LOWER_DESIGNATED_INITIALIZERS
   lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL,
                                              &insert_location);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
+#if BACK_END_IS_C_GEN_BE
+  if (zero_whole_variable) {
+    /* Record that the initialization does not provide a value for every part
+       of the variable, and that it must be done where it appears rather than
+       on the declaration of the variable.  Together those cause the back end
+       to zero the variable and then assign the specified values to it.  This
+       has to be done after the designated initializers have been merged into
+       the constant, because that merging removes the empty initializers and
+       recomputes is_partially_initialized. */
+    dip->is_partially_initialized = TRUE;
+    dip->follows_an_exec_statement = TRUE;
+  }  /* if */
+#endif /* BACK_END_IS_C_GEN_BE */
   /* This routine is similar to lower_stmk_init. */
   switch (dip->kind) {
     case dik_constant:

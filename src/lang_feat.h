@@ -1962,6 +1962,15 @@ by the C23 standard or later C standards.
 #define c23_mode (C_mode() && std_version >= 202311)
 
 /*
+Macro that is TRUE when an empty initializer ("int i = {};") is accepted in C
+mode.  Such initializers are standard in C23.  They are also an extension in
+the GNU C modes, and in the Clang C modes beginning with Clang 17.
+*/
+#define empty_c_initializer_allowed (c23_mode || \
+                                     gcc_version_is(any_version) || \
+                                     clangc_version_is(>= 170000))
+
+/*
 Flag that is TRUE if the C99 and C++ (beginning with C++11) predefined
 macro __STDC_HOSTED__ should be set to 1 to indicate a hosted
 implementation.  If it is FALSE, the macro is predefined to 0 to indicate a

@@ -1,5 +1,34 @@
 Version 6.10
 
+9/14/26  [EDGcpfe/29042]
+C23: Empty initializers
+
+An empty initializer ("{}") can now be used in C23 mode for an object of any
+complete type, including scalar types and variable-length arrays.  The object
+is initialized as if each of its members and elements were initialized from a
+zero-valued constant.  Such initializers are also accepted for earlier C
+standards in the GNU C emulation modes and in the Clang C emulation modes for
+Clang 17 and later, where they are an extension.  For example:
+
+  void f(int n) {
+    int i = {};            // Zero.
+    double d = {};         // Zero.
+    void *p = {};          // Null.
+    int vla[n] = {};       // Every element is zero.
+    int j = (int){} + 1;   // One.
+  }
+
+An empty initializer cannot determine the bound of an array, and a
+variable-length array still accepts no other form of initializer:
+
+  int a[] = {};            // Error: The bound cannot be deduced.
+  void g(int n) {
+    int b[n] = { 0 };      // Error: Not an empty initializer.
+  }
+
+This implements paper N2900 of the ISO C standardization committee (WG14).
+
+
 9/14/26  [EDGcpfe/29049]
 Dimensions of a deduced variably modified type were evaluated twice
 

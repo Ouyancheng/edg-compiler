@@ -4067,11 +4067,13 @@ typedef struct a_dynamic_init {
   a_bit_field	follows_an_exec_statement:1;
 			/* TRUE if this initialization is pointed to from
 			   an stmk_init and the stmk_init appears after
-			   some executable statements in its block (which
-			   can only happen in C++).  One would think that
-			   this belongs in the stmk_init, but putting it
-			   here makes it accessible from both the stmk_init
-			   and the variable being initialized. */
+			   some executable statements in its block, or if
+			   the initialization must otherwise be done where
+			   it appears rather than on the declaration of the
+			   variable.  One would think that this belongs in
+			   the stmk_init, but putting it here makes it
+			   accessible from both the stmk_init and the
+			   variable being initialized. */
   a_bit_field	inside_conditional_expression:1;
                         /* This initialization is inside a conditional part of
                            an expression (e.g., under a "?" operator). */

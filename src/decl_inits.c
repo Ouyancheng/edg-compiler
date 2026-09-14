@@ -843,9 +843,9 @@ remove_any_extraneous_braces:
          results in "value initialization"). */
       if (list_init_enabled) {
         check_nonstd_list_init(&icp->variant.braced.end_pos);
-      } else {
-        /* Empty braces initializing a scalar are a C++11 list initialization
-           feature. */
+      } else if (!empty_c_initializer_allowed) {
+        /* Empty braces initializing a scalar require C++11 list
+           initialization or a C mode that offers empty initializers. */
         pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
       }  /* if */
     } else {
@@ -905,9 +905,9 @@ remove_any_extraneous_braces:
       if (is_braced_init_component(icp) && icp->variant.braced.list == NULL) {
         if (list_init_enabled) {
           check_nonstd_list_init(&icp->variant.braced.end_pos);
-        } else {
-        /* Empty braces initializing a scalar are a C++11 list
-           initialization feature. */
+        } else if (!empty_c_initializer_allowed) {
+        /* Empty braces initializing a scalar require C++11 list
+           initialization or a C mode that offers empty initializers. */
           pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
         }  /* if */
       }  /* if */
@@ -2367,9 +2367,9 @@ for this array initialization).  *is describes the initialization as a whole.
       diag_pos = &icp->variant.braced.end_pos;
       /* Unwrap the braced list for the processing that follows. */
       icp = icp->variant.braced.list;
-      if (icp == NULL && C_mode() && !gcc_mode) {
-        /* Empty initializer lists are not permitted in C mode (except GNU C
-           mode). */
+      if (icp == NULL && C_mode() && !empty_c_initializer_allowed) {
+        /* Empty initializer lists are permitted only in the C modes that
+           offer them. */
         pos_error(ec_exp_primary_expr, diag_pos);
       }  /* if */
       /* Save the pack-expansion-handled state: Any expansions seen have an
@@ -3780,9 +3780,9 @@ issued if no more specific position is available.
       /* Unwrap the braced list for the processing that follows. */
       icp = icp->variant.braced.list;
       top_icp = icp;
-      if (icp == NULL && C_mode() && !gcc_mode) {
-        /* Empty initializer lists are not permitted in C mode (except GNU C
-           mode). */
+      if (icp == NULL && C_mode() && !empty_c_initializer_allowed) {
+        /* Empty initializer lists are permitted only in the C modes that
+           offer them. */
         pos_error(ec_exp_primary_expr, diag_pos);
       }  /* if */
       /* Save the pack-expansion-handled state: Any expansions seen have an
@@ -4558,9 +4558,9 @@ variable initialization.
     if (icp->variant.braced.list == NULL) {
       if (list_init_enabled) {
         check_nonstd_list_init(&icp->variant.braced.end_pos);
-      } else {
-        /* Empty braces initializing a scalar are a C++11 list initialization
-           feature. */
+      } else if (!empty_c_initializer_allowed) {
+        /* Empty braces initializing a scalar require C++11 list
+           initialization or a C mode that offers empty initializers. */
         pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
       }  /* if */
     } else if (microsoft_bugs && microsoft_version < 1310 && is_var_init &&
@@ -5494,11 +5494,14 @@ returned set to TRUE.
       dps->init_state.variable_size_array = TRUE;
     }  /* if */
     if (dps->init_state.variable_size_array &&
-        !(gpp_mode && !clang_mode && gnu_version >= 40900)) {
-      /* VLAs cannot be initialized, except in some GNU C++ modes.  (This must
-         be the first error case tested because we set vp_type to NULL to
-         recover.  If it were a later case, and the declaration was also
-         (e.g.) block extern, we'd diagnose that instead and not recover
+        !(gpp_mode && !clang_mode && gnu_version >= 40900) &&
+        !(empty_c_initializer_allowed &&
+          curr_token == tok_lbrace && next_token() == tok_rbrace)) {
+      /* A VLA can be initialized only by an empty initializer in the C modes
+         that offer those, and by any initializer in some GNU C++ modes.
+         (This must be the first error case tested because we set vp_type to
+         NULL to recover.  If it were a later case, and the declaration was
+         also (e.g.) block extern, we'd diagnose that instead and not recover
          completely.) */
       pos_sy_error(ec_cannot_initialize, source_pos, symbol_ptr);
       var_err = TRUE;
