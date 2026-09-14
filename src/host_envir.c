@@ -3982,15 +3982,18 @@ Close the mapped input file and the associated map object.
 }  /* close_mapped_input_file */
 
 
-a_void_ptr map_memory_region_file(a_mmap_handle        handle,
-                                  ARG_UNUSED sizeof_t  curr_size,
-                                  sizeof_t             incremental_size,
-                                  sizeof_t             file_offset)
+a_void_ptr map_memory_region_file(a_mmap_handle handle,
+                                  void          *base_addr,
+                                  sizeof_t      curr_size,
+                                  sizeof_t      incremental_size,
+                                  sizeof_t      file_offset)
 /*
 Expand the memory region file represented by the given handle.  This routine
-assumes that curr_size bytes have already been allocated and mapped, and that
-incremental_size bytes should be added.  incremental_size must be a multiple of
-the host page size.
+assumes that curr_size bytes have already been allocated and mapped starting at
+base_addr, and that incremental_size bytes should be added.  If base_addr is
+non-NULL, the memory region mapped will be picked by the system; otherwise, the
+memory mapped region starts at base_addr.  incremental_size must be a multiple
+of the host page size.
 */
 {
   a_void_ptr	addr = NULL;
@@ -4001,10 +4004,8 @@ the host page size.
 #if DEBUG
   const char*	failed_system_call = NULL;
 #endif /* DEBUG */
-#if USE_FIXED_ADDRESS_FOR_MMAP
-  a_void_ptr    map_address = (fixed_address_for_mmap != NULL) ?
-              (a_void_ptr)(fixed_address_for_mmap + curr_size) : NULL;
-#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+  a_void_ptr    map_address = (base_addr != NULL) ?
+              (a_void_ptr)((char*)base_addr + curr_size) : NULL;
 
   db_enter(4, "map_memory_region_file");
   file_pos.QuadPart = file_offset + incremental_size;
@@ -4020,7 +4021,6 @@ the host page size.
                                 (LPTSTR)NULL);
       if (f_map != INVALID_HANDLE_VALUE) {
         large_file_offset.QuadPart = file_offset;
-#if USE_FIXED_ADDRESS_FOR_MMAP
         if (map_address != NULL) {
           addr = MapViewOfFileEx(f_map, FILE_MAP_WRITE,
                                  large_file_offset.HighPart,
@@ -4031,10 +4031,7 @@ the host page size.
             failed_system_call = "MapViewOfFileEx";
           }  /* if */
 #endif /* DEBUG */
-        } else
-#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
-        /* Do not add code here. */
-        {
+        } else {
           addr = MapViewOfFile(f_map, FILE_MAP_WRITE,
                                large_file_offset.HighPart,
                                large_file_offset.LowPart,
@@ -4065,9 +4062,9 @@ the host page size.
                 "map_memory_region_file: allocated %lu bytes of mmap memory "
                 "at %p\n",
                 (unsigned long)incremental_size, addr);
-#if USE_FIXED_ADDRESS_FOR_MMAP
-        fprintf(f_debug, "  requested address was: %p\n", map_address);
-#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+        if (map_address != NULL) {
+          fprintf(f_debug, "  requested address was: %p\n", map_address);
+        }  /* if */
       }  /* if */
 #endif /* DEBUG */
 #if DEBUG
@@ -4083,13 +4080,13 @@ the host page size.
 #if DEBUG
   if (failed_system_call != NULL && db_flag_is_set("mmap")) {
     DWORD err_code = GetLastError();
-#if USE_FIXED_ADDRESS_FOR_MMAP
-    fprintf(f_error, "map_memory_region_file(0x%Ix, 0x%Ix, 0x%Ix) at %p:",
-            curr_size, incremental_size, file_offset, map_address);
-#else /* !USE_FIXED_ADDRESS_FOR_MMAP */
-    fprintf(f_error, "map_memory_region_file(0x%Ix, 0x%Ix, 0x%Ix):",
-            curr_size, incremental_size, file_offset);
-#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+    if (map_address != NULL) {
+      fprintf(f_error, "map_memory_region_file(0x%Ix, 0x%Ix, 0x%Ix) at %p:",
+              curr_size, incremental_size, file_offset, map_address);
+    } else {
+      fprintf(f_error, "map_memory_region_file(0x%Ix, 0x%Ix, 0x%Ix):",
+              curr_size, incremental_size, file_offset);
+    }  /* if */
     fprintf(f_error, " %s() failed with error code %d\n",
             failed_system_call, err_code);
   }  /* if */
@@ -4266,23 +4263,24 @@ and MAP_FIXED is retried.  Returns NULL on failure.
 }  /* mmap_posix */
 
 
-a_void_ptr map_memory_region_file(a_mmap_handle        handle,
-                                  ARG_UNUSED sizeof_t  curr_size,
-                                  sizeof_t             incremental_size,
-                                  sizeof_t             file_offset)
+a_void_ptr map_memory_region_file(a_mmap_handle handle,
+                                  void          *base_addr,
+                                  sizeof_t      curr_size,
+                                  sizeof_t      incremental_size,
+                                  sizeof_t      file_offset)
 /*
 Expand the memory region file represented by the given handle.  This routine
-assumes that curr_size bytes have already been allocated and mapped, and that
-incremental_size bytes should be added.  incremental_size must be a multiple of
-the host page size.
+assumes that curr_size bytes have already been allocated and mapped starting at
+base_addr, and that incremental_size bytes should be added.  If base_addr is
+non-NULL, the memory region mapped will be picked by the system; otherwise, the
+memory mapped region starts at base_addr.  incremental_size must be a multiple
+of the host page size.
 */
 {
   caddr_t    addr = NULL;
   sizeof_t   size;
-#if USE_FIXED_ADDRESS_FOR_MMAP
-  a_void_ptr map_address = (fixed_address_for_mmap != NULL) ?
-           (a_void_ptr)(fixed_address_for_mmap + curr_size) : NULL;
-#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+  a_void_ptr map_address = (base_addr != NULL) ?
+           (a_void_ptr)((char*)base_addr + curr_size) : NULL;
 
   db_enter(4, "map_memory_region_file");
   size = file_offset + incremental_size;
@@ -4291,25 +4289,17 @@ the host page size.
     /* Write a character at the last allocated position and
        make sure the write to the file is actually done. */
     if (fputc(0, handle) != EOF && fflush(handle) == 0) {
-      addr = mmap_posix(
-#if USE_FIXED_ADDRESS_FOR_MMAP
-                        map_address,
-#else /* !USE_FIXED_ADDRESS_FOR_MMAP */
-                        /*address=*/NULL,
-#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
-                        incremental_size,
-                        PROT_WRITE | PROT_READ,
-                        fileno(handle),
-                        file_offset);
+      addr = mmap_posix(map_address, incremental_size, PROT_WRITE | PROT_READ,
+                        fileno(handle), file_offset);
 #if DEBUG
       if (db_flag_is_set("mmap") || debug_level >= 4) {
         fprintf(f_debug,
                 "map_memory_region_file: allocated %lu bytes of mmap memory "
                 "at %p\n",
                 (unsigned long)incremental_size, (a_void_ptr)addr);
-#if USE_FIXED_ADDRESS_FOR_MMAP
-        fprintf(f_debug, "  requested address was: %p\n", map_address);
-#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+        if (map_address != NULL) {
+          fprintf(f_debug, "  requested address was: %p\n", map_address);
+        }  /* if */
       }  /* if */
 #endif /* DEBUG */
     }  /* if */

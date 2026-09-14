@@ -536,16 +536,21 @@ PCH was created.
     /* Attempt using the fixed address; if the mapping fails, clear
        fixed_address_for_mmap so that all subsequent allocations use a
        system-assigned address instead. */
-    addr = map_memory_region_file(memory_region_file, mmap_size_allocated,
-                                  size, mmap_file_offset);
+    addr = map_memory_region_file(memory_region_file, fixed_address_for_mmap,
+                                  mmap_size_allocated, size, mmap_file_offset);
     if (addr == NULL) {
       fixed_address_for_mmap = NULL;
     }  /* if */
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
   }  /* if */
   if (addr == NULL) {
-    addr = map_memory_region_file(memory_region_file, mmap_size_allocated,
-                                  size, mmap_file_offset);
+    addr = map_memory_region_file(memory_region_file,
+#if USE_FIXED_ADDRESS_FOR_MMAP
+                                  /*base_addr=*/fixed_address_for_mmap,
+#else /* !USE_FIXED_ADDRESS_FOR_MMAP */
+                                  /*base_addr=*/NULL,
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+                                  mmap_size_allocated, size, mmap_file_offset);
   }  /* if */
   if (addr == NULL) {
     catastrophe(ec_unable_to_get_mapped_memory);

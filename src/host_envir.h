@@ -3796,9 +3796,10 @@ typedef FILE *a_mmap_handle;
 
 extern
 a_void_ptr map_memory_region_file(a_mmap_handle handle,
-                                   sizeof_t     curr_size,
-                                   sizeof_t     incremental_size,
-                                   sizeof_t     file_offset);
+                                  void          *base_addr,
+                                  sizeof_t      curr_size,
+                                  sizeof_t      incremental_size,
+                                  sizeof_t      file_offset);
 
 /*
 A type abstracting the platform specific needs of map_input_file_to_region that
