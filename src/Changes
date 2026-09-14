@@ -104,7 +104,7 @@ pointer-to-member type).  That is now fixed.  For example:
 9/9/26   [EDGcpfe/29014]
 Avoiding excessive recursion in the interpreter
 
-The interpreter no longer uses recursive calls to walk the IL.  Instead an
+The interpreter no longer uses recursive calls to walk the IL.  Instead, an
 ordinary loop managing "work items" drives the process.  This avoids situations
 where the front end aborted due to overflowing the call stack.
 
