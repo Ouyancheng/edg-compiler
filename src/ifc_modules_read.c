@@ -2475,22 +2475,14 @@ module file if it was successfully opened; otherwise, return an empty optional.
        table are rewritten to become valid C names (e.g., "<unnamed-enum-x>"
        becomes "__noname_enum_x_"). */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-#if EDG_WIN32
-    open_mapped_input_file(file_path, &read_state.mapped_input,
-                           &read_state.map_object);
-#endif /* EDG_WIN32 */
+    read_state.mapped_file = open_mapped_input_file(file_path, file_handle);
     read_state.mmap_size = (size_t)stat_buf.st_size;
-    read_state.mmap_addr = map_input_file_to_region(file_handle,
-#if EDG_WIN32
-                                                    read_state.map_object,
-#else /* !EDG_WIN32 */
-                                                    (a_windows_handle)0,
-#endif /* EDG_WIN32 */
-                                                    /*read_only=*/TRUE,
-                                                    (sizeof_t)0,
-                                                    read_state.mmap_size,
-                                                    NULL,
-                                                    file_path);
+    read_state.mmap_addr = map_input_file_to_region(read_state.mapped_file,
+                                                   /*read_only=*/TRUE,
+                                                   (sizeof_t)0,
+                                                   read_state.mmap_size,
+                                                   NULL,
+                                                   file_path);
     check_assertion(read_state.mmap_addr != NULL);
     read_state.f_size = read_state.mmap_size;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */

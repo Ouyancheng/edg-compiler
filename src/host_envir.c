@@ -3861,10 +3861,6 @@ Produce a hash value for the unique file identifier "id".
 
 #if EDG_WIN32
 
-STATIC_THREAD HANDLE
-		f_mmap_file;
-			/* The file handle for the mapped IL file. */
-
 NORETURN static void str_GetLastError_catastrophe(an_error_code error_code,
                                                   a_const_char  *file_name)
 /*
@@ -3891,13 +3887,14 @@ the string returned that describes the error.
 }  /* str_GetLastError_catastrophe */
 
 
-void open_mapped_il_temp_file(void)
+a_mmap_handle open_memory_region_tmp_file(void)
 /*
 Open a temporary file to be used for allocation of file mapped
 memory for IL memory blocks.
 */
 {
-  db_enter(3, "open_mapped_il_temp_file");
+  a_mmap_handle file;
+  db_enter(3, "open_memory_region_tmp_file");
   /* Resolve the temporary directory if not already resolved (temp_dir). */
   resolve_temp_dir();
 
@@ -3905,7 +3902,7 @@ memory for IL memory blocks.
   if (file_name.is_empty()) {
     catastrophe(ec_cannot_build_temp_file_name);
   }  /* if */
-  f_mmap_file = CreateFile_interface(
+  file = CreateFile_interface(
                            file_name.as_temp_characters(),
                            GENERIC_READ | GENERIC_WRITE,
                            /*fdwShareMode=*/0, (LPSECURITY_ATTRIBUTES)NULL,
@@ -3913,84 +3910,87 @@ memory for IL memory blocks.
                            FILE_ATTRIBUTE_TEMPORARY |
                                                   FILE_FLAG_DELETE_ON_CLOSE,
                            (HANDLE)NULL);
-  if (f_mmap_file == INVALID_HANDLE_VALUE) {
+  if (file == INVALID_HANDLE_VALUE) {
     str_GetLastError_catastrophe(ec_cannot_open_temp_file_reason,
                                  file_name.as_temp_characters());
   }  /* if */
   db_exit();
-}  /* open_mapped_il_temp_file */
+  return file;
+}  /* open_memory_region_tmp_file */
 
 #if MAKE_FRONT_END_CALLABLE
 
-void close_mapped_il_temp_file(void)
+void close_memory_region_tmp_file(a_mmap_handle file)
 /*
 Close the file used for allocation of file mapped memory for IL memory blocks.
 */
 {
-  if (f_mmap_file != NULL) (void)CloseHandle(f_mmap_file);
-}  /* close_mapped_il_temp_file */
+  if (file != NULL) (void)CloseHandle(file);
+}  /* close_memory_region_tmp_file */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 
-void open_mapped_input_file(a_const_char     *file_name,
-                            a_windows_handle *mapped_input,
-                            a_windows_handle *map_object)
+a_mapped_input_file open_mapped_input_file(a_const_char    *file_name,
+                                           ARG_UNUSED FILE *open_file)
 /*
 Open a file that contains memory region information that will be mapped
 into the address space of the current process.  This is used to reactivate
 a precompiled header file or an open IFC module file.  This file will already
 have been opened using fopen, so this open must be done in shared mode.
-Returns handles for the re-opened input file and the mapped object.
+Returns an a_mapped_input_file holding the re-opened file handle and the
+file mapping object handle.
 */
 {
-  *mapped_input = CreateFile_interface(
+  a_mapped_input_file result;
+  result.mapped_input = CreateFile_interface(
                               file_name, GENERIC_READ,
                               FILE_SHARE_READ, (LPSECURITY_ATTRIBUTES)NULL,
                               OPEN_EXISTING, FILE_ATTRIBUTE_READONLY,
                               (HANDLE)NULL);
-  check_assertion_str(*mapped_input != INVALID_HANDLE_VALUE,
+  check_assertion_str(result.mapped_input != INVALID_HANDLE_VALUE,
                       "CreateFile of mapped input file failed");
-  if (*mapped_input == INVALID_HANDLE_VALUE) {
+  if (result.mapped_input == INVALID_HANDLE_VALUE) {
     /* This shouldn't happen because the file must have already been
        successfully opened as a normal input file before this routine is
        called. */
     str_GetLastError_catastrophe(ec_cannot_open_pch_input_file_reason,
                                  file_name);
   }  /* if */
-  *map_object = CreateFileMapping(*mapped_input, NULL,
-                                  PAGE_WRITECOPY, 0, 0, NULL);
-  check_assertion_str(*map_object != INVALID_HANDLE_VALUE,
+  result.map_object = CreateFileMapping(result.mapped_input, NULL,
+                                        PAGE_WRITECOPY, 0, 0, NULL);
+  check_assertion_str(result.map_object != INVALID_HANDLE_VALUE,
                       "CreateFileMapping failed");
-  if (*map_object == INVALID_HANDLE_VALUE) {
+  if (result.map_object == INVALID_HANDLE_VALUE) {
     str_GetLastError_catastrophe(ec_unable_to_get_mapped_memory_reason,
                                  file_name);
   }  /* if */
+  return result;
 }  /* open_mapped_input_file */
 
 
-void close_mapped_input_file(a_windows_handle mapped_input,
-                             a_windows_handle map_object)
+void close_mapped_input_file(a_mapped_input_file file)
 /*
 Close the mapped input file and the associated map object.
 */
 {
-  if (!CloseHandle(mapped_input)) {
+  if (!CloseHandle(file.mapped_input)) {
     unexpected_condition_str("CloseHandle of mapped input failed");
   }  /* if */
-  if (!CloseHandle(map_object)) {
+  if (!CloseHandle(file.map_object)) {
     unexpected_condition_str("CloseHandle of map object failed");
   }  /* if */
 }  /* close_mapped_input_file */
 
 
-a_void_ptr map_file_region(ARG_UNUSED sizeof_t curr_size,
-                           sizeof_t            incremental_size,
-                           sizeof_t            file_offset)
+a_void_ptr map_memory_region_file(a_mmap_handle        handle,
+                                  ARG_UNUSED sizeof_t  curr_size,
+                                  sizeof_t             incremental_size,
+                                  sizeof_t             file_offset)
 /*
-Expand a memory mapped file.  This routine assumes that curr_size bytes
-have already been allocated and mapped, and that incremental_size bytes
-should be added.  incremental_size must be a multiple of the host
-page size.
+Expand the memory region file represented by the given handle.  This routine
+assumes that curr_size bytes have already been allocated and mapped, and that
+incremental_size bytes should be added.  incremental_size must be a multiple of
+the host page size.
 */
 {
   a_void_ptr	addr = NULL;
@@ -4002,43 +4002,49 @@ page size.
   const char*	failed_system_call = NULL;
 #endif /* DEBUG */
 #if USE_FIXED_ADDRESS_FOR_MMAP
-  a_void_ptr	map_address = NULL;
+  a_void_ptr    map_address = (fixed_address_for_mmap != NULL) ?
+              (a_void_ptr)(fixed_address_for_mmap + curr_size) : NULL;
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 
-  db_enter(4, "map_file_region");
+  db_enter(4, "map_memory_region_file");
   file_pos.QuadPart = file_offset + incremental_size;
   /* The file must be large enough to contain the mapped area. */
-  if (SetFilePointerEx(f_mmap_file, file_pos,
+  if (SetFilePointerEx(handle, file_pos,
                        (PLARGE_INTEGER)NULL, FILE_BEGIN)) {
     /* Write a character at the last allocated position. */
-    if (WriteFile(f_mmap_file, &file_pos, 1, &bytes_written,
+    if (WriteFile(handle, &file_pos, 1, &bytes_written,
                   (LPOVERLAPPED)NULL)) {
-      f_map = CreateFileMapping(f_mmap_file,
+      f_map = CreateFileMapping(handle,
                                 (LPSECURITY_ATTRIBUTES)NULL,
                                 PAGE_READWRITE, (DWORD)0, (DWORD)0,
                                 (LPTSTR)NULL);
       if (f_map != INVALID_HANDLE_VALUE) {
         large_file_offset.QuadPart = file_offset;
 #if USE_FIXED_ADDRESS_FOR_MMAP
-        map_address = (a_void_ptr)(fixed_address_for_mmap + curr_size);
-        addr = MapViewOfFileEx(f_map, FILE_MAP_WRITE,
-                               large_file_offset.HighPart,
-                               large_file_offset.LowPart, incremental_size,
-                               map_address);
+        if (map_address != NULL) {
+          addr = MapViewOfFileEx(f_map, FILE_MAP_WRITE,
+                                 large_file_offset.HighPart,
+                                 large_file_offset.LowPart, incremental_size,
+                                 map_address);
 #if DEBUG
-        if (addr == NULL) {
-          failed_system_call = "MapViewOfFileEx";
-        }  /* if */
+          if (addr == NULL) {
+            failed_system_call = "MapViewOfFileEx";
+          }  /* if */
 #endif /* DEBUG */
-#else /* !USE_FIXED_ADDRESS_FOR_MMAP */
-        addr = MapViewOfFile(f_map, FILE_MAP_WRITE, large_file_offset.HighPart,
-                             large_file_offset.LowPart, incremental_size);
-#if DEBUG
-        if (addr == NULL) {
-          failed_system_call = "MapViewOfFile";
-        }  /* if */
-#endif /* DEBUG */
+        } else
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+        /* Do not add code here. */
+        {
+          addr = MapViewOfFile(f_map, FILE_MAP_WRITE,
+                               large_file_offset.HighPart,
+                               large_file_offset.LowPart,
+                               incremental_size);
+#if DEBUG
+          if (addr == NULL) {
+            failed_system_call = "MapViewOfFile";
+          }  /* if */
+#endif /* DEBUG */
+        }  /* if */
         /* The handle for mapping is not needed after the view is obtained
            above. */
         if (!CloseHandle(f_map)) {
@@ -4056,7 +4062,8 @@ page size.
 #if DEBUG
       if (db_flag_is_set("mmap") || debug_level >= 4) {
         fprintf(f_debug,
-                "map_file_region: allocated %lu bytes of mmap memory at %p\n",
+                "map_memory_region_file: allocated %lu bytes of mmap memory "
+                "at %p\n",
                 (unsigned long)incremental_size, addr);
 #if USE_FIXED_ADDRESS_FOR_MMAP
         fprintf(f_debug, "  requested address was: %p\n", map_address);
@@ -4077,10 +4084,10 @@ page size.
   if (failed_system_call != NULL && db_flag_is_set("mmap")) {
     DWORD err_code = GetLastError();
 #if USE_FIXED_ADDRESS_FOR_MMAP
-    fprintf(f_error, "map_file_region(0x%Ix, 0x%Ix, 0x%Ix) at %p:",
+    fprintf(f_error, "map_memory_region_file(0x%Ix, 0x%Ix, 0x%Ix) at %p:",
             curr_size, incremental_size, file_offset, map_address);
 #else /* !USE_FIXED_ADDRESS_FOR_MMAP */
-    fprintf(f_error, "map_file_region(0x%Ix, 0x%Ix, 0x%Ix):",
+    fprintf(f_error, "map_memory_region_file(0x%Ix, 0x%Ix, 0x%Ix):",
             curr_size, incremental_size, file_offset);
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
     fprintf(f_error, " %s() failed with error code %d\n",
@@ -4089,33 +4096,31 @@ page size.
 #endif /* DEBUG */
   db_exit();
   return addr;
-}  /* map_file_region */
+}  /* map_memory_region_file */
 
 
-a_void_ptr map_input_file_to_region(ARG_UNUSED FILE   *file,
-                                    a_windows_handle  map_object,
-                                    a_boolean         read_only,
-                                    sizeof_t          offset,
-                                    sizeof_t          size,
-                                    a_void_ptr        address,
-                                    a_const_char      *file_name)
+a_void_ptr map_input_file_to_region(a_mapped_input_file file,
+                                    a_boolean           read_only,
+                                    sizeof_t            offset,
+                                    sizeof_t            size,
+                                    a_void_ptr          address,
+                                    a_const_char        *file_name)
 /*
-Map the data pointed to by "file", with mapped object "map_object", starting at
-"offset" bytes, for "size" bytes to the address specified by "address".
-This mapping is done as either a FILE_MAP_COPY mapping so that any changes to
-the data will be local (when read_only is FALSE), or FILE_MAP_READ for
-read-only access (when read_only is TRUE).  This is used to map a section of a
-PCH file or module file to a memory region.  If the memory cannot be mapped, a
-catastrophic error is issued.  file_name is the name of the mapped input file
-to be used if a diagnostic is issued.  Returns the mapped address (or issues
-a catastrophic error).
+Map the input file "file" starting at "offset" bytes, for "size" bytes to the
+address specified by "address".  This mapping is done as either a FILE_MAP_COPY
+mapping so that any changes to the data will be local (when read_only is
+FALSE), or FILE_MAP_READ for read-only access (when read_only is TRUE).  This
+is used to map a section of a PCH file or module file to a memory region.  If
+the memory cannot be mapped, a catastrophic error is issued.  file_name is the
+name of the mapped input file to be used if a diagnostic is issued.  Returns
+the mapped address (or issues a catastrophic error).
 */
 {
   a_void_ptr    result_addr;
   LARGE_INTEGER large_file_offset;
 
   large_file_offset.QuadPart = offset;
-  result_addr = MapViewOfFileEx(map_object,
+  result_addr = MapViewOfFileEx(file.map_object,
                                 read_only ? FILE_MAP_READ : FILE_MAP_COPY,
                                 large_file_offset.HighPart,
                                 large_file_offset.LowPart, size, address);
@@ -4153,7 +4158,7 @@ Unmap a block of previously mapped memory.
 
 int get_page_size(void)
 /*
-Return the size of a host page.  When map_file_region is called,
+Return the size of a host page.  When map_memory_region_file is called,
 incremental_size must be a multiple of the page size.
 */
 {
@@ -4177,17 +4182,24 @@ extern "C" int getpagesize(void);
 #define _SC_PAGESIZE _SC_PAGE_SIZE
 #endif /* defined(__hpux) || defined(__AIX__) */
 
-STATIC_THREAD FILE*
-		f_mmap_file;
-			/* The file descriptor for the mmap file. */
+#if defined(__linux__) && defined(MAP_FIXED_NOREPLACE)
+#define MMAP_FIXED_NOREPLACE_FLAG 1
+#else /* !(defined(__linux__) && defined(MAP_FIXED_NOREPLACE)) */
+#define MMAP_FIXED_NOREPLACE_FLAG 0
+#endif /* defined(__linux__) && defined(MAP_FIXED_NOREPLACE) */
 
-STATIC_THREAD int
-		mmap_file_number;
-			/* The file number of the mmap file. */
+#if MMAP_FIXED_NOREPLACE_FLAG
+STATIC_THREAD a_boolean
+		try_mmap_fixed_noreplace;
+			/* TRUE when MAP_FIXED_NOREPLACE should be attempted.
+			   Set to FALSE the first time the kernel ignores the
+			   flag and returns a system-assigned address, so that
+			   subsequent calls skip directly to MAP_FIXED. */
+#endif /* MMAP_FIXED_NOREPLACE_FLAG */
 
 int get_page_size(void)
 /*
-Return the size of a host page.  When map_file_region is called,
+Return the size of a host page.  When map_memory_region_file is called,
 incremental_size must be a multiple of the page size.
 */
 {
@@ -4202,98 +4214,157 @@ incremental_size must be a multiple of the page size.
 }  /* get_page_size */
 
 
-a_void_ptr map_file_region(ARG_UNUSED sizeof_t curr_size,
-                           sizeof_t            incremental_size,
-                           sizeof_t            file_offset)
+static inline caddr_t mmap_posix(a_void_ptr address,
+                                  sizeof_t   size,
+                                  int        prot,
+                                  int        fd,
+                                  sizeof_t   offset)
 /*
-Expand a memory mapped file.  This routine assumes that curr_size bytes
-have already been allocated and mapped, and that incremental_size bytes
-should be added.  incremental_size must be a multiple of the host
-page size.
+Perform a POSIX mmap.  When address is NULL the kernel assigns the mapping
+address (MAP_PRIVATE).  Otherwise MAP_FIXED_NOREPLACE is attempted first on
+Linux so that an occupied range is detected without silently overwriting an
+existing mapping; if the kernel does not support MAP_FIXED_NOREPLACE it may
+return a system-assigned address instead, in which case that region is unmapped
+and MAP_FIXED is retried.  Returns NULL on failure.
 */
 {
-  caddr_t		addr = NULL;
-  sizeof_t		size;
+  caddr_t addr = NULL;
+
+  if (address != NULL) {
+#if MMAP_FIXED_NOREPLACE_FLAG
+    if (try_mmap_fixed_noreplace) {
+      addr = (caddr_t)mmap((caddr_t)address, size, prot,
+                           MAP_PRIVATE | MAP_FIXED_NOREPLACE,
+                           fd, (off_t)offset);
+      /* On older Linux kernels MAP_FIXED_NOREPLACE is silently ignored and
+         mmap may return a system-assigned address rather than the one
+         requested.  Detect this case, disable MAP_FIXED_NOREPLACE for all
+         future calls, unmap the misplaced region, and retry with MAP_FIXED. */
+      if (addr == (caddr_t)address || addr == (caddr_t)-1) {
+        /* The MAP_FIXED_NOREPLACE mmap flag was supported: keep this result
+           and do not fall back to MAP_FIXED. */
+      } else {
+        /* The MAP_FIXED_NOREPLACE mmap flag was not supported: prevent further
+           attempts at using MAP_FIXED_NOREPLACE and retry. */
+        try_mmap_fixed_noreplace = FALSE;
+        (void)munmap(addr, size);
+        addr = (caddr_t)mmap((caddr_t)address, size, prot,
+                             MAP_PRIVATE | MAP_FIXED, fd, (off_t)offset);
+      }  /* if */
+    } else
+#endif /* MMAP_FIXED_NOREPLACE_FLAG */
+    /* Do not add code here. */
+    {
+      addr = (caddr_t)mmap((caddr_t)address, size, prot,
+                           MAP_PRIVATE | MAP_FIXED, fd, (off_t)offset);
+    }  /* if */
+  } else {
+    addr = (caddr_t)mmap((char*)0, size, prot, MAP_PRIVATE, fd, (off_t)offset);
+  }  /* if */
+  if (addr == (caddr_t)-1) addr = NULL;
+  return addr;
+}  /* mmap_posix */
+
+
+a_void_ptr map_memory_region_file(a_mmap_handle        handle,
+                                  ARG_UNUSED sizeof_t  curr_size,
+                                  sizeof_t             incremental_size,
+                                  sizeof_t             file_offset)
+/*
+Expand the memory region file represented by the given handle.  This routine
+assumes that curr_size bytes have already been allocated and mapped, and that
+incremental_size bytes should be added.  incremental_size must be a multiple of
+the host page size.
+*/
+{
+  caddr_t    addr = NULL;
+  sizeof_t   size;
 #if USE_FIXED_ADDRESS_FOR_MMAP
-  a_void_ptr		map_address;
+  a_void_ptr map_address = (fixed_address_for_mmap != NULL) ?
+           (a_void_ptr)(fixed_address_for_mmap + curr_size) : NULL;
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 
-  db_enter(4, "map_file_region");
+  db_enter(4, "map_memory_region_file");
   size = file_offset + incremental_size;
   /* The file must be large enough to contain the mapped area. */
-  if (fseek(f_mmap_file, (long)size, SEEK_SET) == 0) {
+  if (fseek(handle, (long)size, SEEK_SET) == 0) {
     /* Write a character at the last allocated position and
        make sure the write to the file is actually done. */
-    if (fputc(0, f_mmap_file) != EOF && fflush(f_mmap_file) == 0) {
+    if (fputc(0, handle) != EOF && fflush(handle) == 0) {
+      addr = mmap_posix(
 #if USE_FIXED_ADDRESS_FOR_MMAP
-      /* Suppress the CodeCenter warning that would be issued because we
-         build an address that is not yet valid. */
-      /*SUPPRESS 25 */  /*SUPPRESS 26 */
-      map_address = (a_void_ptr)(fixed_address_for_mmap + curr_size);
-      /* Suppress the CodeCenter warning that an invalid pointer is being
-         passed. */
-      /*SUPPRESS 71 */
-      addr = (caddr_t)mmap((caddr_t)map_address,
-                           incremental_size,
-                           PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
-                           mmap_file_number, (off_t)file_offset);
+                        map_address,
 #else /* !USE_FIXED_ADDRESS_FOR_MMAP */
-      addr = (caddr_t)mmap((char*)0, incremental_size,
-                           PROT_WRITE | PROT_READ, MAP_PRIVATE,
-                           mmap_file_number, (off_t)file_offset);
+                        /*address=*/NULL,
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+                        incremental_size,
+                        PROT_WRITE | PROT_READ,
+                        fileno(handle),
+                        file_offset);
 #if DEBUG
       if (db_flag_is_set("mmap") || debug_level >= 4) {
         fprintf(f_debug,
-                "map_file_region: allocated %lu bytes of mmap memory at %p\n",
+                "map_memory_region_file: allocated %lu bytes of mmap memory "
+                "at %p\n",
                 (unsigned long)incremental_size, (a_void_ptr)addr);
 #if USE_FIXED_ADDRESS_FOR_MMAP
         fprintf(f_debug, "  requested address was: %p\n", map_address);
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
       }  /* if */
 #endif /* DEBUG */
-      /* mmap returns (caddr_t)-1 if the operation fails. */
-      if (addr == (caddr_t)-1) addr = NULL;
     }  /* if */
   }  /* if */
   db_exit();
   return addr;
-}  /* map_file_region */
+}  /* map_memory_region_file */
 
 
-a_void_ptr map_input_file_to_region(FILE                        *file,
-                                    ARG_UNUSED a_windows_handle map_object,
-                                    a_boolean                   read_only,
-                                    sizeof_t                    offset,
-                                    sizeof_t                    size,
-                                    a_void_ptr                  address,
-                                    a_const_char                *file_name)
+a_mapped_input_file open_mapped_input_file(ARG_UNUSED a_const_char *file_name,
+                                           FILE                    *open_file)
+/*
+Return an a_mapped_input_file wrapping the already-open file.  file_name is
+unused on POSIX because the file has already been opened by the caller.
+*/
+{
+  a_mapped_input_file result;
+  result.file = open_file;
+  return result;
+}  /* open_mapped_input_file */
+
+
+void close_mapped_input_file(ARG_UNUSED a_mapped_input_file file)
+/*
+On POSIX the file is owned by the caller; this function is a no-op.
+*/
+{
+}  /* close_mapped_input_file */
+
+
+a_void_ptr map_input_file_to_region(a_mapped_input_file file,
+                                    a_boolean           read_only,
+                                    sizeof_t            offset,
+                                    sizeof_t            size,
+                                    a_void_ptr          address,
+                                    a_const_char        *file_name)
 /*
 This is used to map a section of a PCH file or a module file to a memory
 region.  The data pointed to by "file" is mapped, starting at "offset" bytes
-for "size" bytes, to the address specified by "address".  map_object is unused.
-The mapping never affects the opened file (due to the use of MAP_PRIVATE).
-However, if read_only is set the buffer cannot be manipulated; otherwise, the
-buffer can be freely modified without affecting the file.  If the memory cannot
-be mapped, a catastrophic error is issued.  file_name is the name of the mapped
-input file to be used if a diagnostic is issued.  Returns the mapped address
-(or issues a catastrophic error).
+for "size" bytes, to the address specified by "address".  The mapping never
+affects the opened file (due to the use of MAP_PRIVATE).  However, if read_only
+is set the buffer cannot be manipulated; otherwise, the buffer can be freely
+modified without affecting the file.  If the memory cannot be mapped, a
+catastrophic error is issued.  file_name is the name of the mapped input file
+to be used if a diagnostic is issued.  Returns the mapped address (or issues a
+catastrophic error).
 */
 {
-  int		fd = fileno(file); /*lint !e718 !e746*/
+  int		fd = fileno(file.file); /*lint !e718 !e746*/
   a_void_ptr	result_addr;
 
-  result_addr = (a_void_ptr)mmap((caddr_t)address, size,
-                                 read_only ? PROT_READ :
-                                             PROT_READ | PROT_WRITE,
-                                 address == NULL ? MAP_PRIVATE :
-                                                   MAP_PRIVATE | MAP_FIXED,
-                                 fd, (off_t)offset);
-  /* mmap returns (caddr_t)-1 if the operation fails. */
-  if (result_addr == (caddr_t)-1 ||
-      (address != NULL && result_addr != address)) {
-    result_addr = NULL;
-  }  /* if */
+  result_addr = (a_void_ptr)mmap_posix(address, size,
+                                       read_only ? PROT_READ :
+                                                   PROT_READ | PROT_WRITE,
+                                       fd, offset);
 #if DEBUG
   if (db_flag_is_set("mmap") || debug_level >= 4) {
     fprintf(f_debug,
@@ -4326,30 +4397,30 @@ Unmap a block of previously mapped memory.
 }  /* unmap_memory */
 
 
-void open_mapped_il_temp_file(void)
+a_mmap_handle open_memory_region_tmp_file(void)
 /*
 Open a temporary file to be used for allocation of file mapped
 memory for IL memory blocks.
 */
 {
-  db_enter(3, "open_mapped_il_temp_file");
-  f_mmap_file = open_temp_file(/*binary_file=*/TRUE);
+  a_mmap_handle file;
+  db_enter(3, "open_memory_region_tmp_file");
+  file = open_temp_file(/*binary_file=*/TRUE);
   /*lint -e{530}*/ /* Lint bug PCLP-804 */
-  check_assertion(f_mmap_file != NULL);
-  mmap_file_number = fileno(f_mmap_file);
+  check_assertion(file != NULL);
   db_exit();
-}  /* open_mapped_il_temp_file */
+  return file;
+}  /* open_memory_region_tmp_file */
 
 #if MAKE_FRONT_END_CALLABLE
 
-void close_mapped_il_temp_file(void)
+void close_memory_region_tmp_file(a_mmap_handle file)
 /*
 Close the file used for allocation of file mapped memory for IL memory blocks.
 */
 {
-  if (f_mmap_file) (void)fclose(f_mmap_file);
-  f_mmap_file = NULL;
-}  /* close_mapped_il_temp_file */
+  if (file != NULL) (void)fclose(file);
+}  /* close_memory_region_tmp_file */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 
@@ -6845,12 +6916,9 @@ This is done before command line processing.
 #endif /* MAKE_FRONT_END_CALLABLE */
 #if USE_MMAP_FOR_MEMORY_REGIONS
   page_size = 0;
-#if EDG_WIN32
-  f_mmap_file = NULL;
-#else /* !EDG_WIN32 */
-  f_mmap_file = NULL;
-  mmap_file_number = 0;
-#endif /* EDG_WIN32 */
+#if !EDG_WIN32 && MMAP_FIXED_NOREPLACE_FLAG
+  try_mmap_fixed_noreplace = TRUE;
+#endif /* !EDG_WIN32 && MMAP_FIXED_NOREPLACE_FLAG */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #if !EDG_WIN32 && !MULTIPLE_THREAD_COMPILATION
   reset_cpu_time_limit();

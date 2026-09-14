@@ -1367,18 +1367,12 @@ memory region information will be accessed using mmap by the consumer of
 the PCH file.
 */
 {
-  size_t           i;
-  sizeof_t         offset;
-  a_windows_handle map_object = NULL;
-#if EDG_WIN32
-  a_windows_handle mapped_input;
-#endif /* EDG_WIN32 */
+  size_t              i;
+  sizeof_t            offset;
+  a_mapped_input_file mapped_file;
 
-#if EDG_WIN32
-  /* Open the file a second time in a way that it can be used for file mapping
-     purposes. */
-  open_mapped_input_file(pch_input_file_name, &mapped_input, &map_object);
-#endif /* EDG_WIN32 */
+  /* Open the file in a way that it can be used for file mapping purposes. */
+  mapped_file = open_mapped_input_file(pch_input_file_name, f_pch_input);
   /* The memory regions that have already been allocated should be
      unmapped so that the address space is available to be remapped. */
   free_mapped_mem_blocks();
@@ -1388,9 +1382,9 @@ the PCH file.
     a_mem_alloc_history_ptr	mahp = &new_alloc_history[i];
     offset = do_page_alignment(offset);
     /* coverity[leaked_storage] */
-    (void)map_input_file_to_region(f_pch_input, map_object,
-                                   /*read_only=*/FALSE, offset, mahp->size,
-                                   mahp->addr, pch_input_file_name);
+    (void)map_input_file_to_region(mapped_file, /*read_only=*/FALSE, offset,
+                                   mahp->size, mahp->addr,
+                                   pch_input_file_name);
     offset += mahp->size;
     /* Create a memory allocation history entry for this block. */
     record_mapped_mem_block(mahp->addr, mahp->size);
@@ -1401,9 +1395,7 @@ the PCH file.
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
-#if EDG_WIN32
-  close_mapped_input_file(mapped_input, map_object);
-#endif /* EDG_WIN32 */
+  close_mapped_input_file(mapped_file);
 }  /* read_memory_used_for_memory_regions */
 
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */

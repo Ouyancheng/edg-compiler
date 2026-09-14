@@ -3784,29 +3784,63 @@ typedef void *a_windows_handle;
 #if USE_MMAP_FOR_MEMORY_REGIONS
 extern sizeof_t do_page_alignment(sizeof_t size);
 
-extern
-a_void_ptr map_file_region(sizeof_t	curr_size,
-		           sizeof_t	incremental_size,
-			   sizeof_t     file_offset);
+/*
+A typedef for an abstract representation of the handle used
+for mmap (or equivalent) calls.
+*/
+#if EDG_WIN32
+typedef HANDLE a_mmap_handle;
+#else /* !EDG_WIN32 */
+typedef FILE *a_mmap_handle;
+#endif /* EDG_WIN32 */
 
 extern
-a_void_ptr map_input_file_to_region(FILE		*file,
-                                    a_windows_handle	map_object,
-                                    a_boolean		read_only,
-                                    sizeof_t		offset,
-                                    sizeof_t		size,
-                                    a_void_ptr		address,
-                                    a_const_char	*file_name);
+a_void_ptr map_memory_region_file(a_mmap_handle handle,
+                                   sizeof_t     curr_size,
+                                   sizeof_t     incremental_size,
+                                   sizeof_t     file_offset);
 
-extern void unmap_memory(a_void_ptr	addr,
-			 sizeof_t	size);
+/*
+A type abstracting the platform specific needs of map_input_file_to_region that
+should be constructed via a call to open_mapped_input_file and closed with a
+call to close_mapped_input_file.
+*/
+struct a_mapped_input_file {
+#if EDG_WIN32
+  a_windows_handle mapped_input;
+                        /* The handle produced by the call to
+                           CreateFile_interface to reopen the file in a way
+                           that can be used by CreateFileMapping. */
+  a_mmap_handle    map_object;
+                        /* The handle produced by the call to
+                           CreateFileMapping representing the actual memory
+                           mapping. */
+#else /* !EDG_WIN32 */
+  a_mmap_handle file;   /* The FILE* used by the mmap call. */
+#endif /* EDG_WIN32 */
+};  /* a_mapped_input_file */
+
+extern a_mapped_input_file open_mapped_input_file(a_const_char *file_name,
+                                                  FILE         *open_file);
+extern void close_mapped_input_file(a_mapped_input_file file);
+
+extern
+a_void_ptr map_input_file_to_region(a_mapped_input_file file,
+                                    a_boolean           read_only,
+                                    sizeof_t            offset,
+                                    sizeof_t            size,
+                                    a_void_ptr          address,
+                                    a_const_char        *file_name);
+
+extern void unmap_memory(a_void_ptr addr,
+                         sizeof_t   size);
 
 extern sizeof_t seek_to_page_alignment(FILE *file);
 
-extern void open_mapped_il_temp_file(void);
+extern a_mmap_handle open_memory_region_tmp_file(void);
 
 #if MAKE_FRONT_END_CALLABLE
-extern void close_mapped_il_temp_file(void);
+extern void close_memory_region_tmp_file(a_mmap_handle file);
 #endif /* MAKE_FRONT_END_CALLABLE */
 
 extern int get_page_size(void);
@@ -4139,11 +4173,6 @@ typedef sizeof_t qsort_nmemb_type;
 #endif /* __BSD__ */
 
 #if EDG_WIN32
-extern void open_mapped_input_file(a_const_char     *file_name,
-                                   a_windows_handle *mapped_input,
-                                   a_windows_handle *map_object);
-extern void close_mapped_input_file(a_windows_handle mapped_input,
-                                    a_windows_handle map_object);
 extern char *conv_wide_to_utf8(wchar_t *wide_str);
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_const_char *com_error_to_str(void);

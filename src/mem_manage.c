@@ -458,6 +458,11 @@ STATIC_THREAD sizeof_t
 			/* The offset into the mmap file of the next block
 			   to be allocated. */
 
+STATIC_THREAD a_mmap_handle
+		memory_region_file;
+			/* The temporary file used to back the memory mapped
+			   region blocks. */
+
 void record_mapped_mem_block(a_void_ptr	addr,
 			     sizeof_t	size)
 /*
@@ -519,16 +524,29 @@ the memory regions into the same addresses that were used when the
 PCH was created.
 */
 {
-  a_void_ptr	addr;
+  a_void_ptr	addr = NULL;
 
   if (!mmap_initialized) {
     /* On the first call, open the file that will be mapped. */
-    open_mapped_il_temp_file();
+    memory_region_file = open_memory_region_tmp_file();
     mmap_size_allocated = 0;
     mmap_initialized = TRUE;
     mmap_file_offset = 0;
+#if USE_FIXED_ADDRESS_FOR_MMAP
+    /* Attempt using the fixed address; if the mapping fails, clear
+       fixed_address_for_mmap so that all subsequent allocations use a
+       system-assigned address instead. */
+    addr = map_memory_region_file(memory_region_file, mmap_size_allocated,
+                                  size, mmap_file_offset);
+    if (addr == NULL) {
+      fixed_address_for_mmap = NULL;
+    }  /* if */
+#endif /* USE_FIXED_ADDRESS_FOR_MMAP */
   }  /* if */
-  addr = map_file_region(mmap_size_allocated, size, mmap_file_offset);
+  if (addr == NULL) {
+    addr = map_memory_region_file(memory_region_file, mmap_size_allocated,
+                                  size, mmap_file_offset);
+  }  /* if */
   if (addr == NULL) {
     catastrophe(ec_unable_to_get_mapped_memory);
   }  /* if */
@@ -2199,7 +2217,8 @@ very end of processing.
 #if USE_MMAP_FOR_MEMORY_REGIONS
   if (mmap_initialized) {
     /* If a memory mapped temporary file was created, close it now. */
-    close_mapped_il_temp_file();
+    close_memory_region_tmp_file(memory_region_file);
+    mmap_initialized = FALSE;
   }  /* if */
   free_mapped_mem_blocks();
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */

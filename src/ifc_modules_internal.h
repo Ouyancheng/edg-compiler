@@ -63,16 +63,9 @@ struct an_ifc_module_file_read_state {
                            module file. */
   size_t        mmap_size = 0;
                         /* The size of the memory-mapped partition. */
-#if EDG_WIN32
-  a_windows_handle
-                mapped_input = NULL;
-                        /* A HANDLE returned by CreateFile_interface during
-                           the mapping process on Windows. */
-  a_windows_handle
-                map_object = NULL;
-                        /* A HANDLE returned by CreateFileMapping during the
-                           mapping process on Windows. */
-#endif /* EDG_WIN32 */
+  a_mapped_input_file
+                mapped_file = {};
+                        /* Handles for the memory-mapped input file. */
   unsigned char
                 *byte_buffer = NULL;
                         /* Pointer to the current position in the buffer

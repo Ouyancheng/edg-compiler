@@ -1,5 +1,15 @@
 Version 6.10
 
+9/14/26  [EDGcpfe/29050]
+USE_FIXED_ADDRESS_FOR_MMAP - Memory Safety Improvements
+
+The front end now takes advantage of MAP_FIXED_NOREPLACE on Linux (when
+available) to eliminate the risk of clobbering existing overlapping memory
+mappings on Linux kernels 4.17 and later.  Additionally, the front end will now
+attempt to use a non-fixed address as a fallback even in
+USE_FIXED_ADDRESS_FOR_MMAP=1 configurations.
+
+
 9/11/26  [EDGcpfe/29041]
 C23: auto-type variables
 
