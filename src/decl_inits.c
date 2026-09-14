@@ -5716,6 +5716,17 @@ returned set to TRUE.
       prescan_initializer_for_auto_type_deduction(dps,
                                                   parenthesized_initializer);
       vp_type = dps->type;
+      if (vp != NULL) {
+        /* The type of the variable was not known when it was declared, so if
+           the deduced type turns out to be variably modified, as it does for
+           "auto p = (int (*)[n]) q;", neither the evaluation of its
+           dimensions nor the declaration itself could be placed then.  Do
+           both now, at the declaration. */
+        generate_vla_size_statements_for_type(vp_type, source_pos);
+        record_variably_modified_variable(vp, vp_type,
+                                          /*is_variable_def=*/TRUE,
+                                          source_pos);
+      }  /* if */
       complete_type_is_needed(vp_type);
       if (is_incomplete_type(vp_type)) {
         /* Incomplete type is an error. */

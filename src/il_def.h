@@ -11127,6 +11127,12 @@ typedef struct a_vla_dimension {
 		in_prototype_scope;
 			/* TRUE if the dimension expression is used in a
 			   prototype scope, i.e., in a parameter type. */
+  a_byte_boolean
+		has_size_statement;
+			/* TRUE if an stmk_set_vla_size statement pointing to
+			   this entry was generated.  The dimension expression
+			   is evaluated where that statement appears, so at
+			   most one may be generated for an entry. */
   a_source_position
 		position;
 			/* Source position of the VLA expression. */

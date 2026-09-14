@@ -1,5 +1,23 @@
 Version 6.10
 
+9/14/26  [EDGcpfe/29049]
+Dimensions of a deduced variably modified type were evaluated twice
+
+When the type deduced for a variable declared with "auto" in C23, or with the
+GNU C "__auto_type" extension, is variably modified, its dimensions were
+evaluated once where the initializer appears and once more where the
+declaration appears.  A dimension expression with a side effect therefore took
+effect twice, and the declaration was also placed at the start of the
+enclosing block rather than where it was written.  That is now fixed.  For
+example:
+
+  int i = 1;
+  void g(void) {
+    auto p = (int (*)[++i]) 0;   // "++i" was evaluated twice, once before
+    // i is now 2                //   f was entered.
+  }
+
+
 9/14/26  [EDGcpfe/29051]
 Abort when lowering extended-precision complex types
 

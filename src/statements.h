@@ -518,6 +518,9 @@ extern void record_trivial_init_control_flow(a_variable_ptr  var);
 extern void set_vla_size_statement(a_vla_dimension_ptr  vdp,
                                    a_source_position    *pos);
 
+extern void generate_vla_size_statements_for_type(a_type_ptr         tp,
+                                                  a_source_position  *pos);
+
 extern a_statement_ptr compound_statement_full(
                                           a_boolean   at_function_level,
                                           a_boolean   explicit_return_type,

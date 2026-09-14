@@ -2516,6 +2516,7 @@ pointer to it.
   vdp->dimension_expr = NULL;
   vdp->original_dimension = NULL;
   vdp->in_prototype_scope = FALSE;
+  vdp->has_size_statement = FALSE;
   vdp->position = null_source_position;
 #if DO_IL_LOWERING
 #if LOWER_VARIABLE_LENGTH_ARRAYS

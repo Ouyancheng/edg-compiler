@@ -1607,6 +1607,12 @@ a_boolean check_placeholder_type_constraint(a_type_ptr  placeholder_type,
 
 extern void check_deduced_auto_type(a_decl_parse_state  *dps);
 
+extern void record_variably_modified_variable(
+                                        a_variable_ptr     variable_ptr,
+                                        a_type_ptr         type_ptr,
+                                        a_boolean          is_variable_def,
+                                        a_source_position  *pos);
+
 extern a_const_char *c_auto_specifier_spelling(a_decl_parse_state  *dps);
 extern void check_use_of_placeholder_type(a_decl_parse_state  *dps);
 

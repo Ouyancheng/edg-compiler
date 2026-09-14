@@ -7304,6 +7304,56 @@ of the variable.
 }  /* update_variable_decl_info */
 
 
+void record_variably_modified_variable(a_variable_ptr     variable_ptr,
+                                       a_type_ptr         type_ptr,
+                                       a_boolean          is_variable_def,
+                                       a_source_position  *pos)
+/*
+Record that the variable variable_ptr, declared at *pos, has type_ptr as its
+type.  If that type is variably modified, i.e., is or contains a VLA type, it
+has run-time dependencies, so a statement is put out to indicate where in the
+executable stream the declaration appears, and the type is elaborated there.
+is_variable_def indicates whether the declaration is a definition; memory for
+a variable that is itself a VLA is allocated at that same point.  Nothing is
+done if the type is not variably modified.  This is called again once the type
+of a variable declared with a deduced type specifier is known, because the
+type is not yet available when the variable is declared.
+*/
+{
+  if (vla_enabled && is_variably_modified_type(type_ptr)) {
+    if (depth_stmt_stack < 0) {
+      /* We can get here with a namespace scope declaration of the form
+           void (*pf)(int[*][*]);
+         Some (unlikely) error situations can also cause us to get here. */
+      check_assertion(is_at_least_one_error() || !is_vla_type(type_ptr));
+    } else {
+      a_statement_ptr vla_stmt;
+
+      variable_ptr->has_variably_modified_type = TRUE;
+      vla_stmt = add_statement_at_stmt_pos(stmk_vla_decl, pos,
+                                           /*compiler_generated=*/TRUE);
+      vla_stmt->variant.vla.is_typedef_decl = FALSE;
+      vla_stmt->variant.vla.variant.variable = variable_ptr;
+      check_for_vla_inside_statement_expression(pos);
+      if (is_vla_type(type_ptr)) {
+        if (!is_variable_def) {
+          /* Must be an error. */
+          check_assertion(is_at_least_one_error());
+        } else {
+          /* Memory for this variable will also have to be allocated.  Mark
+             the variable as a variable length array that requires allocation
+             as well as deallocation upon exit from the current scope. */
+          variable_ptr->is_vla = TRUE;
+          /* Update the control-flow list used in statement processing to
+             diagnose illegal branches. */
+          update_init_statement_control_flow(vla_stmt);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* record_variably_modified_variable */
+
+
 void decl_variable(a_symbol_locator                *locator,
                    a_decl_parse_state              *dps,
                    a_symbol_reference_kind         srk_flags,
@@ -7952,43 +8002,8 @@ for use in generating cross-reference output describing this declaration.
     compute_name_collision_discriminator(sym, decl_scope_level);
 #endif /* NEED_NAME_MANGLING */
   }  /* if */
-  if (vla_enabled) {
-    if (is_variably_modified_type(type_ptr)) {
-      /* Since the type may have various run-time dependencies, put out a
-         statement indicating where in the executable stream this declaration
-         appears.  */
-      if (depth_stmt_stack < 0) {
-        /* We can get here with a namespace scope declaration of the form
-             void (*pf)(int[*][*]);
-           Some (unlikely) error situations can also cause us to get here. */
-        check_assertion(is_at_least_one_error() || !is_vla_type(type_ptr));
-      } else {
-        a_statement_ptr vla_stmt;
-
-        variable_ptr->has_variably_modified_type = TRUE;
-        vla_stmt = add_statement_at_stmt_pos(stmk_vla_decl,
-                                             &locator->source_position,
-                                             /*compiler_generated=*/TRUE);
-        vla_stmt->variant.vla.is_typedef_decl = FALSE;
-        vla_stmt->variant.vla.variant.variable = variable_ptr;
-        check_for_vla_inside_statement_expression(&locator->source_position);
-        if (is_vla_type(type_ptr)) {
-          if (!is_variable_def) {
-            /* Must be an error. */
-            check_assertion(is_at_least_one_error());
-          } else {
-            /* Memory for this variable will also have to be allocated.  Mark
-               the variable as a variable length array that requires allocation
-               as well as deallocation upon exit from the current scope. */
-            variable_ptr->is_vla = TRUE;
-            /* Update the control-flow list used in statement processing to
-               diagnose illegal branches. */
-            update_init_statement_control_flow(vla_stmt);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  record_variably_modified_variable(variable_ptr, type_ptr, is_variable_def,
+                                    &locator->source_position);
   if (is_variable_def && is_or_has_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
        from "elsewhere".  (We use "is_variable_def" to exclude cases like
