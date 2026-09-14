@@ -1,6 +1,6 @@
 Version 6.10
 
-9/14/26  [EDGcpfe/29042]
+9/14/26  [EDGcpfe/25946,EDGcpfe/29042]
 C23: Empty initializers
 
 An empty initializer ("{}") can now be used in C23 mode for an object of any
