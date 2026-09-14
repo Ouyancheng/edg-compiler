@@ -1414,6 +1414,11 @@ struct an_interpreter_work_item {
 			/* The items in the adjacent slots of the work stack
 			   this item belongs to.  These links are set when the
 			   item is created and never change. */
+  unsigned long	depth;
+			/* How many items are on the stack when this item is
+			   the topmost one.  Like the links above, this is a
+			   property of the slot, so it is set when the item is
+			   created and never changes. */
   an_interpreter_work_kind
 		kind;
 			/* What this item interprets. */
@@ -1966,12 +1971,17 @@ STATIC_THREAD Dyn_array<a_work_stack*>
 		*work_stack_pool;
 			/* Pooled work stacks, indexed by nesting depth.
 			   Slot N is used by the Nth concurrently active
-			   interpreter.  Backing storage is never released.
-			   */
+			   interpreter.  The stacks and their items live in
+			   front end memory and are never released
+			   individually: interpret_init drops the pool for
+			   each compilation, since that memory is reclaimed
+			   when a compilation ends. */
 
 STATIC_THREAD a_call_frame_ptr
 		free_call_frames;
-			/* Recycled call frames. */
+			/* Recycled call frames.  These are allocated in front
+			   end memory, so this list is dropped for each
+			   compilation like work_stack_pool above. */
 
 
 static inline void work_item_result_cap(
@@ -2007,6 +2017,7 @@ does not have to be visited after a failure.
     item = alloc_fe_of_type(an_interpreter_work_item);
     item->below = stack->top;
     item->above = NULL;
+    item->depth = stack->top->depth+1;
     stack->top->above = item;
   }  /* if */
   stack->top = item;
@@ -2021,12 +2032,14 @@ does not have to be visited after a failure.
 static inline void pop_work(an_interpreter_state  *ips)
 /*
 Pop the top work item, releasing the variant paths it copied.  The item itself
-stays in its slot for a later push to reuse.
+stays in its slot for a later push to reuse.  The floor item is never popped:
+Every push is matched by exactly one pop.
 */
 {
   a_work_stack              *stack = ips->work_stack;
   an_interpreter_work_item  *item = stack->top;
 
+  check_assertion(item != stack->floor);
   stack->top = item->below;
   if (item->kind == iwk_dyn_init || item->kind == iwk_ctor) {
     release_variant_path_if_needed(&item->variant.init.dest);
@@ -2063,6 +2076,7 @@ Create an empty work stack, i.e. one that holds just its floor item.
   this->floor = alloc_fe_of_type(an_interpreter_work_item);
   this->floor->below = NULL;
   this->floor->above = NULL;
+  this->floor->depth = 0;
   this->top = this->floor;
 }  /* a_work_stack::a_work_stack */
 
@@ -6273,6 +6287,9 @@ that a caller which recovers from a failure of the pushed work can continue.
   ips->failed = FALSE;
   while (stack->top != base) {
     an_interpreter_work_item  *item = stack->top;
+    /* The walk has to stay above base: Otherwise this loop would unwind the
+       stack past its floor. */
+    check_assertion(item->depth > base->depth);
     if (ips->failed && !item->needs_cleanup) {
       pop_work(ips);
     } else {
@@ -8714,7 +8731,9 @@ Interpret the given range-based for-statement.
     /* Allocate storage for the loop-test result (a boolean) and the
        incrementation result. */
     n_bytes = expr_result_size(ips, expr, tp, &result);
-    (void)alloc_complete_object(ips, n_bytes, tp, expr_value);
+    if (!result) goto unmap_storage;
+    result = alloc_complete_object(ips, n_bytes, tp, expr_value);
+    if (!result) goto unmap_storage;
     n_bytes = expr_result_size(ips, incr, incr_type, &result);
     if (!result) goto unmap_storage;
     result = alloc_complete_object(ips, n_bytes, incr_type, incr_value);
@@ -34745,6 +34764,8 @@ Initialize static variables that need to be reset for every compilation.
 {
   memzero((char*)free_map_tables, sizeof(free_map_tables));
   memzero((char*)free_live_set_tables, sizeof(free_live_set_tables));
+  work_stack_pool = NULL;
+  free_call_frames = NULL;
   useful_constants_initialized = FALSE;
 }  /* interpret_init */
 
@@ -34777,8 +34798,6 @@ One-time initialization for interpret.c static variables.
   useful_constants_initialized = FALSE;
   free_stack_blocks = NULL;
   free_variant_path_entries = NULL;
-  work_stack_pool = NULL;
-  free_call_frames = NULL;
 #if DEBUG && TRACK_INTERPRETER_ALLOCATIONS
   object_alloc_to_intercept = 0;
 #endif /* DEBUG && TRACK_INTERPRETER_ALLOCATIONS */
