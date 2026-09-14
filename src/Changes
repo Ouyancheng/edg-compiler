@@ -10,12 +10,16 @@ For example:
 
   void f(void) {
     auto x = 42;            // Deduces "int".
-    auto ptr = &x;          // Deduced "int" rather than "int *", so the
-    *ptr = 0;               //   dereference was rejected.
+    auto ptr = &x;          // Deduces "int *".
     auto int y = 7;         // "auto" is a storage class specifier here.
   }
 
 This implements paper N3007 of the ISO C standardization committee (WG14).
+
+The GCC "__auto_type" feature (see the entry for EDGcpfe/15176,EDGcpfe/16691)
+deduces a type from an initializer in the same way, and the two specifiers now
+share an implementation.  "__auto_type" previously kept a function type instead
+of decaying it, and kept the qualifiers of its initializer: That is now fixed.
 
 
 9/11/26  [EDGcpfe/29035]
