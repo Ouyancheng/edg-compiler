@@ -1262,6 +1262,24 @@ Return names[fkind] (a string naming the given floating-point precision).
   return result;
 }  /* select_name_from_float_kind */
 
+
+static a_routine_ptr *select_routine_from_float_kind(
+                                              a_routine_ptr *table,
+                                              a_float_kind  fkind)
+/*
+Return a pointer to the slot in table for the runtime routine associated
+with fkind.  Extended floating-point kinds are mapped to the format used
+by the tables before the slot is selected.
+*/
+{
+  a_routine_ptr *result;
+
+  fkind = map_extended_float_kinds(fkind);
+  check_assertion((int)fkind < NUM_COMPLEX_FLOAT_KINDS);
+  result = &table[(int)fkind];
+  return result;
+}  /* select_routine_from_float_kind */
+
 #endif /* LOWER_COMPLEX || LOWER_FIXED_POINT */
 #if LOWER_COMPLEX
 
@@ -1610,9 +1628,10 @@ with C89).
   fkind = return_type->variant.float_kind;
   rout_name = select_name_from_float_kind(fkind, xnegate_routine_name);
   xnegate_call = make_prototyped_runtime_call(
-                                rout_name, &xnegate_routine[(int)fkind],
-                                return_type, return_type, (a_type_ptr)NULL,
-                                expr->variant.operation.operands);
+                    rout_name,
+                    select_routine_from_float_kind(xnegate_routine, fkind),
+                    return_type, return_type, (a_type_ptr)NULL,
+                    expr->variant.operation.operands);
   overwrite_node(expr, xnegate_call);
 }  /* lower_c99_xnegate */
 
@@ -1646,9 +1665,10 @@ Transform the given complex expression ("z1+z2") into a function call
   fkind = return_type->variant.float_kind;
   rout_name = select_name_from_float_kind(fkind, xadd_routine_name);
   xadd_call = make_prototyped_runtime_call(
-                                        rout_name, &xadd_routine[(int)fkind],
-                                        return_type, return_type, return_type,
-                                        expr->variant.operation.operands);
+                    rout_name,
+                    select_routine_from_float_kind(xadd_routine, fkind),
+                    return_type, return_type, return_type,
+                    expr->variant.operation.operands);
   overwrite_node(expr, xadd_call);
 }  /* lower_c99_xadd */
 
@@ -1682,9 +1702,10 @@ Transform the given complex expression ("z1-z2") into a function call
   fkind = return_type->variant.float_kind;
   rout_name = select_name_from_float_kind(fkind, xsubtract_routine_name);
   xsubtract_call = make_prototyped_runtime_call(
-                                     rout_name, &xsubtract_routine[(int)fkind],
-                                     return_type, return_type, return_type,
-                                     expr->variant.operation.operands);
+                    rout_name,
+                    select_routine_from_float_kind(xsubtract_routine, fkind),
+                    return_type, return_type, return_type,
+                    expr->variant.operation.operands);
   overwrite_node(expr, xsubtract_call);
 }  /* lower_c99_xsubtract */
 
@@ -1718,9 +1739,10 @@ Transform the given complex expression ("z1*z2") into a function call
   fkind = return_type->variant.float_kind;
   rout_name = select_name_from_float_kind(fkind, xmultiply_routine_name);
   xmultiply_call = make_prototyped_runtime_call(
-                                     rout_name, &xmultiply_routine[(int)fkind],
-                                     return_type, return_type, return_type,
-                                     expr->variant.operation.operands);
+                    rout_name,
+                    select_routine_from_float_kind(xmultiply_routine, fkind),
+                    return_type, return_type, return_type,
+                    expr->variant.operation.operands);
   overwrite_node(expr, xmultiply_call);
 }  /* lower_c99_xmultiply */
 
@@ -1754,9 +1776,10 @@ Transform the given complex expression ("z1/z2") into a function call
   fkind = return_type->variant.float_kind;
   rout_name = select_name_from_float_kind(fkind, xdivide_routine_name);
   xdivide_call = make_prototyped_runtime_call(
-                                       rout_name, &xdivide_routine[(int)fkind],
-                                       return_type, return_type, return_type,
-                                       expr->variant.operation.operands);
+                    rout_name,
+                    select_routine_from_float_kind(xdivide_routine, fkind),
+                    return_type, return_type, return_type,
+                    expr->variant.operation.operands);
   overwrite_node(expr, xdivide_call);
 }  /* lower_c99_xdivide */
 
@@ -1791,9 +1814,11 @@ Transform the given complex expression ("z1==z2") into a function call
   check_assertion(is_complex_type(op_type));
   fkind = op_type->variant.float_kind;
   rout_name = select_name_from_float_kind(fkind, xeq_routine_name);
-  xeq_call = make_prototyped_runtime_call(rout_name, &xeq_routine[(int)fkind],
-                                          return_type, op_type, op_type,
-                                          expr->variant.operation.operands);
+  xeq_call = make_prototyped_runtime_call(
+                    rout_name,
+                    select_routine_from_float_kind(xeq_routine, fkind),
+                    return_type, op_type, op_type,
+                    expr->variant.operation.operands);
   overwrite_node(expr, xeq_call);
 }  /* lower_c99_xeq */
 
@@ -1828,9 +1853,11 @@ Transform the given complex expression ("z1!=z2") into a function call
   check_assertion(is_complex_type(op_type));
   fkind = op_type->variant.float_kind;
   rout_name = select_name_from_float_kind(fkind, xne_routine_name);
-  xne_call = make_prototyped_runtime_call(rout_name, &xne_routine[(int)fkind],
-                                          return_type, op_type, op_type,
-                                          expr->variant.operation.operands);
+  xne_call = make_prototyped_runtime_call(
+                    rout_name,
+                    select_routine_from_float_kind(xne_routine, fkind),
+                    return_type, op_type, op_type,
+                    expr->variant.operation.operands);
   overwrite_node(expr, xne_call);
 }  /* lower_c99_xne */
 
@@ -1932,9 +1959,11 @@ is used for the increment/decrement).
      decrementing, as well as the type of complex expression we're
      computing. */
   rout_name = select_name_from_float_kind(fkind, routine_names);
-  op_node = make_prototyped_runtime_call(rout_name, &routines[(int)fkind],
-                                         return_type, return_type, return_type,
-                                         op1_for_argument);
+  op_node = make_prototyped_runtime_call(
+                    rout_name,
+                    select_routine_from_float_kind(routines, fkind),
+                    return_type, return_type, return_type,
+                    op1_for_argument);
   /* Assign the result to op1 (or the temporary). */
   op_node = make_assignment_expr(
                    op1_for_assign, (an_expr_operator_kind)eok_assign, op_node);
@@ -2175,9 +2204,10 @@ into a function call.
   fkind = return_type->variant.float_kind;
   rout_name = select_name_from_float_kind(fkind, xconj_routine_name);
   xconj_call = make_prototyped_runtime_call(
-                                rout_name, &xconj_routine[(int)fkind],
-                                return_type, return_type, (a_type_ptr)NULL,
-                                expr->variant.operation.operands);
+                    rout_name,
+                    select_routine_from_float_kind(xconj_routine, fkind),
+                    return_type, return_type, (a_type_ptr)NULL,
+                    expr->variant.operation.operands);
   overwrite_node(expr, xconj_call);
 }  /* lower_xconj */
 
@@ -2250,7 +2280,7 @@ Transform the given complex cast expression into a function call
       a_routine_ptr              *routine_ptr = cast_float_routine;
       check_assertion(src_type->variant.float_kind !=
                       dst_type->variant.float_kind);
-      switch (src_type->variant.float_kind) {
+      switch (map_extended_float_kinds(src_type->variant.float_kind)) {
         case fk_float16:
           library_routine_name = /*line -e(545)*/&cast_float16_routine_name;
           routine_ptr = cast_float16_routine;
@@ -2281,7 +2311,6 @@ Transform the given complex cast expression into a function call
 #endif /* FLOAT80_ENABLING_POSSIBLE */
 #if FLOAT128_ENABLING_POSSIBLE
         case fk_float128:
-        case fk_std_float128:
           library_routine_name = /*lint -e(545)*/&cast_float128_routine_name;
           routine_ptr = cast_float128_routine;
           break;
@@ -2291,7 +2320,8 @@ Transform the given complex cast expression into a function call
       }  /* switch */
       routine_name = select_name_from_float_kind(dst_type->variant.float_kind,
                                                  *library_routine_name);
-      routine = &routine_ptr[(int)dst_type->variant.float_kind];
+      routine = select_routine_from_float_kind(routine_ptr,
+                                               dst_type->variant.float_kind);
       cast_call = make_prototyped_runtime_call(
                                          routine_name, routine,
                                          dst_type, src->type, (a_type_ptr)NULL,
@@ -2301,7 +2331,8 @@ Transform the given complex cast expression into a function call
       /* Create a new complex value 0.0 + x*__I__. */
       routine_name = select_name_from_float_kind(dst_type->variant.float_kind,
                                                  itoc_routine_name);
-      routine = &itoc_routine[(int)dst_type->variant.float_kind];
+      routine = select_routine_from_float_kind(itoc_routine,
+                                               dst_type->variant.float_kind);
       /* Before creating a complex value, be sure the imaginary value is cast
          to the needed precision. */
       src = add_cast_if_necessary(src,
@@ -2315,7 +2346,8 @@ Transform the given complex cast expression into a function call
       check_assertion(is_arithmetic_or_enum_type(src_type));
       routine_name = select_name_from_float_kind(dst_type->variant.float_kind,
                                                  rtoc_routine_name);
-      routine = &rtoc_routine[(int)dst_type->variant.float_kind];
+      routine = select_routine_from_float_kind(rtoc_routine,
+                                               dst_type->variant.float_kind);
       /* Create a new complex value x + 0.0*__I__. */
       /* Before creating a complex value, be sure the real value is cast
          to the needed precision. */
@@ -2333,7 +2365,8 @@ Transform the given complex cast expression into a function call
          keeping the imaginary part of the given value. */
       routine_name = select_name_from_float_kind(src_type->variant.float_kind,
                                                  ctoi_routine_name);
-      routine = &ctoi_routine[(int)src_type->variant.float_kind];
+      routine = select_routine_from_float_kind(ctoi_routine,
+                                               src_type->variant.float_kind);
       cast_call = make_prototyped_runtime_call(
                            routine_name, routine,
                            imaginary_type(src_type->variant.float_kind),
@@ -2366,7 +2399,8 @@ Transform the given complex cast expression into a function call
          the real part of the given value. */
       routine_name = select_name_from_float_kind(src_type->variant.float_kind,
                                                  ctor_routine_name);
-      routine = &ctor_routine[(int)src_type->variant.float_kind];
+      routine = select_routine_from_float_kind(ctor_routine,
+                                               src_type->variant.float_kind);
       cast_call = make_prototyped_runtime_call(
                            routine_name, routine,
                            float_type(src_type->variant.float_kind),
@@ -2766,7 +2800,8 @@ destination) to a runtime call).
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       routine_name = select_name_from_float_kind(fkind,
                                                 float_fixed_conv_routine_name);
-      routine = &float_fixed_conv_routine[(int)fkind];
+      routine = select_routine_from_float_kind(float_fixed_conv_routine,
+                                               fkind);
       param2_type = float_type(fkind);
     }  /* if */
     if (is_fixed_point_type(dst_type) || is_integral_or_enum_type(dst_type)) {
@@ -2786,7 +2821,8 @@ destination) to a runtime call).
       fkind = base_dst_type->variant.float_kind;
       routine_name = select_name_from_float_kind(fkind,
                                                 fixed_float_conv_routine_name);
-      routine = &fixed_float_conv_routine[(int)fkind];
+      routine = select_routine_from_float_kind(fixed_float_conv_routine,
+                                               fkind);
       return_type = float_type(fkind);
     }  /* if */
     fxmask_expr = node_for_integer_constant((long)fxmask, FXMASK_INT_KIND);

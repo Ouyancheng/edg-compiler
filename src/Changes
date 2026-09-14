@@ -1,5 +1,18 @@
 Version 6.10
 
+9/14/26  [EDGcpfe/29051]
+Abort when lowering extended-precision complex types
+
+An out-of-bounds access (in C99 complex lowering) could occur when
+lowering casts or arithmetic on a complex type whose element type is
+an extended floating-point type (_Float16, _Float32, _Float64, or
+_Float128).  For example, with --gnu_version=160100 --c++23:
+
+  __complex__ long double a;
+  __complex__ _Float128 b;
+  void f(void) { b = (__complex__ _Float128)a; }
+
+
 9/14/26  [EDGcpfe/29050]
 USE_FIXED_ADDRESS_FOR_MMAP - Memory Safety Improvements
 
