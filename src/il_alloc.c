@@ -2277,6 +2277,7 @@ variant fields to default values.
   }  /* if */
   pte->used_in_exception_or_rtti = FALSE;
   pte->declared_in_function_prototype = FALSE;
+  pte->is_tag_redefinition = FALSE;
   clear_type_cached_flags(pte);
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   pte->use_cfront_transitional_nested_type_name_mangling = FALSE;

@@ -2288,6 +2288,9 @@ Display the indicated type entry.
   if (ptr->declared_in_function_prototype) {
     disp_boolean("declared_in_function_prototype", TRUE);
   }  /* if */
+  if (ptr->is_tag_redefinition) {
+    disp_boolean("is_tag_redefinition", TRUE);
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->alignment_set_explicitly) {
     disp_boolean("alignment_set_explicitly", TRUE);

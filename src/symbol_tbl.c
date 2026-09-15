@@ -8262,6 +8262,23 @@ the symbol table.
 }  /* make_template_param_object_sym */
 
 
+a_symbol_ptr make_unentered_symbol(a_symbol_kind        sym_kind,
+                                   a_symbol_header_ptr  header,
+                                   a_source_position    *pos)
+/*
+Create a symbol of kind sym_kind listed under the given symbol header, at
+source position pos, declared in the current declaration scope.  Do not enter
+it into the symbol table.
+*/
+{
+  a_symbol_ptr  sym;
+
+  sym = alloc_symbol(sym_kind, header, pos);
+  sym->decl_scope = scope_stack[decl_scope_level].number;
+  return sym;
+}  /* make_unentered_symbol */
+
+
 a_symbol_ptr make_unnamed_tag_symbol(a_symbol_kind      sym_kind,
                                      a_source_position  *pos)
 /*
@@ -8279,8 +8296,7 @@ it into the symbol table.
                                      "<unnamed>", 9,
                                      /*is_unnamed=*/TRUE);
   }  /* if */
-  sym = alloc_symbol(sym_kind, unnamed_tag_symbol_header, pos);
-  sym->decl_scope = scope_stack[decl_scope_level].number;
+  sym = make_unentered_symbol(sym_kind, unnamed_tag_symbol_header, pos);
   db_exit();
   return sym;
 }  /* make_unnamed_tag_symbol */

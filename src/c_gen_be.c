@@ -3987,6 +3987,11 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
   a_boolean output_defn;
 
   check_assertion(!(type->size != 0 && type->incomplete));
+  if (type->is_tag_redefinition) {
+    /* A C23 redefinition of a tag declares the type that the tag already
+       denotes, which has been declared here already. */
+    goto done;
+  }  /* if */
   switch (type->kind) {
     case tk_enum:
       /* Enumeration. */
@@ -4116,6 +4121,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
     default:
       unexpected_condition_str("dump_type_decl: bad type");
   }  /* switch */
+done:;
 }  /* dump_type_decl */
 
 

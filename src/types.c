@@ -8874,6 +8874,246 @@ types are compatible.
 }  /* compatible_enable_if_attributes */
 
 
+/*
+An entry on the list of struct, union, and enumerated type pairs whose members
+are currently being compared by tagged_types_match.  Comparing the members of
+two declarations of "struct S { struct S *p; };" requires comparing the types
+"struct S *", which requires comparing the two types again; without this list
+that would recur without end.  A pair that is already on the list is taken to
+match, so that the outcome is decided by the members that do not refer back to
+the types being compared.
+*/
+typedef struct a_tagged_type_pair {
+  struct a_tagged_type_pair
+		*enclosing;
+			/* The pair whose comparison led to this one, or NULL
+			   for the outermost pair. */
+  a_type_ptr	type_1;
+  a_type_ptr	type_2;
+			/* The two types being compared. */
+} a_tagged_type_pair;
+
+STATIC_THREAD a_tagged_type_pair
+		*tagged_type_pairs_being_matched = NULL;
+			/* The innermost pair being compared, or NULL when no
+			   comparison is under way. */
+
+
+static a_boolean tagged_types_match(a_type_ptr                type_1,
+                                    a_type_ptr                type_2,
+                                    a_tagged_type_match_kind  match_kind,
+                                    a_boolean                 tag_required);
+
+
+static a_boolean member_types_match(a_type_ptr                type_1,
+                                    a_type_ptr                type_2,
+                                    a_tagged_type_match_kind  match_kind,
+                                    a_boolean                 is_anonymous)
+/*
+Return TRUE if type_1 and type_2, the types of two corresponding members of a
+pair of C struct or union types being compared, match closely enough for
+match_kind.  is_anonymous is TRUE when the two members are anonymous members,
+whose types are untagged and are therefore compared member by member rather
+than by the usual compatibility rules, which leave two untagged types
+incompatible.  Members of compatible types need only have compatible types.
+Members of two declarations of the same type must have the same types, which
+is more than identical_types can establish on its own: The declarations may
+each contain their own untagged member type, as in the redeclaration
+"struct S { struct { int x; } m; };", and those member types have to be
+compared member by member as well.
+*/
+{
+  a_boolean   match;
+  a_type_ptr  base_1 = skip_typerefs(type_1),
+              base_2 = skip_typerefs(type_2);
+
+  if (match_kind == ttmk_compatibility && !is_anonymous) {
+    match = types_are_compatible(type_1, type_2);
+  } else if (identical_types(type_1, type_2)) {
+    match = TRUE;
+  } else if (get_type_qualifiers(type_1) != get_type_qualifiers(type_2)) {
+    match = FALSE;
+  } else if ((is_immediate_class_type(base_1) &&
+              is_immediate_class_type(base_2)) ||
+             (is_immediate_enum_type(base_1) &&
+              is_immediate_enum_type(base_2))) {
+    match = tagged_types_match(base_1, base_2, match_kind,
+                               /*tag_required=*/FALSE);
+  } else if (is_pointer_type(base_1) && is_pointer_type(base_2)) {
+    match = member_types_match(base_1->variant.pointer.type,
+                               base_2->variant.pointer.type, match_kind,
+                               /*is_anonymous=*/FALSE);
+  } else if (is_array_type(base_1) && is_array_type(base_2) &&
+             !has_unknown_specified_bound(base_1) &&
+             !has_unknown_specified_bound(base_2) &&
+             base_1->variant.array.variant.number_of_elements ==
+                            base_2->variant.array.variant.number_of_elements) {
+    match = member_types_match(base_1->variant.array.element_type,
+                               base_2->variant.array.element_type, match_kind,
+                               /*is_anonymous=*/FALSE);
+  } else {
+    match = FALSE;
+  }  /* if */
+  return match;
+}  /* member_types_match */
+
+
+static a_boolean field_lists_match(a_type_ptr                type_1,
+                                   a_type_ptr                type_2,
+                                   a_tagged_type_match_kind  match_kind)
+/*
+Return TRUE if the C struct or union types type_1 and type_2 have a one-to-one
+correspondence between their members such that each pair of corresponding
+members is declared with the same name and with matching types, corresponding
+bit fields have the same width and signedness, and corresponding members are
+declared with equivalent alignment specifiers.  The alignment and packing
+recorded for each member stand in for the alignment specifiers and layout
+attributes written on it, so that two declarations whose members would be laid
+out differently never match.
+*/
+{
+  a_boolean    match = TRUE;
+  a_field_ptr  field_1 = fields_of(type_1),
+               field_2 = fields_of(type_2);
+
+  while (field_1 != NULL && field_2 != NULL) {
+    if (!same_name(field_1, field_2) ||
+        field_1->is_bit_field != field_2->is_bit_field ||
+        field_1->bit_size != field_2->bit_size ||
+        field_1->bit_field_is_signed != field_2->bit_field_is_signed ||
+        field_1->alignment != field_2->alignment ||
+        field_1->is_anonymous_parent_object !=
+                                      field_2->is_anonymous_parent_object ||
+#if GNU_EXTENSIONS_ALLOWED
+        field_1->is_packed != field_2->is_packed ||
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        !member_types_match(field_1->type, field_2->type, match_kind,
+                            field_1->is_anonymous_parent_object)) {
+      match = FALSE;
+      break;
+    }  /* if */
+    field_1 = field_1->next;
+    field_2 = field_2->next;
+  }  /* while */
+  if (field_1 != NULL || field_2 != NULL) {
+    /* One of the types has more members than the other. */
+    match = FALSE;
+  }  /* if */
+  return match;
+}  /* field_lists_match */
+
+
+static a_boolean enum_constant_lists_match(a_type_ptr  type_1,
+                                           a_type_ptr  type_2)
+/*
+Return TRUE if the enumerated types type_1 and type_2 declare corresponding
+members with the same names and the same values, and have compatible
+underlying types.
+*/
+{
+  a_boolean       match = TRUE;
+  a_constant_ptr  con_1 = enum_constants(type_1),
+                  con_2 = enum_constants(type_2);
+
+  if (type_1->variant.integer.int_kind != type_2->variant.integer.int_kind ||
+      type_1->variant.integer.has_explicit_enum_base !=
+                             type_2->variant.integer.has_explicit_enum_base) {
+    match = FALSE;
+  } else {
+    while (con_1 != NULL && con_2 != NULL) {
+      if (!same_name(con_1, con_2) || !eq_constants(con_1, con_2)) {
+        match = FALSE;
+        break;
+      }  /* if */
+      con_1 = con_1->next;
+      con_2 = con_2->next;
+    }  /* while */
+    if (con_1 != NULL || con_2 != NULL) {
+      /* One of the types has more enumerators than the other. */
+      match = FALSE;
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* enum_constant_lists_match */
+
+
+static a_boolean tagged_types_match(a_type_ptr                type_1,
+                                    a_type_ptr                type_2,
+                                    a_tagged_type_match_kind  match_kind,
+                                    a_boolean                 tag_required)
+/*
+Do the work of c_tagged_types_match, and of comparing the untagged member
+types of two declarations of the same tagged type.  tag_required is TRUE when
+both types must be declared with the same tag, which C23 6.2.7 requires of
+compatible types, and FALSE when they may also both be untagged, which is the
+case for member types compared under ttmk_redeclaration.
+*/
+{
+  a_boolean            match = FALSE;
+  a_tagged_type_pair  *pair;
+
+  if (same_entities(type_1, type_2)) {
+    match = TRUE;
+  } else if (type_1->kind != type_2->kind ||
+             is_incomplete_type(type_1) || is_incomplete_type(type_2) ||
+             type_1->alignment != type_2->alignment) {
+    /* Types of different kinds never match.  Neither do incomplete types,
+       whose members are not known, nor types that are laid out with different
+       alignments. */
+  } else if (has_name(type_1) != has_name(type_2) ||
+             (has_name(type_1) ? !same_name(type_1, type_2) : tag_required)) {
+    /* The tags differ, or a tag is required and neither type has one. */
+  } else {
+    for (pair = tagged_type_pairs_being_matched;
+         pair != NULL;
+         pair = pair->enclosing) {
+      if ((pair->type_1 == type_1 && pair->type_2 == type_2) ||
+          (pair->type_1 == type_2 && pair->type_2 == type_1)) {
+        break;
+      }  /* if */
+    }  /* for */
+    if (pair != NULL) {
+      /* This pair is already being compared further out, so the members that
+         led back here impose no requirement of their own. */
+      match = TRUE;
+    } else {
+      a_tagged_type_pair  this_pair;
+      this_pair.enclosing = tagged_type_pairs_being_matched;
+      this_pair.type_1 = type_1;
+      this_pair.type_2 = type_2;
+      tagged_type_pairs_being_matched = &this_pair;
+      if (is_immediate_enum_type(type_1)) {
+        match = enum_constant_lists_match(type_1, type_2);
+      } else {
+        match = field_lists_match(type_1, type_2, match_kind);
+      }  /* if */
+      tagged_type_pairs_being_matched = this_pair.enclosing;
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* tagged_types_match */
+
+
+a_boolean c_tagged_types_match(a_type_ptr                type_1,
+                               a_type_ptr                type_2,
+                               a_tagged_type_match_kind  match_kind)
+/*
+Return TRUE if the C struct, union, or enumerated types type_1 and type_2
+satisfy the requirements that C23 6.2.7 places on two compatible tagged types:
+Both are declared with the same choice of struct, union, or enum; both are
+declared with the same tag; and there is a one-to-one correspondence between
+their members such that corresponding members are declared with the same name
+and with matching types.  match_kind selects how closely the types of
+corresponding members must match.  An incomplete type and an untagged type
+match nothing but themselves, since in the one case the members that would
+have to correspond are not known and in the other there is no tag to match.
+*/
+{
+  return tagged_types_match(skip_typerefs(type_1), skip_typerefs(type_2),
+                            match_kind, /*tag_required=*/TRUE);
+}  /* c_tagged_types_match */
+
+
 a_boolean f_types_are_compatible_full(a_type_ptr                   type_1,
                                       a_type_ptr                   type_2,
                                       a_type_compat_flags_set      flags,
@@ -9095,7 +9335,14 @@ check_typerefs:
                apply the latter rule when emulating Microsoft C or early GNU C
                versions.  In C23 (and some pre-C23 dialects), if both types
                have equivalent explicit underlying types, consider those
-               instead. */
+               instead.  C23 also makes two enumerated types declared in
+               different scopes of one translation unit compatible when they
+               are declared with the same tag and declare the same
+               enumerators. */
+            if (c23_mode && (flags & TCF_SEEK_CORRESP) == 0) {
+              compat = c_tagged_types_match(type_1, type_2,
+                                            ttmk_compatibility);
+            }  /* if */
           } else {
             if (type_1->variant.integer.int_kind ==
                                            type_2->variant.integer.int_kind &&
@@ -9251,6 +9498,13 @@ check_typerefs:
                      (flags & TCF_CONTEXTUAL_GENERIC_PARAMETERS) != 0,
                      (flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) != 0,
                      /*exact_nesting_depths_required=*/TRUE)) {
+            compat = TRUE;
+          } else if (c23_mode && (flags & TCF_SEEK_CORRESP) == 0 &&
+                     c_tagged_types_match(type_1, type_2,
+                                          ttmk_compatibility)) {
+            /* C23 makes two structure or union types declared in different
+               scopes of one translation unit compatible when they are declared
+               with the same tag and their members correspond. */
             compat = TRUE;
           }  /* if */
           break;
@@ -12867,8 +13121,13 @@ See conversion_possible.
           if (is_integral_or_enum(source_type)) {
             source_enum_type = underlying_enum_type(source_type);
           }  /* if */
-          if (!same_entities(source_enum_type, dest_enum_type)) {
-            /* Warn on mixing different enums, or non-enums and enums. */
+          if (!same_entities(source_enum_type, dest_enum_type) &&
+              !(c23_mode && source_enum_type != NULL &&
+                c_tagged_types_match(source_enum_type, dest_enum_type,
+                                     ttmk_compatibility))) {
+            /* Warn on mixing different enums, or non-enums and enums.  Two
+               enumerated types that C23 makes compatible are not different
+               types in this sense. */
             std_conv->warning_suggested = ec_mixed_enum_type;
             std_conv->is_mild_warning = TRUE;
           }  /* if */

@@ -1938,6 +1938,7 @@ source file's compilation.
   scope_stk_init();
   decls_init();
   declarator_init();
+  decl_spec_init();
   decl_inits_init();
   class_decl_init();
   layout_init();

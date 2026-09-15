@@ -1323,6 +1323,17 @@ typedef struct a_decl_parse_state {
   a_type_ptr
 		specifiers_type;
 			/* The type returned by the call to decl_specifiers. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_type_ptr
+		c23_tag_redefinition_type;
+			/* When the decl-specifiers define a tag that C23
+			   allows to be declared more than once, and the type
+			   so defined is therefore not the one specifiers_type
+			   denotes, the type formed by this definition; NULL
+			   otherwise.  It is the type that carries the source
+			   sequence entries for the definition, so it is the
+			   one on which its autonomy is recorded. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_type_ptr
 		declared_type;
 			/* The type as it appears in the source (updated by

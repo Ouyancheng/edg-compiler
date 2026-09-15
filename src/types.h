@@ -1353,6 +1353,24 @@ typedef unsigned a_type_compat_flags_set;
 extern a_boolean compatible_enable_if_attributes(a_type_ptr  rtp1,
                                                  a_type_ptr  rtp2);
 
+/*
+How strictly c_tagged_types_match compares the types of corresponding members
+of two C struct, union, or enumerated types.
+*/
+enum a_tagged_type_match_kind : a_byte {
+  ttmk_redeclaration,	/* Corresponding members must have the same types,
+			   as C23 6.7.3.3 requires of two declarations that
+			   declare the same tagged type. */
+  ttmk_compatibility	/* Corresponding members need only have compatible
+			   types, as C23 6.2.7 requires of two compatible
+			   tagged types. */
+};
+typedef enum a_tagged_type_match_kind  a_tagged_type_match_kind;
+
+extern a_boolean c_tagged_types_match(a_type_ptr                type_1,
+                                      a_type_ptr                type_2,
+                                      a_tagged_type_match_kind  match_kind);
+
 extern a_boolean f_types_are_compatible_full(
                                           a_type_ptr                   type_1,
                                           a_type_ptr                   type_2,

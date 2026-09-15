@@ -1,5 +1,26 @@
 Version 6.10
 
+9/15/26  [EDGcpfe/25951,EDGcpfe/29043]
+C23: New tag compatibility rules
+
+In C23 mode, a structure, union, or enumerated type may now be defined more
+than once in the same scope, and two such types defined in different scopes
+of one translation unit are compatible when they are defined with the same
+tag and their members correspond.  Corresponding members must be declared
+with the same name and with compatible types, corresponding bit fields must
+have the same width and signedness, and corresponding enumerators must have
+the same values.  For example:
+
+  struct S { int i; };
+  void f(struct S p);
+  void g(void) {
+    struct S { int i; } s = { 42 };
+    f(s);                // OK in C23: The two "struct S" types match.
+  }
+
+This implements paper N3037 of the ISO C standardization committee (WG14).
+
+
 9/14/26  [EDGcpfe/25946,EDGcpfe/29042]
 C23: Empty initializers
 

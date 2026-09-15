@@ -688,12 +688,58 @@ and issues a warning indicating that they are being ignored.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
+using a_c_tagged_type_map = Ptr_map<a_symbol_header_ptr,
+                                    a_type_list_entry_ptr>;
+			/* The type of a table that maps the symbol header of
+			   a tag to the C structure and union types that have
+			   been defined with that tag. */
+
+STATIC_THREAD a_c_tagged_type_map
+		*c_tagged_type_map;
+			/* The types defined with each tag in this translation
+			   unit, used only in C23 mode to find the types that
+			   a new definition is compatible with. */
+
+
+static a_type_ptr compatible_c_tagged_type(a_type_ptr  type)
+/*
+Return a C structure or union type defined earlier in this translation unit
+that C23 makes compatible with type, which must be a complete type declared
+with a tag, or NULL if there is no such type.  When there is none, record type
+so that a later definition of the same tag can be compared against it.
+*/
+{
+  a_type_ptr             result = NULL;
+  a_symbol_header_ptr    header = symbol_for(type)->header;
+  uintptr_t              hash = hash_ptr(header);
+  a_type_list_entry_ptr  types, tlep;
+
+  types = c_tagged_type_map->get_with_hash(header, hash);
+
+  for (tlep = types; tlep != NULL; tlep = tlep->next) {
+    if (c_tagged_types_match(tlep->type, type, ttmk_compatibility)) {
+      result = tlep->type;
+      break;
+    }  /* if */
+  }  /* for */
+  if (result == NULL) {
+    tlep = alloc_type_list_entry();
+    tlep->type = type;
+    tlep->next = types;
+    (void)c_tagged_type_map->map_or_replace_with_hash(header, tlep, hash);
+  }  /* if */
+  return result;
+}  /* compatible_c_tagged_type */
+
+
 static a_boolean tag_currently_being_defined(a_type_ptr tag_type)
 /*
 Returns TRUE if the class type pointed to by tag_type is in the process of
 being defined.  This is determined by examining any class/struct/union scopes
-on the scope stack.  This is only used in C mode.  This function does not
-handle enum types.
+on the scope stack.  A C23 redefinition of the tag is scanned into a type of
+its own, listed under the same symbol header as tag_type, and counts as a
+definition of the tag as well.  This is only used in C mode.  This function
+does not handle enum types.
 */
 {
   a_scope_depth	depth;
@@ -701,7 +747,10 @@ handle enum types.
 
   for (depth = depth_scope_stack ;depth != DEPTH_OF_FILE_SCOPE; depth--) {
     if (scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union) {
-      if (same_entities(scope_stack[depth].assoc_type, tag_type)) {
+      a_type_ptr  scope_type = scope_stack[depth].assoc_type;
+      if (same_entities(scope_type, tag_type) ||
+          (scope_type->is_tag_redefinition &&
+           symbol_for(scope_type)->header == symbol_for(tag_type)->header)) {
         result = TRUE;
         break;
       }  /* if */
@@ -1011,6 +1060,7 @@ static a_symbol_ptr scan_tag_name(
                          a_boolean                   is_event_interface,
                          a_scope_depth               *effective_decl_level,
                          a_boolean                   *tag_resolution,
+                         a_boolean                   *tag_redefinition,
                          a_boolean                   *is_predeclared_type_decl,
                          ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
@@ -1040,6 +1090,10 @@ function prototype or a class definition -- the tag is entered into the
 innermost non-class/non-prototype scope, which is returned as its effective
 declaration level.  *tag_resolution is returned TRUE if this is the
 definition of a previously declared incomplete class or enum.
+*tag_redefinition is returned TRUE if this is a second definition of a tag
+that C23 allows to be defined more than once in a scope, in which case the
+symbol of the earlier declaration is returned and the caller must verify that
+the two definitions declare the same type.
 *is_predeclared_type_decl is returned TRUE if this is the explicit
 declaration of a predeclared type like type_info in C++ or _GUID in
 Microsoft mode.
@@ -1062,6 +1116,7 @@ caution when modifying this routine.
 
   db_enter(3, "scan_tag_name");
   *tag_resolution = FALSE;
+  *tag_redefinition = FALSE;
   /* Coalesce the identifier that follows the class, struct, union, or
      enum keyword. */
   if (is_ref_within_new_expr) options |= GID_IS_NEW_TYPE_NAME;
@@ -1628,6 +1683,14 @@ caution when modifying this routine.
              sure that an incomplete type is not in the process of being
              defined. */
           *tag_resolution = TRUE;
+        } else if (c23_mode && tag_sym->defined && !tag_sym->is_error &&
+                   !tag_currently_being_defined(type_symbol_type(tag_sym))) {
+          /* C23 allows a tag to be defined more than once in a scope, with
+             every definition declaring the same type.  Keep the symbol of
+             the earlier definition and let the caller check that the two
+             definitions agree.  A declaration nested in the definition of the
+             type it redeclares is not allowed. */
+          *tag_redefinition = TRUE;
         } else if (tag_kind != (a_symbol_kind)sk_enum_tag
                    if_microsoft_extensions(
                            && !is_partial_class(type_symbol_type(tag_sym)))) {
@@ -3459,6 +3522,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean               is_template_class_instantiation = FALSE;
   a_boolean               tag_resolution = FALSE;
+  a_boolean               tag_redefinition = FALSE;
+  a_boolean               tag_is_newly_declared = FALSE;
+  a_symbol_ptr            redefined_tag_sym = NULL;
   a_boolean               err = FALSE;
   a_scope_depth           effective_decl_level = decl_scope_level;
   a_boolean               is_class_definition, definition_removed;
@@ -3665,7 +3731,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                             no_definition_allowed,
                             is_event_interface,
                             &effective_decl_level,
-                            &tag_resolution, &is_predeclared_type_decl,
+                            &tag_resolution, &tag_redefinition,
+                            &is_predeclared_type_decl,
                             &local_decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
     if (tag_name_access_checks_deferred) {
@@ -3679,6 +3746,15 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       end_deferral_of_access_checks();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+    if (tag_redefinition) {
+      /* This declaration redefines a tag that is already defined in this
+         scope.  Set the tag symbol aside and proceed as though the tag were
+         being introduced here, so that the definition is scanned into a type
+         of its own; once the two types have been compared, the tag continues
+         to denote the type declared earlier. */
+      redefined_tag_sym = tag_sym;
+      tag_sym = NULL;
+    }  /* if */
     if (tag_sym != NULL) {
       if (is_friend_decl) {
         /* A friend declaration: if the identifier was a qualified name
@@ -4316,11 +4392,22 @@ defined.  Detailed position information is recorded in *decl_pos_block.
        IL list in the right order. */
     /* Enter a new tag symbol, if a tag id was specified (a tag is not
        specified in something like "struct {int a; int b;}"). */
-    if (tag_id_present) {
+    if (redefined_tag_sym != NULL) {
+      /* A redefinition of a tag.  Give the type a symbol that carries the
+         tag's name for the sake of diagnostics and of the comparison against
+         the earlier definition.  Do not enter that symbol in the symbol table:
+         The tag continues to denote the type declared earlier. */
+      tag_sym = make_unentered_symbol(tag_kind, redefined_tag_sym->header,
+                                      &locator.source_position);
+      tag_sym->variant.class_struct_union.type = class_type;
+      set_source_corresp(&(class_type->source_corresp), tag_sym);
+      class_type->is_tag_redefinition = TRUE;
+    } else if (tag_id_present) {
       tag_sym = enter_local_symbol(tag_kind, &locator, effective_decl_level,
                                    /*suppress_redecl_error=*/FALSE);
       tag_sym->variant.class_struct_union.type = class_type;
       set_source_corresp(&(class_type->source_corresp), tag_sym);
+      tag_is_newly_declared = TRUE;
       if (is_friend_decl) {
         if (!friend_class_injection_enabled) {
           /* The name of a class first declared in a friend declaration is
@@ -4942,6 +5029,47 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (redefined_tag_sym != NULL) {
+    /* Every definition of a tag must definition the same type.  Check that,
+       then let the specifier yield the type the tag already denotes.  That
+       ensures the rest of the front end sees just one type for the tag. */
+    a_type_ptr  prev_class_type = type_symbol_type(redefined_tag_sym);
+    if (!err &&
+        !c_tagged_types_match(class_type, prev_class_type,
+                              ttmk_redeclaration)) {
+      pos_diagnostic(es_error, ec_tag_redefined_differently, &tag_position,
+                     redefined_tag_sym,
+                     &prev_class_type->source_corresp.decl_position);
+    }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    dps->c23_tag_redefinition_type = class_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    class_type = prev_class_type;
+    tag_sym = redefined_tag_sym;
+  } else if (c23_mode && is_class_definition && !err &&
+             tag_is_newly_declared && !class_type->incomplete) {
+    /* C23 makes this type compatible with any type declared with the same tag
+       in another scope of this translation unit whose members correspond to
+       this one's.  Compatible types are interchangeable, so let this tag
+       denote the type declared earlier: The rest of the front end, and any
+       back end, then sees one type for the whole set of compatible
+       declarations.  A definition that completes a type declared earlier in
+       the same scope is left alone because that earlier type may already
+       have been used in declarations that must keep denoting it. */
+    a_type_ptr  prev_class_type = compatible_c_tagged_type(class_type);
+    if (prev_class_type != NULL) {
+      a_symbol_ptr  dup_sym = make_unentered_symbol(tag_kind, tag_sym->header,
+                                                    &locator.source_position);
+      dup_sym->variant.class_struct_union.type = class_type;
+      set_source_corresp(&(class_type->source_corresp), dup_sym);
+      class_type->is_tag_redefinition = TRUE;
+      tag_sym->variant.class_struct_union.type = prev_class_type;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      dps->c23_tag_redefinition_type = class_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      class_type = prev_class_type;
+    }  /* if */
+  }  /* if */
   if (err) {
     *type_ptr = error_type();
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
@@ -5884,8 +6012,17 @@ is updated to reflect relevant positions of this definition.
         }  /* if */
       }  /* if */
       /* Enter the enumeration constant identifier. */
-      if (reactivated_class_scope_number != NO_SCOPE_DEPTH &&
-          !is_scoped_enum) {
+      if (enum_type->is_tag_redefinition) {
+        /* A redefinition of an enumerated type declares the same enumerators
+           as the earlier declaration of the tag, and those are already in
+           this scope.  Give this one a symbol that is not entered in the
+           symbol table, so that the two declarations can be compared without
+           the enumerator names colliding. */
+        enum_con_sym = make_unentered_symbol(sk_constant,
+                                             locator.symbol_header,
+                                             &locator.source_position);
+      } else if (reactivated_class_scope_number != NO_SCOPE_DEPTH &&
+                 !is_scoped_enum) {
         /* enter_local_symbol cannot be used to add a symbol to a completed
            class scope.  Use enter_enumerator_into_completed_class instead. */
         enum_con_sym = enter_enumerator_into_completed_class(
@@ -6237,6 +6374,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   a_scope_depth                effective_decl_level = decl_scope_level;
   a_boolean                    inside_class_definition;
   a_boolean                    is_redeclaration = FALSE, is_definition = FALSE;
+  a_boolean                    tag_redefinition = FALSE;
+  a_symbol_ptr                 redefined_tag_sym = NULL;
   a_boolean                    namespace_extension_pushed = FALSE;
   a_boolean                    class_reactivation_pushed = FALSE;
   a_source_position            enum_pos, tag_position;
@@ -6360,7 +6499,17 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
                             (dsi_flags & DSI_NO_TAG_DEFINITION) != 0,
                             /*is_event_interface=*/FALSE,
                             &effective_decl_level, &tag_resolution,
-                            &is_predeclared_type_decl, &local_decl_pos_block);
+                            &tag_redefinition, &is_predeclared_type_decl,
+                            &local_decl_pos_block);
+    if (tag_redefinition) {
+      /* This definition redeclares a tag that is already defined in this
+         scope.  Set the tag symbol aside and proceed as though the tag were
+         being introduced here, so that the definition is scanned into a type
+         of its own; once the two types have been compared, the tag continues
+         to denote the type declared earlier. */
+      redefined_tag_sym = tag_sym;
+      tag_sym = NULL;
+    }  /* if */
     is_definition = tag_definition_next(
                                  curr_token, (a_symbol_kind)sk_enum_tag,
                                  (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0,
@@ -6811,7 +6960,18 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
     /* Enter a new tag symbol, if a tag id was specified (a tag is not
        specified in something like "enum {a, b, c}"). */
-    if (tag_id_present) {
+    if (redefined_tag_sym != NULL) {
+      /* A redefinition of a tag.  Give the type a symbol that carries the
+         tag's name, for the sake of diagnostics and of the comparison against
+         the earlier definition, but do not enter that symbol in the symbol
+         table: The tag continues to denote the type declared earlier. */
+      tag_sym = make_unentered_symbol(sk_enum_tag, redefined_tag_sym->header,
+                                      &locator.source_position);
+      *declares_something = TRUE;
+      set_source_corresp(&(enum_type->source_corresp), tag_sym);
+      tag_sym->variant.enumeration.type = enum_type;
+      enum_type->is_tag_redefinition = TRUE;
+    } else if (tag_id_present) {
       tag_sym = enter_local_symbol((a_symbol_kind)sk_enum_tag, &locator,
                                    effective_decl_level,
                                    /*suppress_redecl_error=*/FALSE);
@@ -7131,6 +7291,24 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     pop_namespace_extension_scope();
   } else if (class_reactivation_pushed) {
     pop_class_reactivation_scope();
+  }  /* if */
+  if (redefined_tag_sym != NULL) {
+    /* Every definition of a tag must definition the same type.  Check that,
+       then let the specifier yield the type the tag already denotes.  That
+       ensures the rest of the front end sees just one type for the tag. */
+    a_type_ptr  prev_enum_type = type_symbol_type(redefined_tag_sym);
+    if (!err &&
+        !c_tagged_types_match(enum_type, prev_enum_type,
+                              ttmk_redeclaration)) {
+      pos_diagnostic(es_error, ec_tag_redefined_differently, &tag_position,
+                     redefined_tag_sym,
+                     &prev_enum_type->source_corresp.decl_position);
+    }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    dps->c23_tag_redefinition_type = enum_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    enum_type = prev_enum_type;
+    tag_sym = redefined_tag_sym;
   }  /* if */
   *type_ptr = enum_type;
   if (defines_something != NULL) *defines_something = is_definition;
@@ -13279,6 +13457,16 @@ exit_loop:
      to declarator(...) or by other adjustments (e.g., decay of array types to
      pointer types). */
   state->type = state->declared_type = state->specifiers_type;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (state->c23_tag_redefinition_type != NULL) {
+    /* The specifiers define a tag that C23 allows to be declared more than
+       once.  The tag denotes the type formed by the first definition, but the
+       type just scanned is what the source writes here, so a back end that
+       regenerates source from the IL must render this definition rather than
+       just a reference to the tag. */
+    state->declared_type = state->c23_tag_redefinition_type;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if ((*output_flags & DSO_NO_DECL_SPECIFIERS) &&
       !state->is_linkage_spec_decl &&
       state->prefix_attributes == NULL &&
@@ -13336,6 +13524,19 @@ See decl_specifiers(...) for the meaning of the parameters.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+void decl_spec_init(void)
+/*
+Initialize variables related to the processing of decl-specifiers that must be
+initialized for each compilation.
+*/
+{
+#if !STANDALONE_UTILITY_PROGRAM
+  c_tagged_type_map = alloc_fe_of_type(a_c_tagged_type_map);
+  construct(c_tagged_type_map, /*mask_width=*/6u);
+#endif /* STANDALONE_UTILITY_PROGRAM */
+}  /* decl_spec_init */
+
+
 void decl_spec_one_time_init(void)
 /*
 Do one-time initialization of variables related to the processing of
@@ -13363,6 +13564,7 @@ decl-specifiers.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(unresolved_type_map),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      pch_saved_var_array_elem(c_tagged_type_map),
       pch_saved_var_array_elem(largest_enum_int_kind),
       pch_saved_var_array_terminating_elem()
     };

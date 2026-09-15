@@ -259,6 +259,9 @@ be restored).
     dps->declared_storage_class = (a_storage_class)sc_unspecified;
     dps->storage_class = (a_storage_class)sc_unspecified;
     dps->specifiers_type = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    dps->c23_tag_redefinition_type = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     dps->declared_type = NULL;
     dps->type = NULL;
     dps->prev_type = NULL;
@@ -2912,7 +2915,7 @@ declaration of this symbol.
   db_enter(4, "enter_local_symbol");
   check_assertion(scope_level >= 0);
   if (scope_stack[scope_level].kind == (a_scope_kind)sck_func_prototype) {
-    if (kind == (a_symbol_kind)sk_variable) {
+    if (kind == sk_variable) {
       /* A variable declared in a function prototype scope is the result of
          an error in an old-style param list. */
     } else if (C_dialect == C_dialect_cplusplus) {
@@ -2922,19 +2925,18 @@ declaration of this symbol.
     } else {
       /* Any other declaration expected in a prototype scope is that of a
          type or an enumeration constant. */
-      check_assertion(kind == (a_symbol_kind)sk_class_or_struct_tag ||
-                      kind == (a_symbol_kind)sk_union_tag ||
-                      kind == (a_symbol_kind)sk_enum_tag ||
-                      kind == (a_symbol_kind)sk_type ||
-                      kind == (a_symbol_kind)sk_constant);
+      check_assertion(is_tag_symbol_kind(kind) ||
+                      kind == sk_type || kind == sk_constant);
       /* In C-mode a type declared in a parameter declaration is local to
          the function.  Issue a warning on type declarations, since they will
          not be visible outside the function declaration.  For example:
              inf f(struct s a;);
              struct s {int b;};
          The first "struct s" is a different type than the second, which is
-         probably not what was wanted. */
-      if (kind != (a_symbol_kind)sk_constant &&
+         probably not what was wanted.  C23 makes the two compatible, which
+         removes the surprise, so say nothing about a tag there. */
+      if (kind != sk_constant &&
+          !(c23_mode && is_tag_symbol_kind(kind)) &&
           !is_error_locator(*locator)) {
         pos_warning(ec_decl_in_prototype_scope, &locator->source_position);
       }  /* if */
@@ -17440,6 +17442,13 @@ state describes the declaration parsed so far.
   an_error_severity  severity;
   a_type_ptr         type_ptr = state->specifiers_type;
   a_type_ptr         tp = skip_typerefs(type_ptr);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* A definition that redefines a tag is scanned into a type of its own, which
+     the tag does not denote but which carries the source sequence entries for
+     the definition. */
+  a_type_ptr         tag_decl_type = state->c23_tag_redefinition_type != NULL ?
+                                       state->c23_tag_redefinition_type : tp;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   declares_something = ((dso_flags & DSO_DECLARES_SOMETHING) != 0);
   if (curr_token == tok_semicolon) {
@@ -17463,7 +17472,7 @@ state describes the declaration parsed so far.
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (defines_something) {
-        tp->autonomous_primary_tag_decl = TRUE;
+        tag_decl_type->autonomous_primary_tag_decl = TRUE;
       } else {
         (void)set_src_seq_secondary_decl_fields((char *)tp, (a_type_ptr)NULL,
                                                 (a_name_reference_ptr)NULL,
@@ -17515,7 +17524,7 @@ state describes the declaration parsed so far.
         diagnostic(severity, ec_missing_typedef_name);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (defines_something) {
-          tp->autonomous_primary_tag_decl = TRUE;
+          tag_decl_type->autonomous_primary_tag_decl = TRUE;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ASM_FUNCTION_ALLOWED
@@ -17561,7 +17570,7 @@ state describes the declaration parsed so far.
         if (defines_something || declares_something) {
           /* This is a class/struct/union or enum declaration. */
           if (defines_something) {
-            tp->autonomous_primary_tag_decl = TRUE;
+            tag_decl_type->autonomous_primary_tag_decl = TRUE;
           } else {
             (void)set_src_seq_secondary_decl_fields((char *)tp,
                                                     (a_type_ptr)NULL,

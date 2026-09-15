@@ -5338,6 +5338,10 @@ extern a_symbol_ptr get_member_function_template_symbol(a_symbol_ptr rout_sym);
 
 extern a_symbol_ptr make_template_param_object_sym(a_source_position  *pos);
 
+extern a_symbol_ptr make_unentered_symbol(a_symbol_kind        sym_kind,
+                                          a_symbol_header_ptr  header,
+                                          a_source_position    *pos);
+
 extern a_symbol_ptr make_unnamed_tag_symbol(a_symbol_kind      sym_kind,
                                             a_source_position  *pos);
 

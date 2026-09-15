@@ -9819,6 +9819,14 @@ typedef struct a_type {
   a_bit_field	declared_in_function_prototype:1;
 			/* TRUE if this is a local type declared or defined
 			   within a function prototype scope (C mode only). */
+  a_bit_field	is_tag_redefinition:1;
+			/* TRUE for the type formed by a second or later
+			   definition of a tag that C23 allows to be declared
+			   more than once in a scope.  The tag denotes the
+			   type formed by the first definition, which this one
+			   is required to match, so a back end that emits a
+			   definition for each type it is given should skip
+			   this one. */
   a_bit_field	is_instantiation_dependent:1;
 			/* TRUE if this type is instantiation dependent.  If
 			   FALSE and is_instantiation_dependent_cached is TRUE,
