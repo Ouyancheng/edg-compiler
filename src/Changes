@@ -61,7 +61,7 @@ _Float128).  For example, with --gnu_version=160100 --c++23:
 
 
 9/14/26  [EDGcpfe/29050]
-USE_FIXED_ADDRESS_FOR_MMAP - Memory Safety Improvements
+Memory safety improvements for USE_FIXED_ADDRESS_FOR_MMAP
 
 The front end now takes advantage of MAP_FIXED_NOREPLACE on Linux (when
 available) to eliminate the risk of clobbering existing overlapping memory

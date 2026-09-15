@@ -3887,13 +3887,13 @@ the string returned that describes the error.
 }  /* str_GetLastError_catastrophe */
 
 
-a_mmap_handle open_memory_region_tmp_file(void)
+an_mmap_handle open_memory_region_tmp_file()
 /*
 Open a temporary file to be used for allocation of file mapped
 memory for IL memory blocks.
 */
 {
-  a_mmap_handle file;
+  an_mmap_handle file;
   db_enter(3, "open_memory_region_tmp_file");
   /* Resolve the temporary directory if not already resolved (temp_dir). */
   resolve_temp_dir();
@@ -3920,7 +3920,7 @@ memory for IL memory blocks.
 
 #if MAKE_FRONT_END_CALLABLE
 
-void close_memory_region_tmp_file(a_mmap_handle file)
+void close_memory_region_tmp_file(an_mmap_handle file)
 /*
 Close the file used for allocation of file mapped memory for IL memory blocks.
 */
@@ -3982,16 +3982,16 @@ Close the mapped input file and the associated map object.
 }  /* close_mapped_input_file */
 
 
-a_void_ptr map_memory_region_file(a_mmap_handle handle,
-                                  void          *base_addr,
-                                  sizeof_t      curr_size,
-                                  sizeof_t      incremental_size,
-                                  sizeof_t      file_offset)
+a_void_ptr map_memory_region_file(an_mmap_handle handle,
+                                  void           *base_addr,
+                                  sizeof_t       curr_size,
+                                  sizeof_t       incremental_size,
+                                  sizeof_t       file_offset)
 /*
 Expand the memory region file represented by the given handle.  This routine
 assumes that curr_size bytes have already been allocated and mapped starting at
 base_addr, and that incremental_size bytes should be added.  If base_addr is
-non-NULL, the memory region mapped will be picked by the system; otherwise, the
+NULL, the memory region mapped will be picked by the system; otherwise, the
 memory mapped region starts at base_addr.  incremental_size must be a multiple
 of the host page size.
 */
@@ -4103,14 +4103,15 @@ a_void_ptr map_input_file_to_region(a_mapped_input_file file,
                                     a_void_ptr          address,
                                     a_const_char        *file_name)
 /*
-Map the input file "file" starting at "offset" bytes, for "size" bytes to the
-address specified by "address".  This mapping is done as either a FILE_MAP_COPY
-mapping so that any changes to the data will be local (when read_only is
-FALSE), or FILE_MAP_READ for read-only access (when read_only is TRUE).  This
-is used to map a section of a PCH file or module file to a memory region.  If
-the memory cannot be mapped, a catastrophic error is issued.  file_name is the
-name of the mapped input file to be used if a diagnostic is issued.  Returns
-the mapped address (or issues a catastrophic error).
+That data pointed to by "file" is mapped, starting at "offset" bytes, for
+"size" bytes to the address specified by "address".  This mapping is done as
+either a FILE_MAP_COPY mapping so that any changes to the data will be local
+(when read_only is FALSE), or FILE_MAP_READ for read-only access (when
+read_only is TRUE).  This is used to map a section of a PCH file or module file
+to a memory region.  If the memory cannot be mapped, a catastrophic error is
+issued.  file_name is the name of the mapped input file to be used if a
+diagnostic is issued.  Returns the mapped address (or issues a catastrophic
+error).
 */
 {
   a_void_ptr    result_addr;
@@ -4203,17 +4204,25 @@ incremental_size must be a multiple of the page size.
 
 
 static inline caddr_t mmap_posix(a_void_ptr address,
-                                  sizeof_t   size,
-                                  int        prot,
-                                  int        fd,
-                                  sizeof_t   offset)
+                                 sizeof_t   size,
+                                 int        prot,
+                                 int        fd,
+                                 sizeof_t   offset)
 /*
-Perform a POSIX mmap.  When address is NULL the kernel assigns the mapping
-address (MAP_PRIVATE).  Otherwise MAP_FIXED_NOREPLACE is attempted first on
-Linux so that an occupied range is detected without silently overwriting an
-existing mapping; if the kernel does not support MAP_FIXED_NOREPLACE it may
-return a system-assigned address instead, in which case that region is unmapped
-and MAP_FIXED is retried.  Returns NULL on failure.
+Perform a POSIX mmap of the data pointed to by the given file descriptor "fd".
+The data is mapped starting at "offset" bytes for "size" bytes, to the address
+specified by "address" (or a system chosen location if "address" is NULL).
+The mapping never affects the opened file (due to the use of MAP_PRIVATE).
+
+If address is non-NULL this function is guaranteed to return an address equal
+to the given "address" or NULL.  Otherwise, the return value is the system
+chosen memory address or NULL if the system could not find a suitable address.
+
+Note: On Linux when providing "address" this function uses a Linux-specific
+mmap flag MAP_FIXED_NOREPLACE on Linux Kernel 4.17 and newer; this eliminates
+the risk of mmap clobbering other memory allocations.  At the time of writing
+other POSIX mmap implementations do not provide this functionality and thus
+this call may clobber memory if the address is not carefully chosen.
 */
 {
   caddr_t addr = NULL;
@@ -4254,16 +4263,16 @@ and MAP_FIXED is retried.  Returns NULL on failure.
 }  /* mmap_posix */
 
 
-a_void_ptr map_memory_region_file(a_mmap_handle handle,
-                                  void          *base_addr,
-                                  sizeof_t      curr_size,
-                                  sizeof_t      incremental_size,
-                                  sizeof_t      file_offset)
+a_void_ptr map_memory_region_file(an_mmap_handle handle,
+                                  void           *base_addr,
+                                  sizeof_t       curr_size,
+                                  sizeof_t       incremental_size,
+                                  sizeof_t       file_offset)
 /*
 Expand the memory region file represented by the given handle.  This routine
 assumes that curr_size bytes have already been allocated and mapped starting at
 base_addr, and that incremental_size bytes should be added.  If base_addr is
-non-NULL, the memory region mapped will be picked by the system; otherwise, the
+NULL, the memory region mapped will be picked by the system; otherwise, the
 memory mapped region starts at base_addr.  incremental_size must be a multiple
 of the host page size.
 */
@@ -4328,15 +4337,14 @@ a_void_ptr map_input_file_to_region(a_mapped_input_file file,
                                     a_void_ptr          address,
                                     a_const_char        *file_name)
 /*
-This is used to map a section of a PCH file or a module file to a memory
-region.  The data pointed to by "file" is mapped, starting at "offset" bytes
-for "size" bytes, to the address specified by "address".  The mapping never
-affects the opened file (due to the use of MAP_PRIVATE).  However, if read_only
-is set the buffer cannot be manipulated; otherwise, the buffer can be freely
-modified without affecting the file.  If the memory cannot be mapped, a
-catastrophic error is issued.  file_name is the name of the mapped input file
-to be used if a diagnostic is issued.  Returns the mapped address (or issues a
-catastrophic error).
+The data pointed to by "file" is mapped, starting at "offset" bytes for "size"
+bytes, to the address specified by "address".  The mapping never affects the
+opened file (due to the use of MAP_PRIVATE).  However, if read_only is set the
+buffer cannot be manipulated; otherwise, the buffer can be freely modified
+without affecting the file.  If the memory cannot be mapped, a catastrophic
+error is issued.  file_name is the name of the mapped input file to be used if
+a diagnostic is issued.  Returns the mapped address (or issues a catastrophic
+error).
 */
 {
   int		fd = fileno(file.file); /*lint !e718 !e746*/
@@ -4378,13 +4386,13 @@ Unmap a block of previously mapped memory.
 }  /* unmap_memory */
 
 
-a_mmap_handle open_memory_region_tmp_file(void)
+an_mmap_handle open_memory_region_tmp_file()
 /*
 Open a temporary file to be used for allocation of file mapped
 memory for IL memory blocks.
 */
 {
-  a_mmap_handle file;
+  an_mmap_handle file;
   db_enter(3, "open_memory_region_tmp_file");
   file = open_temp_file(/*binary_file=*/TRUE);
   /*lint -e{530}*/ /* Lint bug PCLP-804 */
@@ -4395,7 +4403,7 @@ memory for IL memory blocks.
 
 #if MAKE_FRONT_END_CALLABLE
 
-void close_memory_region_tmp_file(a_mmap_handle file)
+void close_memory_region_tmp_file(an_mmap_handle file)
 /*
 Close the file used for allocation of file mapped memory for IL memory blocks.
 */

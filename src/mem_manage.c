@@ -458,7 +458,7 @@ STATIC_THREAD sizeof_t
 			/* The offset into the mmap file of the next block
 			   to be allocated. */
 
-STATIC_THREAD a_mmap_handle
+STATIC_THREAD an_mmap_handle
 		memory_region_file;
 			/* The temporary file used to back the memory mapped
 			   region blocks. */

@@ -3789,17 +3789,17 @@ A typedef for an abstract representation of the handle used
 for mmap (or equivalent) calls.
 */
 #if EDG_WIN32
-typedef HANDLE a_mmap_handle;
+typedef HANDLE an_mmap_handle;
 #else /* !EDG_WIN32 */
-typedef FILE *a_mmap_handle;
+typedef FILE *an_mmap_handle;
 #endif /* EDG_WIN32 */
 
 extern
-a_void_ptr map_memory_region_file(a_mmap_handle handle,
-                                  void          *base_addr,
-                                  sizeof_t      curr_size,
-                                  sizeof_t      incremental_size,
-                                  sizeof_t      file_offset);
+a_void_ptr map_memory_region_file(an_mmap_handle handle,
+                                  void           *base_addr,
+                                  sizeof_t       curr_size,
+                                  sizeof_t       incremental_size,
+                                  sizeof_t       file_offset);
 
 /*
 A type abstracting the platform specific needs of map_input_file_to_region that
@@ -3808,16 +3808,18 @@ call to close_mapped_input_file.
 */
 struct a_mapped_input_file {
 #if EDG_WIN32
-  a_windows_handle mapped_input;
+  a_windows_handle
+                mapped_input;
                         /* The handle produced by the call to
                            CreateFile_interface to reopen the file in a way
                            that can be used by CreateFileMapping. */
-  a_mmap_handle    map_object;
+  an_mmap_handle
+                map_object;
                         /* The handle produced by the call to
                            CreateFileMapping representing the actual memory
                            mapping. */
 #else /* !EDG_WIN32 */
-  a_mmap_handle file;   /* The FILE* used by the mmap call. */
+  an_mmap_handle file;  /* The FILE* used by the mmap call. */
 #endif /* EDG_WIN32 */
 };  /* a_mapped_input_file */
 
@@ -3838,10 +3840,10 @@ extern void unmap_memory(a_void_ptr addr,
 
 extern sizeof_t seek_to_page_alignment(FILE *file);
 
-extern a_mmap_handle open_memory_region_tmp_file(void);
+extern an_mmap_handle open_memory_region_tmp_file(void);
 
 #if MAKE_FRONT_END_CALLABLE
-extern void close_memory_region_tmp_file(a_mmap_handle file);
+extern void close_memory_region_tmp_file(an_mmap_handle file);
 #endif /* MAKE_FRONT_END_CALLABLE */
 
 extern size_t get_page_size();
