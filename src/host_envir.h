@@ -3844,7 +3844,7 @@ extern a_mmap_handle open_memory_region_tmp_file(void);
 extern void close_memory_region_tmp_file(a_mmap_handle file);
 #endif /* MAKE_FRONT_END_CALLABLE */
 
-extern int get_page_size(void);
+extern size_t get_page_size();
 
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 

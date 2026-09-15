@@ -4153,24 +4153,20 @@ Unmap a block of previously mapped memory.
 }  /* unmap_memory */
 
 
-int get_page_size(void)
+size_t get_page_size()
 /*
 Return the size of a host page.  When map_memory_region_file is called,
-incremental_size must be a multiple of the page size.
+incremental_size must be a multiple of this allocation granularity.
 */
 {
-  /* Windows-NT addresses and file offsets must be multiples of
-     64K. */
-  return 65536;
+  SYSTEM_INFO si;
+  GetSystemInfo(&si);
+  return si.dwPageSize;
 }  /* get_page_size */
 
 
 #else /* !EDG_WIN32 */
 #include <sys/mman.h>
-
-#if __BSD__
-extern "C" int getpagesize(void);
-#endif /* __BSD__ */
 
 #if defined(__hpux) || defined(__AIX__)
 /* HP and IBM require that unistd.h be included, and use _SC_PAGE_SIZE
@@ -4194,20 +4190,15 @@ STATIC_THREAD a_boolean
 			   subsequent calls skip directly to MAP_FIXED. */
 #endif /* MMAP_FIXED_NOREPLACE_FLAG */
 
-int get_page_size(void)
+size_t get_page_size()
 /*
 Return the size of a host page.  When map_memory_region_file is called,
 incremental_size must be a multiple of the page size.
 */
 {
-  int	page_size;
-#if __BSD__ || defined(__linux__) || defined(__FreeBSD__) || defined(__APPLE__)
-  page_size = getpagesize();
-#else /* !(__BSD__  || __linux__ || __FreeBSD__ || __APPLE__) */
-  page_size = sysconf(_SC_PAGESIZE);
-#endif /* __BSD__  || __linux__ || __FreeBSD__ || __APPLE__ */
+  long page_size = sysconf(_SC_PAGESIZE);
   check_assertion_str2(page_size > 0, "get_page_size:", "invalid page size");
-  return page_size;
+  return (size_t)page_size;
 }  /* get_page_size */
 
 
@@ -4416,7 +4407,7 @@ Close the file used for allocation of file mapped memory for IL memory blocks.
 
 #endif /* EDG_WIN32 */
 
-STATIC_THREAD int
+STATIC_THREAD size_t
 		page_size;
 			/* The size of a host page.  Memory mapped blocks must
 			   be requested in increments of this size. */

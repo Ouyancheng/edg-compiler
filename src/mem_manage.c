@@ -536,7 +536,8 @@ PCH was created.
     /* Attempt using the fixed address; if the mapping fails, clear
        fixed_address_for_mmap so that all subsequent allocations use a
        system-assigned address instead. */
-    addr = map_memory_region_file(memory_region_file, fixed_address_for_mmap,
+    addr = map_memory_region_file(memory_region_file,
+                                  (void*)fixed_address_for_mmap,
                                   mmap_size_allocated, size, mmap_file_offset);
     if (addr == NULL) {
       fixed_address_for_mmap = NULL;
@@ -546,7 +547,7 @@ PCH was created.
   if (addr == NULL) {
     addr = map_memory_region_file(memory_region_file,
 #if USE_FIXED_ADDRESS_FOR_MMAP
-                                  /*base_addr=*/fixed_address_for_mmap,
+                                  /*base_addr=*/(void*)fixed_address_for_mmap,
 #else /* !USE_FIXED_ADDRESS_FOR_MMAP */
                                   /*base_addr=*/NULL,
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */

@@ -2142,7 +2142,7 @@ and return its value.
 {
   a_const_char *arg_ptr = optstr;
   size_t       result = 0;
-  int          digit, base;
+  unsigned     digit, base;
 
   if (*arg_ptr == '0' &&
       (arg_ptr[1] == 'x' || arg_ptr[1] == 'X')) {
@@ -2153,13 +2153,13 @@ and return its value.
   }  /* if */
   for (; *arg_ptr != '\0'; arg_ptr++) {
     if (isdigit((unsigned char)*arg_ptr)) {
-      digit = *arg_ptr - '0';
+      digit = (unsigned)(*arg_ptr - '0');
     } else {
       if (base == 10) goto number_error;
       if (*arg_ptr >= 'a' && *arg_ptr <= 'f') {
-        digit = *arg_ptr - 'a' + 0xA;
+        digit = (unsigned)(*arg_ptr - 'a' + 0xA);
       } else if (*arg_ptr >= 'A' && *arg_ptr <= 'F') {
-        digit = *arg_ptr - 'A' + 0xA;
+        digit = (unsigned)(*arg_ptr - 'A' + 0xA);
       } else {
         goto number_error;
       }  /* if */
