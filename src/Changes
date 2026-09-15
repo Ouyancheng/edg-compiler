@@ -1,5 +1,22 @@
 Version 6.10
 
+9/15/26  [EDGcpfe/29053]
+Spurious unreferenced variable warning in a template braced-init-list
+
+A local variable used only as an element of a braced-init-list on the
+right-hand side of an assignment was reported as unreferenced during
+prototype instantiation of a function template when that list was
+instantiation-dependent.  For example:
+
+  struct S { int b, e; }
+  template<int N> void g(S *arr, int b) {
+    const int e = b + N;
+    arr[0] = { b, e };   // e was previously warned about.
+  }                      // Now silently accepted.
+
+That is now fixed.
+
+
 9/15/26  [EDGcpfe/25951,EDGcpfe/29043]
 C23: New tag compatibility rules
 

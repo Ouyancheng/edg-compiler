@@ -74,6 +74,7 @@ static a_boolean is_unmodifiable_initonly_field_operand(
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static void mark_init_component_as_permanently_allocated(
                                                        an_init_component *icp);
+static void prep_generic_init_component_list(an_arg_list_elem_ptr list);
 
 
 /*
@@ -15953,7 +15954,8 @@ that an lvalue is expected/required, and rvalue_expected is TRUE to indicate
 that an rvalue is expected/required.  If neither is TRUE, any value category
 is acceptable in the context where the expression will be used.  An eok_lvalue
 node will be inserted if necessary to adjust the value category of the
-expression.
+expression.  If the operand is a braced-init-list, its elements are prepared
+as well so that local variables used only there are marked referenced.
 */
 {
   an_expr_node_ptr expr;
@@ -15961,7 +15963,12 @@ expression.
 
   check_assertion(is_template_dependent_context());
   orig_operand = *operand;
-  if (is_indefinite_function_operand(operand)) {
+  if (is_braced_init_list_operand(operand)) {
+    /* References for a braced-init-list live on the element operands, not
+       on the list operand itself. */
+    prep_generic_init_component_list(
+                     operand->variant.braced_init_list->variant.braced.list);
+  } else if (is_indefinite_function_operand(operand)) {
     a_symbol_ptr ovl_sym = operand->symbol;
     if (!ovl_sym->is_class_member) {
       /* Record that this particular name was referenced in a dependent
@@ -16014,6 +16021,25 @@ know whether the operand will be used as an lvalue or an rvalue.
                             /*lvalue_expected=*/FALSE,
                             /*rvalue_expected=*/FALSE);
 }  /* prep_generic_operand */
+
+
+static void prep_generic_init_component_list(an_arg_list_elem_ptr list)
+/*
+Prepare the elements of an initializer list that appears as an operand of
+a template-dependent operation.  Nested brace-enclosed lists are walked
+recursively.
+*/
+{
+  an_arg_list_elem_ptr alep;
+
+  for (alep = list; alep != NULL; alep = next_elem(alep)) {
+    if (is_expression_component(alep)) {
+      prep_generic_operand(operand_of_arg_list_elem(alep));
+    } else if (is_braced_init_component(alep)) {
+      prep_generic_init_component_list(alep->variant.braced.list);
+    }  /* if */
+  }  /* for */
+}  /* prep_generic_init_component_list */
 
 
 void generic_cast_operand(an_operand         *operand,
