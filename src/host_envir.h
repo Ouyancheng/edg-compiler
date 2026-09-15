@@ -3789,7 +3789,7 @@ A typedef for an abstract representation of the handle used
 for mmap (or equivalent) calls.
 */
 #if EDG_WIN32
-typedef HANDLE an_mmap_handle;
+typedef a_windows_handle an_mmap_handle;
 #else /* !EDG_WIN32 */
 typedef FILE *an_mmap_handle;
 #endif /* EDG_WIN32 */
