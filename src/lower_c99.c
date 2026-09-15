@@ -4354,6 +4354,33 @@ program starts and needs no such treatment.
 #endif /* BACK_END_IS_C_GEN_BE */
 
 
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+
+static void zero_vla_storage(a_variable_ptr      vla_var,
+                             an_insert_location  *insert_location)
+/*
+Insert at *insert_location a call that sets the storage of the variable-length
+array vla_var to zero.  That storage was allocated by the code generated for
+the stmk_vla_decl statement that precedes the insertion point.
+*/
+{
+  an_expr_node_ptr  size_expr = vla_size_expr(vla_var->type,
+                                              /*byte_count=*/TRUE),
+                    addr_expr = var_lvalue_expr(vla_var);
+  a_type_ptr        addr_type = make_pointer_type(addr_expr->type);
+
+  /* A VLA variable is lowered to a pointer to the storage of the array, so
+     the address to zero is an rvalue reference to the variable.  Its type is
+     adjusted to match; lower_vla_types later replaces the array type it
+     points to by the underlying element type. */
+  addr_expr = rvalue_expr_for_lvalue(addr_expr);
+  addr_expr->type = addr_type;
+  insert_runtime_zeroing_call(addr_expr, size_expr, insert_location);
+}  /* zero_vla_storage */
+
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+
+
 static void lower_c99_stmk_init(a_statement_ptr statement)
 /*
 Do C99 lowering on the indicated stmk_init statement.
@@ -4366,6 +4393,18 @@ Do C99 lowering on the indicated stmk_init statement.
 #endif /* BACK_END_IS_C_GEN_BE */
 
   set_insert_location(statement, &insert_location);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  if (is_dynamic_init_for_vla(dip)) {
+    /* The only initializer a variable-length array can have is an empty one,
+       which zeroes the whole array.  The code that generates initializations
+       describes the entity being initialized in terms of its type, which
+       cannot express a size that is not known until run time, so zero the
+       storage here and discard the initialization. */
+    zero_vla_storage(dip->variable, &insert_location);
+    turn_statement_into_noop(statement);
+    goto done;
+  }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #if LOWER_DESIGNATED_INITIALIZERS
   lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL,
                                              &insert_location);
@@ -4421,6 +4460,9 @@ Do C99 lowering on the indicated stmk_init statement.
     default:
       unexpected_condition_str("lower_c99_stmk_init: bad kind");
   }  /* switch */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+done:;
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_c99_stmk_init */
 
 

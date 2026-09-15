@@ -28631,8 +28631,10 @@ storage duration -- it persists till the end of program execution (i.e., till
 final object clean up).  If block_lifetime is TRUE, use the innermost
 olk_block or olk_block_after_label object lifetime (i.e., skip the current
 object lifetime if it is an expr-temporary lifetime).  This routine
-is also called for variable-length arrays (VLAs), whose deallocation is
-treated as a form of destruction.
+is also called for variable-length arrays (VLAs) in C++, where their
+deallocation is treated as a form of destruction.  C has no object lifetime
+entries, and marks the point of deallocation of a VLA with an enk_vla_dealloc
+node instead.
 */
 {
   an_object_lifetime_ptr  olp;
@@ -28640,7 +28642,7 @@ treated as a form of destruction.
   db_enter(4, "record_end_of_lifetime_destruction");
   if ((dip->destructor != NULL
 #if VLA_DEALLOCATION_REQUIRED
-       || is_dynamic_init_for_vla(dip)
+       || (is_dynamic_init_for_vla(dip) && !C_mode())
 #endif /* VLA_DEALLOCATION_REQUIRED */
       ) &&
       /* Do not save destructions in prototype instantiations unless we
