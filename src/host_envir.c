@@ -3993,7 +3993,7 @@ assumes that curr_size bytes have already been allocated and mapped starting at
 base_addr, and that incremental_size bytes should be added.  If base_addr is
 NULL, the memory region mapped will be picked by the system; otherwise, the
 memory mapped region starts at base_addr.  incremental_size must be a multiple
-of the host page size.
+of the host allocation granularity.
 */
 {
   a_void_ptr	addr = NULL;
@@ -4156,13 +4156,18 @@ Unmap a block of previously mapped memory.
 
 size_t get_page_size()
 /*
-Return the size of a host page.  When map_memory_region_file is called,
-incremental_size must be a multiple of this allocation granularity.
+Return the size of the host allocation granularity.
+
+When map_memory_region_file is called, incremental_size must be a multiple of
+the allocation granularity for MapViewOfFileEx.  As the allocation granularity
+is a multiple of page size the front end (in the interest of a simpler host
+interface and historic reasons) uses the allocation granularity for the page
+size on Windows in place of an additional allocation granularity function.
 */
 {
   SYSTEM_INFO si;
   GetSystemInfo(&si);
-  return si.dwPageSize;
+  return si.dwAllocationGranularity;
 }  /* get_page_size */
 
 
