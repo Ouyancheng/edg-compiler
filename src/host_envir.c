@@ -4225,11 +4225,12 @@ equal to the given "address" or NULL.  Otherwise, the return value is the
 system chosen memory address or NULL if the system could not find a suitable
 address.
 
-Note: On Linux "address" is non-NULL, this function uses the Linux-specific
-mmap flag MAP_FIXED_NOREPLACE on Linux Kernel 4.17 and newer; this eliminates
-the risk of mmap clobbering other memory allocations.  At the time of writing,
-other POSIX mmap implementations do not provide this functionality and thus
-this call may clobber memory if the address is not carefully chosen.
+Note: On Linux when "address" is non-NULL, this function uses the
+Linux-specific mmap flag MAP_FIXED_NOREPLACE on Linux Kernel 4.17 and newer;
+this eliminates the risk of mmap clobbering other memory allocations.  At the
+time of writing, other POSIX mmap implementations do not provide this
+functionality and thus this call may clobber memory if the address is not
+carefully chosen.
 */
 {
   caddr_t addr = NULL;
