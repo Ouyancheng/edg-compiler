@@ -732,6 +732,98 @@ so that a later definition of the same tag can be compared against it.
 }  /* compatible_c_tagged_type */
 
 
+static void rebind_pragmas_on_scope(a_scope_ptr  scope,
+                                    char         *from_ptr,
+                                    char         *to_ptr)
+/*
+If scope is non-NULL, any pragma on its list whose entity is from_ptr is
+rebound to to_ptr.  A NULL to_ptr clears the pragma's entity, which is
+used when a leftover C23 redefinition has no corresponding member.
+*/
+{
+  a_pragma_ptr  pp;
+
+  if (scope != NULL) {
+    for (pp = scope->pragmas; pp != NULL; pp = pp->next) {
+      if (pp->entity.ptr == from_ptr) {
+        pp->entity.ptr = to_ptr;
+        if (to_ptr == NULL) {
+          pp->entity.kind = iek_none;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* rebind_pragmas_on_scope */
+
+
+static void rebind_pragmas_for_entity(char  *from_ptr,
+                                      char  *to_ptr)
+/*
+Rebind pragmas associated with from_ptr so they refer to to_ptr, on the
+file-scope pragma list and, when inside a function, on that function's
+pragma list.
+*/
+{
+  rebind_pragmas_on_scope(il_header.primary_scope, from_ptr, to_ptr);
+  if (innermost_function_scope != NULL &&
+      innermost_function_scope != il_header.primary_scope) {
+    rebind_pragmas_on_scope(innermost_function_scope, from_ptr, to_ptr);
+  }  /* if */
+}  /* rebind_pragmas_for_entity */
+
+
+static void rebind_c23_redefinition_pragmas(a_type_ptr  leftover,
+                                            a_type_ptr  canonical)
+/*
+leftover is a tagged type formed by a C23 redefinition of a tag that
+already denotes canonical.  Pragmas bound to leftover or to its members
+stay on a scope pragma list after the tag is made to denote canonical, and
+those leftover entities are not always reached by the IL walk.  Rebind the
+pragmas to the corresponding entities of canonical.
+*/
+{
+  rebind_pragmas_for_entity((char*)leftover, (char*)canonical);
+  if (leftover->source_corresp.has_associated_pragma) {
+    leftover->source_corresp.has_associated_pragma = FALSE;
+    canonical->source_corresp.has_associated_pragma = TRUE;
+  }  /* if */
+  if (is_immediate_class_type(leftover)) {
+    a_field_ptr  from_fp = fields_of(leftover), to_fp = fields_of(canonical);
+    while (from_fp != NULL) {
+      if (to_fp != NULL) {
+        rebind_pragmas_for_entity((char*)from_fp, (char*)to_fp);
+        if (from_fp->source_corresp.has_associated_pragma) {
+          from_fp->source_corresp.has_associated_pragma = FALSE;
+          to_fp->source_corresp.has_associated_pragma = TRUE;
+        }  /* if */
+        to_fp = to_fp->next;
+      } else {
+        rebind_pragmas_for_entity((char*)from_fp, NULL);
+        from_fp->source_corresp.has_associated_pragma = FALSE;
+      }  /* if */
+      from_fp = from_fp->next;
+    }  /* while */
+  } else if (is_immediate_enum_type(leftover)) {
+    a_constant_ptr  from_cp = enum_constants(leftover),
+                    to_cp = enum_constants(canonical);
+    while (from_cp != NULL) {
+      if (to_cp != NULL) {
+        rebind_pragmas_for_entity((char*)from_cp, (char*)to_cp);
+        if (from_cp->source_corresp.has_associated_pragma) {
+          from_cp->source_corresp.has_associated_pragma = FALSE;
+          to_cp->source_corresp.has_associated_pragma = TRUE;
+        }  /* if */
+        to_cp = to_cp->next;
+      } else {
+        rebind_pragmas_for_entity((char*)from_cp, NULL);
+        from_cp->source_corresp.has_associated_pragma = FALSE;
+      }  /* if */
+      from_cp = from_cp->next;
+    }  /* while */
+  }  /* if */
+}  /* rebind_c23_redefinition_pragmas */
+
+
 static a_boolean tag_currently_being_defined(a_type_ptr tag_type)
 /*
 Returns TRUE if the class type pointed to by tag_type is in the process of
@@ -1093,10 +1185,10 @@ definition of a previously declared incomplete class or enum.
 *tag_redefinition is returned TRUE if this is a second definition of a tag
 that C23 allows to be defined more than once in a scope, in which case the
 symbol of the earlier declaration is returned and the caller must verify that
-the two definitions declare the same type.
-*is_predeclared_type_decl is returned TRUE if this is the explicit
-declaration of a predeclared type like type_info in C++ or _GUID in
-Microsoft mode.
+the two definitions declare the same type.  An opaque enum declaration is
+not a definition for this purpose.  *is_predeclared_type_decl is returned TRUE
+if this is the explicit declaration of a predeclared type like type_info in
+C++ or _GUID in Microsoft mode.
 
 This routine may look more complicated than is necessary -- it isn't.
 This routine can either be matching up a definition with a previous
@@ -1684,12 +1776,14 @@ caution when modifying this routine.
              defined. */
           *tag_resolution = TRUE;
         } else if (c23_mode && tag_sym->defined && !tag_sym->is_error &&
-                   !tag_currently_being_defined(type_symbol_type(tag_sym))) {
+                   !tag_currently_being_defined(type_symbol_type(tag_sym)) &&
+                   (tag_kind != sk_enum_tag || next_tok == tok_lbrace)) {
           /* C23 allows a tag to be defined more than once in a scope, with
              every definition declaring the same type.  Keep the symbol of
              the earlier definition and let the caller check that the two
-             definitions agree.  A declaration nested in the definition of the
-             type it redeclares is not allowed. */
+             definitions agree.  A declaration nested in the definition of
+             the type it redeclares is not allowed.  Opaque enum
+             declarations are not definitions for this purpose. */
           *tag_redefinition = TRUE;
         } else if (tag_kind != (a_symbol_kind)sk_enum_tag
                    if_microsoft_extensions(
@@ -5030,9 +5124,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (redefined_tag_sym != NULL) {
-    /* Every definition of a tag must definition the same type.  Check that,
-       then let the specifier yield the type the tag already denotes.  That
-       ensures the rest of the front end sees just one type for the tag. */
+    /* Every definition of a tag must define the same type.  Check that, then
+       let the specifier yield the type the tag already denotes.  That ensures
+       the rest of the front end sees just one type for the tag. */
     a_type_ptr  prev_class_type = type_symbol_type(redefined_tag_sym);
     if (!err &&
         !c_tagged_types_match(class_type, prev_class_type,
@@ -5044,6 +5138,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     dps->c23_tag_redefinition_type = class_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    rebind_c23_redefinition_pragmas(class_type, prev_class_type);
     class_type = prev_class_type;
     tag_sym = redefined_tag_sym;
   } else if (c23_mode && is_class_definition && !err &&
@@ -5051,11 +5146,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     /* C23 makes this type compatible with any type declared with the same tag
        in another scope of this translation unit whose members correspond to
        this one's.  Compatible types are interchangeable, so let this tag
-       denote the type declared earlier: The rest of the front end, and any
-       back end, then sees one type for the whole set of compatible
-       declarations.  A definition that completes a type declared earlier in
-       the same scope is left alone because that earlier type may already
-       have been used in declarations that must keep denoting it. */
+       denote the type declared earlier: The rest of the front end then sees
+       one type for the whole set of compatible declarations.  A definition
+       that completes a type declared earlier in the same scope is left
+       alone because that earlier type may already have been used in
+       declarations that must keep denoting it.  A generating back end must
+       still render a local definition when the type it denotes was defined
+       in a scope that is not visible here. */
     a_type_ptr  prev_class_type = compatible_c_tagged_type(class_type);
     if (prev_class_type != NULL) {
       a_symbol_ptr  dup_sym = make_unentered_symbol(tag_kind, tag_sym->header,
@@ -5067,6 +5164,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       dps->c23_tag_redefinition_type = class_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      rebind_c23_redefinition_pragmas(class_type, prev_class_type);
       class_type = prev_class_type;
     }  /* if */
   }  /* if */
@@ -6710,26 +6808,42 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   if (is_definition && tag_sym != NULL && tag_sym->defined) {
     /* Catch errors like "enum A { e }; enum ::A { f };". */
     enum_type = type_symbol_type(tag_sym);
-    if (is_template_specialization &&
-        !enum_type->variant.integer.is_specialized) {
-      an_enum_symbol_supplement_ptr	essp;
-      essp = tag_sym->variant.enumeration.extra_info;
-      if (is_scoped_enum) {
-        pos2_sy_diagnostic(es_error,
-                           ec_specialization_of_referenced_entity_pos,
-                           &locator.source_position,
-                           &essp->instantiation_position,
-                           tag_sym);
-      } else {
-        pos_diagnostic(es_error,
-                       ec_specialization_of_unscoped_enum,
-                       &locator.source_position);
+    if (c23_mode && !tag_sym->is_error && curr_token == tok_lbrace) {
+      /* C23 allows a second enumerator list for a tag already defined in
+         this scope.  scan_tag_name does not set tag_redefinition when an
+         explicit underlying type precedes the braces, so handle that
+         case here. */
+      redefined_tag_sym = tag_sym;
+      tag_sym = NULL;
+    } else if (c23_mode && !tag_sym->is_error) {
+      /* An opaque "enum E : T;" after a definition redeclares the
+         existing type; it is not a C23 redefinition. */
+      is_definition = FALSE;
+      if (explicit_base_kind != (an_integer_kind)ik_none) {
+        is_opaque_enum_decl = TRUE;
       }  /* if */
     } else {
-      issue_redef_diag(&locator.source_position, tag_sym);
+      if (is_template_specialization &&
+          !enum_type->variant.integer.is_specialized) {
+        an_enum_symbol_supplement_ptr	essp;
+        essp = tag_sym->variant.enumeration.extra_info;
+        if (is_scoped_enum) {
+          pos2_sy_diagnostic(es_error,
+                             ec_specialization_of_referenced_entity_pos,
+                             &locator.source_position,
+                             &essp->instantiation_position,
+                             tag_sym);
+        } else {
+          pos_diagnostic(es_error,
+                         ec_specialization_of_unscoped_enum,
+                         &locator.source_position);
+        }  /* if */
+      } else {
+        issue_redef_diag(&locator.source_position, tag_sym);
+      }  /* if */
+      set_to_error_locator(locator);
+      tag_sym = NULL;
     }  /* if */
-    set_to_error_locator(locator);
-    tag_sym = NULL;
   }  /* if */
   dps->tag_def_or_forward_decl = is_definition || curr_token == tok_semicolon;
   if (tag_sym != NULL) {
@@ -7293,9 +7407,9 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     pop_class_reactivation_scope();
   }  /* if */
   if (redefined_tag_sym != NULL) {
-    /* Every definition of a tag must definition the same type.  Check that,
-       then let the specifier yield the type the tag already denotes.  That
-       ensures the rest of the front end sees just one type for the tag. */
+    /* Every definition of a tag must define the same type.  Check that, then
+       let the specifier yield the type the tag already denotes.  That ensures
+       the rest of the front end sees just one type for the tag. */
     a_type_ptr  prev_enum_type = type_symbol_type(redefined_tag_sym);
     if (!err &&
         !c_tagged_types_match(enum_type, prev_enum_type,
@@ -7307,6 +7421,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     dps->c23_tag_redefinition_type = enum_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    rebind_c23_redefinition_pragmas(enum_type, prev_enum_type);
     enum_type = prev_enum_type;
     tag_sym = redefined_tag_sym;
   }  /* if */
@@ -13457,16 +13572,6 @@ exit_loop:
      to declarator(...) or by other adjustments (e.g., decay of array types to
      pointer types). */
   state->type = state->declared_type = state->specifiers_type;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (state->c23_tag_redefinition_type != NULL) {
-    /* The specifiers define a tag that C23 allows to be declared more than
-       once.  The tag denotes the type formed by the first definition, but the
-       type just scanned is what the source writes here, so a back end that
-       regenerates source from the IL must render this definition rather than
-       just a reference to the tag. */
-    state->declared_type = state->c23_tag_redefinition_type;
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if ((*output_flags & DSO_NO_DECL_SPECIFIERS) &&
       !state->is_linkage_spec_decl &&
       state->prefix_attributes == NULL &&

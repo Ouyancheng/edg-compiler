@@ -1355,7 +1355,7 @@ extern a_boolean compatible_enable_if_attributes(a_type_ptr  rtp1,
 
 /*
 How strictly c_tagged_types_match compares the types of corresponding members
-of two C struct, union, or enumerated types.
+of two C struct or union types.
 */
 enum a_tagged_type_match_kind : a_byte {
   ttmk_redeclaration,	/* Corresponding members must have the same types,

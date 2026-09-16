@@ -539,6 +539,12 @@ array-to-pointer decay).
         ptp->type = ptp->declared_type;
       }  /* if */
     }  /* for */
+    if (copied_rtsp->prototype_scope != NULL) {
+      /* The copy shares the prototype scope of type_ptr.  The scope's
+         associated type is this copy, which is the type recorded in
+         source sequence entries. */
+      copied_rtsp->prototype_scope->variant.assoc_type = declared_type;
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {

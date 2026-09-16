@@ -8965,6 +8965,103 @@ srq_seq_sublist_parent_found:
 }  /* activate_delayed_type_definition_sse */
 
 
+static a_boolean c_tag_definition_is_visible(a_type_ptr type)
+/*
+Return TRUE if a generated reference to type can use a name-only elaborated
+type specifier because the definition that type denotes is in a scope that
+is currently being generated.
+*/
+{
+  a_boolean   visible;
+  a_scope_ptr parent = type->source_corresp.parent_scope;
+
+  if (parent != NULL) {
+    visible = scope_is_in_name_context_stack(parent);
+  } else if (type->source_corresp.enclosing_routine != NULL) {
+    visible = innermost_function_scope != NULL &&
+              innermost_function_scope->variant.routine.ptr ==
+                                type->source_corresp.enclosing_routine;
+  } else {
+    visible = TRUE;
+  }  /* if */
+  return visible;
+}  /* c_tag_definition_is_visible */
+
+
+static a_type_ptr c23_leftover_class_in_current_contexts(a_type_ptr type)
+/*
+If a leftover C23 redefinition of type is among the types of a scope now
+on the name-context stack, return that leftover type.  Each compatible
+redefinition keeps its original member list on a leftover type marked
+is_tag_redefinition; the tag itself denotes type.
+*/
+{
+  a_type_ptr         leftover = NULL;
+  a_const_char       *name = unmangled_name_of(&type->source_corresp);
+  a_name_context_ptr ncp;
+
+  if (type->is_tag_redefinition) {
+    leftover = type;
+  } else {
+    for (ncp = curr_name_context;
+         ncp != NULL && leftover == NULL;
+         ncp = ncp->next) {
+      a_type_ptr tp;
+      if (ncp->assoc_scope != NULL) {
+        for (tp = ncp->assoc_scope->types;
+             tp != NULL && leftover == NULL;
+             tp = tp->next) {
+          if (tp->is_tag_redefinition && tp->kind == type->kind &&
+              unmangled_name_of(&tp->source_corresp) == name) {
+            leftover = tp;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return leftover;
+}  /* c23_leftover_class_in_current_contexts */
+
+
+static void gen_class_definition_from_fields(a_type_ptr type)
+/*
+Output a class, struct, or union definition for type using its field list
+rather than the source sequence list of its original definition.  Used when
+C23 has made a local declaration compatible with a type defined in another
+function: That original definition is not visible here, so a local copy of
+the members is required for the generated source to be well-formed.
+*/
+{
+  a_field_ptr  field;
+
+  write_tok_str(tag_keyword(type));
+  write_space();
+  if (!type->variant.class_struct_union.originally_unnamed) {
+    gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
+             (a_boolean *)NULL);
+    write_space();
+  }  /* if */
+  write_tok_str("{ ");
+  for (field = fields_of(type); field != NULL; field = field->next) {
+    gen_general_declaration_using_type(field->type,
+                                       has_name(field) ?
+                                         &field->source_corresp : NULL,
+                                       iek_field,
+                                       (a_src_seq_secondary_decl_ptr)NULL,
+                                       TQ_NONE,
+                                       /*suppress_specifiers=*/FALSE,
+                                       GDO_NO_OPTIONS,
+                                       (a_name_reference_ptr)NULL);
+    if (field->is_bit_field) {
+      write_tok_str(": ");
+      write_unsigned_num((unsigned long)field->bit_size);
+    }  /* if */
+    write_tok_str("; ");
+  }  /* for */
+  write_tok_ch('}');
+}  /* gen_class_definition_from_fields */
+
+
 static void gen_tag_reference(a_type_ptr             type,
                               a_gen_name_options_set options,
                               an_attribute_ptr       attributes,
@@ -9015,9 +9112,41 @@ type specifier in place of the type recorded in the type entry.
     /* Restore the source sequence list position. */
     restore_source_sequence_scan_state(&saved_state);
   } else {
+    a_boolean     put_out_local_defn = FALSE;
+    a_const_char  *tag_kind_str;
+    if (C_mode() && is_immediate_class_type(type) &&
+        !type->incomplete &&
+        !c_tag_definition_is_visible(type)) {
+      /* C23 made this tag denote a type defined in another function or
+         prototype.  Put out a local definition so the generated source
+         can name the type.  A leftover redefinition supplies the original
+         members when it has not yet been emitted. */
+      a_type_ptr leftover = c23_leftover_class_in_current_contexts(type);
+      if (leftover != NULL && leftover->has_been_defined) {
+        /* The leftover body was already put out in this context. */
+      } else if (leftover != NULL && leftover->definition_delayed) {
+        leftover->definition_delayed = FALSE;
+        save_source_sequence_scan_state(&saved_state);
+        activate_delayed_type_definition_sse(leftover);
+        gen_class_definition(leftover, qual_typeref);
+        restore_source_sequence_scan_state(&saved_state);
+        put_out_local_defn = TRUE;
+      } else {
+        if (leftover == NULL) leftover = type;
+        gen_class_definition_from_fields(leftover);
+        leftover->has_been_defined = TRUE;
+        leftover->has_been_declared = TRUE;
+        put_out_local_defn = TRUE;
+      }  /* if */
+    }  /* if */
+    if (put_out_local_defn) {
+      /* We put out a C23 "local duplicate definition".  Nothing more to be
+         done. */
+      goto done;
+    }  /* if */
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
-    a_const_char *tag_kind_str = tag_keyword(type);
+    tag_kind_str = tag_keyword(type);
     if (gcc_is_generated_code_target &&
         is_immediate_class_type(type) &&
         type->variant.class_struct_union.is_nonreal_class &&
@@ -9193,6 +9322,7 @@ type specifier in place of the type recorded in the type entry.
       gen_type((enum_base_type != NULL) ? enum_base_type
                                         : integer_type_supp(type)->base_type);
     }  /* if */
+done:;
   }  /* if */
 }  /* gen_tag_reference */
 

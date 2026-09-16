@@ -9046,7 +9046,9 @@ Do the work of c_tagged_types_match, and of comparing the untagged member
 types of two declarations of the same tagged type.  tag_required is TRUE when
 both types must be declared with the same tag, which C23 6.2.7 requires of
 compatible types, and FALSE when they may also both be untagged, which is the
-case for member types compared under ttmk_redeclaration.
+case for member types compared under ttmk_redeclaration.  In the case of
+struct or union types, match_kind determines how strictly the members must
+match.
 */
 {
   a_boolean            match = FALSE;
@@ -9104,9 +9106,10 @@ Both are declared with the same choice of struct, union, or enum; both are
 declared with the same tag; and there is a one-to-one correspondence between
 their members such that corresponding members are declared with the same name
 and with matching types.  match_kind selects how closely the types of
-corresponding members must match.  An incomplete type and an untagged type
-match nothing but themselves, since in the one case the members that would
-have to correspond are not known and in the other there is no tag to match.
+corresponding members of a struct or union must match (it has no effect for
+enum types).  An incomplete type and an untagged type match nothing but
+themselves, since in the one case the members that would have to correspond
+are not known and in the other there is no tag to match.
 */
 {
   return tagged_types_match(skip_typerefs(type_1), skip_typerefs(type_2),
