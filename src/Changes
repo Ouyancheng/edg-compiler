@@ -1,5 +1,23 @@
 Version 6.10
 
+9/15/26  [EDGcpfe/28958]
+Virtual and consteval specifiers on the "==" implied by a defaulted "<=>"
+
+The equality operator implicitly declared for a class that defines a
+three-way comparison operator as defaulted is now itself declared "virtual"
+or "consteval" if the three-way comparison operator is so declared, and its
+definition is generated when a virtual function table requires it.  For
+example:
+
+  struct B {
+    virtual std::strong_ordering operator<=>(B const&) const = default;
+  };                    // Implicitly declares a virtual "operator==".
+
+  struct D: B {
+    bool operator==(B const&) const override;  // Previously an error.
+  };                                           // Now okay.
+
+
 9/15/26  [EDGcpfe/29053]
 Spurious unreferenced variable warning in a template braced-init-list
 

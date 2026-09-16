@@ -177,11 +177,13 @@ Require definitions for the virtual functions of the indicated class.
         if (rp->is_defaulted ||
             (rp->compiler_generated &&
              special_kind_is(rp, sfk_operator) &&
-             opname_kind_is(rp, onk_assign))) {
+             (opname_kind_is(rp, onk_assign) || opname_kind_is(rp, onk_eq)))) {
           /* Generate bodies for defaulted virtual functions and for
              implicitly-declared assignment operators that override a
-             virtual operator=.  Virtual destructors are handled
-             separately, subject to the vtable-decider function. */
+             virtual operator= as well as equality operators implied by a
+             virtual defaulted three-way comparison operator.  Virtual
+             destructors are handled separately, subject to the vtable-decider
+             function. */
           force_definition_of_compiler_generated_routine(rp);
         }  /* if */
         if (instantiate_extern_inline ||
