@@ -3894,6 +3894,7 @@ memory for IL memory blocks.
 */
 {
   an_mmap_handle file;
+
   db_enter(3, "open_memory_region_tmp_file");
   /* Resolve the temporary directory if not already resolved (temp_dir). */
   resolve_temp_dir();
@@ -4103,7 +4104,7 @@ a_void_ptr map_input_file_to_region(a_mapped_input_file file,
                                     a_void_ptr          address,
                                     a_const_char        *file_name)
 /*
-That data pointed to by "file" is mapped, starting at "offset" bytes, for
+The data pointed to by "file" is mapped, starting at "offset" bytes, for
 "size" bytes to the address specified by "address".  This mapping is done as
 either a FILE_MAP_COPY mapping so that any changes to the data will be local
 (when read_only is FALSE), or FILE_MAP_READ for read-only access (when
@@ -4216,16 +4217,17 @@ static inline caddr_t mmap_posix(a_void_ptr address,
 /*
 Perform a POSIX mmap of the data pointed to by the given file descriptor "fd".
 The data is mapped starting at "offset" bytes for "size" bytes, to the address
-specified by "address" (or a system chosen location if "address" is NULL).
+specified by "address" (or a system-chosen location if "address" is NULL).
 The mapping never affects the opened file (due to the use of MAP_PRIVATE).
 
-If address is non-NULL this function is guaranteed to return an address equal
-to the given "address" or NULL.  Otherwise, the return value is the system
-chosen memory address or NULL if the system could not find a suitable address.
+If "address" is non-NULL, this function is guaranteed to return an address
+equal to the given "address" or NULL.  Otherwise, the return value is the
+system chosen memory address or NULL if the system could not find a suitable
+address.
 
-Note: On Linux when providing "address" this function uses a Linux-specific
+Note: On Linux "address" is non-NULL, this function uses the Linux-specific
 mmap flag MAP_FIXED_NOREPLACE on Linux Kernel 4.17 and newer; this eliminates
-the risk of mmap clobbering other memory allocations.  At the time of writing
+the risk of mmap clobbering other memory allocations.  At the time of writing,
 other POSIX mmap implementations do not provide this functionality and thus
 this call may clobber memory if the address is not carefully chosen.
 */
@@ -4398,6 +4400,7 @@ memory for IL memory blocks.
 */
 {
   an_mmap_handle file;
+
   db_enter(3, "open_memory_region_tmp_file");
   file = open_temp_file(/*binary_file=*/TRUE);
   /*lint -e{530}*/ /* Lint bug PCLP-804 */

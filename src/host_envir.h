@@ -3819,7 +3819,8 @@ struct a_mapped_input_file {
                            CreateFileMapping representing the actual memory
                            mapping. */
 #else /* !EDG_WIN32 */
-  an_mmap_handle file;  /* The FILE* used by the mmap call. */
+  an_mmap_handle
+                file;   /* The FILE* used by the mmap call. */
 #endif /* EDG_WIN32 */
 };  /* a_mapped_input_file */
 
