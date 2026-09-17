@@ -9114,7 +9114,7 @@ type specifier in place of the type recorded in the type entry.
   } else {
     a_boolean     put_out_local_defn = FALSE;
     a_const_char  *tag_kind_str;
-    if (C_mode() && is_immediate_class_type(type) &&
+    if (c23_mode && is_immediate_class_type(type) &&
         !type->incomplete &&
         !c_tag_definition_is_visible(type)) {
       /* C23 made this tag denote a type defined in another function or

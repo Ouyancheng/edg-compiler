@@ -2880,16 +2880,13 @@ do_set_proper_definition_needed_flag:
             /* Also see assoc_block below. */
             break;
           case sck_func_prototype:
-#if RECORD_HIDDEN_NAMES_IN_IL
-            if (!C_mode()) {
-              /* Function prototype scopes in C++ exist only to carry
-                 hidden name lists and thus can leave the associated function
-                 type unprocessed if not done here. */
-              walk_ptr(eptr->variant.assoc_type, a_type_ptr, iek_type);
-              break;
-            }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
-            FALLTHROUGH
+            /* Walk the associated function type.  In C++, prototype scopes
+               exist mainly to carry hidden name lists and can otherwise
+               leave that type unprocessed.  In C, the associated type may
+               be a declared-type copy that is not on the types list and is
+               not the type of a routine. */
+            walk_ptr(eptr->variant.assoc_type, a_type_ptr, iek_type);
+            break;
           case sck_class_struct_union:
           case sck_enum:
             remap_ptr_not_needed(eptr->variant.assoc_type, a_type_ptr,

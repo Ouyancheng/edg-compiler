@@ -8958,6 +8958,86 @@ compared member by member as well.
 }  /* member_types_match */
 
 
+static a_boolean corresponding_members_match(
+                                    a_field_ptr               field_1,
+                                    a_field_ptr               field_2,
+                                    a_tagged_type_match_kind  match_kind)
+/*
+Return TRUE if field_1 and field_2, corresponding members of two C struct
+or union types, are declared with the same name, matching types, matching
+bit-field width and signedness, and equivalent alignment specifiers.
+*/
+{
+  a_boolean  match = TRUE;
+
+  if (!same_name(field_1, field_2) ||
+      field_1->is_bit_field != field_2->is_bit_field ||
+      field_1->bit_size != field_2->bit_size ||
+      field_1->bit_field_is_signed != field_2->bit_field_is_signed ||
+      field_1->alignment != field_2->alignment ||
+      field_1->is_anonymous_parent_object !=
+                                    field_2->is_anonymous_parent_object ||
+#if GNU_EXTENSIONS_ALLOWED
+      field_1->is_packed != field_2->is_packed ||
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      !member_types_match(field_1->type, field_2->type, match_kind,
+                          field_1->is_anonymous_parent_object)) {
+    match = FALSE;
+  }  /* if */
+  return match;
+}  /* corresponding_members_match */
+
+
+static a_field_ptr nth_unnamed_field(a_type_ptr  type,
+                                     unsigned    n)
+/*
+Return the n-th unnamed member of type (counting from zero), or NULL if
+there are not that many.
+*/
+{
+  a_field_ptr  field = fields_of(type);
+
+  while (field != NULL) {
+    if (!has_name(field)) {
+      if (n == 0) break;
+      n--;
+    }  /* if */
+    field = field->next;
+  }  /* while */
+  return field;
+}  /* nth_unnamed_field */
+
+
+static a_field_ptr corresponding_union_member(a_field_ptr  field,
+                                              a_type_ptr   of_type,
+                                              a_type_ptr   in_type)
+/*
+Return the member of in_type that corresponds to field, a member of of_type.
+Named members correspond by name.  Unnamed members correspond in declaration
+order among the unnamed members, since they have no name to match.
+*/
+{
+  a_field_ptr  result = NULL;
+
+  if (has_name(field)) {
+    a_field_ptr  other;
+    for (other = fields_of(in_type);
+         other != NULL && result == NULL;
+         other = other->next) {
+      if (same_name(field, other)) result = other;
+    }  /* for */
+  } else {
+    unsigned     which = 0;
+    a_field_ptr  prev;
+    for (prev = fields_of(of_type); prev != field; prev = prev->next) {
+      if (!has_name(prev)) which++;
+    }  /* for */
+    result = nth_unnamed_field(in_type, which);
+  }  /* if */
+  return result;
+}  /* corresponding_union_member */
+
+
 static a_boolean field_lists_match(a_type_ptr                type_1,
                                    a_type_ptr                type_2,
                                    a_tagged_type_match_kind  match_kind)
@@ -8966,29 +9046,29 @@ Return TRUE if the C struct or union types type_1 and type_2 have a one-to-one
 correspondence between their members such that each pair of corresponding
 members is declared with the same name and with matching types, corresponding
 bit fields have the same width and signedness, and corresponding members are
-declared with equivalent alignment specifiers.  The alignment and packing
-recorded for each member stand in for the alignment specifiers and layout
-attributes written on it, so that two declarations whose members would be laid
-out differently never match.
+declared with equivalent alignment specifiers.  Members of two structures
+correspond in declaration order.  Members of two unions correspond by name,
+as C23 6.2.7 requires, except in the GNU C and Clang C emulation modes,
+which treat unions like structures in this respect.  The alignment and
+packing recorded for each member stand in for the alignment specifiers and
+layout attributes written on it, so that two declarations whose members would
+be laid out differently never match.
 */
 {
   a_boolean    match = TRUE;
   a_field_ptr  field_1 = fields_of(type_1),
                field_2 = fields_of(type_2);
+  a_boolean    correspond_by_name;
+
+  correspond_by_name = type_is(type_1, tk_union) && !gnu_mode && !clang_mode;
 
   while (field_1 != NULL && field_2 != NULL) {
-    if (!same_name(field_1, field_2) ||
-        field_1->is_bit_field != field_2->is_bit_field ||
-        field_1->bit_size != field_2->bit_size ||
-        field_1->bit_field_is_signed != field_2->bit_field_is_signed ||
-        field_1->alignment != field_2->alignment ||
-        field_1->is_anonymous_parent_object !=
-                                      field_2->is_anonymous_parent_object ||
-#if GNU_EXTENSIONS_ALLOWED
-        field_1->is_packed != field_2->is_packed ||
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        !member_types_match(field_1->type, field_2->type, match_kind,
-                            field_1->is_anonymous_parent_object)) {
+    a_field_ptr  corr_2 = field_2;
+    if (correspond_by_name) {
+      corr_2 = corresponding_union_member(field_1, type_1, type_2);
+    }  /* if */
+    if (corr_2 == NULL ||
+        !corresponding_members_match(field_1, corr_2, match_kind)) {
       match = FALSE;
       break;
     }  /* if */
@@ -9003,12 +9083,30 @@ out differently never match.
 }  /* field_lists_match */
 
 
+static a_constant_ptr enum_constant_with_name(a_type_ptr      type,
+                                              a_constant_ptr  con)
+/*
+Return the enumerator of type that has the same name as con, or NULL if
+there is none.
+*/
+{
+  a_constant_ptr  result = NULL, other;
+
+  for (other = enum_constants(type);
+       other != NULL && result == NULL;
+       other = other->next) {
+    if (same_name(con, other)) result = other;
+  }  /* for */
+  return result;
+}  /* enum_constant_with_name */
+
+
 static a_boolean enum_constant_lists_match(a_type_ptr  type_1,
                                            a_type_ptr  type_2)
 /*
-Return TRUE if the enumerated types type_1 and type_2 declare corresponding
-members with the same names and the same values, and have compatible
-underlying types.
+Return TRUE if the enumerated types type_1 and type_2 declare the same
+enumerators with the same values, and have compatible underlying types.
+The enumerators need not appear in the same order.
 */
 {
   a_boolean       match = TRUE;
@@ -9021,7 +9119,8 @@ underlying types.
     match = FALSE;
   } else {
     while (con_1 != NULL && con_2 != NULL) {
-      if (!same_name(con_1, con_2) || !eq_constants(con_1, con_2)) {
+      a_constant_ptr  corr_2 = enum_constant_with_name(type_2, con_1);
+      if (corr_2 == NULL || !eq_constants(con_1, corr_2)) {
         match = FALSE;
         break;
       }  /* if */
