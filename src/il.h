@@ -3739,10 +3739,26 @@ inline a_source_correspondence *source_corresp_for_reflection(
 Return the source correspondence for the entity associated with rvp, if any.
 */
 {
-  a_reflection_value  rv = *rvp;
+  a_reflection_value       rv = *rvp;
+  a_source_correspondence  *scp;
 
   strip_template_arg(&rv);
-  return source_corresp_for_il_entry(rv.entity.ptr, rv.entity.kind);
+  if (rv.entity.kind == iek_scope) {
+    /* A namespace is reflected as its associated scope, so the correspondence
+       is taken from that scope's namespace entry rather than from the scope
+       itself (which has none).  A namespace alias is reflected as the alias
+       entry and therefore doesn't get here. */
+    a_scope_ptr  scope = (a_scope_ptr)rv.entity.ptr;
+    if (scope_is(scope, sck_namespace) ||
+        scope_is(scope, sck_namespace_extension)) {
+      scp = &scope->variant.assoc_namespace->source_corresp;
+    } else {
+      scp = NULL;
+    }  /* if */
+  } else {
+    scp = source_corresp_for_il_entry(rv.entity.ptr, rv.entity.kind);
+  }  /* if */
+  return scp;
 }  /* source_corresp_for_reflection */
 
 
