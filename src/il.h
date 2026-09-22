@@ -3749,8 +3749,11 @@ Return the source correspondence for the entity associated with rvp, if any.
        itself (which has none).  A namespace alias is reflected as the alias
        entry and therefore doesn't get here. */
     a_scope_ptr  scope = (a_scope_ptr)rv.entity.ptr;
-    if (scope->kind == sck_namespace ||
-        scope->kind == sck_namespace_extension) {
+    /* A scope reflection whose scope could not be recovered (a null
+       pointer) has no source correspondence. */
+    if (scope != NULL &&
+        (scope->kind == sck_namespace ||
+         scope->kind == sck_namespace_extension)) {
       scp = &scope->variant.assoc_namespace->source_corresp;
     } else {
       scp = NULL;

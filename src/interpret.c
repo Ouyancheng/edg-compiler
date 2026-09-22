@@ -15825,13 +15825,14 @@ static a_boolean parent_of_reflection(a_reflection_value  *rvp,
                                       a_reflection_value  *parent_rvp)
 /*
 Set *parent_rvp to the reflection of the parent that std::meta::parent_of and
-std::meta::has_parent report for the entity reflected by rvp; i.e., the class
-of which that entity is a member, or else the nearest namespace or file scope
-that encloses its declaration.  Return TRUE when there is such a parent, and
-FALSE (leaving *parent_rvp untouched) when the entity is of a kind that has
-none to report, such as an unnamed constant or a type that is not a class, an
-enumeration, or a typedef.  rvp is modified in place: It is normalized by
-applying strip_template_arg and extract_reflected_entity to it (in that order).
+std::meta::has_parent report for the entity reflected by rvp.  That parent is
+the enumeration type of an enumerator, the class of which the entity is a
+member, or else the nearest namespace or file scope that encloses its
+declaration.  Return TRUE when there is such a parent, and FALSE (leaving
+*parent_rvp untouched) when the entity is of a kind that has none to report,
+such as an unnamed constant or a type that is not a class, an enumeration, or
+a typedef.  rvp is modified in place: It is normalized by applying
+strip_template_arg and extract_reflected_entity to it (in that order).
 */
 {
   a_boolean                result = FALSE;
@@ -15841,9 +15842,20 @@ applying strip_template_arg and extract_reflected_entity to it (in that order).
   extract_reflected_entity(rvp);
   switch (rvp->entity.kind) {
     case iek_constant:
-      /* Only consider named constants (i.e., enumerators). */
-      scp = &((a_constant*)rvp->entity.ptr)->source_corresp;
-      if (scp->name == NULL) scp = NULL;
+      /* Only consider named constants.  An enumerator's parent is its
+         enumeration type; other named constants are members of the
+         enclosing class or namespace. */
+      { a_constant_ptr  cp = (a_constant_ptr)rvp->entity.ptr;
+        a_type_ptr      tp = skip_typerefs(cp->type);
+        if (has_name(cp) && is_enum_type(tp)) {
+          parent_rvp->entity.kind = iek_type;
+          parent_rvp->entity.ptr = (char*)tp;
+          parent_rvp->local_scope_number = rvp->local_scope_number;
+          result = TRUE;
+        } else if (has_name(cp)) {
+          scp = &cp->source_corresp;
+        }  /* if */
+      }
       break;
     case iek_field:
       scp = &((a_field*)rvp->entity.ptr)->source_corresp;
