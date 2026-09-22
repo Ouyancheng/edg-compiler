@@ -1484,7 +1484,7 @@ typedef struct a_work_stack {
 			/* An item that is never interpreted, occupying the
 			   slot below the first one.  Having it lets a push or
 			   a pop treat an empty stack like any other. */
-  a_work_stack();
+  INLINE a_work_stack();
 } a_work_stack;
 
 
@@ -1989,7 +1989,7 @@ STATIC_THREAD a_call_frame_ptr
 			   compilation like work_stack_pool above. */
 
 
-static inline void work_item_result_cap(
+static INLINE void work_item_result_cap(
                                      an_interpreter_work_item const  *item,
                                      a_constexpr_address             *cap)
 /*
@@ -2055,7 +2055,7 @@ Every push is matched by exactly one pop.
 }  /* pop_work */
 
 
-static inline void end_work_visit(an_interpreter_state  *ips,
+static INLINE void end_work_visit(an_interpreter_state  *ips,
                                   a_boolean             result,
                                   a_boolean             pop_when_done)
 /*
@@ -2073,7 +2073,7 @@ nothing about it yet.
 }  /* end_work_visit */
 
 
-a_work_stack::a_work_stack()
+INLINE a_work_stack::a_work_stack()
 /*
 Create an empty work stack, i.e. one that holds just its floor item.
 */
@@ -2104,7 +2104,7 @@ active (n_active_interpreter_states concurrent states already exist).
 }  /* get_work_stack */
 
 
-static a_call_frame_ptr alloc_call_frame(void)
+static INLINE a_call_frame_ptr alloc_call_frame(void)
 /*
 Allocate a call frame, reusing a previously released frame if possible.
 */
@@ -2121,7 +2121,7 @@ Allocate a call frame, reusing a previously released frame if possible.
 }  /* alloc_call_frame */
 
 
-static void release_call_frame(a_call_frame_ptr  frame)
+static INLINE void release_call_frame(a_call_frame_ptr  frame)
 /*
 Return frame to the free list.
 */
@@ -2147,7 +2147,7 @@ Report that the interpretation has become too expensive to be continued.
 }  /* report_excessive_cost */
 
 
-static unsigned long charge_call_cost(an_interpreter_state  *ips)
+static INLINE unsigned long charge_call_cost(an_interpreter_state  *ips)
 /*
 Account a relatively high cost for a call that is about to be interpreted, so
 as to limit the overall call depth, and return the amount charged for
@@ -2346,7 +2346,8 @@ Macros to push and pop call frames.
     release_call_frame(cfp);                                                 \
   }
 
-static a_statement_ptr function_body_block(a_scope_ptr  routine_scope)
+static INLINE
+a_statement_ptr function_body_block(a_scope_ptr  routine_scope)
 /*
 Return the compound statement that makes up the body of the routine whose
 scope is routine_scope.  For a function-try-block, that is the compound
@@ -6043,7 +6044,7 @@ Macros to interpret a full-expression.
 }
 
 
-static inline void set_work_result(an_interpreter_work_item   *item,
+static INLINE void set_work_result(an_interpreter_work_item   *item,
                                    a_constexpr_address const  &result_cap)
 /*
 Record the plain destination described by result_cap in the given work item.
@@ -6082,7 +6083,7 @@ popped.
 }  /* set_init_work_dest */
 
 
-static inline void push_expr_work(an_interpreter_state       *ips,
+static INLINE void push_expr_work(an_interpreter_state       *ips,
                                   an_expr_node_ptr           expr,
                                   a_constexpr_address const  &result_cap)
 /*
@@ -6094,7 +6095,7 @@ location described by result_cap.
 }  /* push_expr_work */
 
 
-static inline void push_expr_work_to(an_interpreter_state  *ips,
+static INLINE void push_expr_work_to(an_interpreter_state  *ips,
                                      an_expr_node_ptr      expr,
                                      a_byte                *result_storage,
                                      a_byte                *complete_object)
@@ -6112,7 +6113,7 @@ currently being allocated.
 }  /* push_expr_work_to */
 
 
-static inline void push_stmt_work(an_interpreter_state  *ips,
+static INLINE void push_stmt_work(an_interpreter_state  *ips,
                                   a_statement_ptr       stmt)
 /*
 Push a statement-interpretation work item for stmt.
@@ -6122,9 +6123,9 @@ Push a statement-interpretation work item for stmt.
 }  /* push_stmt_work */
 
 
-static void push_block_work(an_interpreter_state  *ips,
-                            a_statement_ptr       block_stmt,
-                            a_scope_ptr           scope)
+static INLINE void push_block_work(an_interpreter_state  *ips,
+                                   a_statement_ptr       block_stmt,
+                                   a_scope_ptr           scope)
 /*
 Push a block-interpretation work item for block_stmt and the associated
 scope (which may be NULL).
@@ -6134,9 +6135,9 @@ scope (which may be NULL).
 }  /* push_block_work */
 
 
-static void push_call_work(an_interpreter_state       *ips,
-                           an_expr_node_ptr           expr,
-                           a_constexpr_address const  &result_cap)
+static INLINE void push_call_work(an_interpreter_state       *ips,
+                                  an_expr_node_ptr           expr,
+                                  a_constexpr_address const  &result_cap)
 /*
 Push a call-interpretation work item for the call expression expr, storing the
 result at the location described by result_cap.
@@ -6146,11 +6147,11 @@ result at the location described by result_cap.
 }  /* push_call_work */
 
 
-static void push_ctor_work(an_interpreter_state       *ips,
-                           a_dynamic_init_ptr         dip,
-                           a_source_position          *pos,
-                           a_constexpr_address const  &cap,
-                           a_constexpr_address const  *implied_src)
+static INLINE void push_ctor_work(an_interpreter_state       *ips,
+                                  a_dynamic_init_ptr         dip,
+                                  a_source_position          *pos,
+                                  a_constexpr_address const  &cap,
+                                  a_constexpr_address const  *implied_src)
 /*
 Push a constructor-interpretation work item for dip, constructing the object
 at cap and reporting diagnostics at pos.  implied_src is the source of a copy
@@ -6164,12 +6165,12 @@ or move constructor call that has no explicit source expression, or NULL.
 }  /* push_ctor_work */
 
 
-static void push_dtor_work(an_interpreter_state  *ips,
-                           a_routine_ptr         callee,
-                           a_source_position     *pos,
-                           a_byte                *object,
-                           a_byte                *complete_object,
-                           a_boolean             nonvirtual)
+static INLINE void push_dtor_work(an_interpreter_state  *ips,
+                                  a_routine_ptr         callee,
+                                  a_source_position     *pos,
+                                  a_byte                *object,
+                                  a_byte                *complete_object,
+                                  a_boolean             nonvirtual)
 /*
 Push a work item for a call to the destructor callee that destroys the object
 at the given address within complete_object, reporting diagnostics at pos.  If
@@ -6185,11 +6186,11 @@ nonvirtual is TRUE, no virtual dispatch is performed.
 }  /* push_dtor_work */
 
 
-static void push_dyn_init_work(an_interpreter_state       *ips,
-                               a_dynamic_init_ptr         dip,
-                               a_source_position          *pos,
-                               a_constexpr_address const  &dst_addr,
-                               a_constexpr_address const  *implied_src)
+static INLINE void push_dyn_init_work(an_interpreter_state       *ips,
+                                      a_dynamic_init_ptr         dip,
+                                      a_source_position          *pos,
+                                      a_constexpr_address const  &dst_addr,
+                                      a_constexpr_address const  *implied_src)
 /*
 Push a work item for the dynamic initialization dip of the object at dst_addr,
 reporting diagnostics at pos.  implied_src is the source of an implied copy or
@@ -6203,7 +6204,7 @@ move, or NULL.
 }  /* push_dyn_init_work */
 
 
-static inline a_boolean control_transfer_active(an_interpreter_state  *ips)
+static INLINE a_boolean control_transfer_active(an_interpreter_state  *ips)
 /*
 Return TRUE if the current call frame has an unresolved return, break, or
 continue.
@@ -6267,9 +6268,7 @@ item itself stays valid across such pushes.
     case iwk_block:
       process_block_work(ips, item);
       break;
-    default:
-      unexpected_condition();
-      break;
+    default_is_unexpected();
   }  /* switch */
 }  /* process_work_item */
 
@@ -12891,8 +12890,8 @@ to FALSE and the reason for the failure is recorded in *ips.
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
-static a_boolean run_function_body(an_interpreter_state  *ips,
-                                   a_scope_ptr           callee_scope)
+static INLINE a_boolean run_function_body(an_interpreter_state  *ips,
+                                          a_scope_ptr           callee_scope)
 /*
 The given scope is a function scope.  Execute its associated compound
 statement.
@@ -27044,11 +27043,11 @@ done:
 }  /* process_dyn_init_work */
 
 
-static void push_result_operand(an_interpreter_state       *ips,
-                                an_interpreter_work_item   *item,
-                                an_expr_node_ptr           expr,
-                                an_expr_node_ptr           opnd,
-                                a_constexpr_address const  &result_cap)
+static INLINE void push_result_operand(an_interpreter_state       *ips,
+                                       an_interpreter_work_item   *item,
+                                       an_expr_node_ptr           expr,
+                                       an_expr_node_ptr           opnd,
+                                       a_constexpr_address const  &result_cap)
 /*
 Arrange for opnd, the operand that produces the result of the operation node
 expr of the iwk_expr work item *item, to be interpreted directly into the
