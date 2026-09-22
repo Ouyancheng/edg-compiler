@@ -14279,6 +14279,8 @@ DEFINE_entity_predicate(std_meta, is_type_alias,
 
 DEFINE_entity_predicate(std_meta, is_namespace_alias,
   ([&]{
+    /* Reflection uses iek_namespace for namespace aliases, and
+       iek_scope for namespaces (incl. the global namespace). */
     answer = rvp->entity.kind == iek_namespace;
   }))
 
@@ -14382,6 +14384,8 @@ DEFINE_entity_predicate(std_meta, is_explicit_object_parameter,
 
 DEFINE_entity_predicate(std_meta, is_namespace,
   ([&]{
+    /* Reflection uses iek_namespace for namespace aliases, and
+       iek_scope for namespaces (incl. the global namespace). */
     if (rvp->entity.kind == iek_namespace) {
       answer = TRUE;
     } else if (rvp->entity.kind == iek_scope) {
