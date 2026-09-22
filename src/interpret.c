@@ -1409,6 +1409,11 @@ kinds hand an item over to another kind by changing "kind" and resetting
 instance -- and the new kind's iwp_start visit then initializes its payload.
 */
 struct an_interpreter_work_item {
+  ~an_interpreter_work_item() = delete;
+			/* The destructor is implicitly deleted because of the
+			   union contents below, but MSVC issues a warning 
+			   (and sometimes an error) without an explicit
+			   declaration in that case. */
   an_interpreter_work_item
 		*below, *above;
 			/* The items in the adjacent slots of the work stack
