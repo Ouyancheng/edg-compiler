@@ -47,7 +47,7 @@ BEGIN_EDG_NAMESPACE
 /*
 Specify the version stamp of the IL being generated.
 */
-#define IL_VERSION_NUMBER "6.9"
+#define IL_VERSION_NUMBER "7.0"
 
 
 /* Pointers to the main tables in the intermediate language. */
