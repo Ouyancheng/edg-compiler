@@ -12,17 +12,19 @@
 cfe.c -- Main program for C++/C front end.
 
 C front end written by J. Stephen Adamczyk and Eric Schwarz, 1988-1989.
-Changed to C++ front end and enhanced by
+Changed to C++ front end and developed and enhanced at Edison Design Group by
   J. Stephen Adamczyk 1991-2018
   R. Michael Anderson 1991-1999
-  John H. Spicer      1992-
-  Daveed Vandevoorde  1999-
-  William M. Miller   2004-
-  Michael J. Herrick  2006-
-  Ellen Herrick       2018-
+  John H. Spicer      1992-2026
+  Daveed Vandevoorde  1999-2026
+  William M. Miller   2004-2026
+  Michael J. Herrick  2006-2026
+  Ellen Herrick       2018-2026
+  Nina Ranns          2018-2019
   Caleb Sunstrum      2019-2022
-  Wyatt Childers      2021-
-  Christof Meerwald   2022-
+  Wyatt Childers      2021-2026
+  Christof Meerwald   2022-2026
+Open-sourced in September of 2026.
 */
 
 /* Header files common to all files. */
