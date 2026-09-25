@@ -1,4 +1,4 @@
-Version 6.10
+Version 7.0, September 28, 2026
 
 9/15/26  [EDGcpfe/28958]
 Virtual and consteval specifiers on the "==" implied by a defaulted "<=>"
