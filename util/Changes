@@ -1,6 +1,9 @@
 Version 7.0, September 28, 2026
 
-No changes.
+9/27/26  [EDGcpfe/29061]
+
+mk_errinfo could produce incorrect output (e.g., missing font changes)
+when the -rst option was used.  Now fixed.
 
 -------------------------------------------------------------------------------
 Version 6.9, July 20, 2026

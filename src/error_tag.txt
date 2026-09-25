@@ -1,12 +1,7 @@
-###############################################################################
-#                                                             \  ___  /       #
-#                                                               /   \         #
-# Edison Design Group C++/C Front End                        - | \^/ | -      #
-#                                                               \   /         #
-# Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2026 Edison Design Group Inc.                   [_]          #
-#                                                                             #
-###############################################################################
+# Part of the EDG Compiler Project, under the Apache License v2.0 with LLVM
+# Exceptions.
+# See https://edgcpp.org/LICENSE.txt for license information.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 #
 # This file is used to supply additional tags that may be used as aliases
@@ -24,12 +19,3 @@
 # Lines that begin with a "#", and blank lines, are ignored by mk_errinfo.
 #
 
-###############################################################################
-#                                                             \  ___  /       #
-#                                                               /   \         #
-# Edison Design Group C++/C Front End                        - | \^/ | -      #
-#                                                               \   /         #
-# Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2026 Edison Design Group Inc.                   [_]          #
-#                                                                             #
-###############################################################################

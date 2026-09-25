@@ -1,12 +1,10 @@
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/
+/*
+Part of the EDG Compiler Project, under the Apache License v2.0 with LLVM
+Exceptions.
+See https://edgcpp.org/LICENSE.txt for license information.
+SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+*/
+
 /*
 
 float_pt.h -- Declarations for float_pt.c (having to do with manipulation of
@@ -316,14 +314,4 @@ extern void float_pt_init(void);
 END_EDG_NAMESPACE
 
 #endif /* ifndef FLOAT_PT_H */
-
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/
 

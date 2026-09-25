@@ -1,23 +1,10 @@
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++ Runtime                            - | \^/ | -      *
-*                                                               \   /         *
-*                                                             /  | |  \       *
-* Copyright 1992-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/
 /*
-Redistribution and use in source and binary forms are permitted
-provided that the above copyright notice and this paragraph are
-duplicated in all source code forms.  The name of Edison Design
-Group, Inc. may not be used to endorse or promote products derived
-from this software without specific prior written permission.
-THIS SOFTWARE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
-IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
-Any use of this software is at the user's own risk.
+Part of the EDG Compiler Project, under the Apache License v2.0 with LLVM
+Exceptions.
+See https://edgcpp.org/LICENSE.txt for license information.
+SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 */
+
 
 /*
 
@@ -484,12 +471,3 @@ CAST    (__c99_cfloat128_to_cfloat80, _Complex_float80, _Complex_float128,
 #endif /* __EDG_FLOAT80_ENABLING_POSSIBLE */
 #endif /* __EDG_FLOAT128_ENABLING_POSSIBLE */
 
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++ Runtime                            - | \^/ | -      *
-*                                                               \   /         *
-*                                                             /  | |  \       *
-* Copyright 1992-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/

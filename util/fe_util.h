@@ -1,12 +1,10 @@
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2024-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/
+/*
+Part of the EDG Compiler Project, under the Apache License v2.0 with LLVM
+Exceptions.
+See https://edgcpp.org/LICENSE.txt for license information.
+SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+*/
+
 /*
 
 fe_util.h -- General utility components (mostly templates) from the front end.
@@ -78,12 +76,3 @@ END_EDG_NAMESPACE
 /* Include the actual util.h file. */
 #include "util.h"
 
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2024-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/

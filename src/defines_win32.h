@@ -1,12 +1,10 @@
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/
+/*
+Part of the EDG Compiler Project, under the Apache License v2.0 with LLVM
+Exceptions.
+See https://edgcpp.org/LICENSE.txt for license information.
+SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+*/
+
 /*
 
 defines.h -- Defines configuration parameters for a given version of the
@@ -1101,12 +1099,3 @@ ones can be created with --dump_legacy_as_target).
 
 #endif /* ifndef DEFINES_WIN32_H */
 
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/

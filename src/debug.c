@@ -1,12 +1,10 @@
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/
+/*
+Part of the EDG Compiler Project, under the Apache License v2.0 with LLVM
+Exceptions.
+See https://edgcpp.org/LICENSE.txt for license information.
+SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+*/
+
 /*
 
 debug.c -- Debug routines.
@@ -834,12 +832,3 @@ END_EDG_NAMESPACE
 #endif /* DEBUG */
 
 
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/

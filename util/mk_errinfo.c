@@ -1,12 +1,10 @@
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/
+/*
+Part of the EDG Compiler Project, under the Apache License v2.0 with LLVM
+Exceptions.
+See https://edgcpp.org/LICENSE.txt for license information.
+SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+*/
+
 /*
 
 Utility program that generates error tables used by the compiler
@@ -614,13 +612,16 @@ Add the specified string of the specified length to the pending text
 buffer, word-wrapping at RST_WRAP_COLUMN characters.  A newline puts out
 the buffer immediately and resets it to zero length.  If font_setting is
 true, a space character in str should not be considered a location at which
-word wrapping can occur and '*' should not be escaped.
+word wrapping can occur and '*' should not be escaped.  If the length
+specified is zero, the string is null-terminated and strlen should be
+used to determine the length.
 */
 {
   static char buffer[RST_BUFFER_SIZE];
   static int  buf_pos = 0;
   static int  last_blank = 0;
 
+  if (len == 0) len = strlen(str);
   for (int i = 0; i < len; ++i) {
     char ch = str[i];
     if (ch == '\n') {
@@ -1218,12 +1219,3 @@ int main(int argc, char *argv[])
 }  /* main */
 
 
-/******************************************************************************
-*                                                             \  ___  /       *
-*                                                               /   \         *
-* Edison Design Group C++/C Front End                        - | \^/ | -      *
-*                                                               \   /         *
-* Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2026 Edison Design Group Inc.                   [_]          *
-*                                                                             *
-******************************************************************************/
