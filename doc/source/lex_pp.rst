@@ -1880,6 +1880,248 @@ top-level modification.  (This is the reason that it is not permitted to set
 ``MACRO_INVOCATION_TREE_IN_IL`` to TRUE without also setting
 ``FULLY_RESOLVED_MACRO_POSITIONS`` to TRUE.)
 
+Unicode Version-Dependent Features
+==================================
+
+The front end has three distinct features that depend on the definitions
+and classifications of characters in the Unicode standard and thus might
+need to be updated when new versions of Unicode are released.  The following
+subsections discuss each of these features and what is involved in a potential
+update.
+
+Classification of Identifier Characters
+---------------------------------------
+
+The front end must, of course, determine whether a given character can
+appear in a C/C++ identifier in order to find the start and end of
+identifier tokens during lexical analysis. There is also a distinction
+between characters that can begin an identifier and those that can appear
+only after the initial character; for example, ``'0'`` cannot be the first
+character of an identifier but it is valid in the succeeding positions.
+
+For single-byte character sets, this classification is done using boolean
+arrays indexed by the character value; see the declarations of
+``is_id_char``, ``is_id_char_no_mbc``, and ``char_ends_id`` in
+``lexical.h`` and their initialization in ``lexical_one_time_init`` in
+``lexical.c`` for details.
+
+The situation is more complicated for multi-byte characters, whether
+appearing directly in the source or via a *universal-character-name*. For
+C++23 (and, because the relevant paper was adopted as a defect report, for
+previous versions as well) and C23, the determination is based on the
+Unicode ``XID_Start`` and ``XID_Continue`` Derived Properties as specified
+in `www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt
+<https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt>`__.
+(Specific versions of this file can be found by replacing ``UCD/latest``
+with the version number, e.g., ``15.1.0``, in the URL.) Earlier versions of
+the C and C++ standards used different methods to specify these
+classifications, however, and the front end continues to support those
+variants for backward compatibility.
+
+The mechanism for achieving compatibility with multiple classification
+schemes is the ``UCN_table`` array, defined in ``lexical.c``. The elements
+of the array are objects of the following struct:
+
+.. code:: c++
+
+  typedef struct a_UCN_range {
+    unsigned long start;  /* The first character in the range. */
+    unsigned long end;    /* The last character in the range. */
+    a_byte        dialects;
+                          /* A bit set indicating the dialects for which this
+                             range of characters is accepted.  See below for
+                             the encoding masks. */
+    a_byte        non_initial_dialects;
+                          /* A bit set indicating the dialects for which this
+                             range of characters is not permitted as the
+                             first character of an identifier.  This uses the
+                             same encoding as dialects. */
+  } a_UCN_range;
+
+Characters tend to occur in groups, so to reduce the storage requirements
+of the array, each element describes a contiguous range of characters, all
+of which share the same treatment in all of the supported classification
+schemes. The elements of the array are sorted in strictly-ascending order
+of code point so that the array can be efficiently searched using a binary
+search. The ``dialects`` and ``non_initial_dialects`` members are bit sets
+with each bit representing a different language dialect, specifying how the
+characters in the specified range are classified in the various
+dialects. The C++23/C23 dialect is represented by the ``UAX44`` bit (so
+named because the ``XID_Start`` and ``XID_Continue`` properties are
+described in Unicode Annex #44).
+
+From the perspective of updating this table when new versions of Unicode
+are published, the principal requirement of this table is that all members
+of a given character range must be classified the same way in all of the
+supported dialects. A change in the classification of a character in a new
+Unicode version thus typically means that an existing range in the table
+must be split, so that any characters before and/or after the character of
+interest can maintain their previous values while that character's
+``UAX44`` bits reflect the new Unicode classification (maintaining the
+previous values for all the other flags). As a specific example, the
+``DerivedCoreProperties.txt`` file for Unicode version 15.1.0 contained
+(among others) the following changes from version 15.0.0:
+
+.. code:: text
+
+  +2EBF0..2EE5D  ; XID_Start # Lo [622] CJK UNIFIED IDEOGRAPH-2EBF0..CJK UNIFIED IDEOGRAPH-2EE5D
+  . . .
+  +2EBF0..2EE5D  ; XID_Continue # Lo [622] CJK UNIFIED IDEOGRAPH-2EBF0..CJK UNIFIED IDEOGRAPH-2EE5D
+
+These changes indicate that the characters in the indicated range can now
+appear both within identifiers and as the first character of an
+identifier. These code points were previously contained within the range of
+the following element of the ``UCN_table`` array:
+
+.. code:: c++
+
+  { 0x2ebe1, 0x2f7ff,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
+
+As a result, the range needed to be split in order to preserve the
+classification of the characters before and after the new 15.1.0 range,
+resulting in the following three elements to replace the existing one:
+
+.. code:: c++
+
+
+  { 0x2ebe1, 0x2ebef,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
+  { 0x2ebf0, 0x2ee5d,   _   |  _  | CPP11 | UAX44,   _   |   _   |   _   },
+  { 0x2ee5e, 0x2f7ff,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
+
+Note both the addition of the ``UAX44`` flag in the initializer for
+``dialects`` and its absence in the initializer for
+``non_initial_dialects``, since the latter specifies dialects for which the
+characters are *not* permitted to start an identifier.
+
+Detection of Source Code Unicode Vulnerabilities
+------------------------------------------------
+
+One potential avenue of source-level exploits relies on the fact that a
+number of distinct Unicode characters have similar or identical glyphs. For
+example, the Latin, Greek, and Cyrillic alphabets each have a character
+whose visual appearance is "A", even though the code points for those
+characters are different. This permits the creation of programs with
+vulnerabilities that cannot be detected by even a careful code review (by
+hijacking overloaded function calls, for example).
+
+Unicode provides a table,
+`www.unicode.org/Public/security/latest/confusables.txt
+<https://www.unicode.org/Public/security/latest/confusables.txt>`__, that
+enumerates such potentially-confused characters (replace "latest" with the
+version number to access the specification for a specific version). This
+table is described in
+`www.unicode.org/reports/tr39/ <https://www.unicode.org/reports/tr39/>`__.
+
+The front end incorporates this data as the array ``confusable_map``,
+defined in ``lexical.h``, which is a lightly-massaged version of the
+contents of ``confusables.txt``. Each element of the array is an object of
+the following struct:
+
+.. code:: c++
+
+  struct a_confusable_map_elem {
+    int	src_char;         /* The numeric value of a Unicode code point whose
+                             glyph could be confused with that of another
+                             code point. */
+    int	prototype[MAX_PROTOTYPE_LENGTH];
+                          /* The numeric values of the Unicode code points of
+                             the prototype character(s) for src_char, as
+                             defined in unicode.org/reports/tr39, "Unicode
+                             Security Mechanisms", section 4. */
+  };  /* a_confusable_map_elem */
+
+The elements are in strictly-ascending order of ``src_char``, to facilitate
+efficient searching using a binary search.
+
+Although the entries in ``confusables.txt`` are not in the same order as
+the elements of ``confusable_map``, that does not present a significant
+issue for updating the front end for new Unicode versions, as the mapping
+from the Unicode data to the corresponding array initializer is
+obvious. For example, a representative line of the version 15.1.0 file is:
+
+.. code:: text
+
+  2238 ;	002D 0307 ;	MA	#* ( ∸ → -̇ ) DOT MINUS → HYPHEN-MINUS, COMBINING DOT ABOVE	#
+
+and the corresponding initializer element is:
+
+.. code:: c++
+
+  { 0x02238, { 0x002D, 0x0307 } },
+
+Thus, a simple ``diff`` of two versions of the ``confusables.txt`` file
+provides sufficient information for any required updates.
+
+Such updates are expected to be infrequent, in any event, as the base data
+is not likely to change very much over time. If desired, the
+``edg-make-confusables-data`` script can be used with a given version of
+``confusables.txt`` to create the entire initializer for
+``confusable_map``.
+
+Named Unicode Escapes
+---------------------
+
+C++23 introduced the capability of incorporating a given Unicode character
+into the source text by specifying its full name, using the syntax ``\N{``\
+*character-name*\ ``}``. This feature requires the front end to be able to
+distinguish valid *character-name*\ s from invalid ones and to determine the
+code point associated with each valid name.
+
+Because Unicode defines tens of thousands of characters, with the average
+name being over thirty characters in length, this task is necessarily
+data-intensive. A naive straightforward approach, e.g., a sorted array of
+character names and code points searched using a binary search, would
+require around 1.5 megabytes of data and up to sixteen probes to match a
+given character name, so it would be fairly inefficient in both data and
+execution time.
+
+The approach chosen for the front end implementation of this feature uses a
+fairly straightforward finite state machine (FSM), with each state
+representing the initial substring of characters in one or more character
+names and each transition designating the state that would result for a
+specific character following that initial substring in a valid Unicode
+character name. There are a few simple optimizations to reduce the size of
+the data containing the FSM; sequences of single-transition states are
+compressed into a single state that matches a sequence of characters and
+has a single transition on the final one, and the algorithmically-named
+ranges for CJK and Tangut ideographs are also condensed into single states
+matching the common prefix and specifying their respective ranges of code
+points. Incorporating these optimizations, the storage required for the
+state machine for the names in Unicode 15.1.0 is about 510 kilobytes, much
+less than the naive implementation, and its performance is also much
+better.
+
+The data for the Unicode character names and code points comes from two
+files: `www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt
+<https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt>`__ and
+`www.unicode.org/Public/UCD/latest/ucd/NameAliases.txt
+<https://www.unicode.org/Public/UCD/latest/ucd/NameAliases.txt>`__.  (The
+files for specific versions can be found by substituting the version
+number, e.g., ``15.1.0``, for ``UCD/latest`` in the URLs.)
+
+The data for the state machine in the front end is contained in the array
+``unicode_name_fsm``, defined in the file ``unicode_name_fsm.c``. Because
+this table cannot be edited by hand, there is a utility that produces that
+file in its entirety, with no manual editing required. To run the utility,
+download the two files above from the ``unicode.org`` web site and issue
+the following command:
+
+  ``process_unicode_names UnicodeData.txt NameAliases.txt`` *output-file version date*
+
+where *output-file* is any file name (it must be copied to
+``unicode_name_fsm.c`` if that file is not updated *in situ*); *version* is
+the Unicode version number (e.g., ``15.1.0``); and *date* is the release
+date of the Unicode version (e.g., ``2023-08-28``). (The latter two
+command-line arguments are incorporated into the comments in the generated
+source file.)
+
+The source for the utility is found in the
+``dev_tools/cpp_tools/process_unicode_names`` subdirectory. Any changes
+desired in the contents of ``unicode_name_fsm.c`` (such as updating the
+copyright date) should be edited into the utility source in the
+initializer for the ``header_text`` variable, since any manual edits in
+``unicode_name_fsm.c`` will be overwritten by the next run of the utility.
+
 .. [#f1] Trigraphs and line splices are not undone and so do not appear in the
          output.
 .. [#f2] As mentioned previously, the actual newline character is replaced by
