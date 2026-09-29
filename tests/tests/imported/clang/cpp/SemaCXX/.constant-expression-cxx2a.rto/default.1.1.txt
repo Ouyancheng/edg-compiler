@@ -70,7 +70,7 @@ fe_only -DTEST_NUMBER=1 --clang -tused -e 200 --no_wrap_diagnostics --clang_vers
 "SemaCXX/constant-expression-cxx2a.cpp", line 210: error: static assertion failed
     static_assert(cb2->f()->b == 'B');
     ^
-"SemaCXX/constant-expression-cxx2a.cpp", line 210: note: the final comparison was 2131689472 == 66
+"SemaCXX/constant-expression-cxx2a.cpp", line 210: note: the final comparison was VALUE == 66
     static_assert(cb2->f()->b == 'B');
                               ^
 

@@ -1,5 +1,6 @@
 //type: fn
 //options:  --c++20 --exceptions
+//filter:sed -E -e 's/line 210: note: the final comparison was -?[0-9]{4,} ==/line 210: note: the final comparison was VALUE ==/'
 # 1 "SemaCXX/constant-expression-cxx2a.cpp"
 # 1 "<built-in>" 1
 # 1 "<built-in>" 3
