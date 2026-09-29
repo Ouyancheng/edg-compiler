@@ -1,6 +1,6 @@
 //type: rp
 //options:
-//filter:sed -E -e 's/ffff[c-f][0-9a-f]{3}/STACK/g'
+//filter:edg-normalize-test-output --stack-addr-cleanup
 // { dg-do run }
 // Origin: Giovanni Bajo <giovannibajo at gcc dot gnu dot org>
 // DR20: Some clarifications needed for 12.8 para 15 

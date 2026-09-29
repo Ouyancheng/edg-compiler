@@ -29,6 +29,14 @@ def parse_args() -> argparse.Namespace:
     action = 'store_true',
     help = 'include rules to normalize IL'
   )
+  parser.add_argument(
+    '--stack-addr-cleanup',
+    dest = 'stack_addr_cleanup',
+    action = 'store_true',
+    help = (
+      'replace host-dependent stack / high addresses with STACK or 0xSTACK'
+    )
+  )
   return parser.parse_args()
 
 def die(signum: Any, frame: Any) -> None:
@@ -73,6 +81,7 @@ def main() -> None:
 
   normalizer = edgtest.filter.Normalizer(
     normalize_il = args.normalize_il,
+    stack_addr_cleanup = args.stack_addr_cleanup,
     env = os.environ,
     build_constants = build_constants
   )

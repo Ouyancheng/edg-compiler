@@ -96,8 +96,17 @@ GLOBAL_REGEX_REPLACEMENTS = {
   **_ESCAPED_REGEX_REPLACEMENTS
 }
 
+# Stack / high canonical user addresses that vary across hosts and ASLR.
+# Match both %p (0x-prefixed) and %x (bare) forms.  The 0x form must be listed
+# first so it wins over the bare form.
+_STACK_ADDR_REPLACEMENTS = (
+  (r'0x(?:7fffffff[0-9a-f]+|ffff[0-9a-f]+)', '0xSTACK'),
+  (r'(?<![0-9a-fx])(?:7fffffff[0-9a-f]+|ffff[0-9a-f]+)', 'STACK'),
+)
+
 class Normalizer:
-  def __init__(self, *, normalize_il: bool, env: Dict[str, str],
+  def __init__(self, *, normalize_il: bool, stack_addr_cleanup: bool = False,
+               env: Dict[str, str],
                build_constants: BuildConstants) -> None:
     self.replacements = list(GLOBAL_REGEX_REPLACEMENTS.items())
     self.replacements.extend([
@@ -118,6 +127,9 @@ class Normalizer:
         re.escape(mono_repo_dir.as_posix()),
         '/edg/workspace'
       ))
+
+    if stack_addr_cleanup:
+      self.replacements.extend(_STACK_ADDR_REPLACEMENTS)
 
     if normalize_il:
       # Detect the compiler version string.

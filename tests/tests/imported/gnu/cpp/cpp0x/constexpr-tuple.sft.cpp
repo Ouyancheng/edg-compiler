@@ -1,6 +1,6 @@
 //type: rp
 //options: --c++11
-//filter:sed -E -e 's/0x(7fffffff[0-9a-f]+|ffff[0-9a-f]+)/0xSTACK/g'
+//filter:edg-normalize-test-output --stack-addr-cleanup
 # 0 "./cpp0x/constexpr-tuple.C"
 # 0 "<built-in>"
 # 0 "<command-line>"

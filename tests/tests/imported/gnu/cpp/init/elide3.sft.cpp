@@ -1,6 +1,6 @@
 //type: rp
 //options: 
-//filter:sed -E -e 's/0x(7fffffff[0-9a-f]+|ffff[0-9a-f]+)/0xSTACK/g'
+//filter:edg-normalize-test-output --stack-addr-cleanup
 // PR c++/67557
 // { dg-do run }
 

@@ -1,6 +1,6 @@
 //type: rp
 //options:
-//filter:sed -E -e 's/ffff[c-f][0-9a-f]{3}/STACK/g'
+//filter:edg-normalize-test-output --stack-addr-cleanup
 // { dg-do run }
 // { dg-options "-O2" }
 
