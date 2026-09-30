@@ -113,6 +113,10 @@ function(add_edg_cpp_rt_target target_name)
   # Create an empty variable to be used as a list of object files.
   set(obj_files "")
 
+  # Explicitly create the cache directory (needed for some generators -- e.g.,
+  # Unix Makefiles).
+  file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/${target_name}-cache")
+
   # Add the build for the main object files.
   foreach(bare_file_name IN LISTS BARE_FILE_NAMES)
     set(src_file_name "${PROJECT_SOURCE_DIR}/${bare_file_name}.c")

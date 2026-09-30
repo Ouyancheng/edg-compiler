@@ -13,7 +13,8 @@ string(JOIN "\n" static_env
     "export EDG_MUNCH_PATH=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/edg_munch\""
     "export EDG_DECODE_PATH=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/edg_decode\""
     "export EDG_PRELINK_PATH=\"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/edg_prelink\""
-    "export ECCP=\"${CMAKE_SOURCE_DIR}/util/eccp.sh\"")
+    "export ECCP=\"${CMAKE_SOURCE_DIR}/util/eccp.sh\""
+    "export EDG_BASE=\"$CACHE{EDG_BASE}\"")
 
 string(JOIN "\n" lazy_static_env
   "export CPFE=\"\${CPFE:-${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/cpfe}\""
@@ -22,7 +23,8 @@ string(JOIN "\n" lazy_static_env
   "export EDG_MUNCH_PATH=\"\${EDG_MUNCH_PATH:-${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/edg_munch}\""
   "export EDG_DECODE_PATH=\"\${EDG_DECODE_PATH:-${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/edg_decode}\""
   "export EDG_PRELINK_PATH=\"\${EDG_PRELINK_PATH:-${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/edg_prelink}\""
-  "export ECCP=\"\${ECCP:-${CMAKE_SOURCE_DIR}/util/eccp.sh}\"")
+  "export ECCP=\"\${ECCP:-${CMAKE_SOURCE_DIR}/util/eccp.sh}\""
+  "export EDG_BASE=\"\${EDG_BASE:-$CACHE{EDG_BASE}}\"")
 
 FILE(WRITE ${CMAKE_BINARY_DIR}/environment.sh "${static_env}\n")
 FILE(WRITE ${CMAKE_BINARY_DIR}/.envrc

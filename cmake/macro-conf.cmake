@@ -14,18 +14,46 @@ else()
                PATHS "${CMAKE_SOURCE_DIR}/dev_tools/bin")
 endif()
 
-function(init_macro_configuration_support)
-  set(default "")
-
-  # Migrate "EDG_BASE" to "MACRO_CONF"
-  if(DEFINED CACHE{EDG_BASE})
-    message(STATUS "Migrating EDG_BASE -> EDG_MACRO_CONF")
-    set(default "$CACHE{EDG_BASE}")
-    unset(EDG_BASE CACHE)
+function(resolve_macro_configuration result_var macro_conf build_type)
+  # Set result_var to macro_conf, or, if that's empty, to the host's macro
+  # configuration for build_type.
+  set(result "${macro_conf}")
+  if(result STREQUAL "")
+    host_macro_configuration(result "${build_type}")
+    if(result STREQUAL "")
+      message(WARNING
+              "No macro configuration matches this host, compiler, and "
+              "build type \"${build_type}\"; set EDG_MACRO_CONF or use a "
+              "preset from CMakePresets.json.")
+    else()
+      message(STATUS "Auto-selected macro configuration \"${result}\" for "
+                     "build type \"${build_type}\".")
+    endif()
   endif()
+  set(${result_var} "${result}" PARENT_SCOPE)
+endfunction()
 
-  set(EDG_MACRO_CONF ${default}
-      CACHE STRING "The debug macro configuration to use")
+function(init_macro_configuration_support)
+  # An empty macro configuration selects the one matching the host platform,
+  # compiler, and build type.  The selections are exported as
+  # CACHE{EDG_MACRO_CONF} (single-configuration generators) or
+  # CACHE{EDG_DEBUG_MACRO_CONF} and CACHE{EDG_RELEASE_MACRO_CONF}
+  # (multi-configuration generators).
+  if(CMAKE_CONFIGURATION_TYPES)
+    resolve_macro_configuration(debug_conf "$CACHE{EDG_DEBUG_MACRO_CONF}"
+                                "Debug")
+    resolve_macro_configuration(release_conf
+                                "$CACHE{EDG_RELEASE_MACRO_CONF}" "Release")
+    set(EDG_DEBUG_MACRO_CONF "${debug_conf}" CACHE STRING
+        "The macro configuration for debug builds")
+    set(EDG_RELEASE_MACRO_CONF "${release_conf}" CACHE STRING
+        "The macro configuration for release builds")
+  else()
+    resolve_macro_configuration(conf "${EDG_MACRO_CONF}"
+                                "${CMAKE_BUILD_TYPE}")
+    set(EDG_MACRO_CONF "${conf}" CACHE STRING
+        "The macro configuration for the build")
+  endif()
 endfunction()
 
 function(process_macro_configuration_setup target macro_conf)
