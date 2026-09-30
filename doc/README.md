@@ -15,17 +15,48 @@ If `pip3` is not an alias for Python 3's PIP, use:
 pip install -U Sphinx shibuya
 ```
 
+To use the exact versions that CI checks the documentation with (requires
+Python 3.12 or newer):
+
+```
+pip3 install -r doc/requirements.txt
+```
+
 ## Make HTML
 
 To make an HTML version of the documentation, after Sphinx is installed:
 
 ```
-cd doc-sphinx
+cd doc
 make html
 ```
 
 These files can then be viewed in the browser by opening
 `build/html/index.html`.
+
+To check for warnings the same way CI does, which fails on any warning:
+
+```
+make html SPHINXOPTS="-W"
+```
+
+## Publishing
+
+The [website repository](https://github.com/edgcpp/edgcpp.github.io) builds
+this documentation with `make dirhtml` and publishes two copies of it:
+
+- https://edgcpp.org/doc/ is the release documentation, built from the tag
+  named by `COMPILER_DOC_REF` in the website's
+  `.github/workflows/build_and_deploy.yml`.  Bump that to publish a newer
+  release's documentation.
+- https://edgcpp.org/dev/doc/ is the development documentation, built from
+  `main`.
+
+In this repository, the
+[Documentation workflow](../.github/workflows/documentation.yml) checks that
+the documentation builds without warnings on every pull request and push to
+`main` that touches `doc/`.  When such a push to `main` passes, it triggers
+the website's workflow, which updates https://edgcpp.org/dev/doc/.
 
 ## Useful Links:
 

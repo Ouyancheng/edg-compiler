@@ -29,7 +29,7 @@ author = '\n'.join([
   'Ellen Herrick',
   'Nina Ranns',
   'Caleb Sunstrum',
-  'Wyatt Childers'
+  'Wyatt Childers',
   'Christof Meerwald'
 ])
 

@@ -1,0 +1,79 @@
+# Part of the EDG Compiler Project, under the Apache License v2.0 with LLVM
+# Exceptions.
+# See https://edgcpp.org/LICENSE.txt for license information.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+#
+# Build the Sphinx documentation in doc/ with warnings treated as errors, so
+# documentation changes stay publishable.
+#
+# The build runs in the edgcpp/sphinx-env image, which the site workflow
+# described below also builds the published documentation with.  That image
+# installs the packages pinned in doc/requirements.txt, so after changing
+# them, rebuild it with build-edg-env sphinx-env and push it to Docker Hub.
+#
+# The documentation is published by the edgcpp/edgcpp.github.io site
+# workflow, not from here: it builds the release tag into
+# https://edgcpp.org/doc/ and main into https://edgcpp.org/dev/doc/.  After a
+# push to main passes the build, this asks that workflow to run so the
+# development documentation is updated.  That needs the SITE_DISPATCH_TOKEN
+# secret: a fine-grained token for edgcpp/edgcpp.github.io only, with
+# "Actions: Read and write" permission.
+
+name: Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'doc/**'
+      - '.github/workflows/documentation.yml'
+  pull_request:
+    paths:
+      - 'doc/**'
+      - '.github/workflows/documentation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build HTML documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: docker.io/edgcpp/sphinx-env:latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      # The published site uses the dirhtml builder, so check that one.
+      - name: Build HTML
+        run: make -C doc dirhtml SPHINXOPTS="-W"
+
+  publish-dev:
+    name: Publish development documentation
+    needs: build
+    if: >
+      github.repository == 'edgcpp/compiler' &&
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger the edgcpp.org site build
+        env:
+          GH_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::SITE_DISPATCH_TOKEN is not set, so" \
+              "https://edgcpp.org/dev/doc/ was not updated."
+            exit 0
+          fi
+          gh workflow run build_and_deploy.yml \
+            --repo edgcpp/edgcpp.github.io --ref develop
